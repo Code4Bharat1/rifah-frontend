@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { notFound, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users } from "lucide-react";
 import { useState } from "react";
 
@@ -9,15 +9,59 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { FieldRow, Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { eventImage } from "@shared/lib/media";
-import { events, } from "@shared/lib/mock-data";
+import { useEventDetail, useEvents } from "@shared/hooks/use-rifah-api";
+import { eventApi } from "@shared/lib/api-services";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 
 function EventDetail() {
   const params = useParams();
   const eventId = params?.eventId;
-  const event = events.find((e) => e.id === eventId) || events[0];
-  if (!event) return null;
-  const [registered, setRegistered] = useState(event.registered);
-  const others = events.filter((e) => e.id !== event.id && e.status === "Upcoming").slice(0, 3);
+
+  const { data: event, isLoading } = useEventDetail(eventId);
+  const { data: othersData } = useEvents({ status: "Upcoming", limit: 3 });
+
+  const [registered, setRegistered] = useState(false);
+  const [registering, setRegistering] = useState(false);
+
+  if (isLoading) {
+    return (
+      <PublicLayout>
+        <div className="rifah-container py-12 text-center text-sm text-muted-foreground">
+          Loading event details...
+        </div>
+      </PublicLayout>
+    );
+  }
+
+  if (!event) {
+    return (
+      <PublicLayout>
+        <div className="rifah-container py-16 text-center">
+          <h1 className="text-2xl font-bold">Event not found</h1>
+          <p className="mt-2 text-sm text-muted-foreground">This event may have ended or been rescheduled.</p>
+          <Button asChild className="mt-6">
+            <Link href="/events">Back to events</Link>
+          </Button>
+        </div>
+      </PublicLayout>
+    );
+  }
+
+  const others = (othersData?.events || []).filter((e) => e._id !== event._id);
+
+  const handleRegister = async () => {
+    setRegistering(true);
+    try {
+      await eventApi.register(event._id);
+      setRegistered(true);
+    } catch (err) {
+      alert(err.message || "Failed to register. Please make sure you are logged in.");
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const coverUrl = event.coverImage ? resolveMediaUrl(event.coverImage) : eventImage;
 
   return (
     <PublicLayout>
@@ -31,7 +75,7 @@ function EventDetail() {
             <div className="overflow-hidden rounded-2xl border border-border bg-surface">
               <div className="h-28 overflow-hidden sm:h-40">
                 <img
-                  src={eventImage}
+                  src={coverUrl}
                   alt={`${event.title} — RIFAH event`}
                   width={1024}
                   height={640}
@@ -52,7 +96,7 @@ function EventDetail() {
                     { icon: CalendarDays, label: "Date", value: event.date },
                     { icon: Clock, label: "Time", value: event.time },
                     { icon: MapPin, label: "Venue", value: event.venue },
-                    { icon: Users, label: "Seats", value: event.seats },
+                    { icon: Users, label: "Capacity", value: `${event.seats} seats` },
                   ].map((s) => (
                     <div key={s.label} className="min-w-0">
                       <dt className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -66,16 +110,18 @@ function EventDetail() {
             </div>
 
             <div className="mt-4 space-y-4">
-              <Panel title="Agenda">
-                <ol className="space-y-3">
-                  {event.agenda.map((a) => (
-                    <li key={a.time} className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 border-b border-border pb-3 last:border-0 last:pb-0">
-                      <span className="text-sm font-semibold text-primary">{a.time}</span>
-                      <span className="text-sm">{a.item}</span>
-                    </li>
-                  ))}
-                </ol>
-              </Panel>
+              {event.agenda && event.agenda.length > 0 && (
+                <Panel title="Agenda">
+                  <ol className="space-y-3">
+                    {event.agenda.map((a, i) => (
+                      <li key={i} className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 border-b border-border pb-3 last:border-0 last:pb-0">
+                        <span className="text-sm font-semibold text-primary">{a.time}</span>
+                        <span className="text-sm">{a.item}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </Panel>
+              )}
               <Panel title="Event details">
                 <dl>
                   <FieldRow label="Organiser" value={event.organizer} />
@@ -86,11 +132,6 @@ function EventDetail() {
                   <FieldRow label="Who should attend" value="Member businesses, buyers and chapter invitees" />
                 </dl>
               </Panel>
-              <Panel title="Venue">
-                <div className="grid h-40 place-items-center rounded-xl border border-dashed border-border bg-muted text-xs text-muted-foreground">
-                  Map placeholder — {event.mode === "Online" ? "joining link shared after registration" : event.venue}
-                </div>
-              </Panel>
             </div>
           </div>
 
@@ -99,81 +140,51 @@ function EventDetail() {
               {registered ? (
                 <div className="rounded-xl border border-success/30 bg-success-soft p-3">
                   <p className="flex items-center gap-2 text-sm font-semibold text-success">
-                    <CheckCircle2 className="h-4 w-4" /> You are registered
+                    <CheckCircle2 className="h-4 w-4" /> You're registered
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Your pass will be available in My events before the session.
+                    Confirmation sent to your email. Joining details will follow prior to the event.
                   </p>
                 </div>
               ) : (
-                <ul className="space-y-2.5 text-sm">
-                  <li className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Fee</span>
-                    <span className="font-medium">{event.fee}</span>
-                  </li>
-                  <li className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Availability</span>
-                    <span className="font-medium">{event.seats}</span>
-                  </li>
-                </ul>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-2xl font-bold tracking-tight">{event.fee}</p>
+                    <p className="text-xs text-muted-foreground">{event.seats - (event.registeredCount || 0)} seats remaining</p>
+                  </div>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    disabled={registering}
+                    onClick={handleRegister}
+                  >
+                    {registering ? "Registering..." : "RSVP / Register"}
+                  </Button>
+                </div>
               )}
-              <div className="mt-4 grid gap-2">
-                <Button
-                  size="lg"
-                  variant={registered ? "outline" : "default"}
-                  disabled={event.status === "Past"}
-                  onClick={() => setRegistered((r) => !r)}
-                >
-                  <Ticket className="h-4 w-4" />
-                  {event.status === "Past"
-                    ? "Event concluded"
-                    : registered
-                      ? "Cancel registration"
-                      : "Register for this event"}
-                </Button>
-                <Button variant="ghost" size="lg">
-                  <Share2 className="h-4 w-4" /> Share event
-                </Button>
-              </div>
             </Panel>
-            <Panel title="Other upcoming events">
-              <ul className="space-y-3">
-                {others.map((e) => (
-                  <li key={e.id}>
-                    <Link href={`/events/${e.id }`}
-                      className="block rounded-xl border border-border p-3 transition-colors hover:border-primary/40"
-                    >
-                      <p className="text-sm font-semibold leading-snug">{e.title}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {e.date} · {e.city}
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
+
+            {others.length > 0 && (
+              <Panel title="Other upcoming events">
+                <ul className="space-y-3">
+                  {others.map((o) => (
+                    <li key={o._id || o.slug}>
+                      <Link href={`/events/${o.slug || o._id}`} className="group block">
+                        <p className="text-xs font-semibold text-primary">{o.date}</p>
+                        <p className="text-sm font-medium leading-snug group-hover:underline">{o.title}</p>
+                        <p className="text-xs text-muted-foreground">{o.city} · {o.mode}</p>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </Panel>
+            )}
           </aside>
         </div>
-      </div>
-
-      <div className="fixed inset-x-0 bottom-[56px] z-30 border-t border-border bg-surface/95 p-3 backdrop-blur md:hidden">
-        <Button
-          size="lg"
-          className="w-full"
-          variant={registered ? "outline" : "default"}
-          disabled={event.status === "Past"}
-          onClick={() => setRegistered((r) => !r)}
-        >
-          <Ticket className="h-4 w-4" />
-          {registered ? "Cancel registration" : "Register for this event"}
-        </Button>
       </div>
     </PublicLayout>
   );
 }
 
-
-const EventDetailPage = EventDetail;
-
-export { EventDetailPage };
-export default EventDetailPage;
+export { EventDetail as EventDetailPage };
+export default EventDetail;

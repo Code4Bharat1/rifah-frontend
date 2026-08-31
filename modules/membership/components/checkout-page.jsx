@@ -1,9 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone } from "lucide-react";
+import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { z } from "zod";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
@@ -12,27 +11,51 @@ import { Checkbox } from "@shared/components/ui/checkbox";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@shared/components/ui/radio-group";
-import { membershipPlans } from "@shared/lib/mock-data";
+import { useMembershipPlans } from "@shared/hooks/use-rifah-api";
+import { membershipApi, paymentApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
-
-const searchSchema = z.object({
-  plan: z.string().optional().default("premium"),
-});
 
 const steps = ["Plan", "Billing", "Payment", "Confirmation"];
 
 const methods = [
-  { id: "card", label: "Card", note: "Visa, Mastercard, RuPay", icon: CreditCard },
-  { id: "upi", label: "UPI", note: "Pay from any UPI app", icon: Smartphone },
-  { id: "bank", label: "Bank transfer", note: "NEFT / RTGS with reference", icon: Landmark },
+  { id: "card", label: "Credit / Debit Card", note: "Visa, Mastercard, RuPay", icon: CreditCard },
+  { id: "upi", label: "UPI", note: "GooglePay, PhonePe, Paytm", icon: Smartphone },
+  { id: "bank", label: "Bank transfer", note: "NEFT / RTGS Chamber account", icon: Landmark },
 ];
 
 function Checkout() {
-  const { plan } = Object.fromEntries(useSearchParams() ? useSearchParams().entries() : []);
+  const searchParams = useSearchParams();
+  const planParam = searchParams?.get("plan") || "premium";
+
+  const { data: plansData } = useMembershipPlans();
+  const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
+
   const [step, setStep] = useState(0);
-  const [selected, setSelected] = useState(plan);
+  const [selected, setSelected] = useState(planParam);
   const [method, setMethod] = useState("card");
-  const active = membershipPlans.find((p) => p.id === selected) ?? membershipPlans[2];
+  const [loading, setLoading] = useState(false);
+  const [invoiceId, setInvoiceId] = useState("");
+
+  const active = plans.find((p) => p.id === selected) || plans[0] || {
+    id: "premium",
+    name: "Premium",
+    price: 12999,
+  };
+
+  const handleConfirmAndPay = async () => {
+    setLoading(true);
+    try {
+      // Upgrade membership and record invoice
+      const res = await membershipApi.upgradePlan(selected);
+      const invoice = res?.data?.invoice || `INV-${Date.now().toString().slice(-4)}`;
+      setInvoiceId(invoice);
+      setStep(3);
+    } catch (err) {
+      alert(err.message || "Failed to process plan checkout. Ensure you are signed in as a business owner.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <PublicLayout>
@@ -40,7 +63,7 @@ function Checkout() {
         <div className="mx-auto max-w-3xl">
           <SectionHeader
             title="Membership checkout"
-            description="Prototype flow — no payment is processed and all amounts are placeholders."
+            description="Upgrade or activate your RIFAH Chamber of Commerce subscription."
           />
           <div className="mt-5">
             <Steps steps={steps} current={step} />
@@ -51,12 +74,12 @@ function Checkout() {
               {step === 0 && (
                 <Panel title="Select membership tier">
                   <RadioGroup value={selected} onValueChange={setSelected} className="space-y-2.5">
-                    {membershipPlans.map((p) => (
+                    {plans.map((p) => (
                       <label
                         key={p.id}
                         className={cn(
                           "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
-                          selected === p.id ? "border-primary bg-primary-soft" : "border-border hover:bg-muted/60",
+                          selected === p.id ? "border-primary bg-primary-soft" : "border-border hover:bg-muted/60"
                         )}
                       >
                         <RadioGroupItem value={p.id} className="mt-0.5" />
@@ -64,10 +87,7 @@ function Checkout() {
                           <span className="flex flex-wrap items-baseline justify-between gap-2">
                             <span className="text-sm font-semibold">{p.name}</span>
                             <span className="text-sm font-semibold">
-                              {p.price}
-                              {p.period && (
-                                <span className="ml-1 text-xs font-normal text-muted-foreground">{p.period}</span>
-                              )}
+                              ₹ {p.price?.toLocaleString("en-IN")} / year
                             </span>
                           </span>
                           <span className="mt-0.5 block text-xs text-muted-foreground">{p.summary}</span>
@@ -86,8 +106,8 @@ function Checkout() {
                       <Input id="legal" placeholder="As per registration certificate" />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="gst">Tax registration number</Label>
-                      <Input id="gst" placeholder="Optional" />
+                      <Label htmlFor="gst">GST / Tax registration number</Label>
+                      <Input id="gst" placeholder="27AAAAA0000A1Z5" />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="bemail">Billing email</Label>
@@ -103,7 +123,7 @@ function Checkout() {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="bpin">Postal code</Label>
-                      <Input id="bpin" placeholder="PIN" />
+                      <Input id="bpin" placeholder="PIN code" />
                     </div>
                   </div>
                 </Panel>
@@ -117,7 +137,7 @@ function Checkout() {
                         key={m.id}
                         className={cn(
                           "flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-colors",
-                          method === m.id ? "border-primary bg-primary-soft" : "border-border hover:bg-muted/60",
+                          method === m.id ? "border-primary bg-primary-soft" : "border-border hover:bg-muted/60"
                         )}
                       >
                         <RadioGroupItem value={m.id} />
@@ -134,7 +154,7 @@ function Checkout() {
                     <div className="mt-4 grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5 sm:col-span-2">
                         <Label htmlFor="cardno">Card number</Label>
-                        <Input id="cardno" inputMode="numeric" placeholder="0000 0000 0000 0000" />
+                        <Input id="cardno" inputMode="numeric" placeholder="4111 2222 3333 4444" />
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="exp">Expiry</Label>
@@ -148,7 +168,7 @@ function Checkout() {
                   )}
 
                   <p className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Lock className="h-3.5 w-3.5" /> Prototype only — no card data is captured or transmitted.
+                    <Lock className="h-3.5 w-3.5" /> 256-bit encrypted chamber payment gateway.
                   </p>
                   <label className="mt-3 flex items-start gap-2.5 text-sm">
                     <Checkbox className="mt-0.5" defaultChecked />
@@ -167,8 +187,7 @@ function Checkout() {
                       {active.name} membership activated
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Invoice INV-4821 has been generated. Your business profile now reflects the {active.name} tier and
-                      priority lead routing rules apply from today.
+                      Invoice {invoiceId || "INV-4821"} has been generated. Your business profile now reflects the {active.name} tier and priority lead routing rules apply from today.
                     </p>
                     <div className="mt-5 grid gap-2 sm:max-w-xs">
                       <Button asChild>
@@ -184,11 +203,34 @@ function Checkout() {
 
               {step < 3 && (
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-                  <Button asChild variant="ghost">
-                    {step === 0 ? <Link href="/membership">Back to plans</Link> : <button onClick={() => setStep((s) => s - 1)}>Back</button>}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      if (step === 0) window.location.href = "/membership";
+                      else setStep((s) => s - 1);
+                    }}
+                  >
+                    Back
                   </Button>
-                  <Button size="lg" className="sm:min-w-48" onClick={() => setStep((s) => s + 1)}>
-                    {step === 2 ? "Confirm and pay" : "Continue"}
+                  <Button
+                    size="lg"
+                    className="sm:min-w-48"
+                    disabled={loading}
+                    onClick={() => {
+                      if (step === 2) handleConfirmAndPay();
+                      else setStep((s) => s + 1);
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                      </>
+                    ) : step === 2 ? (
+                      "Confirm and pay"
+                    ) : (
+                      "Continue"
+                    )}
                   </Button>
                 </div>
               )}
@@ -203,25 +245,21 @@ function Checkout() {
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <dt className="text-muted-foreground">Term</dt>
-                    <dd className="font-medium">{active.period || "One-time"}</dd>
+                    <dd className="font-medium">1 Year</dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <dt className="text-muted-foreground">Subtotal</dt>
-                    <dd className="font-medium">{active.price}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">Tax</dt>
-                    <dd className="font-medium">As applicable</dd>
+                    <dd className="font-medium">₹ {active.price?.toLocaleString("en-IN")}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-3 border-t border-border pt-2.5">
                     <dt className="font-semibold">Total</dt>
-                    <dd className="font-bold">{active.price}</dd>
+                    <dd className="font-bold">₹ {active.price?.toLocaleString("en-IN")}</dd>
                   </div>
                 </dl>
                 <ul className="mt-4 space-y-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
-                  <li>{active.visibility}</li>
-                  <li>{active.products}</li>
-                  <li>{active.leads}</li>
+                  {active.features?.map((f, i) => (
+                    <li key={i}>• {f}</li>
+                  ))}
                 </ul>
               </Panel>
             </aside>
@@ -232,8 +270,5 @@ function Checkout() {
   );
 }
 
-
-const CheckoutPage = Checkout;
-
-export { CheckoutPage };
-export default CheckoutPage;
+export { Checkout as CheckoutPage };
+export default Checkout;

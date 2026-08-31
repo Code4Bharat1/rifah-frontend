@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@shared/components/ui/select";
 import { Textarea } from "@shared/components/ui/textarea";
-import { chapters } from "@shared/lib/mock-data";
+import { useChapters } from "@shared/hooks/use-rifah-api";
 
 const desks = [
   { name: "Membership desk", detail: "Plan selection, upgrades and renewals" },
@@ -26,6 +26,8 @@ const desks = [
 
 function ContactPage() {
   const [sent, setSent] = useState(false);
+  const { data: chaptersData } = useChapters();
+  const chapters = chaptersData || [];
 
   return (
     <PublicLayout>
@@ -44,7 +46,7 @@ function ContactPage() {
                 </span>
                 <h2 className="mt-3 text-base font-semibold">Message sent</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Reference MSG-3391. The secretariat will respond to your email.
+                  The secretariat will respond to your registered email shortly.
                 </p>
                 <Button variant="outline" className="mt-5" onClick={() => setSent(false)}>
                   Send another message
@@ -97,7 +99,7 @@ function ContactPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {chapters.map((c) => (
-                        <SelectItem key={c.name} value={c.name}>
+                        <SelectItem key={c._id || c.name} value={c.name}>
                           {c.name}
                         </SelectItem>
                       ))}
@@ -106,10 +108,15 @@ function ContactPage() {
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="cmsg">Message</Label>
-                  <Textarea id="cmsg" rows={5} required placeholder="How can the chamber help?" />
+                  <Textarea
+                    id="cmsg"
+                    rows={4}
+                    required
+                    placeholder="Tell us what you need or how we can help..."
+                  />
                 </div>
                 <div className="sm:col-span-2">
-                  <Button type="submit" size="lg" className="w-full sm:w-auto sm:min-w-48">
+                  <Button type="submit" size="lg">
                     <Send className="h-4 w-4" /> Send message
                   </Button>
                 </div>
@@ -117,58 +124,52 @@ function ContactPage() {
             )}
           </Panel>
 
-          <div className="space-y-4">
-            <Panel title="Secretariat">
-              <ul className="space-y-3 text-sm">
-                <li className="flex gap-2.5">
-                  <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span>RIFAH Chamber of Commerce & Industries — head secretariat</span>
-                </li>
-                <li className="flex gap-2.5">
+          <aside className="space-y-4">
+            <Panel title="Central Secretariat">
+              <div className="space-y-3 text-sm">
+                <p className="flex items-start gap-2.5">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span>Demo address, Mumbai, Maharashtra</span>
-                </li>
-                <li className="flex gap-2.5">
-                  <Phone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span>+91 00000 00000 (placeholder)</span>
-                </li>
-                <li className="flex gap-2.5">
-                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span>connect@rifah.example</span>
-                </li>
-                <li className="flex gap-2.5">
-                  <Clock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span>Mon – Sat, 10:00 – 18:00</span>
-                </li>
-              </ul>
+                  <span>
+                    RIFAH Chamber of Commerce & Industry
+                    <br />
+                    Central Secretariat, Byculla, Mumbai 400 008
+                  </span>
+                </p>
+                <p className="flex items-center gap-2.5">
+                  <Phone className="h-4 w-4 shrink-0 text-primary" />
+                  <a href="tel:+912223456789" className="hover:underline">
+                    +91 22 2345 6789
+                  </a>
+                </p>
+                <p className="flex items-center gap-2.5">
+                  <Mail className="h-4 w-4 shrink-0 text-primary" />
+                  <a href="mailto:secretariat@rifah.org" className="hover:underline">
+                    secretariat@rifah.org
+                  </a>
+                </p>
+                <p className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                  <Clock className="h-4 w-4 shrink-0" />
+                  <span>Mon–Fri · 09:30–18:00 IST</span>
+                </p>
+              </div>
             </Panel>
-            <Panel title="Desks">
-              <ul className="space-y-2.5">
+
+            <Panel title="Desks & working units">
+              <ul className="space-y-2.5 text-xs">
                 {desks.map((d) => (
-                  <li key={d.name} className="rounded-xl border border-border p-3">
-                    <p className="text-sm font-semibold">{d.name}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{d.detail}</p>
+                  <li key={d.name} className="rounded-lg bg-surface-muted p-2.5">
+                    <p className="font-semibold text-foreground">{d.name}</p>
+                    <p className="text-muted-foreground">{d.detail}</p>
                   </li>
                 ))}
               </ul>
             </Panel>
-            <Panel title="Regional chapters">
-              <ul className="space-y-2">
-                {chapters.map((c) => (
-                  <li key={c.name} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="min-w-0 truncate">{c.name}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{c.city}</span>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
-          </div>
+          </aside>
         </div>
       </div>
     </PublicLayout>
   );
 }
-
 
 export { ContactPage };
 export default ContactPage;

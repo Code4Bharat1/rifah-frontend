@@ -8,13 +8,17 @@ import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
-import { enquiries } from "@shared/lib/mock-data";
+import { useMyEnquiries } from "@shared/hooks/use-rifah-api";
 
-const tabs = ["All", "New", "In Progress", "Responded", "Closed"] ;
+const tabs = ["All", "Submitted", "Routed", "Responded", "Closed"];
 
 function MyEnquiries() {
   const [tab, setTab] = useState("All");
-  const rows = enquiries.filter((e) => tab === "All" || e.status === tab);
+  const { data: enquiriesData, isLoading } = useMyEnquiries({
+    status: tab === "All" ? undefined : tab,
+  });
+
+  const rows = enquiriesData?.enquiries || [];
 
   return (
     <AppShell
@@ -55,7 +59,7 @@ function MyEnquiries() {
               empty={
                 <EmptyState
                   icon={Send}
-                  title="No enquiries in this view"
+                  title="No enquiries found"
                   description="Post a sourcing requirement and matched members will respond here."
                   action={
                     <Button asChild>
@@ -65,11 +69,11 @@ function MyEnquiries() {
                 />
               }
               columns={[
-                { key: "id", header: "Enquiry", cell: (r) => <span className="font-semibold">{r.id}</span> },
-                { key: "title", header: "Requirement", cell: (r) => r.title },
+                { key: "title", header: "Requirement", cell: (r) => <span className="font-semibold">{r.title}</span> },
+                { key: "category", header: "Category", cell: (r) => r.category },
                 { key: "qty", header: "Quantity", cell: (r) => r.quantity },
-                { key: "by", header: "Required by", cell: (r) => r.requiredBy },
-                { key: "resp", header: "Responses", cell: (r) => <span className="tabular-nums">{r.responses}</span> },
+                { key: "by", header: "Required by", cell: (r) => r.requiredBy ? new Date(r.requiredBy).toLocaleDateString() : "Immediate" },
+                { key: "resp", header: "Responses", cell: (r) => <span className="tabular-nums">{r.responses?.length || 0}</span> },
                 { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
               ]}
               mobile={(r) => (
@@ -78,28 +82,18 @@ function MyEnquiries() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{r.title}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {r.id} · {r.createdAt}
+                        {r.category} · {new Date(r.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <StatusBadge status={r.status} />
                   </div>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    <Pill>{r.quantity}</Pill>
-                    <Pill>By {r.requiredBy}</Pill>
-                    <Pill tone={r.responses > 0 ? "success" : "neutral"}>{r.responses} responses</Pill>
+                    <Pill>Qty: {r.quantity}</Pill>
+                    {r.budget && <Pill>Budget: {r.budget}</Pill>}
+                    <Pill tone={r.responses?.length > 0 ? "success" : "neutral"}>
+                      {r.responses?.length || 0} responses
+                    </Pill>
                   </div>
-                  <ol className="mt-3 space-y-1.5 border-t border-border pt-3">
-                    {r.timeline.map((t) => (
-                      <li key={t.label} className="flex items-center gap-2 text-xs">
-                        <span
-                          className={t.done ? "h-2 w-2 rounded-full bg-success" : "h-2 w-2 rounded-full bg-muted"}
-                          aria-hidden
-                        />
-                        <span className={t.done ? "font-medium" : "text-muted-foreground"}>{t.label}</span>
-                        <span className="ml-auto text-muted-foreground">{t.at}</span>
-                      </li>
-                    ))}
-                  </ol>
                 </div>
               )}
             />
@@ -110,8 +104,5 @@ function MyEnquiries() {
   );
 }
 
-
-const CustomerEnquiries = MyEnquiries;
-
-export { CustomerEnquiries };
-export default CustomerEnquiries;
+export { MyEnquiries as CustomerEnquiries };
+export default MyEnquiries;

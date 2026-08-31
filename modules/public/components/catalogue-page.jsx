@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Package, Search, Send, SlidersHorizontal, Wrench } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
@@ -10,7 +10,8 @@ import { SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
-import { catalogue, cities, getBusiness } from "@shared/lib/mock-data";
+import { cities } from "@shared/lib/mock-data";
+import { useCatalogue } from "@shared/hooks/use-rifah-api";
 import { cn } from "@shared/lib/utils";
 
 function CataloguePage() {
@@ -19,21 +20,13 @@ function CataloguePage() {
   const [city, setCity] = useState("All locations");
   const [openFilters, setOpenFilters] = useState(false);
 
-  const results = useMemo(
-    () =>
-      catalogue.filter((item) => {
-        const q = query.trim().toLowerCase();
-        const matchesQuery =
-          !q ||
-          item.name.toLowerCase().includes(q) ||
-          item.category.toLowerCase().includes(q) ||
-          item.description.toLowerCase().includes(q);
-        const matchesType = type === "all" || item.type === type;
-        const matchesCity = city === "All locations" || item.city === city;
-        return matchesQuery && matchesType && matchesCity;
-      }),
-    [query, type, city],
-  );
+  const { data: catalogueData, isLoading } = useCatalogue({
+    search: query || undefined,
+    type: type === "all" ? undefined : type,
+    city: city === "All locations" ? undefined : city,
+  });
+
+  const results = catalogueData?.items || [];
 
   return (
     <PublicLayout>
@@ -55,7 +48,7 @@ function CataloguePage() {
             />
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex">
-            <Tabs value={type} onValueChange={(v) => setType(v )} className="min-w-0">
+            <Tabs value={type} onValueChange={(v) => setType(v)} className="min-w-0">
               <TabsList className="w-full sm:w-auto">
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="Product">Products</TabsTrigger>
@@ -80,7 +73,7 @@ function CataloguePage() {
                     aria-pressed={city === c}
                     className={cn(
                       "rounded-full border border-border px-3 py-1.5 text-xs font-medium transition-colors",
-                      city === c ? "border-primary bg-primary-soft text-primary" : "hover:bg-muted",
+                      city === c ? "border-primary bg-primary-soft text-primary" : "hover:bg-muted"
                     )}
                   >
                     {c}
@@ -99,8 +92,8 @@ function CataloguePage() {
           <div className="mt-4">
             <EmptyState
               icon={Package}
-              title="No offerings match these filters"
-              description="Try a broader search term or clear the location filter."
+              title="No offerings found"
+              description="Try adjusting your keywords or location filter."
               action={
                 <Button
                   variant="outline"
@@ -110,67 +103,72 @@ function CataloguePage() {
                     setCity("All locations");
                   }}
                 >
-                  Clear filters
+                  Reset filters
                 </Button>
               }
             />
           </div>
         ) : (
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((item) => {
-              const biz = getBusiness(item.businessId);
+              const biz = item.business;
               return (
-                <li key={item.id} className="flex flex-col rounded-2xl border border-border bg-surface p-4">
-                  <div className="flex items-start gap-3">
-                    <span
-                      className={cn(
-                        "grid h-10 w-10 shrink-0 place-items-center rounded-xl",
-                        item.type === "Product" ? "bg-primary-soft text-primary" : "bg-accent text-accent-foreground",
+                <article
+                  key={item._id || item.slug}
+                  className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-4 transition-all hover:border-primary/40 hover:shadow-card"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-primary">
+                        {item.type === "Product" ? <Package className="h-5 w-5" /> : <Wrench className="h-5 w-5" />}
+                      </span>
+                      <Pill tone={item.type === "Product" ? "primary" : "neutral"}>{item.type}</Pill>
+                    </div>
+                    <h2 className="mt-3 text-base font-semibold leading-snug">{item.name}</h2>
+                    <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
+                      {item.description}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                      <span className="font-semibold text-foreground">{item.price || "On Request"}</span>
+                      {item.moq && (
+                        <>
+                          <span>·</span>
+                          <span>MOQ: {item.moq}</span>
+                        </>
                       )}
-                      aria-hidden
-                    >
-                      {item.type === "Product" ? <Package className="h-5 w-5" /> : <Wrench className="h-5 w-5" />}
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-sm font-semibold">{item.name}</h3>
-                      <p className="truncate text-xs text-muted-foreground">{item.category}</p>
                     </div>
                   </div>
-                  <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    <Pill>{item.type}</Pill>
-                    <Pill>{item.city}</Pill>
-                    {item.moq && <Pill>MOQ {item.moq}</Pill>}
-                  </div>
-                  {biz && (
-                    <div className="mt-3 border-t border-border pt-3">
-                      <Link href={`/business/${biz.id }`}
-                        className="text-sm font-semibold hover:text-primary"
-                      >
-                        {biz.name}
-                      </Link>
-                      <div className="mt-1">
-                        <VerificationBadge status={biz.verification} compact />
+
+                  <div className="mt-4 border-t border-border pt-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/business/${biz?.slug || biz?._id || ""}`}
+                          className="truncate text-xs font-semibold hover:underline"
+                        >
+                          {biz?.name}
+                        </Link>
+                        <p className="text-[11px] text-muted-foreground">
+                          {item.city} · {biz?.chapter}
+                        </p>
                       </div>
+                      {biz?.verification === "verified" && <VerificationBadge level="verified" compact />}
                     </div>
-                  )}
-                  <div className="mt-3 flex flex-1 items-end">
-                    <Button asChild size="sm" className="w-full">
-                      <Link href={`/enquiry/new?business=custom`}>
-                        <Send className="h-4 w-4" /> Enquire
+                    <Button asChild size="sm" className="mt-3 w-full">
+                      <Link href={`/enquiry/new?category=${encodeURIComponent(item.category)}`}>
+                        <Send className="h-3.5 w-3.5" /> Enquire about this
                       </Link>
                     </Button>
                   </div>
-                </li>
+                </article>
               );
             })}
-          </ul>
+          </div>
         )}
       </div>
     </PublicLayout>
   );
 }
-
 
 export { CataloguePage };
 export default CataloguePage;

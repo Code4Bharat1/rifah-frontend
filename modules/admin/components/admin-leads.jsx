@@ -2,42 +2,36 @@
 import { Target } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
-import { Pill } from "@shared/components/rifah/badges";
+import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
-import { Button } from "@shared/components/ui/button";
-import { enquiries } from "@shared/lib/mock-data";
+import { useAllEnquiries } from "@shared/hooks/use-rifah-api";
 
 function AdminLeads() {
+  const { data: enquiriesData } = useAllEnquiries();
+  const enquiries = enquiriesData?.enquiries || [];
+
   return (
-    <AppShell role="admin" title="Lead routing" subtitle="Matching buyer requirements to members">
+    <AppShell role="admin" title="Lead routing" subtitle="Matching buyer requirements to verified enterprises">
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Open leads" value={String(enquiries.length)} icon={Target} tone="primary" />
-          <StatCard label="Matched" value={String(enquiries.filter((e) => e.responses > 0).length)} tone="success" />
-          <StatCard label="Needs routing" value={String(enquiries.filter((e) => e.responses === 0).length)} tone="warning" />
-          <StatCard label="Avg. matches / lead" value="3.4" />
+          <StatCard label="Total leads" value={String(enquiries.length)} icon={Target} tone="primary" />
+          <StatCard label="Direct RFQs" value={String(enquiries.filter((e) => e.business).length)} tone="success" />
+          <StatCard label="Broadcast RFQs" value={String(enquiries.filter((e) => !e.business).length)} tone="warning" />
+          <StatCard label="Routing Desk" value="Active" />
         </div>
 
-        <Panel title="Routing worklist" description="Assign members to each requirement">
+        <Panel title="Routing worklist">
           <ResponsiveTable
             rows={enquiries}
             empty={<EmptyState icon={Target} title="No leads to route" description="New buyer requirements appear here." />}
             columns={[
-              { key: "id", header: "Ref", cell: (r) => <span className="font-semibold">{r.id}</span> },
-              { key: "title", header: "Requirement", cell: (r) => r.title },
+              { key: "title", header: "Requirement", cell: (r) => <span className="font-semibold">{r.title}</span> },
               { key: "category", header: "Category", cell: (r) => r.category },
-              { key: "location", header: "Location", cell: (r) => r.location },
-              { key: "matched", header: "Matches", cell: (r) => `${r.responses} responded` },
-              {
-                key: "act",
-                header: "",
-                cell: () => (
-                  <Button size="sm" variant="ghost">
-                    Route
-                  </Button>
-                ),
-              },
+              { key: "buyer", header: "Buyer", cell: (r) => r.buyerName || "Registered Buyer" },
+              { key: "location", header: "Location", cell: (r) => r.city },
+              { key: "quantity", header: "Quantity", cell: (r) => r.quantity || "On request" },
+              { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
             ]}
             mobile={(r) => (
               <div className="rounded-xl border border-border p-3.5">
@@ -45,14 +39,11 @@ function AdminLeads() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{r.title}</p>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {r.id} · {r.category} · {r.location}
+                      {r.category} · {r.city}
                     </p>
                   </div>
-                  <Pill tone={r.responses > 0 ? "success" : "warning"}>{r.responses}</Pill>
+                  <StatusBadge status={r.status} />
                 </div>
-                <Button size="sm" variant="outline" className="mt-3">
-                  Route to members
-                </Button>
               </div>
             )}
           />
@@ -61,7 +52,6 @@ function AdminLeads() {
     </AppShell>
   );
 }
-
 
 export { AdminLeads };
 export default AdminLeads;

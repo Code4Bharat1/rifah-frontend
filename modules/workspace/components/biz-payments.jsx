@@ -5,73 +5,81 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
-import { payments } from "@shared/lib/mock-data";
+import { useMyPayments } from "@shared/hooks/use-rifah-api";
 
-const tone = (s) => (s === "Paid" ? "success" : s === "Pending" ? "warning" : s === "Refunded" ? "primary" : "danger");
+const tone = (s) =>
+  s === "completed" || s === "Paid"
+    ? "success"
+    : s === "pending" || s === "Pending"
+    ? "warning"
+    : "danger";
 
 function BizPayments() {
+  const { data: paymentsData } = useMyPayments();
+  const payments = paymentsData?.payments || [];
+
+  const totalPaid = payments
+    .filter((p) => p.status === "completed")
+    .reduce((acc, p) => acc + (p.amount || 0), 0);
+
   return (
     <AppShell
       role="business"
-      title="Payments"
-      subtitle="Membership and event transactions"
-      actions={
-        <Button variant="outline">
-          <Download className="h-4 w-4" /> Export
-        </Button>
-      }
+      title="Payments & Invoices"
+      subtitle="Membership and subscription transactions"
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Paid this year" value="4 invoices" icon={Receipt} tone="success" />
-          <StatCard label="Pending" value="1" icon={CreditCard} tone="warning" />
-          <StatCard label="Next renewal" value="14 Nov 2026" />
-          <StatCard label="Payment method" value="Card ····4242" />
+          <StatCard
+            label="Total Paid"
+            value={`₹ ${totalPaid.toLocaleString("en-IN")}`}
+            icon={Receipt}
+            tone="success"
+          />
+          <StatCard
+            label="Invoices"
+            value={String(payments.length)}
+            icon={CreditCard}
+          />
+          <StatCard label="Account Status" value="Active Member" tone="primary" />
+          <StatCard label="Chamber Desk" value="Trade Invoicing" />
         </div>
 
         <Panel title="Transaction history">
-          <ResponsiveTable
-            rows={payments}
-            columns={[
-              { key: "id", header: "Invoice", cell: (r) => <span className="font-semibold">{r.id}</span> },
-              { key: "item", header: "Item", cell: (r) => r.item },
-              { key: "date", header: "Date", cell: (r) => r.date },
-              { key: "method", header: "Method", cell: (r) => r.method },
-              { key: "amount", header: "Amount", cell: (r) => r.amount },
-              { key: "status", header: "Status", cell: (r) => <Pill tone={tone(r.status)}>{r.status}</Pill> },
-              {
-                key: "act",
-                header: "",
-                cell: () => (
-                  <Button size="sm" variant="ghost">
-                    Receipt
-                  </Button>
-                ),
-              },
-            ]}
-            mobile={(r) => (
-              <div className="rounded-xl border border-border p-3.5">
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{r.item}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {r.id} · {r.date} · {r.method}
-                    </p>
+          {payments.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No transactions recorded yet.
+            </p>
+          ) : (
+            <ResponsiveTable
+              rows={payments}
+              columns={[
+                { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{r.invoiceNumber}</span> },
+                { key: "purpose", header: "Purpose", cell: (r) => r.purpose || "Membership Subscription" },
+                { key: "date", header: "Date", cell: (r) => new Date(r.createdAt).toLocaleDateString() },
+                { key: "amount", header: "Amount", cell: (r) => `₹ ${r.amount?.toLocaleString("en-IN")}` },
+                { key: "status", header: "Status", cell: (r) => <Pill tone={tone(r.status)}>{r.status}</Pill> },
+              ]}
+              mobile={(r) => (
+                <div className="rounded-xl border border-border p-3.5">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{r.invoiceNumber}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {r.purpose} · {new Date(r.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Pill tone={tone(r.status)}>{r.status}</Pill>
                   </div>
-                  <Pill tone={tone(r.status)}>{r.status}</Pill>
                 </div>
-                <Button size="sm" variant="outline" className="mt-3">
-                  Download receipt
-                </Button>
-              </div>
-            )}
-          />
+              )}
+            />
+          )}
         </Panel>
       </div>
     </AppShell>
   );
 }
-
 
 export { BizPayments };
 export default BizPayments;

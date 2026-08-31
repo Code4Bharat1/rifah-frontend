@@ -3,82 +3,71 @@ import { Download, FileBarChart } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
-import { Panel, StatCard, TrendNote } from "@shared/components/rifah/ui-bits";
+import { Panel, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
-import { Progress } from "@shared/components/ui/progress";
-import { adminTrend, categories, chapters } from "@shared/lib/mock-data";
+import { useAdminOverview, useChapters, useCategories } from "@shared/hooks/use-rifah-api";
 
 const reportFiles = [
-  { name: "Membership register", period: "Sep 2026", format: "CSV" },
-  { name: "Enquiry flow summary", period: "Q3 2026", format: "PDF" },
-  { name: "Revenue statement", period: "Sep 2026", format: "CSV" },
-  { name: "Verification turnaround", period: "Q3 2026", format: "PDF" },
+  { name: "Membership Master Register", period: "Real-time", format: "CSV" },
+  { name: "Sourcing RFQ Demand Summary", period: "Real-time", format: "PDF" },
+  { name: "Chamber Financial Revenue Ledger", period: "Real-time", format: "CSV" },
+  { name: "Secretariat Compliance & Audit Trail", period: "Real-time", format: "PDF" },
 ];
 
 function AdminReports() {
-  const maxEnq = Math.max(...adminTrend.map((d) => d.registrations));
+  const { data: overviewData } = useAdminOverview();
+  const { data: chaptersData } = useChapters();
+  const { data: categoriesData } = useCategories();
+
+  const kpi = overviewData?.kpi || {};
+  const chapters = chaptersData || [];
+  const categories = categoriesData?.categories || [];
 
   return (
     <AppShell
       role="admin"
-      title="Reports and insights"
-      subtitle="Prototype analytics for the secretariat"
-      actions={
-        <Button variant="outline">
-          <Download className="h-4 w-4" /> Export all
-        </Button>
-      }
+      title="Reports & Analytics"
+      subtitle="Executive intelligence for RIFAH Secretariat"
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Members" value="872" hint="+9.4% QoQ" tone="primary" />
-          <StatCard label="Enquiries" value="1,284" hint="+17% QoQ" tone="success" />
-          <StatCard label="Response rate" value="78%" tone="warning" />
-          <StatCard label="Renewals due" value="63" />
+          <StatCard label="Total Members" value={String(kpi.totalBusinesses || 0)} tone="primary" />
+          <StatCard label="Total RFQs" value={String(kpi.totalEnquiries || 0)} tone="success" />
+          <StatCard label="Verified Ratio" value={`${kpi.totalBusinesses ? Math.round(((kpi.verifiedBusinesses || 0) / kpi.totalBusinesses) * 100) : 0}%`} tone="warning" />
+          <StatCard label="Registered Users" value={String(kpi.totalUsers || 0)} />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Registration volume" description="Monthly new registrations">
-            <div className="flex items-end gap-2 sm:gap-4" role="img" aria-label="Monthly registrations">
-              {adminTrend.map((d) => (
-                <div key={d.month} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                  <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">{d.registrations}</span>
-                  <div className="w-full rounded-t-md bg-primary" style={{ height: `${(d.registrations / maxEnq) * 120}px` }} />
-                  <span className="text-[11px] text-muted-foreground">{d.month}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3">
-              <TrendNote>Sourcing demand strongest in textiles and packaging</TrendNote>
-            </div>
+          <Panel title="Regional chapter presence" description="Branch distribution">
+            {chapters.length === 0 ? (
+              <p className="py-4 text-xs text-muted-foreground">No chapters recorded.</p>
+            ) : (
+              <ul className="space-y-3">
+                {chapters.map((c) => (
+                  <li key={c._id || c.name} className="flex items-center justify-between border-b border-border pb-2 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium">{c.name}</p>
+                      <p className="text-xs text-muted-foreground">{c.city}, {c.state}</p>
+                    </div>
+                    <span className="text-xs font-semibold tabular-nums">{c.units?.length || 0} units</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Panel>
 
-          <Panel title="Chapter performance" description="Share of active member businesses">
-            <ul className="space-y-3">
-              {chapters.map((c, i) => (
-                <li key={c.id}>
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                    <p className="min-w-0 truncate text-sm font-medium">{c.name}</p>
-                    <span className="text-xs font-semibold tabular-nums">{c.businesses}</span>
-                  </div>
-                  <Progress value={92 - i * 12} className="mt-1.5" />
-                </li>
+          <Panel title="Sourcing categories" description="Active industry verticals">
+            <div className="flex flex-wrap gap-2">
+              {categories.map((c) => (
+                <Pill key={c._id || c.name} tone="brand">
+                  {c.name}
+                </Pill>
               ))}
-            </ul>
+            </div>
           </Panel>
         </div>
 
-        <Panel title="Category demand" description="Most requested sourcing categories">
-          <div className="flex flex-wrap gap-2">
-            {categories.slice(0, 12).map((c, i) => (
-              <Pill key={c.id} tone={i < 3 ? "brand" : "neutral"}>
-                {c.name}
-              </Pill>
-            ))}
-          </div>
-        </Panel>
-
-        <Panel title="Downloadable reports">
+        <Panel title="Secretariat Executive Reports">
           <ul className="divide-y divide-border">
             {reportFiles.map((r) => (
               <li key={r.name} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-3 first:pt-0 last:pb-0">
@@ -89,8 +78,8 @@ function AdminReports() {
                     {r.period} · {r.format}
                   </p>
                 </div>
-                <Button size="sm" variant="outline">
-                  Download
+                <Button size="sm" variant="outline" onClick={() => alert(`Generated ${r.name}`)}>
+                  Export {r.format}
                 </Button>
               </li>
             ))}
@@ -100,7 +89,6 @@ function AdminReports() {
     </AppShell>
   );
 }
-
 
 export { AdminReports };
 export default AdminReports;

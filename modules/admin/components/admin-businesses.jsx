@@ -9,20 +9,30 @@ import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
-import { businesses } from "@shared/lib/mock-data";
+import { useBusinesses } from "@shared/hooks/use-rifah-api";
+import { businessApi } from "@shared/lib/api-services";
 
 function AdminBusinesses() {
   const [q, setQ] = useState("");
-  const rows = businesses.filter((b) =>
-    [b.name, b.industry, b.city, b.chapter].join(" ").toLowerCase().includes(q.toLowerCase()),
-  );
+  const { data: businessesData, refetch } = useBusinesses({ search: q || undefined });
+  const rows = businessesData?.businesses || [];
+
+  const handleToggleStatus = async (b) => {
+    const newStatus = b.status === "active" ? "suspended" : "active";
+    if (!confirm(`Change status of "${b.name}" to ${newStatus}?`)) return;
+    try {
+      await businessApi.updateStatus(b._id, { status: newStatus });
+      refetch();
+    } catch (err) {
+      alert(err.message || "Failed to update business status.");
+    }
+  };
 
   return (
     <AppShell
       role="admin"
       title="Member businesses"
-      subtitle={`${businesses.length} listed businesses`}
-      actions={<Button variant="outline">Export directory</Button>}
+      subtitle={`${rows.length} listed businesses in chamber directory`}
     >
       <div className="space-y-4">
         <div className="relative">
@@ -47,11 +57,24 @@ function AdminBusinesses() {
               { key: "plan", header: "Plan", cell: (r) => <MembershipBadge tier={r.membership} /> },
               { key: "ver", header: "Verification", cell: (r) => <VerificationBadge status={r.verification} compact /> },
               {
+                key: "status",
+                header: "Status",
+                cell: (r) => (
+                  <Button
+                    size="sm"
+                    variant={r.status === "active" ? "ghost" : "destructive"}
+                    onClick={() => handleToggleStatus(r)}
+                  >
+                    {r.status || "active"}
+                  </Button>
+                ),
+              },
+              {
                 key: "act",
                 header: "",
                 cell: (r) => (
-                  <Button asChild size="sm" variant="ghost">
-                    <Link href={`/business/${r.id }`}>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/business/${r.slug || r._id}`}>
                       View
                     </Link>
                   </Button>
@@ -73,11 +96,16 @@ function AdminBusinesses() {
                   <MembershipBadge tier={r.membership} />
                   <Pill>{r.chapter}</Pill>
                 </div>
-                <Button asChild size="sm" variant="outline" className="mt-3">
-                  <Link href={`/business/${r.id }`}>
-                    View profile
-                  </Link>
-                </Button>
+                <div className="mt-3 flex gap-2">
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/business/${r.slug || r._id}`}>
+                      View profile
+                    </Link>
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleToggleStatus(r)}>
+                    {r.status === "active" ? "Suspend" : "Activate"}
+                  </Button>
+                </div>
               </div>
             )}
           />
@@ -86,7 +114,6 @@ function AdminBusinesses() {
     </AppShell>
   );
 }
-
 
 export { AdminBusinesses };
 export default AdminBusinesses;

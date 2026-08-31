@@ -2,9 +2,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, Search, SlidersHorizontal, X } from "lucide-react";
-import { useMemo, useState } from "react";
-import { z } from "zod";
-
+import { useState } from "react";
 
 import { BusinessCard, CompactBusinessCard } from "@shared/components/rifah/business-card";
 import { EmptyState, SkeletonCard } from "@shared/components/rifah/empty-state";
@@ -16,18 +14,9 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
-import { businesses, chapters, cities, industries } from "@shared/lib/mock-data";
+import { cities, industries } from "@shared/lib/mock-data";
+import { useBusinesses, useChapters } from "@shared/hooks/use-rifah-api";
 import { cn } from "@shared/lib/utils";
-
-const searchSchema = z.object({
-  q: z.string().optional(),
-  industry: z.string().optional(),
-  city: z.string().optional(),
-  chapter: z.string().optional(),
-  membership: z.string().optional(),
-  verified: z.boolean().optional(),
-  sort: z.enum(["recommended", "newest", "featured", "rating"]).optional(),
-});
 
 const membershipLevels = ["Free", "Basic", "Premium", "Enterprise"];
 
@@ -35,7 +24,21 @@ function DiscoverPage() {
   const searchParams = useSearchParams();
   const search = Object.fromEntries(searchParams ? searchParams.entries() : []);
   const router = useRouter();
-  const [query, setQuery] = useState(search.q ?? "");
+  const [query, setQuery] = useState(search.q || search.search || "");
+
+  const { data: businessesData, isLoading } = useBusinesses({
+    search: search.q || search.search,
+    industry: search.industry,
+    city: search.city,
+    chapter: search.chapter,
+    membership: search.membership,
+    verified: search.verified,
+  });
+
+  const { data: chaptersData } = useChapters();
+  const chaptersList = chaptersData || [];
+
+  const results = businessesData?.businesses || [];
 
   const setParam = (patch) => {
     const current = new URLSearchParams(searchParams ? searchParams.toString() : "");
@@ -50,32 +53,13 @@ function DiscoverPage() {
     router.push(qs ? `/discover?${qs}` : "/discover", { scroll: false });
   };
 
-  const results = useMemo(() => {
-    const q = (search.q ?? "").toLowerCase().trim();
-    let list = businesses.filter((b) => {
-      if (search.industry && b.industry !== search.industry) return false;
-      if (search.city && b.city !== search.city) return false;
-      if (search.chapter && b.chapter !== search.chapter) return false;
-      if (search.membership && b.membership !== search.membership) return false;
-      if (search.verified && b.verification !== "verified") return false;
-      if (!q) return true;
-      const haystack = [b.name, b.industry, b.tagline, b.city, ...b.categories, ...b.products, ...b.services]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(q);
-    });
-    if (search.sort === "rating") list = [...list].sort((a, b) => b.rating - a.rating);
-    if (search.sort === "featured") list = [...list].sort((a, b) => Number(b.featured) - Number(a.featured));
-    return list;
-  }, [search]);
-
   const activeChips = [
     search.industry && { label: search.industry, clear: () => setParam({ industry: undefined }) },
     search.city && { label: search.city, clear: () => setParam({ city: undefined }) },
     search.chapter && { label: search.chapter, clear: () => setParam({ chapter: undefined }) },
     search.membership && { label: `${search.membership} member`, clear: () => setParam({ membership: undefined }) },
     search.verified && { label: "Verified only", clear: () => setParam({ verified: undefined }) },
-  ].filter(Boolean) ;
+  ].filter(Boolean);
 
   const filters = (
     <div className="space-y-5">
@@ -119,8 +103,8 @@ function DiscoverPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All chapters</SelectItem>
-            {chapters.map((c) => (
-              <SelectItem key={c.id} value={c.name}>
+            {chaptersList.map((c) => (
+              <SelectItem key={c._id || c.name} value={c.name}>
                 {c.name}
               </SelectItem>
             ))}
@@ -148,9 +132,7 @@ function DiscoverPage() {
       <Button
         variant="outline"
         className="w-full"
-        onClick={() =>
-          router.push({ search: { q: search.q } })
-        }
+        onClick={() => router.push("/discover")}
       >
         Clear all filters
       </Button>
@@ -251,7 +233,7 @@ function DiscoverPage() {
             </p>
             <Select
               value={search.sort ?? "recommended"}
-              onValueChange={(v) => setParam({ sort: v  })}
+              onValueChange={(v) => setParam({ sort: v })}
             >
               <SelectTrigger className="w-[168px]" aria-label="Sort results">
                 <SelectValue />
@@ -281,14 +263,20 @@ function DiscoverPage() {
             </div>
           )}
 
-          {results.length === 0 ? (
+          {isLoading ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          ) : results.length === 0 ? (
             <EmptyState
               className="mt-6"
               icon={Building2}
               title="No businesses match these filters"
               description="Try widening the location or industry filter, or search for a product or service instead."
               action={
-                <Button variant="outline" onClick={() => router.push({ search: {} })}>
+                <Button variant="outline" onClick={() => router.push("/discover")}>
                   Reset filters
                 </Button>
               }
@@ -298,33 +286,22 @@ function DiscoverPage() {
               {/* Mobile: compact rows */}
               <div className="mt-4 space-y-3 sm:hidden">
                 {results.map((b) => (
-                  <CompactBusinessCard key={b.id} business={b} />
+                  <CompactBusinessCard key={b._id || b.slug} business={b} />
                 ))}
               </div>
               {/* Tablet/desktop: card grid */}
               <div className="mt-4 hidden gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-3">
                 {results.map((b) => (
-                  <BusinessCard key={b.id} business={b} />
+                  <BusinessCard key={b._id || b.slug} business={b} />
                 ))}
               </div>
             </>
           )}
-
-          <div className="mt-8 rounded-2xl border border-dashed border-border p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Loading state reference
-            </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <SkeletonCard />
-              <SkeletonCard />
-            </div>
-          </div>
         </div>
       </div>
     </PublicLayout>
   );
 }
-
 
 export { DiscoverPage };
 export default DiscoverPage;

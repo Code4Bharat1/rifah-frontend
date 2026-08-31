@@ -6,7 +6,7 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Pill } from "@shared/components/rifah/badges";
 import { Panel, SectionHeader, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
-import { chapters, units } from "@shared/lib/mock-data";
+import { useChapters, useAdminOverview } from "@shared/hooks/use-rifah-api";
 
 const pillars = [
   {
@@ -32,6 +32,14 @@ const pillars = [
 ];
 
 function AboutPage() {
+  const { data: chaptersData } = useChapters();
+  const { data: overviewData } = useAdminOverview();
+
+  const chapters = chaptersData || [];
+  const kpi = overviewData?.kpi || {};
+
+  const totalUnits = chapters.reduce((sum, c) => sum + (c.units?.length || 0), 0);
+
   return (
     <PublicLayout>
       <section className="border-b border-border bg-navy text-navy-foreground">
@@ -43,7 +51,7 @@ function AboutPage() {
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-navy-foreground/75 sm:text-base">
             RIFAH Chamber of Commerce & Industry brings together manufacturers, traders, exporters and service
             businesses. RIFAH Connect is the chamber's digital platform for discovery, membership, enquiries and
-            events — prototype content is shown for stakeholder review.
+            events.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             <Button asChild variant="brand">
@@ -58,10 +66,10 @@ function AboutPage() {
 
       <div className="rifah-container py-6 sm:py-10">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Member businesses" value="589" icon={Building2} />
-          <StatCard label="Regional chapters" value={String(chapters.length)} icon={MapPin} />
-          <StatCard label="Specialised units" value={String(units.length)} icon={Users} />
-          <StatCard label="Events this year" value="20" icon={CalendarDays} />
+          <StatCard label="Member businesses" value={String(kpi.totalBusinesses || 42)} icon={Building2} />
+          <StatCard label="Regional chapters" value={String(chapters.length || 3)} icon={MapPin} />
+          <StatCard label="Specialised units" value={String(totalUnits || 8)} icon={Users} />
+          <StatCard label="Verified Members" value={String(kpi.verifiedBusinesses || 28)} icon={CalendarDays} />
         </div>
 
         <div className="mt-8">
@@ -86,11 +94,11 @@ function AboutPage() {
           <Panel title="Chapters" description="Regional presence and member strength">
             <ul className="divide-y divide-border">
               {chapters.map((c) => (
-                <li key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3">
+                <li key={c._id || c.slug} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{c.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {c.city}, {c.state} · {c.businesses} businesses · {c.events} events
+                      {c.city}, {c.state} · {c.businessesCount || 0} businesses · {c.eventsCount || 0} events
                     </p>
                   </div>
                   <Pill tone={c.status === "Active" ? "success" : "neutral"}>{c.status}</Pill>
@@ -99,42 +107,21 @@ function AboutPage() {
             </ul>
           </Panel>
 
-          <Panel title="Specialised units" description="Focused working groups under the chapters">
+          <Panel title="Specialised focus units" description="Targeted support initiatives under chapters">
             <ul className="divide-y divide-border">
-              {units.map((u) => (
-                <li key={u.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{u.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {u.chapter} · {u.focus} · {u.members} members
-                    </p>
-                  </div>
-                  <Pill tone={u.status === "Active" ? "success" : "neutral"}>{u.status}</Pill>
+              {chapters.flatMap((c) => (c.units || []).map((u) => ({ ...u, chapterName: c.name }))).slice(0, 6).map((u, i) => (
+                <li key={i} className="py-3">
+                  <p className="text-sm font-medium">{u.name}</p>
+                  <p className="text-xs text-muted-foreground">{u.focus} · ({u.chapterName})</p>
                 </li>
               ))}
             </ul>
           </Panel>
         </div>
-
-        <Panel className="mt-8" title="Membership" description="Access to the directory, leads and events">
-          <p className="text-sm text-muted-foreground">
-            Members list products and services, receive routed buyer enquiries, join chamber events and access
-            advisory support. Plans and inclusions are detailed on the membership page.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button asChild>
-              <Link href="/membership">View membership plans</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/discover">Browse the directory</Link>
-            </Button>
-          </div>
-        </Panel>
       </div>
     </PublicLayout>
   );
 }
-
 
 export { AboutPage };
 export default AboutPage;

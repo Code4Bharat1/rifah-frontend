@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { CheckCircle2, ShieldCheck, Upload } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle } from "lucide-react";
 import { useState } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -17,22 +17,69 @@ import {
   SelectValue,
 } from "@shared/components/ui/select";
 import { Textarea } from "@shared/components/ui/textarea";
-import { chapters, cities, industries, membershipPlans } from "@shared/lib/mock-data";
+import { cities, industries } from "@shared/lib/mock-data";
+import { useChapters, useMembershipPlans } from "@shared/hooks/use-rifah-api";
+import { useAuth } from "@shared/providers/auth-provider";
 import { cn } from "@shared/lib/utils";
 
-const steps = ["Business", "Contact", "Catalogue", "Documents", "Membership"];
-
-const docs = [
-  "Business registration certificate",
-  "Tax registration document",
-  "Authorised signatory ID",
-  "Chamber declaration form",
-];
+const steps = ["Business", "Contact", "Account", "Membership"];
 
 function RegisterBusiness() {
+  const { registerBusiness } = useAuth();
+  const { data: chaptersData } = useChapters();
+  const { data: plansData } = useMembershipPlans();
+
+  const chapters = chaptersData || [];
+  const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
+
   const [step, setStep] = useState(0);
   const [tier, setTier] = useState("premium");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  const [formData, setFormData] = useState({
+    businessName: "",
+    businessType: "Proprietorship",
+    industry: "Manufacturing",
+    founded: "2018",
+    employees: "11–50",
+    about: "",
+    contactPerson: "",
+    phone: "",
+    email: "",
+    password: "",
+    address: "",
+    city: "Mumbai",
+    chapter: "Mumbai Chapter",
+  });
+
+  const handleFinalSubmit = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await registerBusiness({
+        name: formData.contactPerson || formData.businessName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        businessName: formData.businessName,
+        industry: formData.industry,
+        businessType: formData.businessType,
+        city: formData.city,
+        state: "Maharashtra",
+        address: formData.address,
+        chapter: formData.chapter,
+        membership: tier,
+        about: formData.about,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message || "Failed to complete registration. Please check fields.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (submitted) {
     return (
@@ -42,10 +89,10 @@ function RegisterBusiness() {
             <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-warning-soft text-warning">
               <ShieldCheck className="h-7 w-7" />
             </span>
-            <h1 className="mt-4 text-xl font-bold tracking-tight">Submitted for RIFAH verification</h1>
+            <h1 className="mt-4 text-xl font-bold tracking-tight">Business Registered Successfully</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Application REG-1188 is now with the secretariat. Verification usually completes within a few working days.
-              You can already prepare your catalogue in the business workspace — the listing goes public once approved.
+              Your business profile has been created and submitted for RIFAH secretariat verification.
+              You can now access your workspace to manage catalogue items and upload documents.
             </p>
             <ol className="mt-5 space-y-2 text-left text-sm">
               {["Application received", "Document review by secretariat", "Verification decision", "Listing published"].map(
@@ -54,14 +101,14 @@ function RegisterBusiness() {
                     <span
                       className={cn(
                         "grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold",
-                        i === 0 ? "bg-success text-primary-foreground" : "bg-muted text-muted-foreground",
+                        i === 0 ? "bg-success text-primary-foreground" : "bg-muted text-muted-foreground"
                       )}
                     >
                       {i === 0 ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
                     </span>
                     <span className={i === 0 ? "font-medium" : "text-muted-foreground"}>{s}</span>
                   </li>
-                ),
+                )
               )}
             </ol>
             <div className="mt-6 grid gap-2">
@@ -84,30 +131,49 @@ function RegisterBusiness() {
         <div className="mx-auto max-w-2xl">
           <SectionHeader
             title="List your business with RIFAH"
-            description="Five short steps. Verification by the chamber secretariat happens after submission."
+            description="Four short steps. Join the chamber network to receive verified buyer leads."
           />
           <div className="mt-5">
             <Steps steps={steps} current={step} />
           </div>
 
+          {error && (
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <form
             className="mt-5 space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
-              if (step < steps.length - 1) setStep((s) => s + 1);
-              else setSubmitted(true);
+              if (step < steps.length - 1) {
+                setStep((s) => s + 1);
+              } else {
+                handleFinalSubmit();
+              }
             }}
           >
             {step === 0 && (
               <Panel title="Business details">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="bname">Business name</Label>
-                    <Input id="bname" required placeholder="Registered name" />
+                    <Label htmlFor="bname">Business name *</Label>
+                    <Input
+                      id="bname"
+                      required
+                      value={formData.businessName}
+                      onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                      placeholder="Registered enterprise name"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="btype">Business type</Label>
-                    <Select>
+                    <Select
+                      value={formData.businessType}
+                      onValueChange={(v) => setFormData({ ...formData, businessType: v })}
+                    >
                       <SelectTrigger id="btype">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
@@ -122,7 +188,10 @@ function RegisterBusiness() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bind">Industry</Label>
-                    <Select>
+                    <Select
+                      value={formData.industry}
+                      onValueChange={(v) => setFormData({ ...formData, industry: v })}
+                    >
                       <SelectTrigger id="bind">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
@@ -137,11 +206,20 @@ function RegisterBusiness() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="byear">Year established</Label>
-                    <Input id="byear" inputMode="numeric" placeholder="e.g. 2014" />
+                    <Input
+                      id="byear"
+                      inputMode="numeric"
+                      value={formData.founded}
+                      onChange={(e) => setFormData({ ...formData, founded: e.target.value })}
+                      placeholder="e.g. 2014"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bemp">Team size</Label>
-                    <Select>
+                    <Select
+                      value={formData.employees}
+                      onValueChange={(v) => setFormData({ ...formData, employees: v })}
+                    >
                       <SelectTrigger id="bemp">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
@@ -156,7 +234,13 @@ function RegisterBusiness() {
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="babout">About the business</Label>
-                    <Textarea id="babout" rows={4} placeholder="Capabilities, sectors served, differentiators." />
+                    <Textarea
+                      id="babout"
+                      rows={3}
+                      value={formData.about}
+                      onChange={(e) => setFormData({ ...formData, about: e.target.value })}
+                      placeholder="Capabilities, products manufactured, sectors served."
+                    />
                   </div>
                 </div>
               </Panel>
@@ -166,28 +250,41 @@ function RegisterBusiness() {
               <Panel title="Contact & location">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="cperson">Contact person</Label>
-                    <Input id="cperson" placeholder="Authorised representative" />
+                    <Label htmlFor="cperson">Contact person *</Label>
+                    <Input
+                      id="cperson"
+                      required
+                      value={formData.contactPerson}
+                      onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                      placeholder="Authorised representative"
+                    />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="cdesig">Designation</Label>
-                    <Input id="cdesig" placeholder="e.g. Director" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bphone">Phone</Label>
-                    <Input id="bphone" type="tel" placeholder="Business number" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bmail">Email</Label>
-                    <Input id="bmail" type="email" placeholder="info@example.com" />
+                    <Label htmlFor="bphone">Phone *</Label>
+                    <Input
+                      id="bphone"
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="Mobile number"
+                    />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="baddress">Address</Label>
-                    <Input id="baddress" placeholder="Street, area" />
+                    <Input
+                      id="baddress"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="Street, area"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bcity">City</Label>
-                    <Select>
+                    <Select
+                      value={formData.city}
+                      onValueChange={(v) => setFormData({ ...formData, city: v })}
+                    >
                       <SelectTrigger id="bcity">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
@@ -202,13 +299,16 @@ function RegisterBusiness() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bchapter">RIFAH chapter</Label>
-                    <Select>
+                    <Select
+                      value={formData.chapter}
+                      onValueChange={(v) => setFormData({ ...formData, chapter: v })}
+                    >
                       <SelectTrigger id="bchapter">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
                       <SelectContent>
                         {chapters.map((c) => (
-                          <SelectItem key={c.name} value={c.name}>
+                          <SelectItem key={c._id || c.name} value={c.name}>
                             {c.name}
                           </SelectItem>
                         ))}
@@ -220,58 +320,38 @@ function RegisterBusiness() {
             )}
 
             {step === 2 && (
-              <Panel title="First catalogue entries" description="You can add more later in the workspace.">
-                <div className="space-y-3">
-                  {[1, 2, 3].map((n) => (
-                    <div key={n} className="grid gap-3 rounded-xl border border-border p-3 sm:grid-cols-[minmax(0,1fr)_140px]">
-                      <div className="space-y-1.5">
-                        <Label htmlFor={`item-${n}`}>Item {n}</Label>
-                        <Input id={`item-${n}`} placeholder="Product or service name" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor={`type-${n}`}>Type</Label>
-                        <Select>
-                          <SelectTrigger id={`type-${n}`}>
-                            <SelectValue placeholder="Type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Product">Product</SelectItem>
-                            <SelectItem value="Service">Service</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  ))}
+              <Panel title="Owner Login Account">
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="reg-email">Account Email *</Label>
+                    <Input
+                      id="reg-email"
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="owner@company.com"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="reg-pass">Account Password *</Label>
+                    <Input
+                      id="reg-pass"
+                      type="password"
+                      required
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      placeholder="Minimum 6 characters"
+                    />
+                  </div>
                 </div>
               </Panel>
             )}
 
             {step === 3 && (
-              <Panel title="Verification documents" description="Reviewed by the RIFAH secretariat before publishing.">
-                <ul className="space-y-2.5">
-                  {docs.map((d) => (
-                    <li
-                      key={d}
-                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border p-3"
-                    >
-                      <span className="min-w-0 text-sm font-medium">{d}</span>
-                      <Button type="button" variant="outline" size="sm" className="shrink-0">
-                        <Upload className="h-4 w-4" /> Upload
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-                <label className="mt-4 flex items-start gap-2.5 text-sm">
-                  <Checkbox required className="mt-0.5" />
-                  <span>I confirm the uploaded documents are accurate and belong to this business.</span>
-                </label>
-              </Panel>
-            )}
-
-            {step === 4 && (
               <Panel title="Choose a membership tier">
                 <div className="grid gap-2.5 sm:grid-cols-2">
-                  {membershipPlans.map((p) => (
+                  {plans.map((p) => (
                     <button
                       key={p.id}
                       type="button"
@@ -279,20 +359,19 @@ function RegisterBusiness() {
                       aria-pressed={tier === p.id}
                       className={cn(
                         "rounded-xl border p-4 text-left transition-colors",
-                        tier === p.id ? "border-primary bg-primary-soft" : "border-border hover:bg-muted/60",
+                        tier === p.id ? "border-primary bg-primary-soft" : "border-border hover:bg-muted/60"
                       )}
                     >
                       <span className="flex items-baseline justify-between gap-2">
                         <span className="text-sm font-semibold">{p.name}</span>
-                        <span className="text-sm font-semibold">{p.price}</span>
+                        <span className="text-sm font-semibold">₹ {p.price?.toLocaleString("en-IN")}</span>
                       </span>
                       <span className="mt-1 block text-xs text-muted-foreground">{p.summary}</span>
                     </button>
                   ))}
                 </div>
                 <p className="mt-4 text-xs text-muted-foreground">
-                  Paid tiers move to checkout after verification is approved. The free listing publishes immediately once
-                  approved.
+                  The listing is activated in the directory upon secretariat review.
                 </p>
               </Panel>
             )}
@@ -307,8 +386,16 @@ function RegisterBusiness() {
                   Back
                 </Button>
               )}
-              <Button type="submit" size="lg" className="sm:min-w-52">
-                {step === steps.length - 1 ? "Submit for verification" : "Continue"}
+              <Button type="submit" size="lg" className="sm:min-w-52" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+                  </>
+                ) : step === steps.length - 1 ? (
+                  "Complete registration"
+                ) : (
+                  "Continue"
+                )}
               </Button>
             </div>
           </form>
@@ -318,8 +405,5 @@ function RegisterBusiness() {
   );
 }
 
-
-const RegisterBusinessPage = RegisterBusiness;
-
-export { RegisterBusinessPage };
-export default RegisterBusinessPage;
+export { RegisterBusiness as RegisterBusinessPage };
+export default RegisterBusiness;
