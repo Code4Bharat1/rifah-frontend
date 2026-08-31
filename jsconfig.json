@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@shared/*": [
+        "./shared/*"
+      ],
+      "@modules/*": [
+        "./modules/*"
+      ],
+      "@modules/admin": [
+        "./modules/admin/index.js"
+      ],
+      "@modules/auth": [
+        "./modules/auth/index.js"
+      ],
+      "@modules/business": [
+        "./modules/business/index.js"
+      ],
+      "@modules/customer": [
+        "./modules/customer/index.js"
+      ],
+      "@modules/enquiry": [
+        "./modules/enquiry/index.js"
+      ],
+      "@modules/events": [
+        "./modules/events/index.js"
+      ],
+      "@modules/flow": [
+        "./modules/flow/index.js"
+      ],
+      "@modules/membership": [
+        "./modules/membership/index.js"
+      ],
+      "@modules/public": [
+        "./modules/public/index.js"
+      ],
+      "@modules/workspace": [
+        "./modules/workspace/index.js"
+      ]
+    }
+  }
+}
