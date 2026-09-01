@@ -126,9 +126,17 @@ export function useMyLeads(params = {}) {
   return useQuery({
     queryKey: ["my-leads", params],
     queryFn: async () => {
-      const res = await leadApi.getMyLeads(params);
-      return res?.data || res;
+      try {
+        const res = await leadApi.getMyLeads(params);
+        return res?.data || res;
+      } catch (err) {
+        if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
+          return [];
+        }
+        throw err;
+      }
     },
+    retry: false,
   });
 }
 
@@ -228,9 +236,17 @@ export function useConversations() {
   return useQuery({
     queryKey: ["conversations"],
     queryFn: async () => {
-      const res = await messageApi.getConversations();
-      return res?.data?.conversations || res?.data || res;
+      try {
+        const res = await messageApi.getConversations();
+        return res?.data?.conversations || res?.data || res;
+      } catch (err) {
+        if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
+          return [];
+        }
+        throw err;
+      }
     },
+    retry: false,
   });
 }
 
@@ -239,10 +255,18 @@ export function useMessages(otherUserId) {
     queryKey: ["messages", otherUserId],
     queryFn: async () => {
       if (!otherUserId) return [];
-      const res = await messageApi.getMessages(otherUserId);
-      return res?.data?.messages || res?.data || res;
+      try {
+        const res = await messageApi.getMessages(otherUserId);
+        return res?.data?.messages || res?.data || res;
+      } catch (err) {
+        if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
+          return [];
+        }
+        throw err;
+      }
     },
     enabled: Boolean(otherUserId),
+    retry: false,
   });
 }
 
@@ -250,9 +274,17 @@ export function useNotifications() {
   return useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
-      const res = await notificationApi.list();
-      return res?.data || res;
+      try {
+        const res = await notificationApi.getMyNotifications();
+        return res?.data?.notifications || res?.data || res;
+      } catch (err) {
+        if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
+          return [];
+        }
+        throw err;
+      }
     },
+    retry: false,
   });
 }
 

@@ -43,7 +43,7 @@ function BizVerification() {
     setUploadingDoc(type);
     try {
       const uploadRes = await verificationApi.uploadDocument(file);
-      const filePath = uploadRes?.data?.path || uploadRes?.data?.url;
+      const filePath = uploadRes?.data?.fileUrl || uploadRes?.fileUrl || uploadRes?.data?.path || uploadRes?.data?.url;
 
       // Submit or update verification
       await verificationApi.submit({

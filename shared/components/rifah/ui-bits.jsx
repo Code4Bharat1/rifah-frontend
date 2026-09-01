@@ -130,16 +130,31 @@ export function ResponsiveTable({
   columns,
   mobile,
   empty,
-}
-
-
-
-
-) {
+}) {
   if (rows.length === 0 && empty) return <>{empty}</>;
+
+  const renderMobileItem = typeof mobile === "function" ? mobile : (r) => (
+    <div className="rounded-xl border border-border bg-card p-3.5 space-y-2 text-xs">
+      {columns.map((c) => (
+        c.header ? (
+          <div key={c.key} className="flex justify-between items-center">
+            <span className="text-muted-foreground font-medium">{c.header}</span>
+            <div>{c.cell(r)}</div>
+          </div>
+        ) : (
+          <div key={c.key} className="pt-1 flex justify-end">{c.cell(r)}</div>
+        )
+      ))}
+    </div>
+  );
+
   return (
     <>
-      <div className="space-y-3 md:hidden">{rows.map((r, i) => <div key={i}>{mobile(r)}</div>)}</div>
+      <div className="space-y-3 md:hidden">
+        {rows.map((r, i) => (
+          <div key={i}>{renderMobileItem(r, i)}</div>
+        ))}
+      </div>
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[720px] border-collapse text-sm">
           <thead>

@@ -8,11 +8,15 @@ import {
   ShieldCheck,
   Star,
   Target,
+  TrendingUp,
+  CheckCircle2,
+  Bell,
+  Sparkles,
 } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { MembershipBadge, Pill, StatusBadge, VerificationBadge } from "@shared/components/rifah/badges";
-import { MoreLink, Panel, StatCard, TrendNote } from "@shared/components/rifah/ui-bits";
+import { MoreLink, Panel, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Progress } from "@shared/components/ui/progress";
 import {
@@ -22,6 +26,7 @@ import {
   useBusinessAnalytics,
   useConversations,
   useNotifications,
+  useBusinessReviews,
 } from "@shared/hooks/use-rifah-api";
 
 function BusinessHome() {
@@ -31,60 +36,102 @@ function BusinessHome() {
   const { data: analyticsData } = useBusinessAnalytics();
   const { data: convData } = useConversations();
   const { data: notifData } = useNotifications();
+  const { data: reviewsData } = useBusinessReviews(business?._id);
 
-  const leads = Array.isArray(leadsData) ? leadsData : (leadsData?.leads || []);
+  const rawLeads = Array.isArray(leadsData) ? leadsData : leadsData?.leads || [];
   const catalogue = catalogueItems || [];
-  const stats = analyticsData?.summary || {};
+  const stats = analyticsData?.summary || analyticsData || {};
   const conversations = convData || [];
-  const notifications = Array.isArray(notifData) ? notifData : (notifData?.notifications || []);
+  const rawNotifs = Array.isArray(notifData) ? notifData : notifData?.notifications || [];
+  const reviews = reviewsData?.reviews || [];
 
-  const completeness = business
-    ? [
-        Boolean(business.name && business.about),
-        Boolean(catalogue.length > 0),
-        Boolean(business.logo),
-        Boolean(business.coverImage),
-        Boolean(business.verification === "verified"),
-      ].filter(Boolean).length * 20
-    : 40;
+  // Profile Completeness list dynamically computed from real business profile
+  const completenessList = [
+    {
+      label: "Business details",
+      done: Boolean(business?.name && (business?.industry || business?.category) && business?.city),
+    },
+    {
+      label: `Catalogue (${catalogue.length} items)`,
+      done: Boolean(catalogue.length > 0),
+    },
+    {
+      label: "Certifications",
+      done: Boolean(business?.verification === "verified" || (business?.certifications && business.certifications.length > 0)),
+    },
+    {
+      label: "Gallery images",
+      done: Boolean(business?.gallery && business.gallery.length > 0),
+    },
+    {
+      label: "Bank details for invoices",
+      done: Boolean(business?.phone && business?.email && business?.address),
+    },
+  ];
 
-  const bizName = business?.name || "My Business";
+  const doneCount = completenessList.filter((item) => item.done).length;
+  const completeness = Math.round((doneCount / completenessList.length) * 100);
+
+  const bizName = business?.name || "Business Workspace";
   const bizSlugOrId = business?.slug || business?._id || "";
+  const bizChapter = typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || "General Chapter");
+
+  // Dynamic Performance Stats
+  const totalLeadsCount = rawLeads.length;
+  const wonCount = rawLeads.filter((l) => ["Won", "Responded"].includes(l.status)).length;
+  const conversionRate = totalLeadsCount > 0 ? `${Math.round((wonCount / totalLeadsCount) * 100)}%` : "0%";
+
+  // Monthly breakdown calculation from real leads data or analytics
+  const months = ["Mar", "Apr", "May", "Jun", "Jul", "Aug"];
+  const monthlyData = months.map((m, idx) => ({
+    month: m,
+    val: stats.monthlyViews?.[m] || (idx === months.length - 1 ? (stats.profileViews || rawLeads.length || 0) : 0),
+  }));
+  const maxVal = Math.max(...monthlyData.map((d) => d.val), 1);
+
+  // Dynamic recent messages from live conversation API
+  const messageList = conversations.slice(0, 3);
+
+  // Dynamic notifications from live notification API
+  const notificationItems = rawNotifs.slice(0, 4);
 
   return (
     <AppShell
       role="business"
       title={bizName}
-      subtitle={`Business workspace · ${business?.chapter || "RIFAH Connect"}`}
+      subtitle={`Business workspace · ${bizChapter}`}
       actions={
-        <Button asChild variant="outline">
-          <Link href={`/business/${bizSlugOrId}`}>
-            <Eye className="h-4 w-4" /> View public profile
-          </Link>
-        </Button>
+        bizSlugOrId ? (
+          <Button asChild variant="outline" className="rounded-xl border-slate-200 shadow-2xs hover:bg-slate-50">
+            <Link href={`/business/${bizSlugOrId}`}>
+              <Eye className="h-4 w-4 mr-1.5" /> View public profile
+            </Link>
+          </Button>
+        ) : null
       }
     >
       <div className="space-y-4">
+        {/* Top 4 Stat Cards dynamically bound to live backend data */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            label="Active leads"
-            value={String(leads.length)}
-            hint={`${leads.filter((l) => l.status === "New").length} new`}
+            label="New leads"
+            value={String(rawLeads.filter((l) => l.status === "New").length)}
+            hint="This week"
             icon={Target}
-            tone="brand"
+            tone="danger"
             href="/biz/leads"
           />
           <StatCard
-            label="Enquiries"
-            value={String(stats.totalLeadsReceived || leads.length)}
-            hint="Routed to your categories"
+            label="Open enquiries"
+            value={String(rawLeads.filter((l) => ["New", "In Progress"].includes(l.status)).length)}
+            hint={`${rawLeads.filter((l) => l.status === "New").length} need response`}
             icon={MessageSquare}
             tone="primary"
             href="/biz/enquiries"
           />
           <StatCard
             label="Profile views"
-            value={String(stats.profileViews || 142)}
+            value={String(stats.profileViews || stats.views || 0)}
             hint="Last 30 days"
             icon={Eye}
             tone="success"
@@ -93,127 +140,287 @@ function BusinessHome() {
           <StatCard
             label="Catalogue items"
             value={String(catalogue.length)}
-            hint="Products & services"
+            hint={`${catalogue.filter((i) => i.status === "draft").length} drafts`}
             icon={Package}
+            tone="neutral"
             href="/biz/catalogue"
           />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+          {/* Main Left Column */}
           <div className="space-y-4">
+            {/* Matched Leads Panel */}
             <Panel
               title="Matched leads"
-              description="Buyer enquiries routed to your business"
-              action={<MoreLink href="/biz/leads" />}
+              description="Buyer enquiries routed to your categories"
+              action={<MoreLink href="/biz/leads" label="View all →" />}
             >
-              {leads.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  No active buyer leads at the moment.
-                </p>
+              {rawLeads.length === 0 ? (
+                <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                  <Target className="mx-auto h-8 w-8 text-slate-300 mb-2" />
+                  <p className="text-xs font-bold text-slate-700">No matched leads yet</p>
+                  <p className="text-[11px] text-slate-400 max-w-xs mx-auto mt-0.5">
+                    New buyer enquiries matching your categories will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {rawLeads.slice(0, 5).map((l) => {
+                    const leadTitle = l.enquiry?.title || l.title || "Buyer RFQ";
+                    const leadCity = l.enquiry?.city || l.city || "Location on request";
+                    const refCode = l.refCode || (l._id ? `ENQ-${l._id.slice(-4).toUpperCase()}` : "ENQ-2041");
+                    const leadStatus = l.status || "New";
+
+                    return (
+                      <div
+                        key={l._id}
+                        className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-slate-300 hover:shadow-xs"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-900 leading-snug">{leadTitle}</h4>
+                            <p className="mt-0.5 text-xs text-slate-400 font-normal">
+                              {refCode} · {leadCity}
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full px-3 py-0.5 text-xs font-semibold ${
+                              leadStatus === "New"
+                                ? "bg-sky-100 text-sky-700"
+                                : leadStatus === "In Progress"
+                                ? "bg-amber-100 text-amber-700"
+                                : leadStatus === "Responded"
+                                ? "bg-blue-100 text-blue-700"
+                                : leadStatus === "Won"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {leadStatus}
+                          </span>
+                        </div>
+
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 font-medium ${
+                              l.priority === "High"
+                                ? "bg-red-50 text-red-600 border border-red-100"
+                                : l.priority === "Medium"
+                                ? "bg-amber-50 text-amber-700 border border-amber-100"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {l.priority || "Standard"} priority
+                          </span>
+                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-slate-600">
+                            {l.enquiry?.quantity || l.quantity || "Quantity on request"}
+                          </span>
+                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-slate-600">
+                            {l.enquiry?.deadline || l.deadline || "As per requirement"}
+                          </span>
+                        </div>
+
+                        <div className="mt-3.5 flex items-center gap-2 pt-1">
+                          <Button
+                            asChild
+                            size="sm"
+                            className="rounded-full bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-5 shadow-2xs"
+                          >
+                            <Link href="/biz/leads">Respond</Link>
+                          </Button>
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="rounded-full border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            <Link href="/biz/leads">View details</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Panel>
+
+            {/* Performance Panel with Bar Chart */}
+            <Panel
+              title="Performance"
+              description="Leads, enquiries and profile views by month"
+              action={<MoreLink href="/biz/analytics" label="View all →" />}
+            >
+              <div className="pt-2 pb-4">
+                {/* Bar Chart Bars */}
+                <div className="flex items-end justify-between gap-3 h-44 px-4 pt-6 pb-2">
+                  {monthlyData.map((d) => {
+                    const heightPercent = Math.round((d.val / maxVal) * 100);
+                    return (
+                      <div key={d.month} className="flex-1 flex flex-col items-center gap-2 group">
+                        <span className="text-[11px] font-bold text-slate-500">{d.val}</span>
+                        <div className="w-full max-w-[54px] bg-slate-100 rounded-t-lg h-32 flex items-end overflow-hidden">
+                          <div
+                            style={{ height: `${heightPercent}%` }}
+                            className="w-full bg-sky-500 rounded-t-lg transition-all group-hover:bg-sky-600"
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-slate-400">{d.month}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Bottom Summary Indicators */}
+                <div className="mt-6 grid grid-cols-3 gap-3 border-t border-slate-100 pt-4 text-center">
+                  <div>
+                    <p className="text-xl font-bold text-slate-900 tabular-nums">{totalLeadsCount}</p>
+                    <p className="text-xs text-slate-400 font-medium">Leads</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-slate-900 tabular-nums">{totalLeadsCount}</p>
+                    <p className="text-xs text-slate-400 font-medium">Enquiries</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-slate-900 tabular-nums">{conversionRate}</p>
+                    <p className="text-xs text-slate-400 font-medium">Conversion</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center gap-1.5 px-2 text-xs font-semibold text-emerald-600">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  <span>Views performance updated live</span>
+                </div>
+              </div>
+            </Panel>
+          </div>
+
+          {/* Right Sidebar Column */}
+          <div className="space-y-4">
+            {/* Box 1: Profile Completeness */}
+            <Panel title="Profile completeness">
+              <div className="flex items-baseline justify-between">
+                <p className="text-2xl font-bold tabular-nums text-slate-900">{completeness}%</p>
+                <MembershipBadge tier={business?.membership?.tier || business?.membership || "Free Listing"} />
+              </div>
+              <Progress value={completeness} className="mt-3 h-2" />
+              <ul className="mt-4 space-y-2.5 text-xs">
+                {completenessList.map((item) => (
+                  <li key={item.label} className="flex items-center justify-between gap-3">
+                    <span className={item.done ? "text-slate-600 font-medium" : "text-slate-900 font-bold"}>
+                      {item.label}
+                    </span>
+                    <Pill tone={item.done ? "success" : "warning"} className="px-3 py-0.5 text-[11px]">
+                      {item.done ? "Done" : "Pending"}
+                    </Pill>
+                  </li>
+                ))}
+              </ul>
+              <Button asChild variant="outline" className="mt-5 w-full rounded-xl text-xs font-semibold">
+                <Link href="/biz/profile">Complete profile</Link>
+              </Button>
+            </Panel>
+
+            {/* Box 2: Verification & Membership */}
+            <Panel title="Verification & membership">
+              <ul className="space-y-3 text-xs">
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-slate-500 font-medium">Verification</span>
+                  <VerificationBadge status={business?.verification || business?.verificationStatus || "pending"} compact />
+                </li>
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-slate-500 font-medium">Plan</span>
+                  <MembershipBadge tier={business?.membership?.tier || business?.membership || "Free Listing"} />
+                </li>
+                <li className="flex items-center justify-between gap-3">
+                  <span className="text-slate-500 font-medium">Status</span>
+                  <span className="font-bold text-slate-900">
+                    {business?.verification === "verified" ? "Active Verified" : "Pending Verification"}
+                  </span>
+                </li>
+              </ul>
+              <div className="mt-5 space-y-2">
+                <Button asChild className="w-full rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs h-10 shadow-2xs">
+                  <Link href="/biz/membership">
+                    Manage membership <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full rounded-xl text-xs font-semibold border-slate-200 h-10">
+                  <Link href="/biz/verification">
+                    <ShieldCheck className="mr-1.5 h-3.5 w-3.5 text-slate-500" /> Verification status
+                  </Link>
+                </Button>
+              </div>
+            </Panel>
+
+            {/* Box 3: Recent Messages */}
+            <Panel title="Recent messages" action={<MoreLink href="/biz/messages" label="View all →" />}>
+              {messageList.length === 0 ? (
+                <p className="text-xs text-slate-400 font-medium text-center py-4">No recent messages</p>
               ) : (
                 <ul className="space-y-3">
-                  {leads.slice(0, 5).map((l) => (
-                    <li key={l._id} className="rounded-xl border border-border p-3.5">
-                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                  {messageList.map((msg, i) => (
+                    <li key={msg._id || msg.id || i} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold bg-sky-100 text-sky-700 uppercase">
+                          {(msg.otherUser?.name || msg.name || "U").slice(0, 2)}
+                        </span>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">{l.enquiry?.title || "Buyer RFQ"}</p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {l.enquiry?.category} · {l.enquiry?.city} · {new Date(l.createdAt).toLocaleDateString()}
-                          </p>
+                          <p className="truncate text-xs font-bold text-slate-900">{msg.otherUser?.name || msg.name || "Buyer"}</p>
+                          <p className="truncate text-[11px] text-slate-400">{msg.lastMessage || msg.snippet || "No messages yet"}</p>
                         </div>
-                        <StatusBadge status={l.status} />
                       </div>
-                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                        <Pill tone={l.priority === "High" ? "danger" : "neutral"}>{l.priority || "Standard"} priority</Pill>
-                        <Pill>Qty: {l.enquiry?.quantity || "On Request"}</Pill>
-                        {l.quotation?.amount && <Pill tone="success">Quoted: ₹ {l.quotation.amount}</Pill>}
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Button asChild size="sm">
-                          <Link href={`/biz/leads`}>Respond / Quote</Link>
-                        </Button>
-                      </div>
+                      {Boolean(msg.unreadCount || msg.unread) && (
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-600 text-[10px] font-bold text-white">
+                          {msg.unreadCount || msg.unread}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
               )}
             </Panel>
 
-            <Panel
-              title="Performance"
-              description="Conversion rate and lead engagement"
-              action={<MoreLink href="/biz/analytics" />}
-            >
-              <div className="grid grid-cols-3 gap-3 text-center">
+            {/* Box 4: Reviews */}
+            <Panel title="Reviews" action={<MoreLink href="/biz/analytics" label="View all →" />}>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl font-bold text-slate-900 tabular-nums">
+                  {reviewsData?.averageRating ? reviewsData.averageRating.toFixed(1) : "0.0"}
+                </span>
                 <div>
-                  <p className="text-xl font-bold tabular-nums">{stats.totalLeadsReceived || leads.length}</p>
-                  <p className="text-xs text-muted-foreground">Leads received</p>
-                </div>
-                <div>
-                  <p className="text-xl font-bold tabular-nums">{stats.quotesSubmitted || 0}</p>
-                  <p className="text-xs text-muted-foreground">Quotes sent</p>
-                </div>
-                <div>
-                  <p className="text-xl font-bold tabular-nums">{stats.dealsWon || 0}</p>
-                  <p className="text-xs text-muted-foreground">Deals won</p>
+                  <div className="flex items-center gap-0.5 text-amber-400">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-4 w-4 ${
+                          star <= Math.round(reviewsData?.averageRating || 0)
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-slate-200 fill-slate-100"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+                    {reviews.length} published reviews
+                  </p>
                 </div>
               </div>
             </Panel>
-          </div>
 
-          <div className="space-y-4">
-            <Panel title="Profile completeness">
-              <div className="flex items-baseline justify-between">
-                <p className="text-2xl font-bold tabular-nums">{completeness}%</p>
-                <MembershipBadge tier={business?.membership || "Basic"} />
-              </div>
-              <Progress value={completeness} className="mt-3" />
-              <ul className="mt-4 space-y-2 text-sm">
-                {[
-                  ["Business details", Boolean(business?.name && business?.about)],
-                  [`Catalogue (${catalogue.length} items)`, catalogue.length > 0],
-                  ["Logo uploaded", Boolean(business?.logo)],
-                  ["Cover banner uploaded", Boolean(business?.coverImage)],
-                  ["Verification badge", business?.verification === "verified"],
-                ].map(([label, done]) => (
-                  <li key={String(label)} className="flex items-center justify-between gap-3">
-                    <span className={done ? "text-muted-foreground" : "font-medium"}>{label}</span>
-                    <Pill tone={done ? "success" : "warning"}>{done ? "Done" : "Pending"}</Pill>
-                  </li>
-                ))}
-              </ul>
-              <Button asChild variant="outline" className="mt-4 w-full">
-                <Link href="/biz/profile">Complete profile</Link>
-              </Button>
-            </Panel>
-
-            <Panel title="Verification & membership">
-              <ul className="space-y-2.5 text-sm">
-                <li className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Verification</span>
-                  <VerificationBadge status={business?.verification || "pending"} compact />
-                </li>
-                <li className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Plan</span>
-                  <MembershipBadge tier={business?.membership || "Basic"} />
-                </li>
-                <li className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Status</span>
-                  <span className="font-medium">{business?.status || "Active"}</span>
-                </li>
-              </ul>
-              <div className="mt-4 grid gap-2">
-                <Button asChild>
-                  <Link href="/biz/membership">
-                    Manage membership <ArrowUpRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/biz/verification">
-                    <ShieldCheck className="h-4 w-4" /> Verification status
-                  </Link>
-                </Button>
-              </div>
+            {/* Box 5: Notifications */}
+            <Panel title="Notifications" action={<MoreLink href="/biz/notifications" label="View all →" />}>
+              {notificationItems.length === 0 ? (
+                <p className="text-xs text-slate-400 font-medium text-center py-4">No notifications</p>
+              ) : (
+                <ul className="space-y-3 divide-y divide-slate-100">
+                  {notificationItems.map((n, idx) => (
+                    <li key={n._id || n.id || idx} className={idx > 0 ? "pt-2.5" : ""}>
+                      <p className="text-xs font-bold text-slate-900">{n.title || n.type || "Notification"}</p>
+                      <p className="mt-0.5 text-[11px] text-slate-400 leading-snug truncate">{n.message || n.desc || ""}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Panel>
           </div>
         </div>
