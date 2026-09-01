@@ -5,14 +5,14 @@ export const authApi = {
   register: (data) => apiClient("/auth/register", { method: "POST", body: JSON.stringify(data) }),
   registerBusiness: (data) => apiClient("/auth/register-business", { method: "POST", body: JSON.stringify(data) }),
   getMe: () => apiClient("/auth/me"),
-  refreshToken: (refreshToken) => apiClient("/auth/refresh", { method: "POST", body: JSON.stringify({ refreshToken }) }),
+  refreshToken: (refreshToken) => apiClient("/auth/refresh-token", { method: "POST", body: JSON.stringify({ refreshToken }) }),
 };
 
 export const userApi = {
-  getProfile: () => apiClient("/users/profile"),
-  updateProfile: (data) => apiClient("/users/profile", { method: "PUT", body: JSON.stringify(data) }),
-  toggleSaveBusiness: (businessId) => apiClient(`/users/saved-businesses/${businessId}`, { method: "POST" }),
-  getSavedBusinesses: () => apiClient("/users/saved-businesses"),
+  getProfile: () => apiClient("/users/me"),
+  updateProfile: (data) => apiClient("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
+  toggleSaveBusiness: (businessId) => apiClient(`/users/me/saved/${businessId}`, { method: "POST" }),
+  getSavedBusinesses: () => apiClient("/users/me"),
   getAdminUsers: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return apiClient(`/users${qs ? `?${qs}` : ""}`);
@@ -25,10 +25,10 @@ export const businessApi = {
     const qs = new URLSearchParams(params).toString();
     return apiClient(`/businesses${qs ? `?${qs}` : ""}`);
   },
-  getByIdOrSlug: (idOrSlug) => apiClient(`/businesses/${idOrSlug}`),
+  getByIdOrSlug: (idOrSlug) => apiClient(`/businesses/detail/${idOrSlug}`),
   getMyBusiness: () => apiClient("/businesses/me"),
   create: (data) => apiClient("/businesses", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/businesses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/businesses/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   updateStatus: (id, data) => apiClient(`/businesses/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   uploadLogo: (id, file) => {
     const formData = new FormData();
@@ -82,7 +82,7 @@ export const catalogueApi = {
   getByBusiness: (businessId) => apiClient(`/catalogue/business/${businessId}`),
   getById: (id) => apiClient(`/catalogue/${id}`),
   create: (data) => apiClient("/catalogue", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/catalogue/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/catalogue/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/catalogue/${id}`, { method: "DELETE" }),
   uploadImages: (id, files) => {
     const formData = new FormData();
@@ -101,7 +101,7 @@ export const enquiryApi = {
   },
   getAllEnquiries: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return apiClient(`/enquiries${qs ? `?${qs}` : ""}`);
+    return apiClient(`/enquiries/admin/all${qs ? `?${qs}` : ""}`);
   },
   getById: (id) => apiClient(`/enquiries/${id}`),
 };
@@ -109,7 +109,7 @@ export const enquiryApi = {
 export const leadApi = {
   getMyLeads: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return apiClient(`/leads/my-leads${qs ? `?${qs}` : ""}`);
+    return apiClient(`/leads/me${qs ? `?${qs}` : ""}`);
   },
   submitQuotation: (id, data) => apiClient(`/leads/${id}/quote`, { method: "POST", body: JSON.stringify(data) }),
   updateStatus: (id, data) => apiClient(`/leads/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
@@ -118,15 +118,15 @@ export const leadApi = {
 
 export const membershipApi = {
   getPlans: () => apiClient("/memberships/plans"),
-  getMyMembership: () => apiClient("/memberships/my"),
+  getMyMembership: () => apiClient("/memberships/me"),
   upgradePlan: (data) => apiClient("/memberships/upgrade", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const paymentApi = {
-  getMyPayments: () => apiClient("/payments/my"),
+  getMyPayments: () => apiClient("/payments/me"),
   getAllPayments: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return apiClient(`/payments${qs ? `?${qs}` : ""}`);
+    return apiClient(`/payments/admin/all${qs ? `?${qs}` : ""}`);
   },
   createOrder: (data) => apiClient("/payments/order", { method: "POST", body: JSON.stringify(data) }),
   verifyPayment: (data) => apiClient("/payments/verify", { method: "POST", body: JSON.stringify(data) }),
@@ -134,13 +134,13 @@ export const paymentApi = {
 
 export const messageApi = {
   getConversations: () => apiClient("/messages/conversations"),
-  getMessages: (otherUserId) => apiClient(`/messages/user/${otherUserId}`),
+  getMessages: (otherUserId) => apiClient(`/messages/conversation/${otherUserId}`),
   sendMessage: (data) => apiClient("/messages", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const notificationApi = {
-  list: () => apiClient("/notifications"),
-  markAllAsRead: () => apiClient("/notifications/mark-read", { method: "PATCH" }),
+  list: () => apiClient("/notifications/me"),
+  markAllAsRead: () => apiClient("/notifications/read-all", { method: "PATCH" }),
   broadcast: (data) => apiClient("/notifications/broadcast", { method: "POST", body: JSON.stringify(data) }),
 };
 
@@ -149,10 +149,10 @@ export const eventApi = {
     const qs = new URLSearchParams(params).toString();
     return apiClient(`/events${qs ? `?${qs}` : ""}`);
   },
-  getByIdOrSlug: (idOrSlug) => apiClient(`/events/${idOrSlug}`),
+  getByIdOrSlug: (idOrSlug) => apiClient(`/events/detail/${idOrSlug}`),
   register: (id) => apiClient(`/events/${id}/register`, { method: "POST" }),
   create: (data) => apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/events/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
 };
 
 export const reviewApi = {
@@ -163,8 +163,8 @@ export const reviewApi = {
 };
 
 export const reportApi = {
-  getOverview: () => apiClient("/reports/overview"),
-  getBusinessAnalytics: () => apiClient("/reports/business-analytics"),
+  getOverview: () => apiClient("/reports/admin/overview"),
+  getBusinessAnalytics: () => apiClient("/reports/business/me"),
 };
 
 export const auditApi = {

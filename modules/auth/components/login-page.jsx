@@ -57,7 +57,7 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login({ email, password });
       if (user.role === "super_admin" || user.role === "secretariat") {
         router.push("/admin");
       } else if (user.role === "business_owner") {
@@ -78,7 +78,7 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const user = await login(acc.email, acc.pass);
+      const user = await login({ email: acc.email, password: acc.pass });
       router.push(acc.target);
     } catch (err) {
       setError(err.message || "Failed to log in with demo account. Ensure backend is running.");

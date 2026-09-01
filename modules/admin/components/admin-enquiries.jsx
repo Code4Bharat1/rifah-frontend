@@ -9,7 +9,7 @@ import { useAllEnquiries } from "@shared/hooks/use-rifah-api";
 
 function AdminEnquiries() {
   const { data: enquiriesData } = useAllEnquiries();
-  const enquiries = enquiriesData?.enquiries || [];
+  const enquiries = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
 
   return (
     <AppShell role="admin" title="Enquiry flow" subtitle="Buyer sourcing RFQs routed across chamber network">

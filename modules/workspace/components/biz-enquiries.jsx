@@ -11,7 +11,7 @@ import { useMyLeads } from "@shared/hooks/use-rifah-api";
 
 function BizEnquiries() {
   const { data: leadsData } = useMyLeads();
-  const rows = leadsData?.leads || [];
+  const rows = Array.isArray(leadsData) ? leadsData : (leadsData?.leads || []);
 
   return (
     <AppShell
