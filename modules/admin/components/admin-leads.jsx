@@ -9,7 +9,7 @@ import { useAllEnquiries } from "@shared/hooks/use-rifah-api";
 
 function AdminLeads() {
   const { data: enquiriesData } = useAllEnquiries();
-  const enquiries = enquiriesData?.enquiries || [];
+  const enquiries = enquiriesData?.data || [];
 
   return (
     <AppShell role="admin" title="Lead routing" subtitle="Matching buyer requirements to verified enterprises">

@@ -101,7 +101,7 @@ export const enquiryApi = {
   },
   getAllEnquiries: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return apiClient(`/enquiries${qs ? `?${qs}` : ""}`);
+    return apiClient(`/enquiries/admin/all${qs ? `?${qs}` : ""}`);
   },
   getById: (id) => apiClient(`/enquiries/${id}`),
 };
@@ -126,7 +126,7 @@ export const paymentApi = {
   getMyPayments: () => apiClient("/payments/my"),
   getAllPayments: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return apiClient(`/payments${qs ? `?${qs}` : ""}`);
+    return apiClient(`/payments/admin/all${qs ? `?${qs}` : ""}`);
   },
   createOrder: (data) => apiClient("/payments/order", { method: "POST", body: JSON.stringify(data) }),
   verifyPayment: (data) => apiClient("/payments/verify", { method: "POST", body: JSON.stringify(data) }),

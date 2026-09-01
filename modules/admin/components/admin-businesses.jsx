@@ -15,7 +15,7 @@ import { businessApi } from "@shared/lib/api-services";
 function AdminBusinesses() {
   const [q, setQ] = useState("");
   const { data: businessesData, refetch } = useBusinesses({ search: q || undefined });
-  const rows = businessesData?.businesses || [];
+  const rows = businessesData?.data || [];
 
   const handleToggleStatus = async (b) => {
     const newStatus = b.status === "active" ? "suspended" : "active";
