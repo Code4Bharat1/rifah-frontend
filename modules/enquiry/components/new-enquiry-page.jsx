@@ -64,12 +64,12 @@ function NewEnquiry() {
         description: formData.description,
         quantity: formData.quantity,
         budget: formData.budget,
-        requiredBy: formData.requiredBy ? new Date(formData.requiredBy) : undefined,
-        city: formData.city,
+        requiredBy: formData.requiredBy ? new Date(formData.requiredBy).toISOString() : "Immediate",
+        location: formData.city,
         buyerName: formData.buyerName || user?.name || "Buyer",
         buyerEmail: formData.buyerEmail || user?.email || "buyer@example.com",
         buyerPhone: formData.buyerPhone,
-        targetBusinessId: targetBusiness?._id || undefined,
+        targetBusiness: targetBusiness?._id || undefined,
       });
       setCreatedEnquiry(res?.data);
     } catch (err) {

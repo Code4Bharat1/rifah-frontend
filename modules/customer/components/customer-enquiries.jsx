@@ -15,7 +15,7 @@ const tabs = ["All", "Submitted", "Routed", "Responded", "Closed"];
 function MyEnquiries() {
   const [tab, setTab] = useState("All");
   const { data: enquiriesData, isLoading } = useMyEnquiries({
-    status: tab === "All" ? undefined : tab,
+    status: tab === "All" ? undefined : tab === "Submitted" ? "New" : tab,
   });
 
   const rows = enquiriesData?.enquiries || [];

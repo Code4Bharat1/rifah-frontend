@@ -36,7 +36,10 @@ export async function apiClient(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    const errorMsg = data?.error?.message || data?.message || (typeof data === "string" ? data : "An error occurred with the request.");
+    let errorMsg = data?.error?.message || data?.message || (typeof data === "string" ? data : "An error occurred with the request.");
+    if (data?.error?.details && Array.isArray(data.error.details) && data.error.details.length > 0) {
+      errorMsg = data.error.details.map((d) => d.message).join(", ");
+    }
     const error = new Error(errorMsg);
     error.status = response.status;
     error.data = data;

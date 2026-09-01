@@ -95,7 +95,10 @@ export const catalogueApi = {
 
 export const enquiryApi = {
   create: (data) => apiClient("/enquiries", { method: "POST", body: JSON.stringify(data) }),
-  getMyEnquiries: () => apiClient("/enquiries/my"),
+  getMyEnquiries: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiClient(`/enquiries/me${qs ? `?${qs}` : ""}`);
+  },
   getAllEnquiries: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return apiClient(`/enquiries${qs ? `?${qs}` : ""}`);
