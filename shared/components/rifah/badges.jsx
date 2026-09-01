@@ -38,21 +38,24 @@ export function Pill({
   );
 }
 
-const verificationMap
-
-
- = {
+const verificationMap = {
   verified: { label: "Verified", tone: "success", icon: <BadgeCheck className="h-3.5 w-3.5" /> },
   pending: { label: "Verification pending", tone: "warning", icon: <Clock className="h-3.5 w-3.5" /> },
   correction: { label: "Correction required", tone: "warning", icon: <AlertCircle className="h-3.5 w-3.5" /> },
   rejected: { label: "Not verified", tone: "danger", icon: <ShieldX className="h-3.5 w-3.5" /> },
+  unverified: { label: "Not verified", tone: "neutral", icon: <ShieldX className="h-3.5 w-3.5" /> },
 };
 
 export function VerificationBadge({ status, compact = false }) {
-  const v = verificationMap[status];
+  const normalizedStatus = typeof status === "string" ? status.toLowerCase() : "unverified";
+  const v = verificationMap[normalizedStatus] || {
+    label: status || "Not verified",
+    tone: "neutral",
+    icon: <ShieldX className="h-3.5 w-3.5" />,
+  };
   return (
     <Pill tone={v.tone} icon={v.icon}>
-      {compact && status === "verified" ? "Verified" : v.label}
+      {compact && normalizedStatus === "verified" ? "Verified" : v.label}
     </Pill>
   );
 }

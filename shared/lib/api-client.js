@@ -10,7 +10,7 @@ export function resolveMediaUrl(path) {
   return `${SERVER_BASE_URL}${cleanPath}`;
 }
 
-export async function apiClient(endpoint, options = {}) {
+export async function apiClient(endpoint, options = {}, isRetry = false) {
   const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
@@ -33,6 +33,32 @@ export async function apiClient(endpoint, options = {}) {
     data = await response.json();
   } else {
     data = await response.text();
+  }
+
+  if (response.status === 401 && !isRetry && !endpoint.includes("/auth/login") && !endpoint.includes("/auth/refresh-token")) {
+    const refreshToken = typeof window !== "undefined" ? localStorage.getItem("rifah_refresh_token") : null;
+    if (refreshToken) {
+      try {
+        const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          const newAccessToken = refreshData?.data?.accessToken || refreshData?.accessToken;
+          const newRefreshToken = refreshData?.data?.refreshToken || refreshData?.refreshToken;
+          if (newAccessToken) {
+            localStorage.setItem("rifah_access_token", newAccessToken);
+            if (newRefreshToken) localStorage.setItem("rifah_refresh_token", newRefreshToken);
+            // Retry original request with new token
+            return apiClient(endpoint, options, true);
+          }
+        }
+      } catch (e) {
+        // Token refresh attempt failed
+      }
+    }
   }
 
   if (!response.ok) {

@@ -5,7 +5,7 @@ export const authApi = {
   register: (data) => apiClient("/auth/register", { method: "POST", body: JSON.stringify(data) }),
   registerBusiness: (data) => apiClient("/auth/register-business", { method: "POST", body: JSON.stringify(data) }),
   getMe: () => apiClient("/auth/me"),
-  refreshToken: (refreshToken) => apiClient("/auth/refresh", { method: "POST", body: JSON.stringify({ refreshToken }) }),
+  refreshToken: (refreshToken) => apiClient("/auth/refresh-token", { method: "POST", body: JSON.stringify({ refreshToken }) }),
 };
 
 export const userApi = {
@@ -28,7 +28,7 @@ export const businessApi = {
   getByIdOrSlug: (idOrSlug) => apiClient(`/businesses/${idOrSlug}`),
   getMyBusiness: () => apiClient("/businesses/me"),
   create: (data) => apiClient("/businesses", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/businesses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/businesses/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   updateStatus: (id, data) => apiClient(`/businesses/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   uploadLogo: (id, file) => {
     const formData = new FormData();

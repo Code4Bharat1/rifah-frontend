@@ -58,15 +58,23 @@ function BizProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!business?._id) return;
     setSaving(true);
     try {
-      await businessApi.update(business._id, formData);
+      if (business?._id) {
+        await businessApi.update(business._id, formData);
+      } else {
+        await businessApi.create({
+          ...formData,
+          industry: formData.industry || "General",
+          city: formData.city || "Mumbai",
+          state: formData.state || "Maharashtra",
+        });
+      }
       await refetch();
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      alert(err.message || "Failed to update business profile.");
+      alert(err.message || "Failed to save business profile.");
     } finally {
       setSaving(false);
     }
