@@ -35,15 +35,20 @@ export function AuthProvider({ children }) {
     fetchCurrentUser();
   }, []);
 
-  const login = async (credentials) => {
+  const login = async (emailOrCredentials, passwordArg) => {
+    // Supports both: login({email, password}) and login(email, password)
+    const credentials =
+      typeof emailOrCredentials === "string"
+        ? { email: emailOrCredentials, password: passwordArg }
+        : emailOrCredentials;
+
     const res = await authApi.login(credentials);
-    const { user: loggedInUser, tokens } = res.data || res;
-    if (tokens?.accessToken) {
-      localStorage.setItem("rifah_access_token", tokens.accessToken);
-    }
-    if (tokens?.refreshToken) {
-      localStorage.setItem("rifah_refresh_token", tokens.refreshToken);
-    }
+    const payload = res.data || res;
+    const loggedInUser = payload.user;
+    const accessToken = payload.accessToken || payload.tokens?.accessToken;
+    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
+    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
+    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
     if (loggedInUser) {
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
@@ -53,13 +58,12 @@ export function AuthProvider({ children }) {
 
   const register = async (data) => {
     const res = await authApi.register(data);
-    const { user: registeredUser, tokens } = res.data || res;
-    if (tokens?.accessToken) {
-      localStorage.setItem("rifah_access_token", tokens.accessToken);
-    }
-    if (tokens?.refreshToken) {
-      localStorage.setItem("rifah_refresh_token", tokens.refreshToken);
-    }
+    const payload = res.data || res;
+    const registeredUser = payload.user;
+    const accessToken = payload.accessToken || payload.tokens?.accessToken;
+    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
+    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
+    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
     if (registeredUser) {
       localStorage.setItem("rifah_user", JSON.stringify(registeredUser));
       setUser(registeredUser);
@@ -69,13 +73,12 @@ export function AuthProvider({ children }) {
 
   const registerBusiness = async (data) => {
     const res = await authApi.registerBusiness(data);
-    const { user: registeredUser, tokens } = res.data || res;
-    if (tokens?.accessToken) {
-      localStorage.setItem("rifah_access_token", tokens.accessToken);
-    }
-    if (tokens?.refreshToken) {
-      localStorage.setItem("rifah_refresh_token", tokens.refreshToken);
-    }
+    const payload = res.data || res;
+    const registeredUser = payload.user;
+    const accessToken = payload.accessToken || payload.tokens?.accessToken;
+    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
+    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
+    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
     if (registeredUser) {
       localStorage.setItem("rifah_user", JSON.stringify(registeredUser));
       setUser(registeredUser);

@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bookmark,
   Building2,
   CalendarDays,
   FileStack,
   Home,
+  LogOut,
   Menu,
   Package,
   Search,
@@ -19,6 +20,7 @@ import { RifahLogo } from "@shared/components/rifah/brand";
 import { Button } from "@shared/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
 import { cn } from "@shared/lib/utils";
+import { useAuth } from "@shared/providers/auth-provider";
 
 const primaryNav = [
   { label: "Discover", to: "/discover" },
@@ -38,6 +40,16 @@ const mobileTabs = [
 ];
 
 export function PublicHeader() {
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
+  const dashboardPath = user?.role === "super_admin" || user?.role === "secretariat" ? "/admin" : user?.role === "business_owner" ? "/biz" : "/me";
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
       <div className="rifah-container flex h-14 items-center gap-3 md:h-[68px]">
@@ -61,12 +73,30 @@ export function PublicHeader() {
               <Search className="h-5 w-5" />
             </Link>
           </Button>
-          <Button asChild variant="ghost" className="hidden md:inline-flex">
-            <Link href="/login">Log in</Link>
-          </Button>
-          <Button asChild variant="brand" className="hidden sm:inline-flex">
-            <Link href="/register-business">Join RIFAH</Link>
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Button asChild variant="ghost" className="hidden md:inline-flex">
+                <Link href={dashboardPath}>Dashboard</Link>
+              </Button>
+              <div className="hidden items-center gap-1.5 md:flex">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                </span>
+                <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" title="Logout">
+                  <LogOut className="h-4.5 w-4.5" />
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Button asChild variant="ghost" className="hidden md:inline-flex">
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button asChild variant="brand" className="hidden sm:inline-flex">
+                <Link href="/register-business">Join RIFAH</Link>
+              </Button>
+            </>
+          )}
           <MobileMenu />
         </div>
       </div>
@@ -75,6 +105,16 @@ export function PublicHeader() {
 }
 
 function MobileMenu() {
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
+  const dashboardPath = user?.role === "super_admin" || user?.role === "secretariat" ? "/admin" : user?.role === "business_owner" ? "/biz" : "/me";
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -98,28 +138,39 @@ function MobileMenu() {
               {item.label}
             </Link>
           ))}
-          <div className="mt-2 grid gap-2 border-t border-border pt-3">
-            <Button asChild variant="outline">
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button asChild variant="brand">
-              <Link href="/register-business">Join RIFAH</Link>
-            </Button>
-          </div>
-          <div className="mt-3 border-t border-border pt-3">
-            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Prototype dashboards
-            </p>
-            <Link href="/me" className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm hover:bg-muted">
-              <Bookmark className="h-4 w-4 text-primary" /> Customer view
-            </Link>
-            <Link href="/biz" className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm hover:bg-muted">
-              <Building2 className="h-4 w-4 text-primary" /> Business view
-            </Link>
-            <Link href="/admin" className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm hover:bg-muted">
-              <FileStack className="h-4 w-4 text-primary" /> Admin view
-            </Link>
-          </div>
+          {isAuthenticated ? (
+            <div className="mt-2 border-t border-border pt-3">
+              {user && (
+                <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    {user.name?.charAt(0)?.toUpperCase() || "U"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">{user.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
+                  </span>
+                </div>
+              )}
+              <Link href={dashboardPath} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium hover:bg-muted">
+                <UserRound className="h-4 w-4 text-primary" /> My Dashboard
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-sm font-medium text-destructive hover:bg-destructive/10"
+              >
+                <LogOut className="h-4 w-4" /> Logout
+              </button>
+            </div>
+          ) : (
+            <div className="mt-2 grid gap-2 border-t border-border pt-3">
+              <Button asChild variant="outline">
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button asChild variant="brand">
+                <Link href="/register-business">Join RIFAH</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
