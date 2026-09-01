@@ -18,7 +18,7 @@ function MyEnquiries() {
     status: tab === "All" ? undefined : tab === "Submitted" ? "New" : tab,
   });
 
-  const rows = enquiriesData?.enquiries || [];
+  const rows = enquiriesData?.data || [];
 
   return (
     <AppShell

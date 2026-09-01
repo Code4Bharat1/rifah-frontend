@@ -14,7 +14,7 @@ import { userApi } from "@shared/lib/api-services";
 function AdminUsers() {
   const [q, setQ] = useState("");
   const { data: usersData, refetch } = useAdminUsers({ search: q || undefined });
-  const rows = usersData?.users || [];
+  const rows = usersData?.data || [];
 
   const handleToggleStatus = async (user) => {
     const newStatus = user.status === "active" ? "suspended" : "active";

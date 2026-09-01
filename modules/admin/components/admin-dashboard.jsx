@@ -25,12 +25,12 @@ function AdminHome() {
   const { data: auditData } = useAuditLogs();
   const { data: paymentsData } = useAllPayments();
 
-  const kpi = overviewData?.kpi || {};
+  const kpi = overviewData?.data?.kpi || {};
   const queue = queueData || [];
-  const enquiries = enquiriesData?.enquiries || [];
+  const enquiries = enquiriesData?.data || [];
   const chapters = chaptersData || [];
-  const auditLogs = auditData?.logs || [];
-  const payments = paymentsData?.payments || [];
+  const auditLogs = auditData?.data || [];
+  const payments = paymentsData?.data || [];
 
   const handleApprove = async (id) => {
     try {

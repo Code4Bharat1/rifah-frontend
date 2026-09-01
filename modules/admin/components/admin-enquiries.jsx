@@ -9,7 +9,7 @@ import { useAllEnquiries } from "@shared/hooks/use-rifah-api";
 
 function AdminEnquiries() {
   const { data: enquiriesData } = useAllEnquiries();
-  const enquiries = enquiriesData?.enquiries || [];
+  const enquiries = enquiriesData?.data || [];
 
   return (
     <AppShell role="admin" title="Enquiry flow" subtitle="Buyer sourcing RFQs routed across chamber network">
@@ -37,7 +37,7 @@ function AdminEnquiries() {
             columns={[
               { key: "title", header: "Requirement", cell: (r) => <span className="font-semibold">{r.title}</span> },
               { key: "category", header: "Category", cell: (r) => r.category },
-              { key: "buyer", header: "Buyer", cell: (r) => r.buyerName || "Registered Buyer" },
+              { key: "buyer", header: "Buyer", cell: (r) => r.requesterName || r.buyerName || "Registered Buyer" },
               { key: "city", header: "Location", cell: (r) => r.city },
               { key: "date", header: "Date", cell: (r) => new Date(r.createdAt).toLocaleDateString() },
               { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
@@ -48,7 +48,7 @@ function AdminEnquiries() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{r.title}</p>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {r.buyerName} · {r.city}
+                      {r.requesterName || r.buyerName} · {r.city}
                     </p>
                   </div>
                   <StatusBadge status={r.status} />
