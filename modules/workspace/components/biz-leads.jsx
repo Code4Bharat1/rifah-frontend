@@ -32,7 +32,7 @@ function LeadsPage() {
     status: stage === "All" ? undefined : stage,
   });
 
-  const rows = leadsData?.leads || [];
+  const rows = Array.isArray(leadsData) ? leadsData : (leadsData?.leads || []);
 
   const handleSendQuotation = async (e) => {
     e.preventDefault();

@@ -32,11 +32,11 @@ function BusinessHome() {
   const { data: convData } = useConversations();
   const { data: notifData } = useNotifications();
 
-  const leads = leadsData?.leads || [];
+  const leads = Array.isArray(leadsData) ? leadsData : (leadsData?.leads || []);
   const catalogue = catalogueItems || [];
   const stats = analyticsData?.summary || {};
   const conversations = convData || [];
-  const notifications = notifData?.notifications || [];
+  const notifications = Array.isArray(notifData) ? notifData : (notifData?.notifications || []);
 
   const completeness = business
     ? [
