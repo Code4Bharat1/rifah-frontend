@@ -59,6 +59,7 @@ export const businessApi = {
 export const categoryApi = {
   list: () => apiClient("/categories"),
   create: (data) => apiClient("/categories", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/categories/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/categories/${id}`, { method: "DELETE" }),
 };
 
@@ -66,7 +67,9 @@ export const chapterApi = {
   list: () => apiClient("/chapters"),
   getById: (id) => apiClient(`/chapters/${id}`),
   create: (data) => apiClient("/chapters", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/chapters/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   addUnit: (chapterId, data) => apiClient(`/chapters/${chapterId}/units`, { method: "POST", body: JSON.stringify(data) }),
+  removeUnit: (chapterId, unitId) => apiClient(`/chapters/${chapterId}/units/${unitId}`, { method: "DELETE" }),
 };
 
 export const verificationApi = {
@@ -111,6 +114,7 @@ export const enquiryApi = {
     return apiClient(`/enquiries/admin/all${qs ? `?${qs}` : ""}`);
   },
   getById: (id) => apiClient(`/enquiries/${id}`),
+  updateStatus: (id, data) => apiClient(`/enquiries/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
 };
 
 export const leadApi = {

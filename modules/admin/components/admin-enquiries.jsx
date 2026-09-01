@@ -1,19 +1,32 @@
 "use client";
 import { useState } from "react";
-import { Inbox, MessageSquare } from "lucide-react";
+import { Inbox, MessageSquare, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { useAllEnquiries } from "@shared/hooks/use-rifah-api";
+import { enquiryApi } from "@shared/lib/api-services";
 import { Button } from "@shared/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 
 function AdminEnquiries() {
-  const { data: enquiriesData } = useAllEnquiries();
+  const { data: enquiriesData, refetch } = useAllEnquiries();
   const enquiries = Array.isArray(enquiriesData) ? enquiriesData : [];
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  
+  const handleUpdateStatus = async (id, newStatus) => {
+    try {
+      await enquiryApi.updateStatus(id, { status: newStatus });
+      toast.success(`Status updated to ${newStatus}`);
+      refetch();
+    } catch (error) {
+      toast.error(error.message || "Failed to update status");
+    }
+  };
 
   return (
     <AppShell role="admin" title="Enquiry flow" subtitle="Buyer sourcing RFQs routed across chamber network">
@@ -46,9 +59,49 @@ function AdminEnquiries() {
               { key: "city", header: "LOCATION", cell: (r) => r.city || r.location },
               { key: "status", header: "STATUS", cell: (r) => <StatusBadge status={r.status} /> },
               { key: "responses", header: "RESPONSES", cell: (r) => r.responses?.length || 0 },
-              { key: "action", header: "", cell: (r) => (
-                <button className="text-sm font-medium text-primary hover:underline" onClick={() => setSelectedEnquiry(r)}>Review</button>
-              )}
+              {
+                key: "action",
+                header: "",
+                cell: (r) => (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Manage Enquiry</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => setSelectedEnquiry(r)}>
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "New")} disabled={r.status === "New"}>
+                        Mark as New
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Routed")} disabled={r.status === "Routed"}>
+                        Mark as Routed
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "In Progress")} disabled={r.status === "In Progress"}>
+                        Mark as In Progress
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Responded")} disabled={r.status === "Responded"}>
+                        Mark as Responded
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Won")} disabled={r.status === "Won"}>
+                        Mark as Won
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-red-600 focus:bg-red-50" onClick={() => handleUpdateStatus(r._id, "Rejected")} disabled={r.status === "Rejected"}>
+                        Reject Enquiry
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Closed")} disabled={r.status === "Closed"}>
+                        Close Enquiry
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ),
+              },
             ]}
             mobile={(r) => (
               <div className="rounded-xl border border-border p-3.5">

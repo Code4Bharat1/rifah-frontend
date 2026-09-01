@@ -1,5 +1,6 @@
 "use client";
-import { MapPin, Plus, Users, Loader2 } from "lucide-react";
+import { MapPin, Plus, Users, Loader2, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 import { useState } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -15,6 +16,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@shared/components/ui/sheet";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useChapters } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
 
@@ -39,13 +41,24 @@ function AdminChapters() {
     setLoading(true);
     try {
       await chapterApi.create(newChapter);
+      toast.success("Chapter created successfully");
       setOpenAdd(false);
       setNewChapter({ name: "", city: "", state: "Maharashtra", status: "Active" });
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to create chapter.");
+      toast.error(err.message || "Failed to create chapter.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (id, status) => {
+    try {
+      await chapterApi.update(id, { status });
+      toast.success(`Chapter marked as ${status}`);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to update chapter.");
     }
   };
 
@@ -76,6 +89,28 @@ function AdminChapters() {
               { key: "loc", header: "Location", cell: (r) => `${r.city}, ${r.state}` },
               { key: "units", header: "Active Units", cell: (r) => r.units?.length || 0 },
               { key: "status", header: "Status", cell: (r) => <Pill tone={r.status === "Active" ? "success" : "warning"}>{r.status}</Pill> },
+              {
+                key: "act",
+                header: "",
+                cell: (r) => (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Manage Chapter</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id || r.id, "Active")} disabled={r.status === "Active"}>
+                        Mark as Active
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id || r.id, "Inactive")} disabled={r.status === "Inactive"}>
+                        Mark as Inactive
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ),
+              },
             ]}
             mobile={(r) => (
               <div className="rounded-xl border border-border p-3.5">

@@ -1,5 +1,6 @@
 "use client";
-import { MessageSquare, Star } from "lucide-react";
+import { MessageSquare, Star, Undo2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
@@ -16,9 +17,10 @@ function AdminReviews() {
   const handleModerate = async (id, status) => {
     try {
       await reviewApi.moderate(id, { status });
+      toast.success(`Review ${status} successfully`);
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to moderate review.");
+      toast.error(err.message || "Failed to moderate review.");
     }
   };
 
@@ -59,13 +61,19 @@ function AdminReviews() {
                   <p className="mt-2 text-sm text-muted-foreground">{r.body}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {r.status !== "approved" && (
-                      <Button size="sm" onClick={() => handleModerate(r._id, "approved")}>
+                      <Button size="sm" onClick={() => handleModerate(r._id || r.id, "approved")}>
                         Publish / Approve
                       </Button>
                     )}
                     {r.status !== "rejected" && (
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleModerate(r._id, "rejected")}>
+                      <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleModerate(r._id || r.id, "rejected")}>
                         Reject
+                      </Button>
+                    )}
+                    {r.status !== "pending" && (
+                      <Button size="sm" variant="ghost" onClick={() => handleModerate(r._id || r.id, "pending")}>
+                        <Undo2 className="h-4 w-4 mr-1.5" />
+                        Move to Pending
                       </Button>
                     )}
                   </div>

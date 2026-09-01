@@ -1,17 +1,31 @@
 "use client";
-import { Star } from "lucide-react";
+import { Star, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
+import { Button } from "@shared/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useMembershipPlans, useBusinesses } from "@shared/hooks/use-rifah-api";
+import { businessApi } from "@shared/lib/api-services";
 
 function AdminMemberships() {
   const { data: plansData } = useMembershipPlans();
-  const { data: businessesData } = useBusinesses();
+  const { data: businessesData, refetch: refetchBusinesses } = useBusinesses();
 
   const plans = plansData || {};
   const businesses = Array.isArray(businessesData) ? businessesData : [];
+
+  const handleUpdateStatus = async (businessId, updates) => {
+    try {
+      await businessApi.updateStatus(businessId, updates);
+      toast.success("Business profile updated successfully");
+      refetchBusinesses();
+    } catch (err) {
+      toast.error(err.message || "Failed to update business.");
+    }
+  };
 
   return (
     <AppShell role="admin" title="Memberships" subtitle="Tiers, subscription plans and member allocations">
@@ -66,6 +80,45 @@ function AdminMemberships() {
               { key: "tier", header: "Tier", cell: (r) => <MembershipBadge tier={r.membership} /> },
               { key: "chapter", header: "Chapter", cell: (r) => r.chapter },
               { key: "ver", header: "Verification", cell: (r) => <VerificationBadge status={r.verification} compact /> },
+              {
+                key: "act",
+                header: "",
+                cell: (r) => (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Manage Tier</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, { membership: "Basic" })} disabled={r.membership === "Basic"}>
+                        Set to Basic
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, { membership: "Premium" })} disabled={r.membership === "Premium"}>
+                        Upgrade to Premium
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, { membership: "Enterprise" })} disabled={r.membership === "Enterprise"}>
+                        Upgrade to Enterprise
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Verification</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, { verification: "verified" })} disabled={r.verification === "verified"}>
+                        Mark Verified
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, { verification: "pending" })} disabled={r.verification === "pending"}>
+                        Set Pending
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, { featured: !r.featured })}>
+                        {r.featured ? "Remove from Featured" : "Mark as Featured"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ),
+              },
             ]}
             mobile={(r) => (
               <div className="rounded-xl border border-border p-3.5">
@@ -76,6 +129,14 @@ function AdminMemberships() {
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <Pill>{r.chapter}</Pill>
                   <VerificationBadge status={r.verification} compact />
+                </div>
+                <div className="mt-2.5 pt-2.5 border-t border-border flex justify-end gap-2">
+                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(r._id, { membership: "Premium" })} disabled={r.membership === "Premium"}>
+                     Set Premium
+                   </Button>
+                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(r._id, { verification: "verified" })} disabled={r.verification === "verified"}>
+                     Verify
+                   </Button>
                 </div>
               </div>
             )}
