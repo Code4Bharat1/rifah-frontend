@@ -12,7 +12,7 @@ import { categoryApi } from "@shared/lib/api-services";
 
 function AdminCategories() {
   const { data: categoriesData, refetch } = useCategories();
-  const categories = categoriesData?.data || [];
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
 
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);

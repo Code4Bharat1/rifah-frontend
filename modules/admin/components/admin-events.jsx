@@ -29,7 +29,7 @@ import { eventApi } from "@shared/lib/api-services";
 
 function AdminEvents() {
   const { data: eventsData, refetch } = useEvents();
-  const events = eventsData?.data || [];
+  const events = Array.isArray(eventsData) ? eventsData : [];
 
   const [openAdd, setOpenAdd] = useState(false);
   const [loading, setLoading] = useState(false);

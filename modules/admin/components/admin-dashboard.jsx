@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { Building2, CalendarDays, ShieldCheck, Users, Wallet } from "lucide-react";
+import { Building2, CalendarDays, ShieldCheck, Users, Wallet, ArrowRight, Activity } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell, YAxis } from "recharts";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
@@ -31,6 +32,11 @@ function AdminHome() {
   const chapters = chaptersData || [];
   const auditLogs = auditData?.data || [];
   const payments = paymentsData?.data || [];
+  
+  const membershipGrowth = overviewData?.data?.membershipGrowth || [];
+  const chaptersDist = overviewData?.data?.chaptersDistribution || [];
+  const mix = overviewData?.data?.membershipMix || { Basic: 0, Premium: 0, Enterprise: 0 };
+  const totalMembers = Object.values(mix).reduce((a, b) => a + b, 0) || 1;
 
   const handleApprove = async (id) => {
     try {
@@ -58,19 +64,19 @@ function AdminHome() {
     <AppShell
       role="admin"
       title="Chamber administration"
-      subtitle="RIFAH Secretariat · central governance"
+      subtitle="RIFAH Secretariat · all chapters"
       actions={
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="rounded-full">
           <Link href="/admin/reports">View reports</Link>
         </Button>
       }
     >
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
             label="Member businesses"
             value={String(kpi.totalBusinesses || 0)}
-            hint={`${kpi.verifiedBusinesses || 0} verified`}
+            hint={`+${membershipGrowth[membershipGrowth.length - 1]?.new || 0} this month`}
             icon={Building2}
             tone="primary"
             href="/admin/businesses"
@@ -78,7 +84,7 @@ function AdminHome() {
           <StatCard
             label="Verification queue"
             value={String(queue.length)}
-            hint="Awaiting secretariat action"
+            hint={`${kpi.pendingVerifications || 0} pending`}
             icon={ShieldCheck}
             tone="warning"
             href="/admin/verification"
@@ -90,13 +96,99 @@ function AdminHome() {
             href="/admin/users"
           />
           <StatCard
-            label="Total Enquiries"
-            value={String(kpi.totalEnquiries || 0)}
-            hint="Platform RFQs"
+            label="Payments this month"
+            value={String(kpi.paidTransactions || 0)}
+            hint={`₹ ${kpi.totalRevenue || 0} collected`}
             icon={Wallet}
             tone="success"
-            href="/admin/enquiries"
+            href="/admin/payments"
           />
+        </div>
+
+        {/* Charts & Progress Panels Row */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+             <div className="mb-6">
+                <h3 className="text-lg font-bold">Membership growth</h3>
+                <p className="text-sm text-muted-foreground">Total members and new registrations</p>
+             </div>
+             <div className="h-[280px] w-full border-b border-border/40 pb-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={membershipGrowth} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#888888' }} dy={10} />
+                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={60}>
+                       {membershipGrowth.map((entry, index) => (
+                         <Cell key={`cell-${index}`} className="fill-primary" />
+                       ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+             </div>
+             <div className="mt-4 grid grid-cols-3 divide-x divide-border/40 text-center">
+                <div>
+                   <p className="text-2xl font-bold">{membershipGrowth[membershipGrowth.length - 1]?.new || 0}</p>
+                   <p className="text-xs text-muted-foreground mt-1">New registrations</p>
+                   <p className="text-[10px] text-green-600 font-medium mt-0.5">↗ Registrations up</p>
+                </div>
+                <div>
+                   <p className="text-2xl font-bold">91%</p>
+                   <p className="text-xs text-muted-foreground mt-1">Renewal rate</p>
+                </div>
+                <div>
+                   <p className="text-2xl font-bold">{Math.round(((mix.Premium + mix.Enterprise) / totalMembers) * 100) || 0}%</p>
+                   <p className="text-xs text-muted-foreground mt-1">Premium share</p>
+                </div>
+             </div>
+          </div>
+          
+          <div className="space-y-6">
+            <Panel title="Chapters" action={<MoreLink href="/admin/chapters" />}>
+              <div className="space-y-5 mt-2">
+                {chaptersDist.length === 0 ? (
+                   <p className="text-xs text-muted-foreground">No chapters data available.</p>
+                ) : (
+                   chaptersDist.map(c => {
+                     const pct = Math.round((c.members / (chaptersDist[0]?.members || 1)) * 100);
+                     return (
+                       <div key={c.name} className="space-y-1.5">
+                          <div className="flex items-center justify-between text-sm">
+                             <span className="font-medium">{c.name}</span>
+                             <span className="font-semibold">{c.members}</span>
+                          </div>
+                          <Progress value={pct} className="h-2" />
+                       </div>
+                     );
+                   })
+                )}
+              </div>
+            </Panel>
+            <Panel title="Membership mix">
+               <div className="space-y-3 mt-2">
+                  <div className="flex items-center justify-between bg-primary text-primary-foreground p-3 rounded-lg">
+                     <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4" />
+                        <span className="text-sm font-medium">Enterprise member</span>
+                     </div>
+                     <span className="text-sm font-bold">{mix.Enterprise}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-red-50 text-red-700 p-3 rounded-lg border border-red-100">
+                     <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4" />
+                        <span className="text-sm font-medium">Premium member</span>
+                     </div>
+                     <span className="text-sm font-bold">{mix.Premium}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-blue-50 text-blue-700 p-3 rounded-lg border border-blue-100">
+                     <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <span className="text-sm font-medium">Basic member</span>
+                     </div>
+                     <span className="text-sm font-bold">{mix.Basic}</span>
+                  </div>
+               </div>
+            </Panel>
+          </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
