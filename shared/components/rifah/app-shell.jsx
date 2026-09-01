@@ -242,12 +242,12 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="px-4 pb-28 pt-4 md:px-6 md:pb-10 md:pt-6 xl:px-10">
+        <main className="px-4 pb-10 pt-4 md:px-6 md:pb-10 md:pt-6 xl:px-10">
           <div className="mx-auto w-full max-w-[1440px]">{children}</div>
         </main>
       </div>
 
-      <BottomNav role={role} />
+
     </div>
   );
 }
