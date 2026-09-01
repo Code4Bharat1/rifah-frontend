@@ -14,12 +14,12 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 const quickDemoLogins = [
   {
-    role: "Chamber Admin",
-    email: "secretariat@rifah.org",
-    pass: "Admin@123456",
+    role: "RIFAH Admin",
+    email: "admin@gmail.com",
+    pass: "12345678",
     target: "/admin",
     icon: ShieldCheck,
-    note: "Secretariat review & KPI controls",
+    note: "All access chamber monitoring",
   },
   {
     role: "Business Owner",

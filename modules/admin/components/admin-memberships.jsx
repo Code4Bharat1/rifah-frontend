@@ -11,7 +11,7 @@ function AdminMemberships() {
   const { data: businessesData } = useBusinesses();
 
   const plans = plansData || {};
-  const businesses = businessesData?.businesses || [];
+  const businesses = businessesData?.data || [];
 
   return (
     <AppShell role="admin" title="Memberships" subtitle="Tiers, subscription plans and member allocations">

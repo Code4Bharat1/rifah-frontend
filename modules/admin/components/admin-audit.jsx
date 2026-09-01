@@ -9,7 +9,7 @@ import { useAuditLogs } from "@shared/hooks/use-rifah-api";
 
 function AdminAudit() {
   const { data: auditData } = useAuditLogs();
-  const auditLogs = auditData?.logs || [];
+  const auditLogs = auditData?.data || [];
 
   return (
     <AppShell role="admin" title="Audit log" subtitle="Immutable ledger of administrative actions and moderation events">
