@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Building2, Search } from "lucide-react";
+import { Building2, Search, ExternalLink } from "lucide-react";
 import { useState } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -11,11 +11,12 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { useBusinesses } from "@shared/hooks/use-rifah-api";
 import { businessApi } from "@shared/lib/api-services";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 
 function AdminBusinesses() {
   const [q, setQ] = useState("");
   const { data: businessesData, refetch } = useBusinesses({ search: q || undefined });
-  const rows = businessesData?.data || [];
+  const rows = Array.isArray(businessesData) ? businessesData : [];
 
   const handleToggleStatus = async (b) => {
     const newStatus = b.status === "active" ? "suspended" : "active";
@@ -32,7 +33,10 @@ function AdminBusinesses() {
     <AppShell
       role="admin"
       title="Member businesses"
-      subtitle={`${rows.length} listed businesses in chamber directory`}
+      subtitle={`${rows.length} listed businesses`}
+      actions={
+        <Button variant="outline" className="rounded-full">Export directory</Button>
+      }
     >
       <div className="space-y-4">
         <div className="relative">
@@ -50,34 +54,19 @@ function AdminBusinesses() {
             rows={rows}
             empty={<EmptyState icon={Building2} title="No businesses match" description="Try a different search term." />}
             columns={[
-              { key: "name", header: "Business", cell: (r) => <span className="font-semibold">{r.name}</span> },
-              { key: "industry", header: "Industry", cell: (r) => r.industry },
-              { key: "city", header: "Location", cell: (r) => `${r.city}, ${r.state}` },
-              { key: "chapter", header: "Chapter", cell: (r) => r.chapter },
-              { key: "plan", header: "Plan", cell: (r) => <MembershipBadge tier={r.membership} /> },
-              { key: "ver", header: "Verification", cell: (r) => <VerificationBadge status={r.verification} compact /> },
-              {
-                key: "status",
-                header: "Status",
-                cell: (r) => (
-                  <Button
-                    size="sm"
-                    variant={r.status === "active" ? "ghost" : "destructive"}
-                    onClick={() => handleToggleStatus(r)}
-                  >
-                    {r.status || "active"}
-                  </Button>
-                ),
-              },
+              { key: "name", header: "BUSINESS", cell: (r) => <span className="font-semibold text-sm">{r.name}</span> },
+              { key: "industry", header: "INDUSTRY", cell: (r) => r.industry },
+              { key: "city", header: "LOCATION", cell: (r) => `${r.city}, ${r.state}` },
+              { key: "chapter", header: "CHAPTER", cell: (r) => r.chapter },
+              { key: "plan", header: "PLAN", cell: (r) => <MembershipBadge tier={r.membership} /> },
+              { key: "ver", header: "VERIFICATION", cell: (r) => <VerificationBadge status={r.verification} compact /> },
               {
                 key: "act",
                 header: "",
                 cell: (r) => (
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/business/${r.slug || r._id}`}>
-                      View
-                    </Link>
-                  </Button>
+                  <Link href={`/business/${r.slug || r._id}`} className="text-sm font-medium text-primary hover:underline">
+                    View
+                  </Link>
                 ),
               },
             ]}
@@ -96,10 +85,10 @@ function AdminBusinesses() {
                   <MembershipBadge tier={r.membership} />
                   <Pill>{r.chapter}</Pill>
                 </div>
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <Button asChild size="sm" variant="outline">
                     <Link href={`/business/${r.slug || r._id}`}>
-                      View profile
+                      View Details
                     </Link>
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => handleToggleStatus(r)}>

@@ -19,9 +19,9 @@ function AdminReports() {
   const { data: chaptersData } = useChapters();
   const { data: categoriesData } = useCategories();
 
-  const kpi = overviewData?.data?.kpi || {};
+  const kpi = overviewData?.kpi || {};
   const chapters = chaptersData || [];
-  const categories = categoriesData?.data || [];
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
 
   return (
     <AppShell

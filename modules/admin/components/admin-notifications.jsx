@@ -22,7 +22,7 @@ function AdminNotifications() {
   const { data: notifData, refetch } = useNotifications();
   const { data: chaptersData } = useChapters();
 
-  const notifications = notifData?.data || [];
+  const notifications = Array.isArray(notifData) ? notifData : [];
   const chapters = chaptersData || [];
 
   const handleBroadcast = async (e) => {

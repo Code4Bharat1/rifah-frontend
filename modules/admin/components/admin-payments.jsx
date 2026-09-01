@@ -16,7 +16,7 @@ const tone = (s) =>
 
 function AdminPayments() {
   const { data: paymentsData } = useAllPayments();
-  const payments = paymentsData?.data || [];
+  const payments = Array.isArray(paymentsData) ? paymentsData : [];
 
   const totalRevenue = payments
     .filter((p) => p.status === "completed")

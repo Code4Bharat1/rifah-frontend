@@ -11,7 +11,7 @@ import { reviewApi } from "@shared/lib/api-services";
 
 function AdminReviews() {
   const { data: reviewsData, refetch } = useAdminReviews();
-  const reviews = reviewsData?.data || [];
+  const reviews = Array.isArray(reviewsData) ? reviewsData : [];
 
   const handleModerate = async (id, status) => {
     try {

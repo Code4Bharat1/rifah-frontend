@@ -1,5 +1,12 @@
 import { apiClient } from "./api-client";
 
+const buildQueryString = (params) => {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params || {}).filter(([_, v]) => v !== undefined && v !== null && v !== "")
+  );
+  return new URLSearchParams(cleanParams).toString();
+};
+
 export const authApi = {
   login: (credentials) => apiClient("/auth/login", { method: "POST", body: JSON.stringify(credentials) }),
   register: (data) => apiClient("/auth/register", { method: "POST", body: JSON.stringify(data) }),
@@ -14,7 +21,7 @@ export const userApi = {
   toggleSaveBusiness: (businessId) => apiClient(`/users/saved-businesses/${businessId}`, { method: "POST" }),
   getSavedBusinesses: () => apiClient("/users/saved-businesses"),
   getAdminUsers: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const qs = buildQueryString(params);
     return apiClient(`/users${qs ? `?${qs}` : ""}`);
   },
   updateUserStatus: (id, data) => apiClient(`/users/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
@@ -22,7 +29,7 @@ export const userApi = {
 
 export const businessApi = {
   list: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const qs = buildQueryString(params);
     return apiClient(`/businesses${qs ? `?${qs}` : ""}`);
   },
   getByIdOrSlug: (idOrSlug) => apiClient(`/businesses/${idOrSlug}`),
@@ -76,7 +83,7 @@ export const verificationApi = {
 
 export const catalogueApi = {
   list: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const qs = buildQueryString(params);
     return apiClient(`/catalogue${qs ? `?${qs}` : ""}`);
   },
   getByBusiness: (businessId) => apiClient(`/catalogue/business/${businessId}`),
@@ -96,11 +103,11 @@ export const catalogueApi = {
 export const enquiryApi = {
   create: (data) => apiClient("/enquiries", { method: "POST", body: JSON.stringify(data) }),
   getMyEnquiries: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const qs = buildQueryString(params);
     return apiClient(`/enquiries/me${qs ? `?${qs}` : ""}`);
   },
   getAllEnquiries: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const qs = buildQueryString(params);
     return apiClient(`/enquiries/admin/all${qs ? `?${qs}` : ""}`);
   },
   getById: (id) => apiClient(`/enquiries/${id}`),
@@ -108,7 +115,7 @@ export const enquiryApi = {
 
 export const leadApi = {
   getMyLeads: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const qs = buildQueryString(params);
     return apiClient(`/leads/my-leads${qs ? `?${qs}` : ""}`);
   },
   submitQuotation: (id, data) => apiClient(`/leads/${id}/quote`, { method: "POST", body: JSON.stringify(data) }),
@@ -125,7 +132,7 @@ export const membershipApi = {
 export const paymentApi = {
   getMyPayments: () => apiClient("/payments/my"),
   getAllPayments: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const qs = buildQueryString(params);
     return apiClient(`/payments/admin/all${qs ? `?${qs}` : ""}`);
   },
   createOrder: (data) => apiClient("/payments/order", { method: "POST", body: JSON.stringify(data) }),
@@ -146,7 +153,7 @@ export const notificationApi = {
 
 export const eventApi = {
   list: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const qs = buildQueryString(params);
     return apiClient(`/events${qs ? `?${qs}` : ""}`);
   },
   getByIdOrSlug: (idOrSlug) => apiClient(`/events/${idOrSlug}`),
@@ -169,7 +176,7 @@ export const reportApi = {
 
 export const auditApi = {
   getLogs: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const qs = buildQueryString(params);
     return apiClient(`/audit${qs ? `?${qs}` : ""}`);
   },
 };

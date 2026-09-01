@@ -13,8 +13,21 @@ import { verificationApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
 function AdminVerification() {
-  const { data: queueData, refetch } = useVerificationQueue();
+  const { data: queueData, error, isLoading, refetch } = useVerificationQueue();
   const queue = queueData || [];
+
+  if (error && error.status === 401) {
+    return (
+      <AppShell role="admin" title="Verification queue">
+        <Panel className="p-12 text-center">
+          <ShieldCheck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <h2 className="text-xl font-bold">Session Expired</h2>
+          <p className="text-muted-foreground mt-2 mb-6">Your admin session has expired. Please log out and log in again.</p>
+          <Button asChild><a href="/auth/login">Go to Login</a></Button>
+        </Panel>
+      </AppShell>
+    );
+  }
 
   const pending = queue.filter((b) => b.status === "pending" || b.status === "under_review");
   const review = queue.filter((b) => b.status === "correction" || b.status === "rejected");
@@ -64,7 +77,7 @@ function AdminVerification() {
       {item.status !== "approved" && (
         <div className="mt-3 flex flex-wrap gap-2">
           <Button size="sm" onClick={() => handleDecision(item._id, "approved")}>
-            Approve verification
+            Approve
           </Button>
           <Button size="sm" variant="outline" onClick={() => handleDecision(item._id, "correction")}>
             Request correction
