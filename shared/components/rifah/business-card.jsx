@@ -29,7 +29,7 @@ export function BusinessCard({ business }) {
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <Link
-              href={`/business/${business.id }`}
+              href={`/business/${business.id}`}
               className="min-w-0 text-[15px] font-semibold leading-snug hover:text-primary"
             >
               {business.name}
@@ -70,7 +70,7 @@ export function BusinessCard({ business }) {
           </Link>
         </Button>
         <Button asChild size="sm" variant="outline">
-          <Link href={`/business/${business.id }`}>
+          <Link href={`/business/${business.id}`}>
             View
           </Link>
         </Button>
@@ -100,7 +100,7 @@ export function PremiumBusinessCard({ business }) {
         <Monogram business={business} className="h-14 w-14 border-4 border-surface text-base" />
         <div className="mt-2.5 flex min-w-0 items-center gap-2">
           <Link
-            href={`/business/${business.id }`}
+            href={`/business/${business.id}`}
             className="truncate text-base font-semibold hover:text-primary"
           >
             {business.name}
@@ -125,7 +125,7 @@ export function PremiumBusinessCard({ business }) {
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link href={`/business/${business.id }`}>
+            <Link href={`/business/${business.id}`}>
               Profile
             </Link>
           </Button>
@@ -149,7 +149,7 @@ export function CompactBusinessCard({
     <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3">
       <Monogram business={business} className="h-11 w-11 text-xs" />
       <Link
-        href={`/business/${business.id }`}
+        href={`/business/${business.id}`}
         className="min-w-0 flex-1"
       >
         <p className="truncate text-sm font-semibold">{business.name}</p>

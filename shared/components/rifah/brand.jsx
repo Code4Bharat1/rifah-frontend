@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const logo = "/rifah-logo.png";
+const logo = "/rifah1-logo.png";
 import { cn } from "@shared/lib/utils";
 
 export function RifahLogo({

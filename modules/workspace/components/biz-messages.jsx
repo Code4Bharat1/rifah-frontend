@@ -1,4 +1,5 @@
 "use client";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
@@ -12,15 +13,32 @@ import { useAuth } from "@shared/providers/auth-provider";
 import { cn } from "@shared/lib/utils";
 
 function BizMessages() {
+  const searchParams = useSearchParams();
+  const userIdParam = searchParams ? (searchParams.get("userId") || searchParams.get("recipient") || searchParams.get("id")) : null;
   const { user } = useAuth();
   const { data: convData, refetch: refetchConversations } = useConversations();
   const conversations = convData || [];
 
-  const [activeOtherUser, setActiveOtherUser] = useState(conversations[0]?.otherUser || null);
+  const [activeOtherUser, setActiveOtherUser] = useState(null);
   const [openOnMobile, setOpenOnMobile] = useState(false);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
+
+  useEffect(() => {
+    if (userIdParam) {
+      const match = conversations.find((c) => (c.otherUser?._id || c.otherUser) === userIdParam);
+      if (match) {
+        setActiveOtherUser(match.otherUser);
+        setOpenOnMobile(true);
+      } else {
+        setActiveOtherUser({ _id: userIdParam, name: "Buyer" });
+        setOpenOnMobile(true);
+      }
+    } else if (!activeOtherUser && conversations.length > 0) {
+      setActiveOtherUser(conversations[0]?.otherUser || null);
+    }
+  }, [userIdParam, conversations]);
 
   const selectedUserId = activeOtherUser?._id || conversations[0]?.otherUser?._id;
   const { data: messagesData, refetch: refetchMessages } = useMessages(selectedUserId);
