@@ -110,7 +110,8 @@ function BizVerification() {
   };
 
   const status = verificationData?.status || business?.verification || "pending";
-  const stepIndex = status === "approved" || status === "verified" ? 3 : status === "under_review" ? 2 : 1;
+  const isVerified = status === "approved" || status === "verified";
+  const stepIndex = isVerified ? 3 : status === "under_review" ? 2 : status === "correction_requested" ? 1 : 1;
 
   return (
     <AppShell role="business" title="Verification" subtitle="RIFAH secretariat vetting status">
@@ -129,7 +130,8 @@ function BizVerification() {
             <ul className="space-y-3">
               {docTemplates.map((template) => {
                 const uploaded = (verificationData?.documents || []).find((d) => isMatchingDoc(d?.type, template.type));
-                const docStatus = uploaded?.status || (uploaded ? "under_review" : null);
+                const rawDocStatus = uploaded?.status || (uploaded ? "under_review" : null);
+                const docStatus = isVerified ? "verified" : rawDocStatus;
 
                 const statusLabel = {
                   pending: "Submitted",

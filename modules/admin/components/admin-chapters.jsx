@@ -16,6 +16,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@shared/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useChapters } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
@@ -26,6 +27,8 @@ function AdminChapters() {
 
   const [openAdd, setOpenAdd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [adminModalChapter, setAdminModalChapter] = useState(null);
+  const [newAdmin, setNewAdmin] = useState({ name: "", email: "" });
   const [newChapter, setNewChapter] = useState({
     name: "",
     city: "",
@@ -59,6 +62,24 @@ function AdminChapters() {
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to update chapter.");
+    }
+  };
+
+  const handleAssignAdmin = async (e) => {
+    e.preventDefault();
+    if (!newAdmin.name || !newAdmin.email || !adminModalChapter) return;
+    setLoading(true);
+    try {
+      const chapterId = adminModalChapter._id || adminModalChapter.id;
+      await chapterApi.assignAdmin(chapterId, newAdmin);
+      setAdminModalChapter(null);
+      setNewAdmin({ name: "", email: "" });
+      toast.success("Admin assigned successfully. Email invitation sent!");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to assign admin.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -100,7 +121,9 @@ function AdminChapters() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Manage Chapter</DropdownMenuLabel>
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => setAdminModalChapter(r)}>Assign Admin</DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => handleUpdateStatus(r._id || r.id, "Active")} disabled={r.status === "Active"}>
                         Mark as Active
                       </DropdownMenuItem>
@@ -188,6 +211,44 @@ function AdminChapters() {
           </form>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={!!adminModalChapter} onOpenChange={(open) => !open && setAdminModalChapter(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Chapter Admin</DialogTitle>
+            <DialogDescription>
+              Assign an admin for {adminModalChapter?.name}. They will receive an email with their login credentials.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAssignAdmin} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Admin Name</Label>
+              <Input
+                placeholder="e.g. John Doe"
+                value={newAdmin.name}
+                onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email Address</Label>
+              <Input
+                type="email"
+                placeholder="john.doe@example.com"
+                value={newAdmin.email}
+                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                required
+              />
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button type="submit" disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Send Invitation
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

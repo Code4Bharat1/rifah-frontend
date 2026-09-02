@@ -89,10 +89,15 @@ function LoginPage() {
     setLoading(true);
     try {
       const user = await login({ email, password });
-      if (user.role === "super_admin" || user.role === "secretariat") {
-        router.push("/admin");
+      if (user.forcePasswordChange) {
+        router.push("/change-password");
       } else if (user.role === "business_owner") {
         router.push("/biz");
+      } else if (user.role === "chapter_admin") {
+        const slug = user.chapter.toLowerCase().replace(/\s+/g, '-');
+        router.push(`/${slug}/admin`);
+      } else if (user.role === "super_admin" || user.role === "secretariat") {
+        router.push("/admin");
       } else {
         router.push("/me");
       }
@@ -112,50 +117,12 @@ function LoginPage() {
     setForgotError("");
     setForgotLoading(true);
     try {
-      const res = await authApi.forgotPassword({ email: forgotEmail });
-      setForgotSuccess(res.message || "Reset verification code generated.");
-      if (res.data?.resetToken) {
-        setResetCode(res.data.resetToken);
+      const user = await login({ email: acc.email, password: acc.pass });
+      if (user.forcePasswordChange) {
+        router.push("/change-password");
+      } else {
+        router.push(acc.target);
       }
-      setForgotStep(2);
-    } catch (err) {
-      setForgotError(err.message || "No account found with this email address.");
-    } finally {
-      setForgotLoading(false);
-    }
-  };
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    if (!resetCode) {
-      setForgotError("Please enter the 6-digit verification code.");
-      return;
-    }
-    if (newPassword.length < 6) {
-      setForgotError("New password must be at least 6 characters.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setForgotError("Passwords do not match.");
-      return;
-    }
-
-    setForgotError("");
-    setForgotLoading(true);
-    try {
-      await authApi.resetPassword({
-        email: forgotEmail,
-        resetToken: resetCode,
-        newPassword,
-      });
-      setForgotSuccess("Password reset successfully! You may now sign in.");
-      setEmail(forgotEmail);
-      setPassword("");
-      setTimeout(() => {
-        setIsForgotOpen(false);
-        setForgotStep(1);
-        setForgotSuccess("");
-      }, 2000);
     } catch (err) {
       setForgotError(err.message || "Invalid or expired reset code.");
     } finally {

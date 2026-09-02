@@ -155,9 +155,13 @@ export function AppShell({
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
   const isActive = (to) => {
     if (path === to) return true;
-    // Root workspace routes (e.g. /biz, /admin, /me) should only match exactly
+    
+    // Root workspace routes should only match exactly
     const rootRoutes = ["/biz", "/admin", "/me", "/discover"];
-    if (rootRoutes.includes(to)) return false;
+    
+    // Check if `to` is a dynamic root route (e.g., /mumbai-chapter/admin)
+    if (rootRoutes.includes(to) || to.endsWith("/admin")) return false;
+    
     return to !== "/" && path.startsWith(to + "/");
   };
 
@@ -226,8 +230,8 @@ export function AppShell({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-base font-semibold md:text-lg">{title}</h1>
-              {subtitle && <p className="truncate text-xs text-muted-foreground md:text-sm">{subtitle}</p>}
+              <h1 className="truncate text-base font-semibold md:text-lg">{finalTitle}</h1>
+              {finalSubtitle && <p className="truncate text-xs text-muted-foreground md:text-sm">{finalSubtitle}</p>}
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
@@ -241,15 +245,20 @@ export function AppShell({
                   aria-label="Notifications"
                 >
                   <Bell className="h-5 w-5" />
-                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />
+                  {unreadNotifs > 0 && (
+                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />
+                  )}
                 </Link>
               </Button>
-              <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
+              <Button asChild variant="ghost" size="icon" className="relative inline-flex">
                 <Link
                   href={(role === "business" ? "/biz/messages" : "/me/messages")}
                   aria-label="Messages"
                 >
                   <Mail className="h-5 w-5" />
+                  {unreadMsgs > 0 && (
+                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />
+                  )}
                 </Link>
               </Button>
               {actions}
