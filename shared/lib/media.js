@@ -53,14 +53,16 @@ export const galleryPool = [
 
 /** Cover / thumbnail photo for a member business. */
 export function businessImage(business) {
-  return byId[business.id] ?? byIndustry[business.industry] ?? manufacturing;
+  const bid = business.id || business._id;
+  return byId[bid] ?? byIndustry[business.industry] ?? manufacturing;
 }
 
 /** Six deterministic gallery photos for a member business. */
 export function businessGallery(business) {
   const lead = businessImage(business);
   const rest = galleryPool.filter((src) => src !== lead);
-  const offset = business.id.length % rest.length;
+  const bid = business.id || business._id || "123456";
+  const offset = bid.length % rest.length;
   const rotated = [...rest.slice(offset), ...rest.slice(0, offset)];
   return [lead, ...rotated].slice(0, 6);
 }

@@ -105,7 +105,7 @@ function AdminLeads() {
           
           <div className="flex-1 overflow-hidden grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
             {/* Left: Lead Details */}
-            <ScrollArea className="h-[50vh] md:h-full p-6 bg-muted/20">
+            <div className="h-[50vh] md:h-full overflow-y-auto p-6 bg-muted/20">
               <div className="space-y-6">
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Lead Description</h4>
@@ -136,15 +136,15 @@ function AdminLeads() {
                    <StatusBadge status={selectedLead?.status} />
                 </div>
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Right: Select Businesses */}
-            <div className="flex flex-col h-[50vh] md:h-full">
+            <div className="flex flex-col h-[50vh] md:h-full overflow-hidden">
               <div className="p-4 border-b border-border bg-muted/50">
                 <h4 className="font-semibold text-sm">Select Members for Routing</h4>
                 <p className="text-xs text-muted-foreground mt-0.5">Check the verified businesses you want to forward this RFQ to.</p>
               </div>
-              <ScrollArea className="flex-1 p-4">
+              <div className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-3">
                   {businesses.map((b) => (
                     <label key={b._id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-surface hover:bg-muted/50 cursor-pointer transition-colors">
@@ -172,7 +172,7 @@ function AdminLeads() {
                     </label>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
               <div className="p-4 border-t border-border bg-surface flex justify-between items-center">
                 <span className="text-sm font-medium">{selectedBusinessIds.length} selected</span>
                 <Button onClick={handleRouteLead} disabled={selectedBusinessIds.length === 0 || isRouting}>

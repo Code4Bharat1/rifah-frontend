@@ -176,11 +176,14 @@ export function AppShell({
       finalSubtitle = "Regional branch dashboard";
     }
 
+    const hideForChapterAdmin = ["Users", "Memberships", "Categories", "Chapters", "Units", "Payments", "Audit logs", "Settings"];
+    const filteredMore = navs.admin.more.filter((n) => !hideForChapterAdmin.includes(n.label));
+
     // Deep clone and prepend slug to all admin routes
     dynamicNavs.admin = {
       title: user.chapter,
       primary: navs.admin.primary.map((n) => ({ ...n, to: n.to.replace("/admin", `${prefix}/admin`) })),
-      more: navs.admin.more.map((n) => ({ ...n, to: n.to.replace("/admin", `${prefix}/admin`) })),
+      more: filteredMore.map((n) => ({ ...n, to: n.to.replace("/admin", `${prefix}/admin`) })),
     };
   }
 
