@@ -27,7 +27,9 @@ function CataloguePage() {
     city: city === "All locations" ? undefined : city,
   });
 
-  const results = catalogueData?.items || [];
+  const results = Array.isArray(catalogueData)
+    ? catalogueData
+    : (catalogueData?.items || []);
 
   return (
     <PublicLayout>

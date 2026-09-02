@@ -38,7 +38,9 @@ function DiscoverPage() {
   const { data: chaptersData } = useChapters();
   const chaptersList = chaptersData || [];
 
-  const results = businessesData?.businesses || [];
+  const results = Array.isArray(businessesData)
+    ? businessesData
+    : (businessesData?.businesses || []);
 
   const setParam = (patch) => {
     const current = new URLSearchParams(searchParams ? searchParams.toString() : "");

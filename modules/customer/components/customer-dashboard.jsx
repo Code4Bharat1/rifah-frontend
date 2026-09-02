@@ -37,7 +37,7 @@ function CustomerHome() {
   const notifications = Array.isArray(notifData) ? notifData : (notifData?.notifications || []);
   const unreadCount = notifData?.unreadCount ?? (Array.isArray(notifications) ? notifications.filter((n) => !n.read).length : 0);
   const conversations = convData || [];
-  const events = eventsData?.events || [];
+  const events = Array.isArray(eventsData) ? eventsData : (eventsData?.events || []);
 
   return (
     <AppShell
