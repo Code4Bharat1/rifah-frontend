@@ -412,11 +412,17 @@ function BusinessHome() {
               {notificationItems.length === 0 ? (
                 <p className="text-xs text-slate-400 font-medium text-center py-4">No notifications</p>
               ) : (
-                <ul className="space-y-3 divide-y divide-slate-100">
+                <ul className="divide-y divide-slate-100">
                   {notificationItems.map((n, idx) => (
-                    <li key={n._id || n.id || idx} className={idx > 0 ? "pt-2.5" : ""}>
-                      <p className="text-xs font-bold text-slate-900">{n.title || n.type || "Notification"}</p>
-                      <p className="mt-0.5 text-[11px] text-slate-400 leading-snug truncate">{n.message || n.desc || ""}</p>
+                    <li key={n._id || n.id || idx} className="py-2.5 first:pt-0 last:pb-0">
+                      <p className="text-sm font-bold text-slate-900 leading-snug">
+                        {n.title || n.type || "Notification"}
+                      </p>
+                      {(n.body || n.message || n.desc) && (
+                        <p className="mt-0.5 text-xs text-slate-500 leading-normal truncate">
+                          {n.body || n.message || n.desc}
+                        </p>
+                      )}
                     </li>
                   ))}
                 </ul>
