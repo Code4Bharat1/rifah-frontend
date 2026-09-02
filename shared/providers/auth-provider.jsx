@@ -86,6 +86,36 @@ export function AuthProvider({ children }) {
     return registeredUser;
   };
 
+  const loginWithGoogle = async (data) => {
+    const res = await authApi.googleAuth(data);
+    const payload = res.data || res;
+    const loggedInUser = payload.user;
+    const accessToken = payload.accessToken || payload.tokens?.accessToken;
+    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
+    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
+    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (loggedInUser) {
+      localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
+    }
+    return loggedInUser;
+  };
+
+  const completeOnboarding = async (data) => {
+    const res = await authApi.completeOnboarding(data);
+    const payload = res.data || res;
+    const loggedInUser = payload.user;
+    const accessToken = payload.accessToken || payload.tokens?.accessToken;
+    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
+    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
+    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (loggedInUser) {
+      localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
+    }
+    return loggedInUser;
+  };
+
   const changePassword = async (data) => {
     const res = await authApi.changePassword(data);
     const payload = res.data || res;

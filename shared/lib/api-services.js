@@ -15,6 +15,8 @@ export const authApi = {
   getMe: () => apiClient("/auth/me"),
   refreshToken: (refreshToken) => apiClient("/auth/refresh-token", { method: "POST", body: JSON.stringify({ refreshToken }) }),
   changePassword: (data) => apiClient("/auth/change-password", { method: "PATCH", body: JSON.stringify(data) }),
+  googleAuth: (data) => apiClient("/auth/google", { method: "POST", body: JSON.stringify(data) }),
+  completeOnboarding: (data) => apiClient("/auth/complete-onboarding", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const userApi = {
