@@ -1,11 +1,12 @@
 import { apiClient } from "./api-client";
 
-const buildQueryString = (params) => {
-  const cleanParams = Object.fromEntries(
-    Object.entries(params || {}).filter(([_, v]) => v !== undefined && v !== null && v !== "")
+function toQueryString(params = {}) {
+  const clean = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "" && v !== "undefined")
   );
-  return new URLSearchParams(cleanParams).toString();
-};
+  const qs = new URLSearchParams(clean).toString();
+  return qs ? `?${qs}` : "";
+}
 
 export const authApi = {
   login: (credentials) => apiClient("/auth/login", { method: "POST", body: JSON.stringify(credentials) }),
@@ -21,18 +22,13 @@ export const userApi = {
   updateProfile: (data) => apiClient("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
   toggleSaveBusiness: (businessId) => apiClient(`/users/me/saved/${businessId}`, { method: "POST" }),
   getSavedBusinesses: () => apiClient("/users/me"),
-  getAdminUsers: (params = {}) => {
-    const qs = buildQueryString(params);
-    return apiClient(`/users${qs ? `?${qs}` : ""}`);
-  },
+  getAdminUsers: (params = {}) => apiClient(`/users${toQueryString(params)}`),
   updateUserStatus: (id, data) => apiClient(`/users/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
+  deactivateAccount: (data = {}) => apiClient("/users/me/deactivate", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const businessApi = {
-  list: (params = {}) => {
-    const qs = buildQueryString(params);
-    return apiClient(`/businesses${qs ? `?${qs}` : ""}`);
-  },
+  list: (params = {}) => apiClient(`/businesses${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/businesses/detail/${idOrSlug}`),
   getMyBusiness: () => apiClient("/businesses/me"),
   create: (data) => apiClient("/businesses", { method: "POST", body: JSON.stringify(data) }),
@@ -92,10 +88,7 @@ export const verificationApi = {
 };
 
 export const catalogueApi = {
-  list: (params = {}) => {
-    const qs = buildQueryString(params);
-    return apiClient(`/catalogue${qs ? `?${qs}` : ""}`);
-  },
+  list: (params = {}) => apiClient(`/catalogue${toQueryString(params)}`),
   getByBusiness: (businessId) => apiClient(`/catalogue/business/${businessId}`),
   getById: (id) => apiClient(`/catalogue/${id}`),
   create: (data) => apiClient("/catalogue", { method: "POST", body: JSON.stringify(data) }),
@@ -112,23 +105,14 @@ export const catalogueApi = {
 
 export const enquiryApi = {
   create: (data) => apiClient("/enquiries", { method: "POST", body: JSON.stringify(data) }),
-  getMyEnquiries: (params = {}) => {
-    const qs = buildQueryString(params);
-    return apiClient(`/enquiries/me${qs ? `?${qs}` : ""}`);
-  },
-  getAllEnquiries: (params = {}) => {
-    const qs = buildQueryString(params);
-    return apiClient(`/enquiries/admin/all${qs ? `?${qs}` : ""}`);
-  },
+  getMyEnquiries: (params = {}) => apiClient(`/enquiries/me${toQueryString(params)}`),
+  getAllEnquiries: (params = {}) => apiClient(`/enquiries/admin/all${toQueryString(params)}`),
   getById: (id) => apiClient(`/enquiries/${id}`),
   updateStatus: (id, data) => apiClient(`/enquiries/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
 };
 
 export const leadApi = {
-  getMyLeads: (params = {}) => {
-    const qs = buildQueryString(params);
-    return apiClient(`/leads/my-leads${qs ? `?${qs}` : ""}`);
-  },
+  getMyLeads: (params = {}) => apiClient(`/leads/me${toQueryString(params)}`),
   submitQuotation: (id, data) => apiClient(`/leads/${id}/quote`, { method: "POST", body: JSON.stringify(data) }),
   updateStatus: (id, data) => apiClient(`/leads/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   routeLead: (data) => apiClient("/leads/route", { method: "POST", body: JSON.stringify(data) }),
@@ -142,10 +126,7 @@ export const membershipApi = {
 
 export const paymentApi = {
   getMyPayments: () => apiClient("/payments/me"),
-  getAllPayments: (params = {}) => {
-    const qs = buildQueryString(params);
-    return apiClient(`/payments/admin/all${qs ? `?${qs}` : ""}`);
-  },
+  getAllPayments: (params = {}) => apiClient(`/payments/admin/all${toQueryString(params)}`),
   createOrder: (data) => apiClient("/payments/order", { method: "POST", body: JSON.stringify(data) }),
   verifyPayment: (data) => apiClient("/payments/verify", { method: "POST", body: JSON.stringify(data) }),
 };
@@ -163,10 +144,7 @@ export const notificationApi = {
 };
 
 export const eventApi = {
-  list: (params = {}) => {
-    const qs = buildQueryString(params);
-    return apiClient(`/events${qs ? `?${qs}` : ""}`);
-  },
+  list: (params = {}) => apiClient(`/events${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/events/detail/${idOrSlug}`),
   register: (id) => apiClient(`/events/${id}/register`, { method: "POST" }),
   create: (data) => apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
@@ -186,8 +164,5 @@ export const reportApi = {
 };
 
 export const auditApi = {
-  getLogs: (params = {}) => {
-    const qs = buildQueryString(params);
-    return apiClient(`/audit${qs ? `?${qs}` : ""}`);
-  },
+  getLogs: (params = {}) => apiClient(`/audit${toQueryString(params)}`),
 };
