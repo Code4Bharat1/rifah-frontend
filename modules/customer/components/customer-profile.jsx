@@ -22,8 +22,6 @@ import {
   CheckCircle2,
   Loader2,
   KeyRound,
-  ShieldAlert,
-  AlertTriangle,
   Lock,
 } from "lucide-react";
 
@@ -53,13 +51,6 @@ function ProfilePage() {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState("");
-
-  // Deactivate Account Modal State
-  const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
-  const [deactivatePassword, setDeactivatePassword] = useState("");
-  const [deactivateReason, setDeactivateReason] = useState("");
-  const [deactivating, setDeactivating] = useState(false);
-  const [deactivateError, setDeactivateError] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -147,25 +138,6 @@ function ProfilePage() {
       setPwError(err.message || "Failed to change password. Please verify current password.");
     } finally {
       setPwSaving(false);
-    }
-  };
-
-  const handleDeactivate = async (e) => {
-    e.preventDefault();
-    setDeactivateError("");
-    setDeactivating(true);
-
-    try {
-      await userApi.deactivateAccount({
-        password: deactivatePassword,
-        reason: deactivateReason,
-      });
-      alert("Your account has been deactivated. You will now be logged out.");
-      if (logout) logout();
-      router.push("/auth/login");
-    } catch (err) {
-      setDeactivateError(err.message || "Failed to deactivate account. Please check your password.");
-      setDeactivating(false);
     }
   };
 
@@ -294,28 +266,6 @@ function ProfilePage() {
                 <Lock className="mr-2 h-4 w-4 text-muted-foreground" />
                 Change password
               </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-center h-10 font-medium"
-                onClick={() => alert("Two-factor authentication (2FA) will be available in the next security update.")}
-              >
-                <KeyRound className="mr-2 h-4 w-4 text-muted-foreground" />
-                Enable two-factor authentication
-              </Button>
-              <div className="pt-2 text-center">
-                <button
-                  type="button"
-                  className="text-xs font-semibold text-destructive hover:underline transition-colors"
-                  onClick={() => {
-                    setDeactivateError("");
-                    setDeactivatePassword("");
-                    setDeactivateReason("");
-                    setIsDeactivateModalOpen(true);
-                  }}
-                >
-                  Deactivate account
-                </button>
-              </div>
             </div>
           </Panel>
         </div>
@@ -396,76 +346,6 @@ function ProfilePage() {
                   </>
                 ) : (
                   "Update Password"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Deactivate Account Dialog */}
-      <Dialog open={isDeactivateModalOpen} onOpenChange={setIsDeactivateModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <ShieldAlert className="h-5 w-5" /> Deactivate Account
-            </DialogTitle>
-            <DialogDescription>
-              This action will suspend your buyer profile and disable your active enquiries.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>
-              You will not be able to log in or receive supplier responses to your RFQs until an administrator reactivates your account.
-            </span>
-          </div>
-
-          {deactivateError && (
-            <div className="flex items-center gap-2 rounded-lg bg-destructive-soft p-3 text-xs font-semibold text-destructive">
-              <AlertTriangle className="h-4 w-4 shrink-0" /> {deactivateError}
-            </div>
-          )}
-
-          <form onSubmit={handleDeactivate} className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="deactivate-reason">Reason for deactivation (Optional)</Label>
-              <Input
-                id="deactivate-reason"
-                placeholder="Tell us why you are leaving"
-                value={deactivateReason}
-                onChange={(e) => setDeactivateReason(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="deactivate-pw">Confirm your password</Label>
-              <Input
-                id="deactivate-pw"
-                type="password"
-                placeholder="Enter password to confirm"
-                value={deactivatePassword}
-                onChange={(e) => setDeactivatePassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <DialogFooter className="pt-2 sm:justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDeactivateModalOpen(false)}
-                disabled={deactivating}
-              >
-                Keep Account
-              </Button>
-              <Button type="submit" variant="destructive" disabled={deactivating}>
-                {deactivating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deactivating...
-                  </>
-                ) : (
-                  "Yes, Deactivate"
                 )}
               </Button>
             </DialogFooter>

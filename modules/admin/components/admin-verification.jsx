@@ -40,8 +40,8 @@ function AdminVerification() {
 
   const handleDecision = async (id, decision) => {
     try {
-      await verificationApi.review(id, { status: decision, remarks: "Processed via quick action" });
-      toast.success(`Application marked as ${decision}.`);
+      await verificationApi.review(id, { decision, notes });
+      alert(`Application marked as ${decision}.`);
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to update verification decision.");

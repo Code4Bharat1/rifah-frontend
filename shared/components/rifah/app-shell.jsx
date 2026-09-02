@@ -36,7 +36,6 @@ import { Button } from "@shared/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
 import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useEffect } from "react";
 
 
 
@@ -176,14 +175,11 @@ export function AppShell({
       finalSubtitle = "Regional branch dashboard";
     }
 
-    const hideForChapterAdmin = ["Users", "Memberships", "Categories", "Chapters", "Units", "Payments", "Audit logs", "Settings"];
-    const filteredMore = navs.admin.more.filter((n) => !hideForChapterAdmin.includes(n.label));
-
     // Deep clone and prepend slug to all admin routes
     dynamicNavs.admin = {
       title: user.chapter,
       primary: navs.admin.primary.map((n) => ({ ...n, to: n.to.replace("/admin", `${prefix}/admin`) })),
-      more: filteredMore.map((n) => ({ ...n, to: n.to.replace("/admin", `${prefix}/admin`) })),
+      more: navs.admin.more.map((n) => ({ ...n, to: n.to.replace("/admin", `${prefix}/admin`) })),
     };
   }
 
@@ -281,15 +277,20 @@ export function AppShell({
                   aria-label="Notifications"
                 >
                   <Bell className="h-5 w-5" />
-                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />
+                  {unreadNotifs > 0 && (
+                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />
+                  )}
                 </Link>
               </Button>
-              <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
+              <Button asChild variant="ghost" size="icon" className="relative inline-flex">
                 <Link
                   href={(role === "business" ? "/biz/messages" : "/me/messages")}
                   aria-label="Messages"
                 >
                   <Mail className="h-5 w-5" />
+                  {unreadMsgs > 0 && (
+                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />
+                  )}
                 </Link>
               </Button>
               {actions}
