@@ -10,7 +10,7 @@ import { useAllEnquiries } from "@shared/hooks/use-rifah-api";
 function AdminEnquiries() {
   const { data: enquiriesData } = useAllEnquiries();
   const enquiries = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
-  const enquiries = enquiriesData?.data || [];
+
 
   return (
     <AppShell role="admin" title="Enquiry flow" subtitle="Buyer sourcing RFQs routed across chamber network">
@@ -19,13 +19,13 @@ function AdminEnquiries() {
           <StatCard label="Total RFQs" value={String(enquiries.length)} icon={Inbox} tone="primary" />
           <StatCard
             label="Open RFQs"
-            value={String(enquiries.filter((e) => e.status === "open").length)}
+            value={String(enquiries.filter((e) => ["new", "open", "routed", "in progress", "submitted"].includes(e.status?.toLowerCase())).length)}
             icon={MessageSquare}
             tone="warning"
           />
           <StatCard
             label="Completed"
-            value={String(enquiries.filter((e) => e.status === "completed").length)}
+            value={String(enquiries.filter((e) => ["completed", "closed", "won"].includes(e.status?.toLowerCase())).length)}
             tone="success"
           />
           <StatCard label="Chamber Routing" value="Automated" />

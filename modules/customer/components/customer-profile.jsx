@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
@@ -7,34 +8,164 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Separator } from "@shared/components/ui/separator";
 import { Switch } from "@shared/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@shared/components/ui/dialog";
 import { useAuth } from "@shared/providers/auth-provider";
-import { userApi } from "@shared/lib/api-services";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { userApi, authApi } from "@shared/lib/api-services";
+import {
+  CheckCircle2,
+  Loader2,
+  KeyRound,
+  ShieldAlert,
+  AlertTriangle,
+  Lock,
+} from "lucide-react";
 
 function ProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const router = useRouter();
+  const { user, refreshProfile, refreshUser, logout } = useAuth();
+
+  // Profile Form State
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
     phone: user?.phone || "",
     organization: user?.organization || "",
     city: user?.city || "",
+    taxId: user?.taxId || "",
   });
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Change Password Modal State
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [pwData, setPwData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
+
+  // Deactivate Account Modal State
+  const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+  const [deactivatePassword, setDeactivatePassword] = useState("");
+  const [deactivateReason, setDeactivateReason] = useState("");
+  const [deactivating, setDeactivating] = useState(false);
+  const [deactivateError, setDeactivateError] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        organization: user.organization || "",
+        city: user.city || "",
+        taxId: user.taxId || "",
+      });
+    }
+  }, [user]);
+
+  const handleCancel = () => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        organization: user.organization || "",
+        city: user.city || "",
+        taxId: user.taxId || "",
+      });
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await userApi.updateProfile(formData);
-      await refreshUser();
+      const payload = {
+        name: formData.name,
+        phone: formData.phone,
+        organization: formData.organization,
+        city: formData.city,
+        taxId: formData.taxId,
+      };
+      if (formData.email && formData.email.trim()) {
+        payload.email = formData.email.trim();
+      }
+      await userApi.updateProfile(payload);
+      if (typeof refreshProfile === "function") await refreshProfile();
+      else if (typeof refreshUser === "function") await refreshUser();
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (err) {
       alert(err.message || "Failed to update profile.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPwError("");
+    setPwSuccess("");
+
+    if (!pwData.currentPassword) {
+      setPwError("Please enter your current password.");
+      return;
+    }
+    if (pwData.newPassword.length < 6) {
+      setPwError("New password must be at least 6 characters long.");
+      return;
+    }
+    if (pwData.newPassword !== pwData.confirmPassword) {
+      setPwError("New password and confirm password do not match.");
+      return;
+    }
+
+    setPwSaving(true);
+    try {
+      await authApi.changePassword({
+        currentPassword: pwData.currentPassword,
+        newPassword: pwData.newPassword,
+      });
+      setPwSuccess("Password changed successfully!");
+      setPwData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setTimeout(() => {
+        setIsPasswordModalOpen(false);
+        setPwSuccess("");
+      }, 1500);
+    } catch (err) {
+      setPwError(err.message || "Failed to change password. Please verify current password.");
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
+  const handleDeactivate = async (e) => {
+    e.preventDefault();
+    setDeactivateError("");
+    setDeactivating(true);
+
+    try {
+      await userApi.deactivateAccount({
+        password: deactivatePassword,
+        reason: deactivateReason,
+      });
+      alert("Your account has been deactivated. You will now be logged out.");
+      if (logout) logout();
+      router.push("/auth/login");
+    } catch (err) {
+      setDeactivateError(err.message || "Failed to deactivate account. Please check your password.");
+      setDeactivating(false);
     }
   };
 
@@ -55,6 +186,7 @@ function ProfilePage() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="h-11"
+                placeholder="Full name"
               />
             </div>
             <div className="grid gap-1.5">
@@ -64,6 +196,7 @@ function ProfilePage() {
                 disabled
                 value={formData.email}
                 className="h-11 bg-muted"
+                placeholder="Email address"
               />
             </div>
             <div className="grid gap-1.5">
@@ -73,6 +206,7 @@ function ProfilePage() {
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="h-11"
+                placeholder="Phone number"
               />
             </div>
             <div className="grid gap-1.5">
@@ -82,19 +216,31 @@ function ProfilePage() {
                 value={formData.organization}
                 onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                 className="h-11"
+                placeholder="Organisation"
               />
             </div>
-            <div className="grid gap-1.5 sm:col-span-2">
+            <div className="grid gap-1.5">
               <Label htmlFor="city">City</Label>
               <Input
                 id="city"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 className="h-11"
+                placeholder="City"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="taxId">GST / Tax ID</Label>
+              <Input
+                id="taxId"
+                value={formData.taxId}
+                onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                className="h-11"
+                placeholder="e.g. 27AAAAA0000A1Z5"
               />
             </div>
             <Separator className="sm:col-span-2" />
-            <div className="flex flex-wrap gap-2 sm:col-span-2">
+            <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
               <Button type="submit" disabled={saving}>
                 {saving ? (
                   <>
@@ -104,6 +250,9 @@ function ProfilePage() {
                   "Save changes"
                 )}
               </Button>
+              <Button type="button" variant="outline" onClick={handleCancel}>
+                Cancel
+              </Button>
             </div>
           </form>
         </Panel>
@@ -112,17 +261,217 @@ function ProfilePage() {
           <Panel title="Notifications">
             <ul className="space-y-3.5 text-sm">
               <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                <span>Email alerts on RFQ responses</span>
+                <span className="text-foreground">Email me when a member responds</span>
                 <Switch defaultChecked />
               </li>
               <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                <span>Chapter event invitations</span>
+                <span className="text-foreground">SMS alerts for high-priority enquiries</span>
+                <Switch />
+              </li>
+              <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                <span className="text-foreground">Weekly digest of new member listings</span>
+                <Switch defaultChecked />
+              </li>
+              <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                <span className="text-foreground">Event invitations from my chapter</span>
                 <Switch defaultChecked />
               </li>
             </ul>
           </Panel>
+
+          <Panel title="Security">
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-center h-10 font-medium"
+                onClick={() => {
+                  setPwError("");
+                  setPwSuccess("");
+                  setPwData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                  setIsPasswordModalOpen(true);
+                }}
+              >
+                <Lock className="mr-2 h-4 w-4 text-muted-foreground" />
+                Change password
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-center h-10 font-medium"
+                onClick={() => alert("Two-factor authentication (2FA) will be available in the next security update.")}
+              >
+                <KeyRound className="mr-2 h-4 w-4 text-muted-foreground" />
+                Enable two-factor authentication
+              </Button>
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-destructive hover:underline transition-colors"
+                  onClick={() => {
+                    setDeactivateError("");
+                    setDeactivatePassword("");
+                    setDeactivateReason("");
+                    setIsDeactivateModalOpen(true);
+                  }}
+                >
+                  Deactivate account
+                </button>
+              </div>
+            </div>
+          </Panel>
         </div>
       </div>
+
+      {/* Change Password Dialog */}
+      <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" /> Change Password
+            </DialogTitle>
+            <DialogDescription>
+              Update your account password to maintain security.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pwSuccess && (
+            <div className="flex items-center gap-2 rounded-lg bg-success-soft p-3 text-xs font-semibold text-success">
+              <CheckCircle2 className="h-4 w-4" /> {pwSuccess}
+            </div>
+          )}
+
+          {pwError && (
+            <div className="flex items-center gap-2 rounded-lg bg-destructive-soft p-3 text-xs font-semibold text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {pwError}
+            </div>
+          )}
+
+          <form onSubmit={handleChangePassword} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="current-pw">Current Password</Label>
+              <Input
+                id="current-pw"
+                type="password"
+                placeholder="Enter current password"
+                value={pwData.currentPassword}
+                onChange={(e) => setPwData({ ...pwData, currentPassword: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new-pw">New Password</Label>
+              <Input
+                id="new-pw"
+                type="password"
+                placeholder="At least 6 characters"
+                value={pwData.newPassword}
+                onChange={(e) => setPwData({ ...pwData, newPassword: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm-pw">Confirm New Password</Label>
+              <Input
+                id="confirm-pw"
+                type="password"
+                placeholder="Repeat new password"
+                value={pwData.confirmPassword}
+                onChange={(e) => setPwData({ ...pwData, confirmPassword: e.target.value })}
+                required
+              />
+            </div>
+
+            <DialogFooter className="pt-2 sm:justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPasswordModalOpen(false)}
+                disabled={pwSaving}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={pwSaving}>
+                {pwSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...
+                  </>
+                ) : (
+                  "Update Password"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deactivate Account Dialog */}
+      <Dialog open={isDeactivateModalOpen} onOpenChange={setIsDeactivateModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldAlert className="h-5 w-5" /> Deactivate Account
+            </DialogTitle>
+            <DialogDescription>
+              This action will suspend your buyer profile and disable your active enquiries.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>
+              You will not be able to log in or receive supplier responses to your RFQs until an administrator reactivates your account.
+            </span>
+          </div>
+
+          {deactivateError && (
+            <div className="flex items-center gap-2 rounded-lg bg-destructive-soft p-3 text-xs font-semibold text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {deactivateError}
+            </div>
+          )}
+
+          <form onSubmit={handleDeactivate} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="deactivate-reason">Reason for deactivation (Optional)</Label>
+              <Input
+                id="deactivate-reason"
+                placeholder="Tell us why you are leaving"
+                value={deactivateReason}
+                onChange={(e) => setDeactivateReason(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="deactivate-pw">Confirm your password</Label>
+              <Input
+                id="deactivate-pw"
+                type="password"
+                placeholder="Enter password to confirm"
+                value={deactivatePassword}
+                onChange={(e) => setDeactivatePassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <DialogFooter className="pt-2 sm:justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDeactivateModalOpen(false)}
+                disabled={deactivating}
+              >
+                Keep Account
+              </Button>
+              <Button type="submit" variant="destructive" disabled={deactivating}>
+                {deactivating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deactivating...
+                  </>
+                ) : (
+                  "Yes, Deactivate"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

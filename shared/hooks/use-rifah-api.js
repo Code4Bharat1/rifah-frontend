@@ -102,11 +102,11 @@ export function useChapters() {
 
 // ==================== ENQUIRIES & LEADS ====================
 
-export function useMyEnquiries() {
+export function useMyEnquiries(params = {}) {
   return useQuery({
-    queryKey: ["my-enquiries"],
+    queryKey: ["my-enquiries", params],
     queryFn: async () => {
-      const res = await enquiryApi.getMyEnquiries();
+      const res = await enquiryApi.getMyEnquiries(params);
       return res?.data || res;
     },
   });

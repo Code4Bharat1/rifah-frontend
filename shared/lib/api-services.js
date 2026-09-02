@@ -1,11 +1,24 @@
 import { apiClient } from "./api-client";
 
+function toQueryString(params = {}) {
+  const clean = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "" && v !== "undefined")
+  );
+  const qs = new URLSearchParams(clean).toString();
+  return qs ? `?${qs}` : "";
+}
+
 export const authApi = {
   login: (credentials) => apiClient("/auth/login", { method: "POST", body: JSON.stringify(credentials) }),
   register: (data) => apiClient("/auth/register", { method: "POST", body: JSON.stringify(data) }),
   registerBusiness: (data) => apiClient("/auth/register-business", { method: "POST", body: JSON.stringify(data) }),
   getMe: () => apiClient("/auth/me"),
   refreshToken: (refreshToken) => apiClient("/auth/refresh-token", { method: "POST", body: JSON.stringify({ refreshToken }) }),
+  changePassword: (data) => apiClient("/auth/change-password", { method: "POST", body: JSON.stringify(data) }),
+  forgotPassword: (data) => apiClient("/auth/forgot-password", { method: "POST", body: JSON.stringify(data) }),
+  resetPassword: (data) => apiClient("/auth/reset-password", { method: "POST", body: JSON.stringify(data) }),
+  googleAuth: (data) => apiClient("/auth/google", { method: "POST", body: JSON.stringify(data) }),
+  completeOnboarding: (data) => apiClient("/auth/complete-onboarding", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const userApi = {
@@ -13,18 +26,13 @@ export const userApi = {
   updateProfile: (data) => apiClient("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
   toggleSaveBusiness: (businessId) => apiClient(`/users/me/saved/${businessId}`, { method: "POST" }),
   getSavedBusinesses: () => apiClient("/users/me"),
-  getAdminUsers: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/users${qs ? `?${qs}` : ""}`);
-  },
+  getAdminUsers: (params = {}) => apiClient(`/users${toQueryString(params)}`),
   updateUserStatus: (id, data) => apiClient(`/users/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
+  deactivateAccount: (data = {}) => apiClient("/users/me/deactivate", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const businessApi = {
-  list: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/businesses${qs ? `?${qs}` : ""}`);
-  },
+  list: (params = {}) => apiClient(`/businesses${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/businesses/detail/${idOrSlug}`),
   getMyBusiness: () => apiClient("/businesses/me"),
   create: (data) => apiClient("/businesses", { method: "POST", body: JSON.stringify(data) }),
@@ -75,10 +83,7 @@ export const verificationApi = {
 };
 
 export const catalogueApi = {
-  list: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/catalogue${qs ? `?${qs}` : ""}`);
-  },
+  list: (params = {}) => apiClient(`/catalogue${toQueryString(params)}`),
   getByBusiness: (businessId) => apiClient(`/catalogue/business/${businessId}`),
   getById: (id) => apiClient(`/catalogue/${id}`),
   create: (data) => apiClient("/catalogue", { method: "POST", body: JSON.stringify(data) }),
@@ -95,22 +100,13 @@ export const catalogueApi = {
 
 export const enquiryApi = {
   create: (data) => apiClient("/enquiries", { method: "POST", body: JSON.stringify(data) }),
-  getMyEnquiries: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/enquiries/me${qs ? `?${qs}` : ""}`);
-  },
-  getAllEnquiries: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/enquiries/admin/all${qs ? `?${qs}` : ""}`);
-  },
+  getMyEnquiries: (params = {}) => apiClient(`/enquiries/me${toQueryString(params)}`),
+  getAllEnquiries: (params = {}) => apiClient(`/enquiries/admin/all${toQueryString(params)}`),
   getById: (id) => apiClient(`/enquiries/${id}`),
 };
 
 export const leadApi = {
-  getMyLeads: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/leads/me${qs ? `?${qs}` : ""}`);
-  },
+  getMyLeads: (params = {}) => apiClient(`/leads/me${toQueryString(params)}`),
   submitQuotation: (id, data) => apiClient(`/leads/${id}/quote`, { method: "POST", body: JSON.stringify(data) }),
   updateStatus: (id, data) => apiClient(`/leads/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   routeLead: (data) => apiClient("/leads/route", { method: "POST", body: JSON.stringify(data) }),
@@ -124,10 +120,7 @@ export const membershipApi = {
 
 export const paymentApi = {
   getMyPayments: () => apiClient("/payments/me"),
-  getAllPayments: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/payments/admin/all${qs ? `?${qs}` : ""}`);
-  },
+  getAllPayments: (params = {}) => apiClient(`/payments/admin/all${toQueryString(params)}`),
   createOrder: (data) => apiClient("/payments/order", { method: "POST", body: JSON.stringify(data) }),
   verifyPayment: (data) => apiClient("/payments/verify", { method: "POST", body: JSON.stringify(data) }),
 };
@@ -145,10 +138,7 @@ export const notificationApi = {
 };
 
 export const eventApi = {
-  list: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/events${qs ? `?${qs}` : ""}`);
-  },
+  list: (params = {}) => apiClient(`/events${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/events/detail/${idOrSlug}`),
   register: (id) => apiClient(`/events/${id}/register`, { method: "POST" }),
   create: (data) => apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
@@ -168,8 +158,5 @@ export const reportApi = {
 };
 
 export const auditApi = {
-  getLogs: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiClient(`/audit${qs ? `?${qs}` : ""}`);
-  },
+  getLogs: (params = {}) => apiClient(`/audit${toQueryString(params)}`),
 };

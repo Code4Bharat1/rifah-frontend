@@ -86,6 +86,42 @@ export function AuthProvider({ children }) {
     return registeredUser;
   };
 
+  const loginWithGoogle = async ({ credential, roleTarget }) => {
+    const res = await authApi.googleAuth({ credential, roleTarget });
+    const payload = res.data || res;
+    const loggedInUser = payload.user;
+    const accessToken = payload.accessToken || payload.tokens?.accessToken;
+    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
+    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
+    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (loggedInUser) {
+      const userWithFlags = {
+        ...loggedInUser,
+        isProfileComplete: payload.isProfileComplete,
+        isNewUser: payload.isNewUser,
+      };
+      localStorage.setItem("rifah_user", JSON.stringify(userWithFlags));
+      setUser(userWithFlags);
+      return userWithFlags;
+    }
+    return loggedInUser;
+  };
+
+  const completeOnboarding = async (data) => {
+    const res = await authApi.completeOnboarding(data);
+    const payload = res.data || res;
+    const updatedUser = payload.user;
+    const accessToken = payload.accessToken || payload.tokens?.accessToken;
+    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
+    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
+    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (updatedUser) {
+      localStorage.setItem("rifah_user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    }
+    return updatedUser;
+  };
+
   const logout = () => {
     localStorage.removeItem("rifah_access_token");
     localStorage.removeItem("rifah_refresh_token");
@@ -103,10 +139,13 @@ export function AuthProvider({ children }) {
         user,
         loading,
         login,
+        loginWithGoogle,
+        completeOnboarding,
         register,
         registerBusiness,
         logout,
         refreshProfile,
+        refreshUser: refreshProfile,
         isAuthenticated: !!user,
         role: user?.role || "guest",
       }}
