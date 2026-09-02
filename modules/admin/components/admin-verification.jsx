@@ -36,7 +36,13 @@ function AdminVerification() {
   const handleDecision = async (id, decision) => {
     const notes = prompt(`Enter secretariat notes for ${decision}:`) || "";
     try {
-      await verificationApi.review(id, { decision, notes });
+      const statusMap = {
+        approved: "verified",
+        correction: "correction_requested",
+        rejected: "rejected",
+      };
+      const status = statusMap[decision] || decision;
+      await verificationApi.review(id, { status, decision, remarks: notes, notes });
       alert(`Application marked as ${decision}.`);
       refetch();
     } catch (err) {

@@ -14,10 +14,15 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
   const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
+  // Clean custom headers so stale Authorization headers in options don't override the new token
+  const customHeaders = { ...(options.headers || {}) };
+  delete customHeaders.Authorization;
+  delete customHeaders.authorization;
+
   const headers = {
     ...(!isFormData ? { "Content-Type": "application/json" } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
+    ...customHeaders,
   };
 
   const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
@@ -51,8 +56,12 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
           if (newAccessToken) {
             localStorage.setItem("rifah_access_token", newAccessToken);
             if (newRefreshToken) localStorage.setItem("rifah_refresh_token", newRefreshToken);
-            // Retry original request with new token
-            return apiClient(endpoint, options, true);
+            // Retry original request with clean headers
+            const retryOptions = {
+              ...options,
+              headers: customHeaders,
+            };
+            return apiClient(endpoint, retryOptions, true);
           }
         }
       } catch (e) {

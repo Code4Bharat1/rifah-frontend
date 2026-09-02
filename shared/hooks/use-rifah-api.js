@@ -276,10 +276,18 @@ export function useNotifications() {
     queryFn: async () => {
       try {
         const res = await notificationApi.list();
-        return res?.data?.notifications || res?.data || res;
+        const rawData = res?.data || res;
+        const notifications = Array.isArray(rawData)
+          ? rawData
+          : (rawData?.notifications || []);
+        const unreadCount = typeof rawData?.unreadCount === "number"
+          ? rawData.unreadCount
+          : notifications.filter((n) => !n.isRead && !n.readAt).length;
+
+        return { notifications, unreadCount };
       } catch (err) {
         if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
-          return [];
+          return { notifications: [], unreadCount: 0 };
         }
         throw err;
       }
