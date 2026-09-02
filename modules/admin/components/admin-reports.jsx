@@ -31,26 +31,18 @@ function AdminReports() {
   const chapters = chaptersData || [];
   const categories = Array.isArray(categoriesData) ? categoriesData : [];
 
-  // Use real data for the chart if available, otherwise use dummy fallback
   const chartData = overviewData?.membershipGrowth?.length > 0 
     ? overviewData.membershipGrowth.map(m => ({ name: m.name, value: m.new }))
-    : [
-        { name: "Mar", value: 42 },
-        { name: "Apr", value: 51 },
-        { name: "May", value: 46 },
-        { name: "Jun", value: 63 },
-        { name: "Jul", value: 70 },
-        { name: "Aug", value: 82 },
-      ];
+    : [];
 
-  // Sort chapters by unit/member count to match the progress bar design
-  const sortedChapters = [...chapters].sort((a, b) => (b.units?.length || 0) - (a.units?.length || 0)).slice(0, 5);
-  // Using dummy values for visual parity if real data is too small
-  const chapterDisplayData = sortedChapters.map((c, i) => ({
+  // Sort chapters by member count from real overview data
+  const realChapterData = overviewData?.chaptersDistribution || [];
+  const sortedChapterData = [...realChapterData].sort((a, b) => b.members - a.members).slice(0, 5);
+  const chapterDisplayData = sortedChapterData.map(c => ({
     name: c.name,
-    value: c.units?.length > 10 ? c.units.length : [148, 132, 118, 104, 87][i] || 50,
+    value: c.members,
   }));
-  const maxChapterVal = Math.max(...chapterDisplayData.map(c => c.value), 150);
+  const maxChapterVal = Math.max(...chapterDisplayData.map(c => c.value), 1);
 
   // Take top categories
   const topCategories = categories.slice(0, 5).map(c => c.name);
@@ -77,13 +69,13 @@ function AdminReports() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <p className="text-sm font-medium text-muted-foreground">Members</p>
-            <div className="mt-2 text-3xl font-bold tracking-tight">{kpi.totalBusinesses || "872"}</div>
+            <div className="mt-2 text-3xl font-bold tracking-tight">{kpi.totalBusinesses || 0}</div>
             <p className="mt-1 text-xs text-muted-foreground">+9.4% QoQ</p>
           </div>
           
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <p className="text-sm font-medium text-muted-foreground">Enquiries</p>
-            <div className="mt-2 text-3xl font-bold tracking-tight">{(kpi.totalEnquiries || 1284).toLocaleString()}</div>
+            <div className="mt-2 text-3xl font-bold tracking-tight">{(kpi.totalEnquiries || 0).toLocaleString()}</div>
             <p className="mt-1 text-xs text-muted-foreground">+17% QoQ</p>
           </div>
           
@@ -103,17 +95,22 @@ function AdminReports() {
           {/* Registration Volume Chart */}
           <Panel title="Registration volume" description="Monthly new registrations" className="flex flex-col">
             <div className="h-[300px] w-full pt-4 mt-auto">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }} barSize={50}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                  <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill="#0284c7" />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="flex h-full flex-col justify-end">
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <Tooltip cursor={{ fill: "hsl(var(--muted)/0.5)" }} contentStyle={{ borderRadius: "8px" }} />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={index === chartData.length - 1 ? "hsl(var(--primary))" : "hsl(var(--muted-foreground)/0.2)"} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No growth data available</div>
+                )}
+              </div>
             </div>
             <div className="mt-6 flex items-center text-sm font-medium text-emerald-600">
               <TrendingUp className="mr-2 h-4 w-4" />
