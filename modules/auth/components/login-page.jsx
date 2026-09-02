@@ -21,22 +21,6 @@ const quickDemoLogins = [
     icon: ShieldCheck,
     note: "All access chamber monitoring",
   },
-  {
-    role: "Business Owner",
-    email: "aslam@bakkabags.example",
-    pass: "Password@123",
-    target: "/biz",
-    icon: Building2,
-    note: "Leads, catalogue & verification",
-  },
-  {
-    role: "Customer / Buyer",
-    email: "buyer@example.com",
-    pass: "Password@123",
-    target: "/me",
-    icon: UserRound,
-    note: "Enquiries, saved & messages",
-  },
 ];
 
 function LoginPage() {

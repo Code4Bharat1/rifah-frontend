@@ -275,7 +275,7 @@ export function useNotifications() {
     queryKey: ["notifications"],
     queryFn: async () => {
       try {
-        const res = await notificationApi.getMyNotifications();
+        const res = await notificationApi.list();
         return res?.data?.notifications || res?.data || res;
       } catch (err) {
         if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {

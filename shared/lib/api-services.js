@@ -54,6 +54,11 @@ export const businessApi = {
     }
     return apiClient(`/businesses/${id}/gallery`, { method: "POST", body: formData });
   },
+  uploadCertificate: (id, file) => {
+    const formData = new FormData();
+    formData.append("certificate", file);
+    return apiClient(`/businesses/${id}/certificates`, { method: "POST", body: formData });
+  },
 };
 
 export const categoryApi = {

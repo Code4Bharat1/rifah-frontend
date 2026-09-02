@@ -153,7 +153,13 @@ export function AppShell({
   const { user, logout } = useAuth();
   const nav = navs[role];
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
-  const isActive = (to) => path === to || (to !== "/" && path.startsWith(to + "/"));
+  const isActive = (to) => {
+    if (path === to) return true;
+    // Root workspace routes (e.g. /biz, /admin, /me) should only match exactly
+    const rootRoutes = ["/biz", "/admin", "/me", "/discover"];
+    if (rootRoutes.includes(to)) return false;
+    return to !== "/" && path.startsWith(to + "/");
+  };
 
   const handleLogout = () => {
     logout();

@@ -16,10 +16,10 @@ const tone = (s) =>
 
 function BizPayments() {
   const { data: paymentsData } = useMyPayments();
-  const payments = paymentsData?.payments || [];
+  const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || []);
 
   const totalPaid = payments
-    .filter((p) => p.status === "completed")
+    .filter((p) => p.status === "Paid" || p.status === "completed")
     .reduce((acc, p) => acc + (p.amount || 0), 0);
 
   return (
@@ -55,8 +55,8 @@ function BizPayments() {
               rows={payments}
               columns={[
                 { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{r.invoiceNumber}</span> },
-                { key: "purpose", header: "Purpose", cell: (r) => r.purpose || "Membership Subscription" },
-                { key: "date", header: "Date", cell: (r) => new Date(r.createdAt).toLocaleDateString() },
+                { key: "purpose", header: "Purpose", cell: (r) => r.description || r.purpose || r.itemType || "Membership Subscription" },
+                { key: "date", header: "Date", cell: (r) => new Date(r.paidAt || r.createdAt).toLocaleDateString() },
                 { key: "amount", header: "Amount", cell: (r) => `₹ ${r.amount?.toLocaleString("en-IN")}` },
                 { key: "status", header: "Status", cell: (r) => <Pill tone={tone(r.status)}>{r.status}</Pill> },
               ]}
@@ -66,7 +66,7 @@ function BizPayments() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{r.invoiceNumber}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {r.purpose} · {new Date(r.createdAt).toLocaleDateString()}
+                        {r.description || r.purpose || r.itemType || "Membership Subscription"} · {new Date(r.paidAt || r.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <Pill tone={tone(r.status)}>{r.status}</Pill>

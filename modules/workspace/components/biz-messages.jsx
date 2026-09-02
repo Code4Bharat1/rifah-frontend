@@ -1,6 +1,6 @@
 "use client";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
@@ -20,10 +20,16 @@ function BizMessages() {
   const [openOnMobile, setOpenOnMobile] = useState(false);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
+  const bottomRef = useRef(null);
 
   const selectedUserId = activeOtherUser?._id || conversations[0]?.otherUser?._id;
   const { data: messagesData, refetch: refetchMessages } = useMessages(selectedUserId);
   const messages = messagesData || [];
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -108,29 +114,38 @@ function BizMessages() {
             ) : (
               messages.map((m) => {
                 const isMe = m.sender?._id === user?._id || m.sender === user?._id;
+                const msgText = m.body || m.text || "";
                 return (
                   <div
                     key={m._id}
                     className={cn(
-                      "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm sm:max-w-[70%]",
-                      isMe
-                        ? "self-end bg-primary text-primary-foreground"
-                        : "self-start border border-border bg-muted"
+                      "flex max-w-[85%] sm:max-w-[70%]",
+                      isMe ? "self-end justify-end" : "self-start justify-start"
                     )}
                   >
-                    <p>{m.body}</p>
-                    <p
+                    <div
                       className={cn(
-                        "mt-1 text-[10px]",
-                        isMe ? "text-primary-foreground/70" : "text-muted-foreground"
+                        "rounded-2xl px-3.5 py-2.5 text-sm",
+                        isMe
+                          ? "bg-primary text-primary-foreground"
+                          : "border border-border bg-muted"
                       )}
                     >
-                      {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </p>
+                      <p>{msgText}</p>
+                      <p
+                        className={cn(
+                          "mt-1 text-[10px]",
+                          isMe ? "text-primary-foreground/70" : "text-muted-foreground"
+                        )}
+                      >
+                        {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
                   </div>
                 );
               })
             )}
+            <div ref={bottomRef} />
           </div>
 
           <form onSubmit={handleSend} className="flex items-center gap-2 border-t border-border p-3">

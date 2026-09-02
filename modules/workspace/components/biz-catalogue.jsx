@@ -1,5 +1,5 @@
 "use client";
-import { Package, Pencil, Plus, Trash2, Loader2, Sparkles, CheckCircle2, X } from "lucide-react";
+import { Package, Pencil, Plus, Trash2, Loader2, UploadCloud, X, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -23,12 +23,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@shared/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-} from "@shared/components/ui/dialog";
 import { useMyBusiness, useBusinessCatalogue } from "@shared/hooks/use-rifah-api";
 import { catalogueApi } from "@shared/lib/api-services";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 
 function BizCatalogue() {
   const { data: business } = useMyBusiness();
@@ -37,7 +34,6 @@ function BizCatalogue() {
 
   const [openAdd, setOpenAdd] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [openEditForm, setOpenEditForm] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -46,10 +42,10 @@ function BizCatalogue() {
   const [newItem, setNewItem] = useState({
     name: "",
     type: "Product",
-    category: "Manufacturing",
+    category: "",
     description: "",
-    moq: "100 units",
-    price: "₹ 500 / unit",
+    moq: "",
+    price: "",
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -61,24 +57,75 @@ function BizCatalogue() {
     price: "",
   });
 
+  // Image handling states
+  const [addFiles, setAddFiles] = useState([]);
+  const [addPreviews, setAddPreviews] = useState([]);
+
+  const [editExistingImages, setEditExistingImages] = useState([]);
+  const [editFiles, setEditFiles] = useState([]);
+  const [editPreviews, setEditPreviews] = useState([]);
+
+  const handleAddFileChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const newFiles = [...addFiles, ...files];
+    setAddFiles(newFiles);
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    setAddPreviews((prev) => [...prev, ...newPreviews]);
+  };
+
+  const handleRemoveAddFile = (index) => {
+    URL.revokeObjectURL(addPreviews[index]);
+    setAddFiles((prev) => prev.filter((_, i) => i !== index));
+    setAddPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEditFileChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const newFiles = [...editFiles, ...files];
+    setEditFiles(newFiles);
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    setEditPreviews((prev) => [...prev, ...newPreviews]);
+  };
+
+  const handleRemoveEditFile = (index) => {
+    URL.revokeObjectURL(editPreviews[index]);
+    setEditFiles((prev) => prev.filter((_, i) => i !== index));
+    setEditPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveExistingImage = (index) => {
+    setEditExistingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleAddItem = async (e) => {
     e.preventDefault();
     if (!newItem.name.trim()) return;
     setLoading(true);
     try {
-      await catalogueApi.create({
+      const res = await catalogueApi.create({
         ...newItem,
         businessId: business?._id,
       });
+      const createdItem = res?.data || res;
+      const itemId = createdItem?._id || createdItem?.id;
+
+      if (addFiles.length > 0 && itemId) {
+        await catalogueApi.uploadImages(itemId, addFiles);
+      }
+
       setOpenAdd(false);
       setNewItem({
         name: "",
         type: "Product",
-        category: "Manufacturing",
+        category: "",
         description: "",
-        moq: "100 units",
-        price: "₹ 500 / unit",
+        moq: "",
+        price: "",
       });
+      setAddFiles([]);
+      setAddPreviews([]);
       refetch();
     } catch (err) {
       alert(err.message || "Failed to add catalogue item.");
@@ -97,11 +144,9 @@ function BizCatalogue() {
       moq: item.moq || "",
       price: item.price || "",
     });
-    setShowPreviewModal(true);
-  };
-
-  const handleProceedToEdit = () => {
-    setShowPreviewModal(false);
+    setEditExistingImages(Array.isArray(item.images) ? [...item.images] : []);
+    setEditFiles([]);
+    setEditPreviews([]);
     setOpenEditForm(true);
   };
 
@@ -110,9 +155,19 @@ function BizCatalogue() {
     if (!editingItem?._id || !editFormData.name.trim()) return;
     setSavingEdit(true);
     try {
-      await catalogueApi.update(editingItem._id, editFormData);
+      await catalogueApi.update(editingItem._id, {
+        ...editFormData,
+        images: editExistingImages,
+      });
+
+      if (editFiles.length > 0) {
+        await catalogueApi.uploadImages(editingItem._id, editFiles);
+      }
+
       setOpenEditForm(false);
       setEditingItem(null);
+      setEditFiles([]);
+      setEditPreviews([]);
       refetch();
     } catch (err) {
       alert(err.message || "Failed to update item.");
@@ -162,6 +217,42 @@ function BizCatalogue() {
                   className="h-11"
                 />
               </div>
+
+              {/* Item Image Upload */}
+              <div className="grid gap-1.5">
+                <Label>Item Images</Label>
+                {addPreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-1">
+                    {addPreviews.map((url, idx) => (
+                      <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 group">
+                        <img src={url} alt={`Preview ${idx}`} className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAddFile(idx)}
+                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100/80 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                    <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
+                    <p className="text-xs font-medium text-slate-600">Click to upload item images</p>
+                    <p className="text-[10px] text-slate-400">PNG, JPG, WEBP up to 5MB</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleAddFileChange}
+                  />
+                </label>
+              </div>
+
               <div className="grid gap-1.5">
                 <Label htmlFor="item-type">Type</Label>
                 <Select
@@ -247,9 +338,29 @@ function BizCatalogue() {
           {items.map((item) => (
             <div
               key={item._id || item.slug}
-              className="flex flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs transition-all hover:border-slate-300 hover:shadow-md max-w-[360px] w-full"
+              className="flex flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all hover:border-slate-300 hover:shadow-md max-w-[360px] w-full overflow-hidden"
             >
               <div>
+                {/* Item Image Display */}
+                {item.images && item.images.length > 0 ? (
+                  <div className="relative mb-3 h-40 w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-100">
+                    <img
+                      src={resolveMediaUrl(item.images[0])}
+                      alt={item.name}
+                      className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                    />
+                    {item.images.length > 1 && (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-slate-900/70 backdrop-blur-xs px-2 py-0.5 text-[10px] font-medium text-white">
+                        +{item.images.length - 1} photos
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="relative mb-3 h-24 w-full overflow-hidden rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+                    <ImageIcon className="h-7 w-7 text-slate-300" />
+                  </div>
+                )}
+
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="text-base font-bold text-slate-900 leading-snug">{item.name}</h3>
                   <span
@@ -301,66 +412,6 @@ function BizCatalogue() {
         </div>
       )}
 
-      {/* Action Preview Modal */}
-      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="sm:max-w-md p-6 rounded-3xl border-0 shadow-2xl">
-          <div className="relative">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-red-600">
-              <Sparkles className="h-3.5 w-3.5" /> ACTION PREVIEW
-            </div>
-            <h2 className="mt-1.5 text-xl font-bold text-slate-900">Edit</h2>
-            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-              Opens the editor for this record and writes the change back to the member profile.
-            </p>
-
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                WHAT HAPPENS NEXT
-              </p>
-              <div className="flex items-center gap-2.5 text-xs font-medium text-slate-700">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                <span>Form validates required fields before submit</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-xs font-medium text-slate-700">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                <span>Change is versioned with editor name and timestamp</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-xs font-medium text-slate-700">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                <span>Public profile updates after moderation passes</span>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  PROFILE COMPLETENESS
-                </p>
-                <p className="mt-1 text-sm font-bold text-slate-900">78% → 92% after this step</p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  MODERATION
-                </p>
-                <p className="mt-1 text-xs font-semibold text-slate-800 leading-snug">
-                  Catalogue edits auto-approved for verified members
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 flex justify-end">
-              <button
-                type="button"
-                onClick={handleProceedToEdit}
-                className="rounded-full bg-red-600 hover:bg-red-700 text-white px-6 py-2 text-xs font-bold shadow-sm transition-all cursor-pointer"
-              >
-                Got it
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Edit Form Sheet */}
       <Sheet open={openEditForm} onOpenChange={setOpenEditForm}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
@@ -381,6 +432,69 @@ function BizCatalogue() {
                 className="h-11"
               />
             </div>
+
+            {/* Edit Item Image Upload & Management */}
+            <div className="grid gap-1.5">
+              <Label>Item Images</Label>
+
+              {/* Current Images */}
+              {editExistingImages.length > 0 && (
+                <div className="mb-1">
+                  <p className="text-xs text-slate-500 mb-1.5">Current Images:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {editExistingImages.map((imgUrl, idx) => (
+                      <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 group">
+                        <img src={resolveMediaUrl(imgUrl)} alt={`Existing ${idx}`} className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExistingImage(idx)}
+                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Newly selected images preview */}
+              {editPreviews.length > 0 && (
+                <div className="mb-1">
+                  <p className="text-xs text-slate-500 mb-1.5">New Uploads:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {editPreviews.map((url, idx) => (
+                      <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 group">
+                        <img src={url} alt={`New upload preview ${idx}`} className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEditFile(idx)}
+                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100/80 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                  <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
+                  <p className="text-xs font-medium text-slate-600">Click to upload new images</p>
+                  <p className="text-[10px] text-slate-400">PNG, JPG, WEBP up to 5MB</p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleEditFileChange}
+                />
+              </label>
+            </div>
+
             <div className="grid gap-1.5">
               <Label htmlFor="edit-type">Type</Label>
               <Select
