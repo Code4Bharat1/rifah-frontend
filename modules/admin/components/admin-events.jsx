@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
-import { CalendarDays, Plus, Loader2 } from "lucide-react";
+import { CalendarDays, Plus, Loader2, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
@@ -24,12 +25,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@shared/components/ui/sheet";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useEvents } from "@shared/hooks/use-rifah-api";
 import { eventApi } from "@shared/lib/api-services";
 
 function AdminEvents() {
   const { data: eventsData, refetch } = useEvents();
-  const events = eventsData?.data || [];
+  const events = Array.isArray(eventsData) ? eventsData : [];
 
   const [openAdd, setOpenAdd] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,7 +51,11 @@ function AdminEvents() {
     if (!newEvent.title || !newEvent.date) return;
     setLoading(true);
     try {
-      await eventApi.create(newEvent);
+      await eventApi.create({
+        ...newEvent,
+        venue: newEvent.location
+      });
+      toast.success("Event created successfully");
       setOpenAdd(false);
       setNewEvent({
         title: "",
@@ -63,7 +69,7 @@ function AdminEvents() {
       });
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to create event.");
+      toast.error(err.message || "Failed to create event.");
     } finally {
       setLoading(false);
     }
@@ -102,17 +108,48 @@ function AdminEvents() {
               { key: "title", header: "Event", cell: (r) => <span className="font-semibold">{r.title}</span> },
               { key: "date", header: "Date", cell: (r) => `${new Date(r.date).toLocaleDateString()} · ${r.time}` },
               { key: "mode", header: "Mode", cell: (r) => r.mode },
-              { key: "chapter", header: "Chapter", cell: (r) => r.chapter },
-              { key: "city", header: "City", cell: (r) => r.city },
+              { key: "city", header: "Location", cell: (r) => r.city || "Online" },
+              { key: "att", header: "Attendees", cell: (r) => r.attendees?.length || 0 },
               {
                 key: "act",
                 header: "",
                 cell: (r) => (
-                  <Button asChild size="sm" variant="ghost">
-                    <Link href={`/events/${r.slug || r._id}`}>
-                      Open
-                    </Link>
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Manage Event</DropdownMenuLabel>
+                      <DropdownMenuItem asChild>
+                        <Link href={`/events/${r.slug || r._id}`}>View Event Page</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={async () => {
+                        try {
+                          await eventApi.update(r._id, { mode: r.mode === "In-person" ? "Online" : "In-person" });
+                          toast.success("Event mode updated");
+                          refetch();
+                        } catch(e) {
+                          toast.error("Failed to update event");
+                        }
+                      }}>
+                        Toggle Mode (Online/In-person)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={async () => {
+                        try {
+                           await eventApi.update(r._id, { status: "Cancelled" });
+                           toast.success("Event cancelled");
+                           refetch();
+                        } catch(e) {
+                           toast.error("Failed to cancel event");
+                        }
+                      }}>
+                        Cancel Event
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 ),
               },
             ]}

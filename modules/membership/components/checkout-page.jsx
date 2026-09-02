@@ -11,28 +11,39 @@ import { Checkbox } from "@shared/components/ui/checkbox";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@shared/components/ui/radio-group";
-import { useMembershipPlans } from "@shared/hooks/use-rifah-api";
+import { useMembershipPlans, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { membershipApi, paymentApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
 
 const steps = ["Plan", "Billing", "Payment", "Confirmation"];
 
 const methods = [
-  { id: "card", label: "Credit / Debit Card", note: "Visa, Mastercard, RuPay", icon: CreditCard },
-  { id: "upi", label: "UPI", note: "GooglePay, PhonePe, Paytm", icon: Smartphone },
-  { id: "bank", label: "Bank transfer", note: "NEFT / RTGS Chamber account", icon: Landmark },
+  { id: "razorpay", label: "Razorpay Secure Gateway", note: "UPI, Cards, Netbanking, Wallets", icon: Smartphone },
 ];
+
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 function Checkout() {
   const searchParams = useSearchParams();
   const planParam = searchParams?.get("plan") || "premium";
 
+  const { data: business } = useMyBusiness();
   const { data: plansData } = useMembershipPlans();
   const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
 
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(planParam);
-  const [method, setMethod] = useState("card");
+  const [method, setMethod] = useState("razorpay");
   const [loading, setLoading] = useState(false);
   const [invoiceId, setInvoiceId] = useState("");
 
@@ -43,16 +54,97 @@ function Checkout() {
   };
 
   const handleConfirmAndPay = async () => {
+    // Check if user is logged in
+    const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
+    if (!token) {
+      alert("Please log in to upgrade your membership.");
+      window.location.href = `/login?redirect=/membership/checkout?plan=${selected}`;
+      return;
+    }
+
     setLoading(true);
     try {
-      // Upgrade membership and record invoice
-      const res = await membershipApi.upgradePlan(selected);
-      const invoice = res?.data?.invoice || `INV-${Date.now().toString().slice(-4)}`;
-      setInvoiceId(invoice);
-      setStep(3);
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        alert("Failed to load Razorpay SDK. Please check your internet connection.");
+        setLoading(false);
+        return;
+      }
+
+      // Step 1: Create Razorpay Order
+      const orderRes = await paymentApi.createOrder({
+        amount: active.price,
+        planId: selected,
+        itemType: "Membership",
+        description: `${active.name} Membership Subscription`,
+      });
+
+      const orderData = orderRes?.data || orderRes;
+      if (!orderData?.orderId) {
+        throw new Error(orderRes?.message || "Could not create payment order");
+      }
+
+      // Step 2: Open Razorpay Payment Gateway Modal
+      const options = {
+        key: orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TTykh9OVkLKNHl",
+        amount: orderData.amount,
+        currency: orderData.currency || "INR",
+        name: "RIFAH Chamber of Commerce",
+        description: `${active.name} Membership Subscription`,
+        order_id: orderData.orderId,
+        handler: async function (response) {
+          try {
+            setLoading(true);
+            // Step 3: Verify Payment & Upgrade Membership on Backend
+            const verifyRes = await paymentApi.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              planId: selected,
+              businessId: business?._id,
+              amount: active.price,
+              itemType: "Membership",
+              description: `${active.name} Membership Subscription`,
+            });
+
+            const resultData = verifyRes?.data || verifyRes;
+            const invoiceNum = resultData?.payment?.invoiceNumber || orderData.invoiceNumber || `INV-${Date.now().toString().slice(-4)}`;
+            setInvoiceId(invoiceNum);
+            setStep(3);
+          } catch (err) {
+            console.error("Verification error:", err);
+            alert(err.message || "Payment verification failed.");
+          } finally {
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name: business?.name || "",
+        },
+        theme: {
+          color: "#0F2942",
+        },
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", function (resp) {
+        alert(resp.error?.description || "Payment failed.");
+        setLoading(false);
+      });
+      rzp.open();
     } catch (err) {
-      alert(err.message || "Failed to process plan checkout. Ensure you are signed in as a business owner.");
-    } finally {
+      console.error("Checkout error:", err);
+      if (err.status === 401 || err.message?.includes("Authentication token")) {
+        alert("Your session has expired. Please log in to complete your membership upgrade.");
+        window.location.href = `/login?redirect=/membership/checkout?plan=${selected}`;
+      } else {
+        alert(err.message || "Failed to process plan checkout. Ensure you are signed in as a business owner.");
+      }
       setLoading(false);
     }
   };

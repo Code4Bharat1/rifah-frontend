@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { cities } from "@shared/lib/mock-data";
 import { useCatalogue } from "@shared/hooks/use-rifah-api";
 import { cn } from "@shared/lib/utils";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 
 function CataloguePage() {
   const [query, setQuery] = useState("");
@@ -112,12 +113,22 @@ function CataloguePage() {
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((item) => {
               const biz = item.business;
+              const hasImage = item.images && item.images.length > 0;
               return (
                 <article
                   key={item._id || item.slug}
-                  className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-4 transition-all hover:border-primary/40 hover:shadow-card"
+                  className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-4 transition-all hover:border-primary/40 hover:shadow-card overflow-hidden"
                 >
                   <div>
+                    {hasImage && (
+                      <div className="relative mb-3 h-36 w-full overflow-hidden rounded-xl bg-muted border border-border">
+                        <img
+                          src={resolveMediaUrl(item.images[0])}
+                          alt={item.name}
+                          className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                        />
+                      </div>
+                    )}
                     <div className="flex items-start justify-between gap-2">
                       <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-primary">
                         {item.type === "Product" ? <Package className="h-5 w-5" /> : <Wrench className="h-5 w-5" />}

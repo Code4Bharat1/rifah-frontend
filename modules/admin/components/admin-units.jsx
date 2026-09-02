@@ -1,6 +1,7 @@
 "use client";
-import { Plus, Users, Loader2 } from "lucide-react";
+import { Plus, Users, Loader2, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
@@ -22,6 +23,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@shared/components/ui/sheet";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@shared/components/ui/dropdown-menu";
 import { useChapters } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
 
@@ -49,13 +51,25 @@ function AdminUnits() {
     setLoading(true);
     try {
       await chapterApi.addUnit(chId, newUnit);
+      toast.success("Unit created successfully");
       setOpenAdd(false);
       setNewUnit({ name: "", focus: "", status: "Active" });
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to add unit to chapter.");
+      toast.error(err.message || "Failed to add unit to chapter.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRemoveUnit = async (chapterId, unitId) => {
+    if (!confirm("Are you sure you want to remove this unit?")) return;
+    try {
+      await chapterApi.removeUnit(chapterId, unitId);
+      toast.success("Unit removed successfully");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to remove unit.");
     }
   };
 
@@ -80,8 +94,24 @@ function AdminUnits() {
 
         <div className="grid gap-3 md:grid-cols-2">
           {allUnits.map((u, i) => (
-            <Panel key={i} title={u.name} description={u.focus}>
-              <div className="flex flex-wrap items-center gap-1.5">
+            <Panel key={i} title={
+              <div className="flex items-start justify-between">
+                <span>{u.name}</span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0 -mr-2 -mt-2">
+                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => handleRemoveUnit(u.chapterId, u._id || u.id)}>
+                      Remove Unit
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            } description={u.focus}>
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
                 <Pill tone={u.status === "Active" ? "success" : "warning"}>{u.status || "Active"}</Pill>
                 <Pill>{u.chapterName}</Pill>
               </div>

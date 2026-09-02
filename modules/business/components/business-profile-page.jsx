@@ -252,10 +252,20 @@ function BusinessProfile() {
                   ) : (
                     <ul className="grid gap-3 sm:grid-cols-2">
                       {products.map((p) => (
-                        <li key={p._id || p.slug} className="rounded-xl border border-border p-4">
-                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary">
-                            <Package className="h-4 w-4" />
-                          </span>
+                        <li key={p._id || p.slug} className="rounded-xl border border-border p-4 overflow-hidden">
+                          {p.images && p.images.length > 0 ? (
+                            <div className="relative mb-3 h-32 w-full overflow-hidden rounded-lg bg-muted border border-border">
+                              <img
+                                src={resolveMediaUrl(p.images[0])}
+                                alt={p.name}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary">
+                              <Package className="h-4 w-4" />
+                            </span>
+                          )}
                           <p className="mt-2 text-sm font-semibold">{p.name}</p>
                           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
                           <p className="mt-2 text-xs font-medium text-foreground">{p.price || "On Request"}</p>
@@ -280,10 +290,20 @@ function BusinessProfile() {
                   ) : (
                     <ul className="grid gap-3 sm:grid-cols-2">
                       {services.map((s) => (
-                        <li key={s._id || s.slug} className="rounded-xl border border-border p-4">
-                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-primary">
-                            <Wrench className="h-4 w-4" />
-                          </span>
+                        <li key={s._id || s.slug} className="rounded-xl border border-border p-4 overflow-hidden">
+                          {s.images && s.images.length > 0 ? (
+                            <div className="relative mb-3 h-32 w-full overflow-hidden rounded-lg bg-muted border border-border">
+                              <img
+                                src={resolveMediaUrl(s.images[0])}
+                                alt={s.name}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-primary">
+                              <Wrench className="h-4 w-4" />
+                            </span>
+                          )}
                           <p className="mt-2 text-sm font-semibold">{s.name}</p>
                           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{s.description}</p>
                           <Button asChild size="sm" variant="outline" className="mt-3">

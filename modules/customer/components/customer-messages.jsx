@@ -11,6 +11,9 @@ import { messageApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { cn } from "@shared/lib/utils";
 
+import { getSocket } from "@shared/lib/socket";
+import { useEffect } from "react";
+
 function MessagesPage() {
   const { user } = useAuth();
   const { data: convData, refetch: refetchConversations } = useConversations();
@@ -25,16 +28,50 @@ function MessagesPage() {
   const { data: messagesData, refetch: refetchMessages } = useMessages(selectedUserId);
   const messages = messagesData || [];
 
+  // Real-time Socket.io listener
+  useEffect(() => {
+    if (!user?._id) return;
+    const socket = getSocket();
+    socket.emit("join_room", user._id);
+
+    const handleReceiveMessage = () => {
+      refetchMessages();
+      refetchConversations();
+    };
+
+    const handleUpdateConversations = () => {
+      refetchConversations();
+      refetchMessages();
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
+    socket.on("update_conversations", handleUpdateConversations);
+
+    return () => {
+      socket.off("receive_message", handleReceiveMessage);
+      socket.off("update_conversations", handleUpdateConversations);
+    };
+  }, [user?._id, refetchMessages, refetchConversations]);
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!inputText.trim() || !selectedUserId) return;
     setSending(true);
+    const msgText = inputText.trim();
+    setInputText("");
     try {
       await messageApi.sendMessage({
         recipientId: selectedUserId,
-        body: inputText.trim(),
+        body: msgText,
       });
-      setInputText("");
+
+      const socket = getSocket();
+      socket.emit("send_message", {
+        recipientId: selectedUserId,
+        senderId: user?._id,
+        text: msgText,
+      });
+
       refetchMessages();
       refetchConversations();
     } catch (err) {

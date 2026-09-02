@@ -37,7 +37,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@sha
 import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
 
- 
+
 
 
 
@@ -121,7 +121,7 @@ function useCurrentPath() {
 function SidebarLink({ item, active }) {
   return (
     <Link
-      href={item.to }
+      href={item.to}
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         active && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary",
@@ -153,7 +153,13 @@ export function AppShell({
   const { user, logout } = useAuth();
   const nav = navs[role];
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
-  const isActive = (to) => path === to || (to !== "/" && path.startsWith(to + "/"));
+  const isActive = (to) => {
+    if (path === to) return true;
+    // Root workspace routes (e.g. /biz, /admin, /me) should only match exactly
+    const rootRoutes = ["/biz", "/admin", "/me", "/discover"];
+    if (rootRoutes.includes(to)) return false;
+    return to !== "/" && path.startsWith(to + "/");
+  };
 
   const handleLogout = () => {
     logout();
@@ -225,13 +231,13 @@ export function AppShell({
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
-                <Link href={"/discover" } aria-label="Search">
+                <Link href={"/discover"} aria-label="Search">
                   <Search className="h-5 w-5" />
                 </Link>
               </Button>
               <Button asChild variant="ghost" size="icon" className="relative">
                 <Link
-                  href={(role === "admin" ? "/admin/notifications" : role === "business" ? "/biz/notifications" : "/me/notifications") }
+                  href={(role === "admin" ? "/admin/notifications" : role === "business" ? "/biz/notifications" : "/me/notifications")}
                   aria-label="Notifications"
                 >
                   <Bell className="h-5 w-5" />
@@ -240,7 +246,7 @@ export function AppShell({
               </Button>
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
                 <Link
-                  href={(role === "business" ? "/biz/messages" : "/me/messages") }
+                  href={(role === "business" ? "/biz/messages" : "/me/messages")}
                   aria-label="Messages"
                 >
                   <Mail className="h-5 w-5" />
@@ -287,7 +293,7 @@ function MoreSheet({ role }) {
           {items.map((i) => (
             <Link
               key={i.to + i.label}
-              href={i.to }
+              href={i.to}
               className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted"
             >
               <i.icon className="h-[18px] w-[18px] text-primary" />
@@ -320,7 +326,7 @@ export function BottomNav({ role }) {
           return (
             <li key={item.label}>
               <Link
-                href={item.to }
+                href={item.to}
                 className={cn(
                   "flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium text-muted-foreground",
                   active && "text-primary",

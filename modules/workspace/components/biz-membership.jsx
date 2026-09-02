@@ -6,23 +6,26 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { MembershipBadge, Pill } from "@shared/components/rifah/badges";
 import { FieldRow, Panel, ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
-import { useMyBusiness, useMembershipPlans, useMyPayments } from "@shared/hooks/use-rifah-api";
+import { useMyBusiness, useMembershipPlans, useMyPayments, useMyMembership } from "@shared/hooks/use-rifah-api";
 
 function BizMembership() {
   const { data: business } = useMyBusiness();
+  const { data: membershipData } = useMyMembership();
   const { data: plansData } = useMembershipPlans();
   const { data: paymentsData } = useMyPayments();
 
   const plans = plansData || {};
-  const currentTier = business?.membership?.toLowerCase() || "basic";
+  const tierName = membershipData?.planId || business?.membership || "free";
+  const currentTier = tierName.toLowerCase();
+
   const currentPlan = plans[currentTier] || {
-    name: "Basic",
-    price: 4999,
-    summary: "Standard chamber listing",
-    features: ["Directory listing", "Lead notifications", "Basic catalogue"],
+    name: membershipData?.planName || business?.membership || "Basic",
+    price: membershipData?.price || 0,
+    summary: "Active chamber membership plan",
+    features: membershipData?.features || ["Directory listing", "Lead notifications", "Basic catalogue"],
   };
 
-  const payments = paymentsData?.payments || [];
+  const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || []);
 
   return (
     <AppShell role="business" title="My membership" subtitle="Plan, benefits and invoices">
@@ -34,7 +37,7 @@ function BizMembership() {
                 <p className="text-xl font-bold tracking-tight">{currentPlan.name} Membership</p>
                 <p className="mt-0.5 text-sm text-muted-foreground">{currentPlan.summary}</p>
               </div>
-              <MembershipBadge tier={business?.membership || "Basic"} />
+              <MembershipBadge tier={currentPlan.name} />
             </div>
             <dl className="mt-4">
               <FieldRow label="Status" value={<Pill tone="success">Active</Pill>} />
@@ -59,14 +62,14 @@ function BizMembership() {
                 rows={payments}
                 columns={[
                   { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{r.invoiceNumber}</span> },
-                  { key: "purpose", header: "Description", cell: (r) => r.purpose || "Membership Subscription" },
+                  { key: "purpose", header: "Description", cell: (r) => r.description || r.purpose || r.itemType || "Membership Subscription" },
                   { key: "amount", header: "Amount", cell: (r) => `₹ ${r.amount?.toLocaleString("en-IN")}` },
-                  { key: "date", header: "Date", cell: (r) => new Date(r.createdAt).toLocaleDateString() },
+                  { key: "date", header: "Date", cell: (r) => new Date(r.paidAt || r.createdAt).toLocaleDateString() },
                   {
                     key: "status",
                     header: "Status",
                     cell: (r) => (
-                      <Pill tone={r.status === "completed" ? "success" : "warning"}>
+                      <Pill tone={r.status === "Paid" || r.status === "completed" ? "success" : "warning"}>
                         {r.status}
                       </Pill>
                     ),
@@ -78,10 +81,10 @@ function BizMembership() {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">{r.invoiceNumber}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          ₹ {r.amount} · {new Date(r.createdAt).toLocaleDateString()}
+                          ₹ {r.amount} · {new Date(r.paidAt || r.createdAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <Pill tone={r.status === "completed" ? "success" : "warning"}>
+                      <Pill tone={r.status === "Paid" || r.status === "completed" ? "success" : "warning"}>
                         {r.status}
                       </Pill>
                     </div>

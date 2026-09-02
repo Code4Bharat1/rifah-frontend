@@ -19,6 +19,17 @@ import {
   DialogFooter,
 } from "@shared/components/ui/dialog";
 import { useAuth } from "@shared/providers/auth-provider";
+
+const quickDemoLogins = [
+  {
+    role: "RIFAH Admin",
+    email: "admin@gmail.com",
+    pass: "12345678",
+    target: "/admin",
+    icon: ShieldCheck,
+    note: "All access chamber monitoring",
+  },
+];
 import { authApi } from "@shared/lib/api-services";
 import { GoogleAuthButton } from "@shared/components/rifah/google-button";
 

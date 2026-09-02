@@ -1,10 +1,9 @@
 "use client";
 import Link from "next/link";
-import { Eye, ImagePlus, Loader2, CheckCircle2 } from "lucide-react";
+import { Eye, FileBadge2, ImagePlus, Loader2, CheckCircle2, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
-import { Pill } from "@shared/components/rifah/badges";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
@@ -36,6 +35,7 @@ function BizProfile() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [uploadingCert, setUploadingCert] = useState(false);
 
   useEffect(() => {
     if (business) {
@@ -102,6 +102,21 @@ function BizProfile() {
       alert(err.message || "Failed to upload gallery photos.");
     } finally {
       setUploadingGallery(false);
+    }
+  };
+
+  const handleCertificateUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !business?._id) return;
+    setUploadingCert(true);
+    try {
+      await businessApi.uploadCertificate(business._id, file);
+      refetch();
+    } catch (err) {
+      alert(err.message || "Failed to upload certificate.");
+    } finally {
+      setUploadingCert(false);
+      e.target.value = "";
     }
   };
 
@@ -259,13 +274,50 @@ function BizProfile() {
           </Panel>
 
           <Panel title="Certifications">
-            <div className="flex flex-wrap gap-1.5">
-              {business?.certifications?.map((c) => (
-                <Pill key={c} tone="primary">
-                  {c}
-                </Pill>
-              ))}
+            <div className="space-y-2">
+              {(business?.certifications || []).length === 0 && (
+                <p className="text-xs text-muted-foreground">No certificates uploaded yet.</p>
+              )}
+              {(business?.certifications || []).map((src, i) => {
+                const fileName = src.split("/").pop() || `Certificate ${i + 1}`;
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 rounded-xl border border-border px-3 py-2.5"
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                      <FileBadge2 className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium">{decodeURIComponent(fileName)}</span>
+                    <a
+                      href={src.startsWith("http") ? src : `/api${src}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-xs font-medium text-primary hover:underline"
+                    >
+                      View
+                    </a>
+                  </div>
+                );
+              })}
             </div>
+            <label className="mt-3 inline-block">
+              <Button asChild size="sm" variant="outline" className="cursor-pointer" disabled={uploadingCert}>
+                <span>
+                  {uploadingCert ? (
+                    <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Uploading...</>
+                  ) : (
+                    <><FileBadge2 className="mr-2 h-3.5 w-3.5" />Upload Certificate</>
+                  )}
+                </span>
+              </Button>
+              <input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={handleCertificateUpload}
+                className="hidden"
+              />
+            </label>
           </Panel>
         </div>
       </div>

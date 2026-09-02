@@ -1,21 +1,53 @@
 "use client";
-import { Folder, Plus, Loader2 } from "lucide-react";
+import { Folder, Plus, Loader2, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
 import { Panel, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@shared/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
 import { useCategories } from "@shared/hooks/use-rifah-api";
 import { categoryApi } from "@shared/lib/api-services";
 
 function AdminCategories() {
   const { data: categoriesData, refetch } = useCategories();
-  const categories = categoriesData?.data || [];
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
 
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [editName, setEditName] = useState("");
+
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this category?")) return;
+    try {
+      await categoryApi.delete(id);
+      toast.success("Category deleted");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete category.");
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editName.trim() || !editingCategory) return;
+    setLoading(true);
+    try {
+      await categoryApi.update(editingCategory._id || editingCategory.id, { name: editName.trim() });
+      toast.success("Category updated");
+      setEditingCategory(null);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to update category.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -26,10 +58,11 @@ function AdminCategories() {
         name: name.trim(),
         description: `${name.trim()} sector category for RFQs and Directory`,
       });
+      toast.success("Category created successfully");
       setName("");
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to create category.");
+      toast.error(err.message || "Failed to create category.");
     } finally {
       setLoading(false);
     }
@@ -68,18 +101,63 @@ function AdminCategories() {
           ) : (
             <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
               {categories.map((c) => (
-                <div key={c._id || c.slug} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border p-3">
+                <div key={c._id || c.slug} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-xl border border-border p-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{c.name}</p>
                     <p className="text-xs text-muted-foreground">{c.slug}</p>
                   </div>
-                  <Pill tone="primary">{c.status || "Active"}</Pill>
+                  <Pill tone={c.status === "Inactive" ? "warning" : "primary"}>{c.status || "Active"}</Pill>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => {
+                        setEditingCategory(c);
+                        setEditName(c.name);
+                      }}>
+                        Edit Name
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => handleDelete(c._id || c.id)}>
+                        Delete Category
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               ))}
             </div>
           )}
         </Panel>
       </div>
+
+      <Dialog open={!!editingCategory} onOpenChange={(o) => !o && setEditingCategory(null)}>
+        <DialogContent>
+          <form onSubmit={handleEditSubmit}>
+            <DialogHeader>
+              <DialogTitle>Edit Category</DialogTitle>
+              <DialogDescription>Update the name of this sector category.</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Category name"
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingCategory(null)}>Cancel</Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
