@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Loader2, KeyRound, CheckCircle2, Lock, ArrowRight } from "lucide-react";
+import { AlertCircle, Loader2, KeyRound, CheckCircle2, Lock, ArrowRight, Building2, ShieldCheck, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import { RifahLogo } from "@shared/components/rifah/brand";
