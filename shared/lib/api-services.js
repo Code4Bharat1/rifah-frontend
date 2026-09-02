@@ -13,6 +13,7 @@ export const authApi = {
   registerBusiness: (data) => apiClient("/auth/register-business", { method: "POST", body: JSON.stringify(data) }),
   getMe: () => apiClient("/auth/me"),
   refreshToken: (refreshToken) => apiClient("/auth/refresh-token", { method: "POST", body: JSON.stringify({ refreshToken }) }),
+  changePassword: (data) => apiClient("/auth/change-password", { method: "PATCH", body: JSON.stringify(data) }),
 };
 
 export const userApi = {
@@ -75,6 +76,7 @@ export const chapterApi = {
   update: (id, data) => apiClient(`/chapters/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   addUnit: (chapterId, data) => apiClient(`/chapters/${chapterId}/units`, { method: "POST", body: JSON.stringify(data) }),
   removeUnit: (chapterId, unitId) => apiClient(`/chapters/${chapterId}/units/${unitId}`, { method: "DELETE" }),
+  assignAdmin: (chapterId, data) => apiClient(`/chapters/${chapterId}/admins`, { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const verificationApi = {

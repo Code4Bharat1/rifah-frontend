@@ -36,6 +36,7 @@ import { Button } from "@shared/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
 import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
+import { useEffect } from "react";
 
 
 
@@ -150,14 +151,50 @@ export function AppShell({
 ) {
   const path = useCurrentPath();
   const router = useRouter();
-  const { user, logout } = useAuth();
-  const nav = navs[role];
+  const { user, loading, logout } = useAuth();
+  
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
+  // Dynamically resolve navigation and branding for Chapter Admins
+  let dynamicNavs = { ...navs };
+  let finalTitle = title;
+  let finalSubtitle = subtitle;
+
+  if (role === "admin" && user?.role === "chapter_admin") {
+    const slug = user.chapter.toLowerCase().replace(/\s+/g, '-');
+    const prefix = `/${slug}`;
+    
+    // Update Branding
+    if (title === "Chamber administration" || title === "Chapters and units" || title === "Overview") {
+      finalTitle = `${user.chapter} Workspace`;
+    }
+    if (subtitle === "RIFAH Secretariat · all chapters" || subtitle === "Regional structure and branch desks of RIFAH Chamber") {
+      finalSubtitle = "Regional branch dashboard";
+    }
+
+    // Deep clone and prepend slug to all admin routes
+    dynamicNavs.admin = {
+      title: user.chapter,
+      primary: navs.admin.primary.map((n) => ({ ...n, to: n.to.replace("/admin", `${prefix}/admin`) })),
+      more: navs.admin.more.map((n) => ({ ...n, to: n.to.replace("/admin", `${prefix}/admin`) })),
+    };
+  }
+
+  const nav = dynamicNavs[role];
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
   const isActive = (to) => {
     if (path === to) return true;
-    // Root workspace routes (e.g. /biz, /admin, /me) should only match exactly
+    
+    // Root workspace routes should only match exactly
     const rootRoutes = ["/biz", "/admin", "/me", "/discover"];
-    if (rootRoutes.includes(to)) return false;
+    
+    // Check if `to` is a dynamic root route (e.g., /mumbai-chapter/admin)
+    if (rootRoutes.includes(to) || to.endsWith("/admin")) return false;
+    
     return to !== "/" && path.startsWith(to + "/");
   };
 
@@ -226,8 +263,8 @@ export function AppShell({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-base font-semibold md:text-lg">{title}</h1>
-              {subtitle && <p className="truncate text-xs text-muted-foreground md:text-sm">{subtitle}</p>}
+              <h1 className="truncate text-base font-semibold md:text-lg">{finalTitle}</h1>
+              {finalSubtitle && <p className="truncate text-xs text-muted-foreground md:text-sm">{finalSubtitle}</p>}
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">

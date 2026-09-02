@@ -14,6 +14,8 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
   const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
+  console.log("apiClient sending request to", endpoint, "Token exists:", !!token);
+
   const headers = {
     ...(!isFormData ? { "Content-Type": "application/json" } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

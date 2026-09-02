@@ -42,10 +42,15 @@ function LoginPage() {
     setLoading(true);
     try {
       const user = await login({ email, password });
-      if (user.role === "super_admin" || user.role === "secretariat") {
-        router.push("/admin");
+      if (user.forcePasswordChange) {
+        router.push("/change-password");
       } else if (user.role === "business_owner") {
         router.push("/biz");
+      } else if (user.role === "chapter_admin") {
+        const slug = user.chapter.toLowerCase().replace(/\s+/g, '-');
+        router.push(`/${slug}/admin`);
+      } else if (user.role === "super_admin" || user.role === "secretariat") {
+        router.push("/admin");
       } else {
         router.push("/me");
       }
@@ -63,7 +68,11 @@ function LoginPage() {
     setLoading(true);
     try {
       const user = await login({ email: acc.email, password: acc.pass });
-      router.push(acc.target);
+      if (user.forcePasswordChange) {
+        router.push("/change-password");
+      } else {
+        router.push(acc.target);
+      }
     } catch (err) {
       setError(err.message || "Failed to log in with demo account. Ensure backend is running.");
     } finally {
