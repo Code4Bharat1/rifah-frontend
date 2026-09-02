@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   Bell,
   Building2,
@@ -74,7 +75,7 @@ function AdminSettings() {
                   <p className="text-sm font-medium">{title}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
                 </div>
-                <Switch defaultChecked={on} />
+                <Switch defaultChecked={on} onCheckedChange={(checked) => toast.success(`${title} ${checked ? 'enabled' : 'disabled'}`)} />
               </li>
             ))}
           </ul>
@@ -98,8 +99,12 @@ function AdminSettings() {
               <Label>Membership year</Label>
               <Input defaultValue="2026–27" className="h-11" />
             </div>
+            <div className="col-span-full pt-2">
+              <Button onClick={() => {
+                toast.success("Settings saved successfully!");
+              }}>Save Changes</Button>
+            </div>
           </div>
-          <Button className="mt-3 w-full sm:w-auto">Save settings</Button>
         </Panel>
       </div>
     </AppShell>

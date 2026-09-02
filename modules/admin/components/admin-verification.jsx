@@ -8,13 +8,18 @@ import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
 import { useVerificationQueue } from "@shared/hooks/use-rifah-api";
 import { verificationApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
+import { toast } from "sonner";
 
 function AdminVerification() {
   const { data: queueData, error, isLoading, refetch } = useVerificationQueue();
   const queue = queueData || [];
+  
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [verifiedDocs, setVerifiedDocs] = useState([]);
 
   if (error && error.status === 401) {
     return (
@@ -34,19 +39,20 @@ function AdminVerification() {
   const done = queue.filter((b) => b.status === "approved" || b.status === "verified");
 
   const handleDecision = async (id, decision) => {
-    const notes = prompt(`Enter secretariat notes for ${decision}:`) || "";
     try {
-      const statusMap = {
-        approved: "verified",
-        correction: "correction_requested",
-        rejected: "rejected",
-      };
-      const status = statusMap[decision] || decision;
-      await verificationApi.review(id, { status, decision, remarks: notes, notes });
+      await verificationApi.review(id, { decision, notes });
       alert(`Application marked as ${decision}.`);
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to update verification decision.");
+      toast.error(err.message || "Failed to update verification decision.");
+    }
+  };
+
+  const handleVerifyDocument = () => {
+    if (selectedDoc) {
+      setVerifiedDocs((prev) => [...prev, selectedDoc.fileUrl]);
+      toast.success(`${selectedDoc.name || selectedDoc.type} verified successfully`);
+      setSelectedDoc(null);
     }
   };
 
@@ -63,29 +69,34 @@ function AdminVerification() {
       </div>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {(item.documents || []).map((d, i) => (
-          <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-3 py-2">
-            <span className="min-w-0 truncate text-xs font-medium">{d.name || d.type}</span>
-            {d.fileUrl && (
-              <a
-                href={resolveMediaUrl(d.fileUrl)}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-primary hover:underline"
-              >
-                View Doc
-              </a>
-            )}
-          </div>
-        ))}
+        {(item.documents || []).map((d, i) => {
+          const isVerified = verifiedDocs.includes(d.fileUrl) || item.status === "verified";
+          return (
+            <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-3 py-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="min-w-0 truncate text-xs font-medium">{d.name || d.type}</span>
+                {isVerified && <ShieldCheck className="h-3 w-3 text-emerald-600 shrink-0" />}
+              </div>
+              {d.fileUrl && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDoc(d)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  View Doc
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {item.status !== "approved" && (
+      {item.status !== "verified" && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => handleDecision(item._id, "approved")}>
+          <Button size="sm" onClick={() => handleDecision(item._id, "verified")}>
             Approve
           </Button>
-          <Button size="sm" variant="outline" onClick={() => handleDecision(item._id, "correction")}>
+          <Button size="sm" variant="outline" onClick={() => handleDecision(item._id, "correction_requested")}>
             Request correction
           </Button>
           <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDecision(item._id, "rejected")}>
@@ -129,6 +140,29 @@ function AdminVerification() {
           ))}
         </Tabs>
       </div>
+
+      <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
+        <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b bg-muted/20">
+            <DialogTitle>{selectedDoc?.name || selectedDoc?.type}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-100">
+            {selectedDoc?.fileUrl && (
+              <img 
+                src={resolveMediaUrl(selectedDoc.fileUrl)} 
+                alt={selectedDoc.name || "Document"} 
+                className="max-w-full max-h-full object-contain shadow-sm border bg-white"
+              />
+            )}
+          </div>
+
+          <div className="p-4 border-t bg-background flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setSelectedDoc(null)}>Close</Button>
+            <Button onClick={handleVerifyDocument}>Verify Document</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

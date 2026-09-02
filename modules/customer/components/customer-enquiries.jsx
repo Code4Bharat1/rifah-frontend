@@ -15,12 +15,16 @@ const tabs = ["All", "Submitted", "Routed", "Responded", "Closed"];
 
 function MyEnquiries() {
   const [tab, setTab] = useState("All");
-  const { data: enquiriesData, isLoading } = useMyEnquiries({
-    status: tab === "All" ? undefined : tab === "Submitted" ? "New" : tab,
-  });
+  const { data: enquiriesData, isLoading } = useMyEnquiries(
+    tab === "All" ? {} : { status: tab === "Submitted" ? "New" : tab }
+  );
 
-  const rows = Array.isArray(enquiriesData) ? enquiriesData : [];
-  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const allRows = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
+  const rows = allRows.filter((r) => {
+    if (tab === "All") return true;
+    if (tab === "Submitted") return r.status === "New" || r.status === "Submitted";
+    return r.status?.toLowerCase() === tab.toLowerCase();
+  });
 
   return (
     <AppShell

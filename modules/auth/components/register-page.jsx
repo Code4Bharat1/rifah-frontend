@@ -31,6 +31,7 @@ function RegisterPage() {
     phone: "",
     organization: "",
     city: "Mumbai",
+    sourcingInterest: "Manufacturing",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -52,6 +53,7 @@ function RegisterPage() {
         phone: formData.phone,
         organization: formData.organization,
         city: formData.city,
+        sourcingInterest: formData.sourcingInterest,
       });
       setDone(true);
     } catch (err) {
@@ -130,18 +132,18 @@ function RegisterPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="rphone">Mobile number</Label>
+                  <Label htmlFor="rphone">Phone</Label>
                   <Input
                     id="rphone"
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+91 98000 00000"
+                    placeholder="+91 98200 00000"
                     className="h-11"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="rorg">Organisation (optional)</Label>
+                  <Label htmlFor="rorg">Organisation / Business Name</Label>
                   <Input
                     id="rorg"
                     value={formData.organization}
@@ -163,6 +165,25 @@ function RegisterPage() {
                       {cities.map((c) => (
                         <SelectItem key={c} value={c}>
                           {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="rsourcing">Primary Sourcing Interest</Label>
+                  <Select
+                    value={formData.sourcingInterest}
+                    onValueChange={(val) => setFormData({ ...formData, sourcingInterest: val })}
+                  >
+                    <SelectTrigger id="rsourcing" className="h-11">
+                      <SelectValue placeholder="Select primary industry to source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {industries.map((ind) => (
+                        <SelectItem key={ind} value={ind}>
+                          {ind}
                         </SelectItem>
                       ))}
                     </SelectContent>

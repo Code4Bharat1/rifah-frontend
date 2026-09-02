@@ -1,6 +1,7 @@
 "use client";
 import { Megaphone, Send, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
@@ -35,12 +36,12 @@ function AdminNotifications() {
         message: message.trim(),
         targetRole: audience === "all" ? undefined : audience,
       });
-      alert("Broadcast announcement sent successfully!");
+      toast.success("Broadcast announcement sent successfully!");
       setTitle("");
       setMessage("");
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to send announcement.");
+      toast.error(err.message || "Failed to send announcement.");
     } finally {
       setSending(false);
     }

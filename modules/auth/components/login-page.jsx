@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Building2, ShieldCheck, UserRound, AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, KeyRound, CheckCircle2, Lock, ArrowRight, Building2, ShieldCheck, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import { RifahLogo } from "@shared/components/rifah/brand";
@@ -10,6 +10,14 @@ import { Button } from "@shared/components/ui/button";
 import { Checkbox } from "@shared/components/ui/checkbox";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@shared/components/ui/dialog";
 import { useAuth } from "@shared/providers/auth-provider";
 
 const quickDemoLogins = [
@@ -22,6 +30,8 @@ const quickDemoLogins = [
     note: "All access chamber monitoring",
   },
 ];
+import { authApi } from "@shared/lib/api-services";
+import { GoogleAuthButton } from "@shared/components/rifah/google-button";
 
 function LoginPage() {
   const router = useRouter();
@@ -31,6 +41,17 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Forgot Password Modal State
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); // 1: enter email, 2: enter code & new password
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState("");
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
@@ -42,10 +63,15 @@ function LoginPage() {
     setLoading(true);
     try {
       const user = await login({ email, password });
-      if (user.role === "super_admin" || user.role === "secretariat") {
-        router.push("/admin");
+      if (user.forcePasswordChange) {
+        router.push("/change-password");
       } else if (user.role === "business_owner") {
         router.push("/biz");
+      } else if (user.role === "chapter_admin") {
+        const slug = user.chapter.toLowerCase().replace(/\s+/g, '-');
+        router.push(`/${slug}/admin`);
+      } else if (user.role === "super_admin" || user.role === "secretariat") {
+        router.push("/admin");
       } else {
         router.push("/me");
       }
@@ -56,18 +82,25 @@ function LoginPage() {
     }
   };
 
-  const handleQuickLogin = async (acc) => {
-    setEmail(acc.email);
-    setPassword(acc.pass);
-    setError("");
-    setLoading(true);
+  const handleSendResetCode = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail) {
+      setForgotError("Please enter your registered email address.");
+      return;
+    }
+    setForgotError("");
+    setForgotLoading(true);
     try {
       const user = await login({ email: acc.email, password: acc.pass });
-      router.push(acc.target);
+      if (user.forcePasswordChange) {
+        router.push("/change-password");
+      } else {
+        router.push(acc.target);
+      }
     } catch (err) {
-      setError(err.message || "Failed to log in with demo account. Ensure backend is running.");
+      setForgotError(err.message || "Invalid or expired reset code.");
     } finally {
-      setLoading(false);
+      setForgotLoading(false);
     }
   };
 
@@ -95,7 +128,7 @@ function LoginPage() {
             </div>
             <h1 className="mt-6 text-2xl font-bold tracking-tight lg:mt-0">Sign in</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Access your RIFAH account or select a quick-login role below.
+              Access your RIFAH account using your credentials.
             </p>
 
             {error && (
@@ -121,6 +154,19 @@ function LoginPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(email);
+                      setForgotError("");
+                      setForgotSuccess("");
+                      setForgotStep(1);
+                      setIsForgotOpen(true);
+                    }}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
                 <Input
                   id="password"
@@ -146,46 +192,170 @@ function LoginPage() {
               </Button>
             </form>
 
-            <div className="my-6 flex items-center gap-3">
+            <div className="my-5 flex items-center gap-3">
               <span className="h-px flex-1 bg-border" />
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Quick login</span>
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">or</span>
               <span className="h-px flex-1 bg-border" />
             </div>
 
-            <ul className="space-y-2">
-              {quickDemoLogins.map((r) => (
-                <li key={r.role}>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin(r)}
-                    disabled={loading}
-                    className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/60"
-                  >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
-                      <r.icon className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold">{r.role}</span>
-                      <span className="block truncate text-xs text-muted-foreground">{r.note}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <GoogleAuthButton
+              roleTarget="customer"
+              text="Continue with Google"
+              onError={(msg) => setError(msg)}
+            />
 
-            <p className="mt-6 text-sm text-muted-foreground">
-              New to RIFAH Connect?{" "}
-              <Link href="/register" className="font-semibold text-primary hover:underline">
-                Create a buyer account
-              </Link>{" "}
-              or{" "}
-              <Link href="/register-business" className="font-semibold text-primary hover:underline">
-                list your business
-              </Link>
-            </p>
+            <div className="my-6 border-t border-border" />
+
+            <div className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Don&apos;t have an account?</p>
+              <div className="grid gap-2">
+                <Link
+                  href="/register"
+                  className="flex items-center justify-between rounded-xl border border-border bg-surface p-3 text-left text-sm font-medium transition-colors hover:border-primary/40 hover:bg-muted/40"
+                >
+                  <div>
+                    <span className="block font-semibold">Create a buyer account</span>
+                    <span className="block text-xs text-muted-foreground">Post sourcing enquiries and find members</span>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+
+                <Link
+                  href="/register-business"
+                  className="flex items-center justify-between rounded-xl border border-border bg-surface p-3 text-left text-sm font-medium transition-colors hover:border-primary/40 hover:bg-muted/40"
+                >
+                  <div>
+                    <span className="block font-semibold">Register your business</span>
+                    <span className="block text-xs text-muted-foreground">Join chamber directory & receive sales leads</span>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={isForgotOpen} onOpenChange={setIsForgotOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" /> Reset Password
+            </DialogTitle>
+            <DialogDescription>
+              {forgotStep === 1
+                ? "Enter your registered email address to receive a password reset verification code."
+                : "Enter the 6-digit code and choose a new password."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {forgotSuccess && (
+            <div className="flex items-center gap-2 rounded-lg bg-success-soft p-3 text-xs font-semibold text-success">
+              <CheckCircle2 className="h-4 w-4 shrink-0" /> {forgotSuccess}
+            </div>
+          )}
+
+          {forgotError && (
+            <div className="flex items-center gap-2 rounded-lg bg-destructive-soft p-3 text-xs font-semibold text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0" /> {forgotError}
+            </div>
+          )}
+
+          {forgotStep === 1 ? (
+            <form onSubmit={handleSendResetCode} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="forgot-email">Registered Email</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <DialogFooter className="pt-2 sm:justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsForgotOpen(false)}
+                  disabled={forgotLoading}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={forgotLoading}>
+                  {forgotLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
+                    </>
+                  ) : (
+                    "Send Verification Code"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          ) : (
+            <form onSubmit={handleResetPassword} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="reset-code">6-Digit Verification Code</Label>
+                <Input
+                  id="reset-code"
+                  type="text"
+                  placeholder="e.g. 583921"
+                  value={resetCode}
+                  onChange={(e) => setResetCode(e.target.value)}
+                  maxLength={6}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-pw">New Password</Label>
+                <Input
+                  id="new-pw"
+                  type="password"
+                  placeholder="At least 6 characters"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm-new-pw">Confirm New Password</Label>
+                <Input
+                  id="confirm-new-pw"
+                  type="password"
+                  placeholder="Repeat new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <DialogFooter className="pt-2 sm:justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setForgotStep(1)}
+                  disabled={forgotLoading}
+                >
+                  Back
+                </Button>
+                <Button type="submit" disabled={forgotLoading}>
+                  {forgotLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting...
+                    </>
+                  ) : (
+                    "Confirm Reset"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </PublicLayout>
   );
 }

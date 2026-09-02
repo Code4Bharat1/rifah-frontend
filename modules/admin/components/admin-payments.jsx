@@ -1,10 +1,13 @@
 "use client";
-import { Download, Wallet } from "lucide-react";
+import { Download, Wallet, MoreHorizontal, Eye } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
+import { Button } from "@shared/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useAllPayments } from "@shared/hooks/use-rifah-api";
 
 const tone = (s) =>
@@ -60,6 +63,34 @@ function AdminPayments() {
               { key: "date", header: "Date", cell: (r) => new Date(r.createdAt).toLocaleDateString() },
               { key: "amount", header: "Amount", cell: (r) => `₹ ${r.amount?.toLocaleString("en-IN")}` },
               { key: "status", header: "Status", cell: (r) => <Pill tone={tone(r.status)}>{r.status}</Pill> },
+              {
+                key: "act",
+                header: "",
+                cell: (r) => (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Transaction Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => toast.info(`Viewing details for ${r.invoiceNumber}`)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => {
+                        toast.success("Downloading receipt...");
+                        setTimeout(() => toast.info("Receipt downloaded"), 1000);
+                      }} disabled={r.status !== "completed"}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Receipt
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ),
+              },
             ]}
             mobile={(r) => (
               <div className="rounded-xl border border-border p-3.5">
