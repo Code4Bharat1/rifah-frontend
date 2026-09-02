@@ -15,6 +15,7 @@ const tabs = ["All", "Submitted", "Routed", "Responded", "Closed"];
 
 function MyEnquiries() {
   const [tab, setTab] = useState("All");
+  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const { data: enquiriesData, isLoading } = useMyEnquiries(
     tab === "All" ? {} : { status: tab === "Submitted" ? "New" : tab }
   );
