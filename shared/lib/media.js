@@ -68,7 +68,8 @@ export function businessGallery(business) {
   }
   const lead = businessImage(business);
   const rest = galleryPool.filter((src) => src !== lead);
-  const offset = business.id.length % rest.length;
+  const bId = String(business.id || business._id || business.slug || "rifah");
+  const offset = bId.length % (rest.length || 1);
   const rotated = [...rest.slice(offset), ...rest.slice(0, offset)];
   return [lead, ...rotated].slice(0, 6);
 }
