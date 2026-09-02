@@ -1,7 +1,17 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Loader2, KeyRound, CheckCircle2, Lock, ArrowRight } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  KeyRound,
+  CheckCircle2,
+  Lock,
+  ArrowRight,
+  ShieldCheck,
+  Building2,
+  UserRound,
+} from "lucide-react";
 import { useState } from "react";
 
 import { RifahLogo } from "@shared/components/rifah/brand";
@@ -19,6 +29,8 @@ import {
   DialogFooter,
 } from "@shared/components/ui/dialog";
 import { useAuth } from "@shared/providers/auth-provider";
+import { authApi } from "@shared/lib/api-services";
+import { GoogleAuthButton } from "@shared/components/rifah/google-button";
 
 const quickDemoLogins = [
   {
@@ -29,9 +41,23 @@ const quickDemoLogins = [
     icon: ShieldCheck,
     note: "All access chamber monitoring",
   },
+  {
+    role: "Business Owner",
+    email: "aslam@bakkabags.example",
+    pass: "Password@123",
+    target: "/biz",
+    icon: Building2,
+    note: "Leads, catalogue & verification",
+  },
+  {
+    role: "Customer / Buyer",
+    email: "buyer@example.com",
+    pass: "Password@123",
+    target: "/me",
+    icon: UserRound,
+    note: "Enquiries, saved & messages",
+  },
 ];
-import { authApi } from "@shared/lib/api-services";
-import { GoogleAuthButton } from "@shared/components/rifah/google-button";
 
 function LoginPage() {
   const router = useRouter();
