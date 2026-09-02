@@ -17,8 +17,11 @@ import {
   useAllPayments,
 } from "@shared/hooks/use-rifah-api";
 import { verificationApi } from "@shared/lib/api-services";
+import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminHome() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "secretariat";
   const { data: overviewData, refetch: refetchOverview } = useAdminOverview();
   const { data: queueData, refetch: refetchQueue } = useVerificationQueue();
   const { data: enquiriesData } = useAllEnquiries();
@@ -40,7 +43,7 @@ function AdminHome() {
 
   const handleApprove = async (id) => {
     try {
-      await verificationApi.review(id, { decision: "approved", notes: "Approved by Secretariat" });
+      await verificationApi.review(id, { status: "approved", remarks: "Approved by Secretariat" });
       refetchQueue();
       refetchOverview();
     } catch (err) {
@@ -52,7 +55,7 @@ function AdminHome() {
     const reason = prompt("Enter reason for rejection:");
     if (!reason) return;
     try {
-      await verificationApi.review(id, { decision: "rejected", notes: reason });
+      await verificationApi.review(id, { status: "rejected", remarks: reason });
       refetchQueue();
       refetchOverview();
     } catch (err) {
@@ -253,59 +256,63 @@ function AdminHome() {
           </div>
 
           <div className="space-y-4">
-            <Panel title="Chapters & Units" action={<MoreLink href="/admin/chapters" />}>
-              <ul className="space-y-3">
-                {chapters.slice(0, 5).map((c) => (
-                  <li key={c._id || c.name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{c.name}</p>
-                      <p className="text-xs text-muted-foreground">{c.city}, {c.state}</p>
-                    </div>
-                    <span className="text-xs font-semibold tabular-nums">{c.units?.length || 0} units</span>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
+            {isSuperAdmin && (
+              <>
+                <Panel title="Chapters & Units" action={<MoreLink href="/admin/chapters" />}>
+                  <ul className="space-y-3">
+                    {chapters.slice(0, 5).map((c) => (
+                      <li key={c._id || c.name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{c.name}</p>
+                          <p className="text-xs text-muted-foreground">{c.city}, {c.state}</p>
+                        </div>
+                        <span className="text-xs font-semibold tabular-nums">{c.units?.length || 0} units</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Panel>
 
-            <Panel title="Latest payments" action={<MoreLink href="/admin/payments" />}>
-              {payments.length === 0 ? (
-                <p className="py-4 text-xs text-muted-foreground">No payment records.</p>
-              ) : (
-                <ul className="space-y-2.5">
-                  {payments.slice(0, 4).map((p) => (
-                    <li key={p._id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{p.invoiceNumber}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          ₹ {p.amount} · {new Date(p.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Pill tone={p.status === "completed" ? "success" : "warning"}>
-                        {p.status}
-                      </Pill>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Panel>
+                <Panel title="Latest payments" action={<MoreLink href="/admin/payments" />}>
+                  {payments.length === 0 ? (
+                    <p className="py-4 text-xs text-muted-foreground">No payment records.</p>
+                  ) : (
+                    <ul className="space-y-2.5">
+                      {payments.slice(0, 4).map((p) => (
+                        <li key={p._id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{p.invoiceNumber}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              ₹ {p.amount} · {new Date(p.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Pill tone={p.status === "completed" ? "success" : "warning"}>
+                            {p.status}
+                          </Pill>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Panel>
 
-            <Panel title="Audit log" action={<MoreLink href="/admin/audit" />}>
-              {auditLogs.length === 0 ? (
-                <p className="py-4 text-xs text-muted-foreground">No audit logs.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {auditLogs.slice(0, 4).map((a) => (
-                    <li key={a._id} className="min-w-0">
-                      <p className="truncate text-sm font-medium">{a.action}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {a.entity} · {a.user?.name || "Admin"}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">{new Date(a.createdAt).toLocaleString()}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Panel>
+                <Panel title="Audit log" action={<MoreLink href="/admin/audit" />}>
+                  {auditLogs.length === 0 ? (
+                    <p className="py-4 text-xs text-muted-foreground">No audit logs.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {auditLogs.slice(0, 4).map((a) => (
+                        <li key={a._id} className="min-w-0">
+                          <p className="truncate text-sm font-medium">{a.action}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {a.entity} · {a.user?.name || "Admin"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">{new Date(a.createdAt).toLocaleString()}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Panel>
+              </>
+            )}
           </div>
         </div>
       </div>

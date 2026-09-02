@@ -36,6 +36,7 @@ import { Button } from "@shared/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
 import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
+import { useNotifications, useConversations } from "@shared/hooks/use-rifah-api";
 
 
 
@@ -140,21 +141,32 @@ export function AppShell({
   actions,
   children,
   backTo,
-}
-
-
-
-
-
-
-) {
+}) {
   const path = useCurrentPath();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const finalTitle = title || "RIFAH Connect";
-  const finalSubtitle = subtitle;
-  const unreadNotifs = 0;
-  const unreadMsgs = 0;
+  const { data: notifData } = useNotifications();
+  const { data: conversationsData } = useConversations();
+
+  const unreadNotifs = notifData?.unreadCount ?? (
+    Array.isArray(notifData)
+      ? notifData.filter((n) => !n.isRead && !n.readAt && n.type !== "Message").length
+      : 0
+  );
+  const rawConversations = Array.isArray(conversationsData) ? conversationsData : (conversationsData?.conversations || []);
+  const unreadMsgs = rawConversations.reduce((acc, c) => acc + (Number(c.unreadCount || c.unread) || 0), 0);
+
+  let finalTitle = title;
+  let finalSubtitle = subtitle;
+
+  if (role === "admin" && user?.role === "chapter_admin") {
+    if (title === "Chamber administration" || title === "Chapters and units" || title === "Overview") {
+      finalTitle = `${user.chapter || "Regional"} Workspace`;
+    }
+    if (subtitle === "RIFAH Secretariat · all chapters" || subtitle === "Regional structure and branch desks of RIFAH Chamber") {
+      finalSubtitle = "Regional branch dashboard";
+    }
+  }
   const nav = navs[role];
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
   const isActive = (to) => {
@@ -234,8 +246,8 @@ export function AppShell({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-base font-semibold md:text-lg">{finalTitle}</h1>
-              {finalSubtitle && <p className="truncate text-xs text-muted-foreground md:text-sm">{finalSubtitle}</p>}
+              <h1 className="truncate text-base font-semibold md:text-lg">{title}</h1>
+              {subtitle && <p className="truncate text-xs text-muted-foreground md:text-sm">{subtitle}</p>}
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
@@ -250,7 +262,7 @@ export function AppShell({
                 >
                   <Bell className="h-5 w-5" />
                   {unreadNotifs > 0 && (
-                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />
+                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#C90000]" />
                   )}
                 </Link>
               </Button>
@@ -261,7 +273,7 @@ export function AppShell({
                 >
                   <Mail className="h-5 w-5" />
                   {unreadMsgs > 0 && (
-                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />
+                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#C90000]" />
                   )}
                 </Link>
               </Button>

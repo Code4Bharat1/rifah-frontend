@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
     }
-    return loggedInUser;
+    return { ...loggedInUser, requirePasswordReset: payload.requirePasswordReset };
   };
 
   const register = async (data) => {

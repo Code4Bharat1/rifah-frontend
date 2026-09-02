@@ -14,7 +14,10 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
   const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
-  const customHeaders = options.headers || {};
+  // Clean custom headers so stale Authorization headers in options don't override the new token
+  const customHeaders = { ...(options.headers || {}) };
+  delete customHeaders.Authorization;
+  delete customHeaders.authorization;
 
   const headers = {
     ...(!isFormData ? { "Content-Type": "application/json" } : {}),

@@ -46,6 +46,8 @@ function Checkout() {
   const [method, setMethod] = useState("razorpay");
   const [loading, setLoading] = useState(false);
   const [invoiceId, setInvoiceId] = useState("");
+  const [billingEmail, setBillingEmail] = useState("");
+  const [legalName, setLegalName] = useState("");
 
   const active = plans.find((p) => p.id === selected) || plans[0] || {
     id: "premium",
@@ -105,6 +107,8 @@ function Checkout() {
               amount: active.price,
               itemType: "Membership",
               description: `${active.name} Membership Subscription`,
+              billingEmail: billingEmail || business?.email || "",
+              businessName: legalName || business?.name || "",
             });
 
             const resultData = verifyRes?.data || verifyRes;
@@ -119,7 +123,8 @@ function Checkout() {
           }
         },
         prefill: {
-          name: business?.name || "",
+          name: legalName || business?.name || "",
+          email: billingEmail || business?.email || "",
         },
         theme: {
           color: "#0F2942",
@@ -195,7 +200,12 @@ function Checkout() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5 sm:col-span-2">
                       <Label htmlFor="legal">Registered business name</Label>
-                      <Input id="legal" placeholder="As per registration certificate" />
+                      <Input
+                        id="legal"
+                        value={legalName}
+                        onChange={(e) => setLegalName(e.target.value)}
+                        placeholder="As per registration certificate"
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="gst">GST / Tax registration number</Label>
@@ -203,7 +213,13 @@ function Checkout() {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="bemail">Billing email</Label>
-                      <Input id="bemail" type="email" placeholder="accounts@example.com" />
+                      <Input
+                        id="bemail"
+                        type="email"
+                        value={billingEmail}
+                        onChange={(e) => setBillingEmail(e.target.value)}
+                        placeholder="rs9940806@gmail.com"
+                      />
                     </div>
                     <div className="space-y-1.5 sm:col-span-2">
                       <Label htmlFor="baddr">Billing address</Label>

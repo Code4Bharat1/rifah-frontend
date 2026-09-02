@@ -1,5 +1,7 @@
 "use client";
-import { ArrowLeft, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Loader2, MessageSquare } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -10,19 +12,48 @@ import { useConversations, useMessages } from "@shared/hooks/use-rifah-api";
 import { messageApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { cn } from "@shared/lib/utils";
+import { getSocket } from "@shared/lib/socket";
 
 function BizMessages() {
+  const searchParams = useSearchParams();
+  const userIdParam = searchParams ? (searchParams.get("userId") || searchParams.get("recipient") || searchParams.get("id")) : null;
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const targetUserId = searchParams.get("userId") || searchParams.get("to");
+  const targetName = searchParams.get("name");
+
   const { data: convData, refetch: refetchConversations } = useConversations();
   const conversations = convData || [];
 
-  const [activeOtherUser, setActiveOtherUser] = useState(conversations[0]?.otherUser || null);
+  const [activeOtherUser, setActiveOtherUser] = useState(null);
+  const [activeOtherUser, setActiveOtherUser] = useState(null);
   const [openOnMobile, setOpenOnMobile] = useState(false);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
 
-  const selectedUserId = activeOtherUser?._id || conversations[0]?.otherUser?._id;
+  // Auto-select or draft conversation when targetUserId is provided via URL
+  useEffect(() => {
+    if (targetUserId) {
+      const existing = conversations.find(
+        (c) => String(c.otherUser?._id) === String(targetUserId)
+      );
+      if (existing) {
+        setActiveOtherUser(existing.otherUser);
+      } else {
+        setActiveOtherUser({
+          _id: targetUserId,
+          name: targetName ? decodeURIComponent(targetName) : "Buyer / Customer",
+          email: "",
+        });
+      }
+      setOpenOnMobile(true);
+    } else if (!activeOtherUser && conversations.length > 0) {
+      setActiveOtherUser(conversations[0]?.otherUser);
+    }
+  }, [targetUserId, targetName, conversations]);
+
+  const selectedUserId = activeOtherUser?._id;
   const { data: messagesData, refetch: refetchMessages } = useMessages(selectedUserId);
   const messages = messagesData || [];
 
@@ -31,18 +62,56 @@ function BizMessages() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Real-time Socket.io listener
+  useEffect(() => {
+    if (!user?._id) return;
+    const socket = getSocket();
+    if (!socket) return;
+    socket.emit("join_room", user._id);
+
+    const handleReceiveMessage = () => {
+      refetchMessages();
+      refetchConversations();
+    };
+
+    const handleUpdateConversations = () => {
+      refetchConversations();
+      refetchMessages();
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
+    socket.on("update_conversations", handleUpdateConversations);
+
+    return () => {
+      socket.off("receive_message", handleReceiveMessage);
+      socket.off("update_conversations", handleUpdateConversations);
+    };
+  }, [user?._id, refetchMessages, refetchConversations]);
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!inputText.trim() || !selectedUserId) return;
     setSending(true);
+    const msgText = inputText.trim();
+    setInputText("");
     try {
       await messageApi.sendMessage({
         recipientId: selectedUserId,
-        body: inputText.trim(),
+        text: msgText,
+        body: msgText,
       });
-      setInputText("");
+
+      const socket = getSocket();
+      if (socket) {
+        socket.emit("send_message", {
+          recipientId: selectedUserId,
+          senderId: user?._id,
+          text: msgText,
+        });
+      }
+
       refetchMessages();
-      refetchConversations();
+      await refetchConversations();
     } catch (err) {
       alert(err.message || "Failed to send message.");
     } finally {
@@ -50,17 +119,35 @@ function BizMessages() {
     }
   };
 
+  // Prepend draft conversation if chatting with a new buyer not yet in inbox
+  const displayConversations = [...conversations];
+  if (
+    activeOtherUser &&
+    !conversations.some((c) => String(c.otherUser?._id) === String(activeOtherUser._id))
+  ) {
+    displayConversations.unshift({
+      otherUser: activeOtherUser,
+      lastMessage: { body: "Draft response..." },
+      isNewDraft: true,
+    });
+  }
+
   return (
     <AppShell role="business" title="Messages" subtitle="Buyer enquiries & direct threads">
       <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <Panel className={cn(openOnMobile && "hidden lg:block")} title="Inbox" bodyClassName="p-0 md:p-0">
-          {conversations.length === 0 ? (
-            <p className="p-6 text-center text-xs text-muted-foreground">
-              No active conversations. Messages will appear when buyers contact your business.
-            </p>
+          {displayConversations.length === 0 ? (
+            <div className="p-6 text-center">
+              <p className="text-xs text-muted-foreground">
+                No active conversations yet. Messages will appear when buyers contact your business or when you message buyers from your Leads.
+              </p>
+              <Button asChild size="sm" variant="outline" className="mt-3">
+                <Link href="/biz/leads">View Leads</Link>
+              </Button>
+            </div>
           ) : (
             <ul className="divide-y divide-border">
-              {conversations.map((c, i) => {
+              {displayConversations.map((c, i) => {
                 const isSelected = c.otherUser?._id === selectedUserId;
                 return (
                   <li key={c.otherUser?._id || i}>
@@ -80,7 +167,14 @@ function BizMessages() {
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold">{c.otherUser?.name || "Buyer"}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{c.lastMessage?.body || "New thread"}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{c.otherUser?.email || ""}</span>
+                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                          {c.isNewDraft ? (
+                            <span className="italic text-primary">New message draft...</span>
+                          ) : (
+                            c.lastMessage?.body || "Active thread"
+                          )}
+                        </span>
                       </span>
                     </button>
                   </li>
@@ -107,9 +201,22 @@ function BizMessages() {
           </header>
 
           <div className="flex min-h-[300px] max-h-[55vh] flex-col gap-3 overflow-y-auto p-4">
-            {messages.length === 0 ? (
+            {!selectedUserId ? (
+              <div className="my-auto flex flex-col items-center justify-center p-8 text-center">
+                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary-soft text-primary">
+                  <MessageSquare className="h-6 w-6" />
+                </div>
+                <h3 className="mt-4 text-base font-semibold text-foreground">No conversation selected</h3>
+                <p className="mt-1.5 max-w-sm text-xs text-muted-foreground">
+                  Select a buyer conversation from your inbox or message buyers directly from your leads manager.
+                </p>
+                <Button asChild size="sm" className="mt-4">
+                  <Link href="/biz/leads">Go to Leads</Link>
+                </Button>
+              </div>
+            ) : messages.length === 0 ? (
               <div className="my-auto text-center text-xs text-muted-foreground">
-                No messages in this conversation yet.
+                Start a conversation with <span className="font-semibold text-foreground">{activeOtherUser?.name}</span> by typing your message below.
               </div>
             ) : (
               messages.map((m) => {
@@ -152,10 +259,11 @@ function BizMessages() {
             <Input
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Write a response..."
+              placeholder={selectedUserId ? "Write a response..." : "Select a conversation to reply..."}
+              disabled={!selectedUserId || sending}
               className="h-10 flex-1"
             />
-            <Button type="submit" size="sm" disabled={sending || !inputText.trim()}>
+            <Button type="submit" size="sm" disabled={sending || !inputText.trim() || !selectedUserId}>
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </form>

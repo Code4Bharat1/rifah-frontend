@@ -89,7 +89,7 @@ function LoginPage() {
     setLoading(true);
     try {
       const user = await login({ email, password });
-      if (user.forcePasswordChange) {
+      if (user.requirePasswordReset) {
         router.push("/change-password");
       } else if (user.role === "business_owner") {
         router.push("/biz");
@@ -118,7 +118,7 @@ function LoginPage() {
     setForgotLoading(true);
     try {
       const user = await login({ email: acc.email, password: acc.pass });
-      if (user.forcePasswordChange) {
+      if (user.requirePasswordReset) {
         router.push("/change-password");
       } else {
         router.push(acc.target);

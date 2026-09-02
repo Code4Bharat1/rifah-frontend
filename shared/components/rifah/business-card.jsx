@@ -22,6 +22,15 @@ function Monogram({ business, className }) {
 
 /** Standard directory card — used in grids on tablet and desktop. */
 export function BusinessCard({ business }) {
+  const bizId = business.slug || business._id || business.id || "";
+  const rating = (Number(business.rating) || 0).toFixed(1);
+  const reviewsCount = business.reviewsCount ?? business.reviews ?? 0;
+  const tags = [
+    ...(business.products || business.productsSummary || []),
+    ...(business.services || business.servicesSummary || []),
+    ...(business.categories || []),
+  ];
+
   return (
     <article className="group flex h-full flex-col rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/40 sm:p-5">
       <div className="flex items-start gap-3">
@@ -29,7 +38,7 @@ export function BusinessCard({ business }) {
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <Link
-              href={`/business/${business.id }`}
+              href={`/business/${bizId}`}
               className="min-w-0 text-[15px] font-semibold leading-snug hover:text-primary"
             >
               {business.name}
@@ -44,33 +53,41 @@ export function BusinessCard({ business }) {
         <MembershipBadge tier={business.membership} />
       </div>
 
-      <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{business.tagline}</p>
+      {business.tagline && (
+        <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{business.tagline}</p>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          <MapPin className="h-3.5 w-3.5" />
-          {business.city}, {business.state}
-        </span>
+        {(business.city || business.state) && (
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" />
+            {[business.city, business.state].filter(Boolean).join(", ")}
+          </span>
+        )}
         <span className="inline-flex items-center gap-1">
           <Star className="h-3.5 w-3.5 text-warning" />
-          {business.rating.toFixed(1)} ({business.reviews})
+          {rating} ({reviewsCount})
         </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {[...business.products, ...business.services].slice(0, 2).map((t) => (
-          <Pill key={t}>{t}</Pill>
-        ))}
-      </div>
+      {tags.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {tags.slice(0, 2).map((t, idx) => (
+            <Pill key={typeof t === "string" ? t : (t?.name || idx)}>
+              {typeof t === "string" ? t : (t?.name || "Product")}
+            </Pill>
+          ))}
+        </div>
+      )}
 
       <div className="mt-auto flex gap-2 pt-4">
         <Button asChild size="sm" className="flex-1">
-          <Link href={`/enquiry/new?business=${encodeURIComponent(business.id)}`}>
+          <Link href={`/enquiry/new?business=${encodeURIComponent(bizId)}`}>
             <Send className="h-4 w-4" /> Send enquiry
           </Link>
         </Button>
         <Button asChild size="sm" variant="outline">
-          <Link href={`/business/${business.id }`}>
+          <Link href={`/business/${bizId}`}>
             View
           </Link>
         </Button>
@@ -81,6 +98,13 @@ export function BusinessCard({ business }) {
 
 /** Premium card — larger visual area, cover band, used for featured placements. */
 export function PremiumBusinessCard({ business }) {
+  const bizId = business.slug || business._id || business.id || "";
+  const tags = [
+    ...(business.products || business.productsSummary || []),
+    ...(business.services || business.servicesSummary || []),
+    ...(business.categories || []),
+  ];
+
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface">
       <div className="relative h-24 overflow-hidden sm:h-28">
@@ -100,7 +124,7 @@ export function PremiumBusinessCard({ business }) {
         <Monogram business={business} className="h-14 w-14 border-4 border-surface text-base" />
         <div className="mt-2.5 flex min-w-0 items-center gap-2">
           <Link
-            href={`/business/${business.id }`}
+            href={`/business/${bizId}`}
             className="truncate text-base font-semibold hover:text-primary"
           >
             {business.name}
@@ -112,20 +136,26 @@ export function PremiumBusinessCard({ business }) {
         <div className="mt-2.5">
           <VerificationBadge status={business.verification} compact />
         </div>
-        <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{business.tagline}</p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {[...business.products, ...business.services].slice(0, 3).map((t) => (
-            <Pill key={t}>{t}</Pill>
-          ))}
-        </div>
+        {business.tagline && (
+          <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{business.tagline}</p>
+        )}
+        {tags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {tags.slice(0, 3).map((t, idx) => (
+              <Pill key={typeof t === "string" ? t : (t?.name || idx)}>
+                {typeof t === "string" ? t : (t?.name || "Product")}
+              </Pill>
+            ))}
+          </div>
+        )}
         <div className="mt-auto flex gap-2 pt-4">
           <Button asChild size="sm" className="flex-1">
-            <Link href={`/enquiry/new?business=${encodeURIComponent(business.id)}`}>
+            <Link href={`/enquiry/new?business=${encodeURIComponent(bizId)}`}>
               Send enquiry
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link href={`/business/${business.id }`}>
+            <Link href={`/business/${bizId}`}>
               Profile
             </Link>
           </Button>
@@ -140,16 +170,13 @@ export function CompactBusinessCard({
   business,
   saved = false,
   onToggleSave,
-}
-
-
-
-) {
+}) {
+  const bizId = business.slug || business._id || business.id || "";
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3">
       <Monogram business={business} className="h-11 w-11 text-xs" />
       <Link
-        href={`/business/${business.id }`}
+        href={`/business/${bizId}`}
         className="min-w-0 flex-1"
       >
         <p className="truncate text-sm font-semibold">{business.name}</p>
