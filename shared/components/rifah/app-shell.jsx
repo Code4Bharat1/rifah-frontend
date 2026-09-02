@@ -151,6 +151,10 @@ export function AppShell({
   const path = useCurrentPath();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const finalTitle = title || "RIFAH Connect";
+  const finalSubtitle = subtitle;
+  const unreadNotifs = 0;
+  const unreadMsgs = 0;
   const nav = navs[role];
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
   const isActive = (to) => {
