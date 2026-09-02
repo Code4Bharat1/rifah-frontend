@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { Download, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
@@ -130,6 +131,18 @@ function BizEnquiries() {
               key: "status",
               header: "STATUS",
               cell: (r) => <StatusBadge status={r.status || "New"} />,
+            },
+            {
+              key: "action",
+              header: "ACTION",
+              cell: (r) => {
+                const buyerId = r.requester?._id || r.requester || r.enquiry?.requester?._id || r.enquiry?.requester || "";
+                return (
+                  <Button asChild size="sm" variant="outline" className="h-8 text-xs font-semibold">
+                    <Link href={`/biz/messages?userId=${buyerId}`}>Message</Link>
+                  </Button>
+                );
+              },
             },
           ]}
           mobile={(r, i) => (
