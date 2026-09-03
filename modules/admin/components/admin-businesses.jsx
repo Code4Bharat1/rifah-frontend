@@ -9,14 +9,33 @@ import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
-import { useBusinesses } from "@shared/hooks/use-rifah-api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+  SelectLabel
+} from "@shared/components/ui/select";
+import { useBusinesses, useCategories } from "@shared/hooks/use-rifah-api";
 import { businessApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
 function AdminBusinesses() {
   const [q, setQ] = useState("");
-  const { data: businessesData, refetch } = useBusinesses({ search: q || undefined });
+  const [industry, setIndustry] = useState("all");
+  
+  const { data: businessesData, refetch } = useBusinesses({ 
+    search: q || undefined,
+    industry: industry === "all" ? undefined : industry 
+  });
   const rows = Array.isArray(businessesData) ? businessesData : [];
+
+  const { data: categoriesData } = useCategories();
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
+  const mainCategories = categories.filter(c => !c.parent);
+  const subCategories = categories.filter(c => c.parent);
 
   const handleToggleStatus = async (b) => {
     const newStatus = b.status === "active" ? "suspended" : "active";
@@ -39,14 +58,38 @@ function AdminBusinesses() {
       }
     >
       <div className="space-y-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name, industry, city or chapter"
-            className="h-11 pl-10"
-          />
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by name, industry, city or chapter"
+              className="h-11 pl-10"
+            />
+          </div>
+          <Select value={industry} onValueChange={setIndustry}>
+            <SelectTrigger className="h-11 sm:w-[220px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {mainCategories.length > 0 ? (
+                mainCategories.map(mc => {
+                  const subs = subCategories.filter(sc => sc.parent === mc.name);
+                  return (
+                    <SelectGroup key={mc.name}>
+                      <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
+                      <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
+                      {subs.map(sc => (
+                        <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  );
+                })
+              ) : null}
+            </SelectContent>
+          </Select>
         </div>
 
         <Panel>
@@ -64,7 +107,7 @@ function AdminBusinesses() {
                 key: "act",
                 header: "",
                 cell: (r) => (
-                  <Link href={`/business/${r.slug || r._id}`} className="text-sm font-medium text-primary hover:underline">
+                  <Link href={`/admin/businesses/${r._id}`} className="text-sm font-medium text-primary hover:underline">
                     View
                   </Link>
                 ),
@@ -87,7 +130,7 @@ function AdminBusinesses() {
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button asChild size="sm" variant="outline">
-                    <Link href={`/business/${r.slug || r._id}`}>
+                    <Link href={`/admin/businesses/${r._id}`}>
                       View Details
                     </Link>
                   </Button>

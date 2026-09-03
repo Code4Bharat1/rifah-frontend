@@ -12,10 +12,10 @@ import { Button } from "@shared/components/ui/button";
 import { Checkbox } from "@shared/components/ui/checkbox";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@shared/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
 import { cities, industries } from "@shared/lib/mock-data";
-import { useBusinesses, useChapters } from "@shared/hooks/use-rifah-api";
+import { useBusinesses, useChapters, useCategories } from "@shared/hooks/use-rifah-api";
 import { cn } from "@shared/lib/utils";
 
 const membershipLevels = ["Free", "Basic", "Premium", "Enterprise"];
@@ -35,8 +35,12 @@ function DiscoverPage() {
     verified: search.verified,
   });
 
-  const { data: chaptersData } = useChapters();
   const chaptersList = chaptersData || [];
+
+  const { data: categoriesData } = useCategories();
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
+  const mainCategories = categories.filter(c => !c.parent);
+  const subCategories = categories.filter(c => c.parent);
 
   const results = Array.isArray(businessesData)
     ? businessesData
@@ -73,11 +77,28 @@ function DiscoverPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All industries</SelectItem>
-            {industries.map((i) => (
-              <SelectItem key={i} value={i}>
-                {i}
-              </SelectItem>
-            ))}
+            {mainCategories.length > 0 ? (
+              <>
+                {mainCategories.map(mc => {
+                  const subs = subCategories.filter(sc => sc.parent === mc.name);
+                  return (
+                    <SelectGroup key={mc.name}>
+                      <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
+                      <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
+                      {subs.map(sc => (
+                        <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  );
+                })}
+              </>
+            ) : (
+              industries.map((i) => (
+                <SelectItem key={i} value={i}>
+                  {i}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
       </div>

@@ -126,6 +126,9 @@ export const leadApi = {
 
 export const membershipApi = {
   getPlans: () => apiClient("/memberships/plans"),
+  createPlan: (data) => apiClient("/memberships/plans", { method: "POST", body: JSON.stringify(data) }),
+  updatePlan: (planId, data) => apiClient(`/memberships/plans/${planId}`, { method: "PUT", body: JSON.stringify(data) }),
+  deletePlan: (planId) => apiClient(`/memberships/plans/${planId}`, { method: "DELETE" }),
   getMyMembership: () => apiClient("/memberships/me"),
   upgradePlan: (data) => apiClient("/memberships/upgrade", { method: "POST", body: JSON.stringify(data) }),
 };

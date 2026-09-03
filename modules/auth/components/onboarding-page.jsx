@@ -32,10 +32,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel
 } from "@shared/components/ui/select";
 import { cities, industries } from "@shared/lib/mock-data";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useChapters, useMembershipPlans } from "@shared/hooks/use-rifah-api";
+import { useChapters, useMembershipPlans, useCategories } from "@shared/hooks/use-rifah-api";
 import { cn } from "@shared/lib/utils";
 
 const businessSteps = ["Business", "Contact", "Account", "Tax & Verification", "Membership"];
@@ -48,6 +50,11 @@ export function OnboardingPage() {
 
   const chapters = chaptersData || [];
   const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
+
+  const { data: categoriesData } = useCategories();
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
+  const mainCategories = categories.filter(c => !c.parent);
+  const subCategories = categories.filter(c => c.parent);
 
   // Account Type Choice: "choice", "customer", or "business_owner"
   const [role, setRole] = useState("business_owner");
@@ -417,11 +424,28 @@ export function OnboardingPage() {
                     <SelectValue placeholder="Select primary industry you source from" />
                   </SelectTrigger>
                   <SelectContent>
-                    {industries.map((ind) => (
-                      <SelectItem key={ind} value={ind}>
-                        {ind}
-                      </SelectItem>
-                    ))}
+                    {mainCategories.length > 0 ? (
+                      <>
+                        {mainCategories.map(mc => {
+                          const subs = subCategories.filter(sc => sc.parent === mc.name);
+                          return (
+                            <SelectGroup key={mc.name}>
+                              <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
+                              <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
+                              {subs.map(sc => (
+                                <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          );
+                        })}
+                      </>
+                    ) : (
+                      industries.map((ind) => (
+                        <SelectItem key={ind} value={ind}>
+                          {ind}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -579,11 +603,28 @@ export function OnboardingPage() {
                               <SelectValue placeholder="Select industry" />
                             </SelectTrigger>
                             <SelectContent>
-                              {industries.map((ind) => (
-                                <SelectItem key={ind} value={ind}>
-                                  {ind}
-                                </SelectItem>
-                              ))}
+                              {mainCategories.length > 0 ? (
+                                <>
+                                  {mainCategories.map(mc => {
+                                    const subs = subCategories.filter(sc => sc.parent === mc.name);
+                                    return (
+                                      <SelectGroup key={mc.name}>
+                                        <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
+                                        <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
+                                        {subs.map(sc => (
+                                          <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
+                                        ))}
+                                      </SelectGroup>
+                                    );
+                                  })}
+                                </>
+                              ) : (
+                                industries.map((ind) => (
+                                  <SelectItem key={ind} value={ind}>
+                                    {ind}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
