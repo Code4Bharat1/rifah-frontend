@@ -160,6 +160,30 @@ export function AppShell({
   const nav = navs[role];
   const { getPath } = useDynamicNav(role);
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more].map(i => ({ ...i, to: getPath(i.to) }));
+  
+  const { data: notificationsData } = useNotifications();
+  const { data: conversationsData } = useConversations();
+  
+  const unreadNotifs = notificationsData?.unreadCount ?? (
+    Array.isArray(notificationsData)
+      ? notificationsData.filter((n) => !n.isRead && !n.readAt && n.type !== "Message").length
+      : 0
+  );
+  
+  const rawConversations = Array.isArray(conversationsData) ? conversationsData : (conversationsData?.conversations || []);
+  const unreadMsgs = rawConversations.reduce((acc, c) => acc + (Number(c.unreadCount || c.unread) || 0), 0);
+  
+  let finalTitle = title;
+  let finalSubtitle = subtitle;
+
+  if (role === "admin" && user?.role === "chapter_admin") {
+    if (title === "Chamber administration" || title === "Chapters and units" || title === "Overview") {
+      finalTitle = `${user.chapter || "Regional"} Workspace`;
+    }
+    if (subtitle === "RIFAH Secretariat · all chapters" || subtitle === "Regional structure and branch desks of RIFAH Chamber") {
+      finalSubtitle = "Regional branch dashboard";
+    }
+  }
   const isActive = (to) => {
     if (path === to) return true;
     
@@ -237,8 +261,8 @@ export function AppShell({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-base font-semibold md:text-lg">{title}</h1>
-              {subtitle && <p className="truncate text-xs text-muted-foreground md:text-sm">{subtitle}</p>}
+              <h1 className="truncate text-base font-semibold md:text-lg">{finalTitle}</h1>
+              {finalSubtitle && <p className="truncate text-xs text-muted-foreground md:text-sm">{finalSubtitle}</p>}
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
