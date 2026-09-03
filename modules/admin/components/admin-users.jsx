@@ -1,7 +1,20 @@
 "use client";
 import { Search, UserPlus, Users, MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
@@ -16,8 +29,20 @@ import { userApi } from "@shared/lib/api-services";
 
 function AdminUsers() {
   const [q, setQ] = useState("");
-  const { data: usersData, refetch } = useAdminUsers({ search: q || undefined });
-  const rows = Array.isArray(usersData) ? usersData : [];
+  const debouncedQ = useDebounce(q, 300);
+  const { data: usersData, refetch, isLoading, error } = useAdminUsers({ search: debouncedQ || undefined });
+  
+  console.log("Admin Users Data:", usersData, "Error:", error);
+
+  // Try to extract users from various possible response formats
+  let rows = [];
+  if (Array.isArray(usersData)) {
+    rows = usersData;
+  } else if (usersData && typeof usersData === "object") {
+    rows = Array.isArray(usersData.users) ? usersData.users : 
+           (Array.isArray(usersData.data) ? usersData.data : 
+           (Array.isArray(usersData.data?.users) ? usersData.data.users : []));
+  }
   
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -80,7 +105,14 @@ function AdminUsers() {
         <Panel>
           <ResponsiveTable
             rows={rows}
-            empty={<EmptyState icon={Users} title="No users match" description="Try a different search term." />}
+            isLoading={isLoading}
+            empty={
+              error ? (
+                <EmptyState icon={Users} title="Error Loading Users" description={error.message || "You might not have permission to view this."} />
+              ) : (
+                <EmptyState icon={Users} title="No users match" description="Try a different search term." />
+              )
+            }
             columns={[
               { key: "name", header: "Name", cell: (r) => <span className="font-semibold">{r.name}</span> },
               { key: "email", header: "Email", cell: (r) => r.email },
@@ -172,6 +204,18 @@ function AdminUsers() {
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Current Role</p>
                 <p className="text-sm font-semibold mt-0.5 capitalize">{selectedUser?.role?.replace("_", " ")}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Phone</p>
+                <p className="text-sm font-semibold mt-0.5">{selectedUser?.phone || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">City & Chapter</p>
+                <p className="text-sm font-semibold mt-0.5">{selectedUser?.city || "N/A"} • {selectedUser?.chapter || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Organization</p>
+                <p className="text-sm font-semibold mt-0.5">{selectedUser?.organization || "N/A"}</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Status</p>

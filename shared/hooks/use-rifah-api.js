@@ -355,6 +355,7 @@ export function useAdminUsers(params = {}) {
       const res = await userApi.getAdminUsers(params);
       return res?.data || res;
     },
+    enabled: typeof window !== "undefined",
   });
 }
 
