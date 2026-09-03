@@ -152,6 +152,12 @@ export function AppShell({
   const path = useCurrentPath();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { data: notificationsData } = useNotifications();
+  const { data: conversations } = useConversations();
+  
+  const unreadNotifs = notificationsData?.unreadCount || 0;
+  const unreadMsgs = Array.isArray(conversations) ? conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0) : 0;
+
   const nav = navs[role];
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
   const isActive = (to) => {

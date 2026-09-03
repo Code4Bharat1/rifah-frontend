@@ -131,6 +131,7 @@ export const paymentApi = {
   getAllPayments: (params = {}) => apiClient(`/payments/admin/all${toQueryString(params)}`),
   createOrder: (data) => apiClient("/payments/order", { method: "POST", body: JSON.stringify(data) }),
   verifyPayment: (data) => apiClient("/payments/verify", { method: "POST", body: JSON.stringify(data) }),
+  refund: (id) => apiClient(`/payments/${id}/refund`, { method: "POST" }),
 };
 
 export const messageApi = {
@@ -151,6 +152,7 @@ export const eventApi = {
   register: (id) => apiClient(`/events/${id}/register`, { method: "POST" }),
   create: (data) => apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/events/${id}`, { method: "DELETE" }),
 };
 
 export const reviewApi = {
@@ -167,4 +169,9 @@ export const reportApi = {
 
 export const auditApi = {
   getLogs: (params = {}) => apiClient(`/audit${toQueryString(params)}`),
+};
+
+export const settingsApi = {
+  get: () => apiClient("/settings"),
+  update: (data) => apiClient("/settings", { method: "PATCH", body: JSON.stringify(data) }),
 };

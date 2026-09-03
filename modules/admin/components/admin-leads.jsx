@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { Target } from "lucide-react";
+import { Target, Download } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, StatusBadge } from "@shared/components/rifah/badges";
@@ -49,7 +50,37 @@ function AdminLeads() {
   };
 
   return (
-    <AppShell role="admin" title="Lead routing" subtitle="Matching buyer requirements to verified enterprises">
+    <AppShell 
+      role="admin" 
+      title="Lead routing" 
+      subtitle="Matching buyer requirements to verified enterprises"
+      actions={
+        <Button variant="outline" onClick={async () => {
+          try {
+            toast.info("Exporting leads...");
+            const token = localStorage.getItem("rifah_token");
+            const response = await fetch("http://localhost:3001/api/leads/export/csv", {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error("Export failed");
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "leads_export.csv";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Export completed successfully!");
+          } catch (e) {
+            toast.error("Failed to export leads");
+          }
+        }}>
+          <Download className="mr-2 h-4 w-4" /> Export CSV
+        </Button>
+      }
+    >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Total leads" value={String(enquiries.length)} icon={Target} tone="primary" />

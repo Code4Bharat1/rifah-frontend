@@ -347,3 +347,13 @@ export function useVerificationQueue() {
     },
   });
 }
+
+export function useSettings() {
+  return useQuery({
+    queryKey: ["settings"],
+    queryFn: async () => {
+      const res = await settingsApi.get();
+      return res?.data || res;
+    },
+  });
+}

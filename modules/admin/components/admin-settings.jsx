@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -21,9 +22,12 @@ import {
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
+
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Switch } from "@shared/components/ui/switch";
+import { useSettings } from "@shared/hooks/use-rifah-api";
+import { settingsApi } from "@shared/lib/api-services";
 
 const modules = [
   { label: "Businesses", to: "/admin/businesses", icon: Building2 },
@@ -43,14 +47,66 @@ const modules = [
   { label: "Audit log", to: "/admin/audit", icon: ScrollText },
 ] ;
 
-const toggles = [
-  ["Manual verification required", "Every new listing is reviewed by the secretariat", true],
-  ["Moderate reviews before publishing", "Buyer feedback stays hidden until approved", true],
-  ["Allow public enquiry posting", "Buyers can post requirements without an account", false],
-  ["Auto-route leads by category", "Match new enquiries to members automatically", true],
-] ;
+const togglesTemplate = [
+  { key: "manualVerificationRequired", title: "Manual verification required", desc: "Every new listing is reviewed by the secretariat", defaultOn: true },
+  { key: "moderateReviewsBeforePublishing", title: "Moderate reviews before publishing", desc: "Buyer feedback stays hidden until approved", defaultOn: true },
+  { key: "allowPublicEnquiryPosting", title: "Allow public enquiry posting", desc: "Buyers can post requirements without an account", defaultOn: false },
+  { key: "autoRouteLeadsByCategory", title: "Auto-route leads by category", desc: "Match new enquiries to members automatically", defaultOn: true },
+];
 
 function AdminSettings() {
+  const { data: globalSettings, refetch } = useSettings();
+  const settings = globalSettings || {};
+  
+  const [chamberDetails, setChamberDetails] = useState({
+    organisationName: "RIFAH Chamber of Commerce & Industries",
+    secretariatEmail: "secretariat@example.org",
+    supportPhone: "+00 0000 000000",
+    membershipYear: "2026-27"
+  });
+  
+  const [toggleStates, setToggleStates] = useState({});
+
+  useEffect(() => {
+    if (globalSettings) {
+      setChamberDetails({
+        organisationName: globalSettings.organisationName || "RIFAH Chamber of Commerce & Industries",
+        secretariatEmail: globalSettings.secretariatEmail || "secretariat@example.org",
+        supportPhone: globalSettings.supportPhone || "+00 0000 000000",
+        membershipYear: globalSettings.membershipYear || "2026-27"
+      });
+      
+      const newToggles = {};
+      togglesTemplate.forEach(t => {
+        newToggles[t.key] = globalSettings[t.key] !== undefined ? globalSettings[t.key] : t.defaultOn;
+      });
+      setToggleStates(newToggles);
+    }
+  }, [globalSettings]);
+  
+  const handleToggle = async (key, value) => {
+    // Optimistic UI update
+    setToggleStates(prev => ({ ...prev, [key]: value }));
+    try {
+      await settingsApi.update({ [key]: value });
+      toast.success("Settings updated");
+    } catch (e) {
+      // Revert on failure
+      setToggleStates(prev => ({ ...prev, [key]: !value }));
+      toast.error("Failed to update settings");
+    }
+  };
+
+  const handleSaveChamberDetails = async () => {
+    try {
+      await settingsApi.update(chamberDetails);
+      toast.success("Chamber details saved successfully!");
+      refetch();
+    } catch (e) {
+      toast.error("Failed to save chamber details");
+    }
+  };
+
   return (
     <AppShell role="admin" title="Settings and modules" subtitle="Platform configuration for the secretariat">
       <div className="space-y-4">
@@ -69,15 +125,21 @@ function AdminSettings() {
 
         <Panel title="Moderation rules">
           <ul className="divide-y divide-border">
-            {toggles.map(([title, desc, on]) => (
-              <li key={title} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3.5 first:pt-0 last:pb-0">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
-                </div>
-                <Switch defaultChecked={on} onCheckedChange={(checked) => toast.success(`${title} ${checked ? 'enabled' : 'disabled'}`)} />
-              </li>
-            ))}
+            {togglesTemplate.map(({ key, title, desc, defaultOn }) => {
+              const isOn = toggleStates[key] !== undefined ? toggleStates[key] : defaultOn;
+              return (
+                <li key={title} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3.5 first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{title}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  <Switch 
+                    checked={isOn} 
+                    onCheckedChange={(checked) => handleToggle(key, checked)} 
+                  />
+                </li>
+              );
+            })}
           </ul>
         </Panel>
 
@@ -85,24 +147,38 @@ function AdminSettings() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Organisation name</Label>
-              <Input defaultValue="RIFAH Chamber of Commerce & Industries" className="h-11" />
+              <Input 
+                value={chamberDetails.organisationName} 
+                onChange={(e) => setChamberDetails({...chamberDetails, organisationName: e.target.value})}
+                className="h-11" 
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Secretariat email</Label>
-              <Input defaultValue="secretariat@example.org" className="h-11" />
+              <Input 
+                value={chamberDetails.secretariatEmail}
+                onChange={(e) => setChamberDetails({...chamberDetails, secretariatEmail: e.target.value})}
+                className="h-11" 
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Support phone</Label>
-              <Input defaultValue="+00 0000 000000" className="h-11" />
+              <Input 
+                value={chamberDetails.supportPhone}
+                onChange={(e) => setChamberDetails({...chamberDetails, supportPhone: e.target.value})}
+                className="h-11" 
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Membership year</Label>
-              <Input defaultValue="2026–27" className="h-11" />
+              <Input 
+                value={chamberDetails.membershipYear}
+                onChange={(e) => setChamberDetails({...chamberDetails, membershipYear: e.target.value})}
+                className="h-11" 
+              />
             </div>
             <div className="col-span-full pt-2">
-              <Button onClick={() => {
-                toast.success("Settings saved successfully!");
-              }}>Save Changes</Button>
+              <Button onClick={handleSaveChamberDetails}>Save Changes</Button>
             </div>
           </div>
         </Panel>
@@ -110,7 +186,6 @@ function AdminSettings() {
     </AppShell>
   );
 }
-
 
 export { AdminSettings };
 export default AdminSettings;

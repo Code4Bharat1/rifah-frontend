@@ -56,9 +56,28 @@ function AdminReports() {
       title="Reports and insights"
       subtitle="Prototype analytics for the secretariat"
       actions={
-        <Button variant="outline" onClick={() => {
-          toast.success("Exporting all reports...");
-          setTimeout(() => toast.info("Export completed successfully!"), 1500);
+        <Button variant="outline" onClick={async () => {
+          try {
+            toast.info("Exporting all reports...");
+            // Use native fetch to handle blob download
+            const token = localStorage.getItem("rifah_token");
+            const response = await fetch("http://localhost:3001/api/reports/admin/export/csv", {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error("Export failed");
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "admin_reports.csv";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Export completed successfully!");
+          } catch (e) {
+            toast.error("Failed to export reports");
+          }
         }}>
           <Download className="mr-2 h-4 w-4" /> Export all
         </Button>

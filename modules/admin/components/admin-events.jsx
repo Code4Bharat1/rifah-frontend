@@ -138,15 +138,17 @@ function AdminEvents() {
                         Toggle Mode (Online/In-person)
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={async () => {
-                        try {
-                           await eventApi.update(r._id, { status: "Cancelled" });
-                           toast.success("Event cancelled");
-                           refetch();
-                        } catch(e) {
-                           toast.error("Failed to cancel event");
+                        if(confirm("Are you sure you want to completely delete this event? This action cannot be undone.")) {
+                          try {
+                             await eventApi.delete(r._id);
+                             toast.success("Event deleted permanently");
+                             refetch();
+                          } catch(e) {
+                             toast.error("Failed to delete event");
+                          }
                         }
                       }}>
-                        Cancel Event
+                        Delete Event
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

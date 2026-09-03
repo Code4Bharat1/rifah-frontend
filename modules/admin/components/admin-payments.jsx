@@ -9,6 +9,7 @@ import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bi
 import { Button } from "@shared/components/ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useAllPayments } from "@shared/hooks/use-rifah-api";
+import { paymentApi } from "@shared/lib/api-services";
 
 const tone = (s) =>
   s === "completed" || s === "Paid"
@@ -18,7 +19,7 @@ const tone = (s) =>
     : "danger";
 
 function AdminPayments() {
-  const { data: paymentsData } = useAllPayments();
+  const { data: paymentsData, refetch } = useAllPayments();
   const payments = Array.isArray(paymentsData) ? paymentsData : [];
 
   const totalRevenue = payments
@@ -86,6 +87,22 @@ function AdminPayments() {
                       }} disabled={r.status !== "completed"}>
                         <Download className="h-4 w-4 mr-2" />
                         Download Receipt
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" 
+                        disabled={r.status === "refunded"}
+                        onClick={async () => {
+                          if (confirm(`Are you sure you want to mark invoice ${r.invoiceNumber} as refunded?`)) {
+                            try {
+                              await paymentApi.refund(r._id);
+                              toast.success("Payment marked as refunded");
+                              refetch();
+                            } catch (e) {
+                              toast.error("Failed to process refund");
+                            }
+                          }
+                      }}>
+                        Process Refund
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
