@@ -9,11 +9,11 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Textarea } from "@shared/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@shared/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@shared/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useMembershipPlans, useBusinesses } from "@shared/hooks/use-rifah-api";
-import { businessApi, membershipApi } from "@shared/lib/api-services";
-import { useState } from "react";
+import { businessApi, membershipApi, paymentApi } from "@shared/lib/api-services";
+import { useState, useEffect } from "react";
 
 function AdminMemberships() {
   const { data: plansData } = useMembershipPlans();
@@ -26,6 +26,11 @@ function AdminMemberships() {
   const [editingPlanId, setEditingPlanId] = useState(null);
   const [formData, setFormData] = useState({ planId: "", name: "", price: 0, summary: "", features: "" });
   const [isSaving, setIsSaving] = useState(false);
+
+  const [selectedBusiness, setSelectedBusiness] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [businessInvoices, setBusinessInvoices] = useState([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
 
   const handleUpdateStatus = async (businessId, updates) => {
     try {
@@ -52,6 +57,30 @@ function AdminMemberships() {
       setFormData({ planId: "", name: "", price: 0, summary: "", features: "" });
     }
     setIsModalOpen(true);
+  };
+
+  const handleViewDetails = async (business) => {
+    setSelectedBusiness(business);
+    setIsDetailOpen(true);
+    setLoadingInvoices(true);
+    try {
+      // If we had a specific admin payment fetching route for a single business:
+      // const res = await paymentApi.getAllPayments({ businessId: business._id });
+      // Since it might require special admin privileges, we'll try to fetch all or gracefully fallback.
+      // For now, we simulate fetching invoices if the API doesn't strictly support filtering yet, or use it.
+      const res = await paymentApi.getAllPayments({ businessId: business._id });
+      setBusinessInvoices(Array.isArray(res?.data) ? res.data : (res || []));
+    } catch (err) {
+      // Intentionally avoiding console.error/warn to prevent Next.js 16 overlay interception
+      if (err.status === 401 || err.message?.includes("Authentication")) {
+        toast.error("Session expired or unauthorized to view invoices.");
+      } else {
+        toast.error("Failed to load invoices");
+      }
+      setBusinessInvoices([]);
+    } finally {
+      setLoadingInvoices(false);
+    }
   };
 
   const handleSavePlan = async () => {
@@ -178,6 +207,10 @@ function AdminMemberships() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem className="font-semibold" onClick={() => handleViewDetails(r)}>
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuLabel>Manage Tier</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, { membership: "Basic" })} disabled={r.membership === "Basic"}>
                         Set to Basic
@@ -230,6 +263,91 @@ function AdminMemberships() {
           />
         </Panel>
       </div>
+
+      {/* View Member Details Modal */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Member 360 View</DialogTitle>
+            <DialogDescription>
+              Comprehensive overview of the member's profile and membership status.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedBusiness && (
+            <div className="space-y-6 py-2 max-h-[70vh] overflow-y-auto px-1">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">{selectedBusiness.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Owner: {selectedBusiness.ownerName || "Business Owner"}</p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <MembershipBadge tier={selectedBusiness.membership} />
+                  <VerificationBadge status={selectedBusiness.verification} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Contact Info</p>
+                  <p className="text-sm">{selectedBusiness.email || "No email"}</p>
+                  <p className="text-sm">{selectedBusiness.phone || "No phone"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Location / Chapter</p>
+                  <p className="text-sm">{selectedBusiness.city}, {selectedBusiness.state}</p>
+                  <p className="text-sm font-medium">{selectedBusiness.chapter}</p>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-bold">Subscription Details</h4>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(selectedBusiness._id, { membership: "Free" })}>Set Free</Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(selectedBusiness._id, { membership: "Basic" })}>Set Basic</Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(selectedBusiness._id, { membership: "Premium" })}>Set Premium</Button>
+                  </div>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Joined At</p>
+                    <p className="text-sm font-medium">{new Date(selectedBusiness.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Industry / Type</p>
+                    <p className="text-sm font-medium">{selectedBusiness.industry} · {selectedBusiness.businessType}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4">
+                <h4 className="text-sm font-bold mb-3">Payment History</h4>
+                {loadingInvoices ? (
+                  <p className="text-sm text-muted-foreground">Loading invoices...</p>
+                ) : businessInvoices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No invoices found for this business.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {businessInvoices.map(inv => (
+                      <div key={inv._id || inv.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+                        <div>
+                          <p className="font-semibold">{inv.invoiceNumber || "Invoice"}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(inv.createdAt || inv.paidAt).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">₹{inv.amount}</p>
+                          <Pill tone={inv.status === "Paid" ? "success" : "warning"}>{inv.status || "Paid"}</Pill>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[425px]">

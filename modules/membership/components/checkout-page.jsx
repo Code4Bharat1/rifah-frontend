@@ -39,7 +39,11 @@ function Checkout() {
 
   const { data: business } = useMyBusiness();
   const { data: plansData } = useMembershipPlans();
-  const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
+  const plans = plansData 
+    ? Object.entries(plansData)
+        .map(([id, p]) => ({ id, ...p }))
+        .filter(p => p.price > 0)
+    : [];
 
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(planParam);
