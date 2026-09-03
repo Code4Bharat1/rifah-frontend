@@ -25,6 +25,19 @@ function formatRelativeTime(dateString) {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function safeText(val, fallback = "") {
+  if (!val) return fallback;
+  if (typeof val === "string" || typeof val === "number") return String(val);
+  if (typeof val === "object") {
+    if (typeof val.text === "string") return val.text;
+    if (typeof val.body === "string") return val.body;
+    if (typeof val.message === "string") return val.message;
+    if (typeof val.title === "string") return val.title;
+    return fallback;
+  }
+  return fallback;
+}
+
 function BizNotifications() {
   const { data: notifData, refetch } = useNotifications();
   const notifications = Array.isArray(notifData) ? notifData : (notifData?.notifications || []);
@@ -59,6 +72,9 @@ function BizNotifications() {
           <ul className="divide-y divide-border">
             {notifications.map((n) => {
               const isUnread = !n.isRead && !n.readAt;
+              const titleText = safeText(n.title || n.type, "Notification");
+              const bodyText = safeText(n.body || n.message, "");
+
               return (
                 <li
                   key={n._id || n.id}
@@ -73,14 +89,16 @@ function BizNotifications() {
                     aria-hidden
                   />
                   <div className="min-w-0 pr-2">
-                    <p className="text-sm font-semibold text-foreground">{n.title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{n.body || n.message}</p>
+                    <p className="text-sm font-semibold text-foreground">{titleText}</p>
+                    {Boolean(bodyText) && (
+                      <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{bodyText}</p>
+                    )}
                     <p className="mt-1.5 text-[11px] text-muted-foreground/80">
                       {formatRelativeTime(n.createdAt)}
                     </p>
                   </div>
                   <div className="shrink-0 pt-0.5">
-                    <Pill>{n.type || "System"}</Pill>
+                    <Pill>{safeText(n.type, "System")}</Pill>
                   </div>
                 </li>
               );

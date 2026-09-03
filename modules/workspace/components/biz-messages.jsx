@@ -16,16 +16,13 @@ import { getSocket } from "@shared/lib/socket";
 
 function BizMessages() {
   const searchParams = useSearchParams();
-  const userIdParam = searchParams ? (searchParams.get("userId") || searchParams.get("recipient") || searchParams.get("id")) : null;
+  const targetUserId = searchParams ? (searchParams.get("userId") || searchParams.get("recipient") || searchParams.get("to") || searchParams.get("id")) : null;
+  const targetName = searchParams ? searchParams.get("name") : null;
   const { user } = useAuth();
-  const searchParams = useSearchParams();
-  const targetUserId = searchParams.get("userId") || searchParams.get("to");
-  const targetName = searchParams.get("name");
 
   const { data: convData, refetch: refetchConversations } = useConversations();
   const conversations = convData || [];
 
-  const [activeOtherUser, setActiveOtherUser] = useState(null);
   const [activeOtherUser, setActiveOtherUser] = useState(null);
   const [openOnMobile, setOpenOnMobile] = useState(false);
   const [inputText, setInputText] = useState("");
