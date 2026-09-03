@@ -137,8 +137,10 @@ function BusinessProfile() {
     }
   };
 
-  const coverUrl = business.coverImage ? resolveMediaUrl(business.coverImage) : businessImage(business);
-  const logoUrl = business.logo ? resolveMediaUrl(business.logo) : businessImage(business);
+  const isValidImage = (url) => typeof url === "string" && (url.startsWith("/uploads/") || url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("/images/"));
+
+  const coverUrl = isValidImage(business.coverImage) ? resolveMediaUrl(business.coverImage) : resolveMediaUrl(businessImage(business));
+  const logoUrl = isValidImage(business.logo) ? resolveMediaUrl(business.logo) : resolveMediaUrl(businessImage(business));
 
   return (
     <PublicLayout>

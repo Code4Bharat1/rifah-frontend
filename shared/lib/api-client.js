@@ -3,7 +3,7 @@ const SERVER_BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:
 
 export function resolveMediaUrl(path) {
   if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:") || path.startsWith("/images/")) {
     return path;
   }
   const cleanPath = path.startsWith("/") ? path : `/${path}`;

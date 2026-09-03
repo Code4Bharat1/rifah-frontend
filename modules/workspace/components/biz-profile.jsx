@@ -34,6 +34,7 @@ function BizProfile() {
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [uploadingCert, setUploadingCert] = useState(false);
 
@@ -88,6 +89,21 @@ function BizProfile() {
       refetch();
     } catch (err) {
       alert(err.message || "Failed to upload logo.");
+    }
+  };
+
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !business?._id) return;
+    setUploadingCover(true);
+    try {
+      await businessApi.uploadCover(business._id, file);
+      refetch();
+    } catch (err) {
+      alert(err.message || "Failed to upload cover image.");
+    } finally {
+      setUploadingCover(false);
+      e.target.value = "";
     }
   };
 
@@ -270,6 +286,30 @@ function BizProfile() {
                 <span>Upload Logo</span>
               </Button>
               <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+            </label>
+          </Panel>
+
+          <Panel title="Cover / Banner Image" description="Background header banner for public profile">
+            {business?.coverImage ? (
+              <img
+                src={resolveMediaUrl(business.coverImage)}
+                alt="Cover Banner"
+                className="aspect-[3/1] w-full rounded-xl border border-border object-cover mb-3"
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground mb-3">No cover banner uploaded yet.</p>
+            )}
+            <label className="inline-block">
+              <Button asChild size="sm" variant="outline" className="cursor-pointer" disabled={uploadingCover}>
+                <span>
+                  {uploadingCover ? (
+                    <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Uploading...</>
+                  ) : (
+                    <><ImagePlus className="mr-2 h-3.5 w-3.5" />Upload Cover Banner</>
+                  )}
+                </span>
+              </Button>
+              <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
             </label>
           </Panel>
 

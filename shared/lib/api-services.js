@@ -15,6 +15,9 @@ export const authApi = {
   getMe: () => apiClient("/auth/me"),
   refreshToken: (refreshToken) => apiClient("/auth/refresh-token", { method: "POST", body: JSON.stringify({ refreshToken }) }),
   changePassword: (data) => apiClient("/auth/change-password", { method: "PATCH", body: JSON.stringify(data) }),
+  forgotPassword: (email) => apiClient("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
+  verifyResetCode: (data) => apiClient("/auth/verify-reset-code", { method: "POST", body: JSON.stringify(data) }),
+  resetPassword: (data) => apiClient("/auth/reset-password", { method: "POST", body: JSON.stringify(data) }),
   googleAuth: (data) => apiClient("/auth/google", { method: "POST", body: JSON.stringify(data) }),
   completeOnboarding: (data) => apiClient("/auth/complete-onboarding", { method: "POST", body: JSON.stringify(data) }),
 };
@@ -137,6 +140,11 @@ export const messageApi = {
   getConversations: () => apiClient("/messages/conversations"),
   getMessages: (otherUserId) => apiClient(`/messages/conversation/${otherUserId}`),
   sendMessage: (data) => apiClient("/messages", { method: "POST", body: JSON.stringify(data) }),
+  uploadAttachment: (file) => {
+    const formData = new FormData();
+    formData.append("attachment", file);
+    return apiClient("/messages/upload", { method: "POST", body: formData });
+  },
 };
 
 export const notificationApi = {
