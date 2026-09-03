@@ -85,9 +85,15 @@ function HomePage() {
   const { data: eventsData } = useEvents({ status: "Upcoming", limit: 3 });
   const { data: plansData } = useMembershipPlans();
 
-  const featured = businessesData?.businesses || [];
-  const catalogueList = catalogueData?.items || [];
-  const upcoming = eventsData?.events || [];
+  const featured = Array.isArray(businessesData)
+    ? businessesData
+    : (businessesData?.businesses || []);
+  const catalogueList = Array.isArray(catalogueData)
+    ? catalogueData
+    : (catalogueData?.items || []);
+  const upcoming = Array.isArray(eventsData)
+    ? eventsData
+    : (eventsData?.events || []);
   const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
 
   return (

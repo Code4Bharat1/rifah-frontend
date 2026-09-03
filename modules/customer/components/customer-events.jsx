@@ -10,7 +10,9 @@ import { useEvents } from "@shared/hooks/use-rifah-api";
 
 function MyEvents() {
   const { data: eventsData } = useEvents();
-  const allEvents = eventsData?.events || [];
+  const allEvents = Array.isArray(eventsData)
+    ? eventsData
+    : (eventsData?.events || []);
 
   return (
     <AppShell

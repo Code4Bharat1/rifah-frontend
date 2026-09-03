@@ -53,16 +53,23 @@ export const galleryPool = [
 
 /** Cover / thumbnail photo for a member business. */
 export function businessImage(business) {
-  const bid = business.id || business._id;
-  return byId[bid] ?? byIndustry[business.industry] ?? manufacturing;
+  if (!business) return manufacturing;
+  if (business.coverImage) return business.coverImage;
+  if (business.logo) return business.logo;
+  const bId = business.id || business._id || business.slug || "";
+  return byId[bId] ?? byIndustry[business.industry] ?? manufacturing;
 }
 
 /** Six deterministic gallery photos for a member business. */
 export function businessGallery(business) {
+  if (!business) return galleryPool.slice(0, 6);
+  if (Array.isArray(business.gallery) && business.gallery.length > 0) {
+    return business.gallery;
+  }
   const lead = businessImage(business);
   const rest = galleryPool.filter((src) => src !== lead);
-  const bid = business.id || business._id || "123456";
-  const offset = bid.length % rest.length;
+  const bId = String(business.id || business._id || business.slug || "rifah");
+  const offset = bId.length % (rest.length || 1);
   const rotated = [...rest.slice(offset), ...rest.slice(0, offset)];
   return [lead, ...rotated].slice(0, 6);
 }

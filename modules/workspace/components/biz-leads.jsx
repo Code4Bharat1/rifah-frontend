@@ -485,15 +485,20 @@ function LeadsPage() {
                     </Button>
                   )}
 
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="w-full rounded-full border border-slate-200/90 bg-white hover:bg-slate-50 text-[#0f172a] font-bold text-sm h-12 shadow-2xs cursor-pointer"
-                  >
-                    <Link href={`/biz/messages?userId=${openLead.enquiry?.requester?._id || openLead.enquiry?.requester || openLead.requester?._id || openLead.requester || ""}`}>
-                      Message buyer
-                    </Link>
-                  </Button>
+                  {(() => {
+                    const buyerId = openLead.enquiry?.requester?._id || openLead.enquiry?.requester || openLead.requester?._id || openLead.requester;
+                    const buyerName = openLead.enquiry?.requesterName || openLead.enquiry?.buyerName || openLead.buyerName || "Buyer";
+                    const buyerMsgUrl = buyerId ? `/biz/messages?userId=${buyerId}&name=${encodeURIComponent(buyerName)}` : "/biz/messages";
+                    return (
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full rounded-full border border-slate-200/90 bg-white hover:bg-slate-50 text-[#0f172a] font-bold text-sm h-12 shadow-2xs cursor-pointer"
+                      >
+                        <Link href={buyerMsgUrl}>Message buyer</Link>
+                      </Button>
+                    );
+                  })()}
 
                   <div className="pt-1 text-center">
                     <button

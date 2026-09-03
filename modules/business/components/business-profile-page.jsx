@@ -9,6 +9,7 @@ import {
   Globe,
   Mail,
   MapPin,
+  MessageSquare,
   Package,
   Phone,
   Send,
@@ -18,6 +19,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@shared/providers/auth-provider";
 
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -63,6 +65,15 @@ function BusinessProfile() {
     industry: business?.industry,
     limit: 3,
   });
+
+  const { user } = useAuth();
+  const ownerId = business?.owner?._id || business?.owner;
+  const isMyOwnBusiness = Boolean(user?._id && ownerId && String(user._id) === String(ownerId));
+  const messageUrl = ownerId
+    ? (user?.role === "business"
+        ? `/biz/messages?userId=${ownerId}&name=${encodeURIComponent(business?.name || "")}`
+        : `/me/messages?userId=${ownerId}&name=${encodeURIComponent(business?.name || "")}`)
+    : "/me/messages";
 
   const [saved, setSaved] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -126,8 +137,10 @@ function BusinessProfile() {
     }
   };
 
-  const coverUrl = business.coverImage ? resolveMediaUrl(business.coverImage) : businessImage(business);
-  const logoUrl = business.logo ? resolveMediaUrl(business.logo) : businessImage(business);
+  const isValidImage = (url) => typeof url === "string" && (url.startsWith("/uploads/") || url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("/images/"));
+
+  const coverUrl = isValidImage(business.coverImage) ? resolveMediaUrl(business.coverImage) : resolveMediaUrl(businessImage(business));
+  const logoUrl = isValidImage(business.logo) ? resolveMediaUrl(business.logo) : resolveMediaUrl(businessImage(business));
 
   return (
     <PublicLayout>
@@ -185,11 +198,18 @@ function BusinessProfile() {
 
               {/* Primary action */}
               <div className="mt-5 grid gap-2 sm:flex sm:items-center">
-                <Button asChild size="lg" className="sm:min-w-52">
+                <Button asChild size="lg" className="sm:min-w-48">
                   <Link href={`/enquiry/new?business=${business._id || business.slug}`}>
                     <Send className="h-4 w-4" /> Send enquiry
                   </Link>
                 </Button>
+                {!isMyOwnBusiness && (
+                  <Button asChild size="lg" variant="secondary" className="gap-2">
+                    <Link href={messageUrl}>
+                      <MessageSquare className="h-4 w-4" /> Message
+                    </Link>
+                  </Button>
+                )}
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -533,6 +553,13 @@ function BusinessProfile() {
                   Send enquiry
                 </Link>
               </Button>
+              {!isMyOwnBusiness && (
+                <Button asChild variant="outline" className="mt-2 w-full gap-2">
+                  <Link href={messageUrl}>
+                    <MessageSquare className="h-4 w-4" /> Message directly
+                  </Link>
+                </Button>
+              )}
             </Panel>
           </aside>
         </div>

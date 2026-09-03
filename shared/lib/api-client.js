@@ -3,7 +3,7 @@ const SERVER_BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:
 
 export function resolveMediaUrl(path) {
   if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:") || path.startsWith("/images/")) {
     return path;
   }
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
@@ -14,6 +14,7 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
   const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
+  // Clean custom headers so stale Authorization headers in options don't override the new token
   const customHeaders = { ...(options.headers || {}) };
   delete customHeaders.Authorization;
   delete customHeaders.authorization;

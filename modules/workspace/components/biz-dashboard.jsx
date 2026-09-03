@@ -29,6 +29,19 @@ import {
   useBusinessReviews,
 } from "@shared/hooks/use-rifah-api";
 
+function safeText(val, fallback = "") {
+  if (!val) return fallback;
+  if (typeof val === "string" || typeof val === "number") return String(val);
+  if (typeof val === "object") {
+    if (typeof val.text === "string") return val.text;
+    if (typeof val.body === "string") return val.body;
+    if (typeof val.message === "string") return val.message;
+    if (typeof val.title === "string") return val.title;
+    return fallback;
+  }
+  return fallback;
+}
+
 function BusinessHome() {
   const { data: business } = useMyBusiness();
   const { data: leadsData } = useMyLeads();
@@ -72,9 +85,9 @@ function BusinessHome() {
   const doneCount = completenessList.filter((item) => item.done).length;
   const completeness = Math.round((doneCount / completenessList.length) * 100);
 
-  const bizName = business?.name || "Business Workspace";
+  const bizName = safeText(business?.name, "Business Workspace");
   const bizSlugOrId = business?.slug || business?._id || "";
-  const bizChapter = typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || "General Chapter");
+  const bizChapter = typeof business?.chapter === "object" ? business?.chapter?.name : safeText(business?.chapter, "General Chapter");
 
   // Dynamic Performance Stats
   const totalLeadsCount = rawLeads.length;
@@ -167,10 +180,10 @@ function BusinessHome() {
               ) : (
                 <div className="space-y-3">
                   {rawLeads.slice(0, 5).map((l) => {
-                    const leadTitle = l.enquiry?.title || l.title || "Buyer RFQ";
-                    const leadCity = l.enquiry?.city || l.city || "Location on request";
+                    const leadTitle = safeText(l.enquiry?.title || l.title, "Buyer RFQ");
+                    const leadCity = safeText(l.enquiry?.city || l.city, "Location on request");
                     const refCode = l.refCode || (l._id ? `ENQ-${l._id.slice(-4).toUpperCase()}` : "ENQ-2041");
-                    const leadStatus = l.status || "New";
+                    const leadStatus = safeText(l.status, "New");
 
                     return (
                       <div
@@ -211,13 +224,13 @@ function BusinessHome() {
                                 : "bg-slate-100 text-slate-600"
                             }`}
                           >
-                            {l.priority || "Standard"} priority
+                            {safeText(l.priority, "Standard")} priority
                           </span>
                           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-slate-600">
-                            {l.enquiry?.quantity || l.quantity || "Quantity on request"}
+                            {safeText(l.enquiry?.quantity || l.quantity, "Quantity on request")}
                           </span>
                           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-slate-600">
-                            {l.enquiry?.deadline || l.deadline || "As per requirement"}
+                            {safeText(l.enquiry?.deadline || l.deadline, "As per requirement")}
                           </span>
                         </div>
 
@@ -301,7 +314,7 @@ function BusinessHome() {
             <Panel title="Profile completeness">
               <div className="flex items-baseline justify-between">
                 <p className="text-2xl font-bold tabular-nums text-slate-900">{completeness}%</p>
-                <MembershipBadge tier={business?.membership?.tier || business?.membership || "Free Listing"} />
+                <MembershipBadge tier={safeText(business?.membership?.tier || business?.membership, "Free Listing")} />
               </div>
               <Progress value={completeness} className="mt-3 h-2" />
               <ul className="mt-4 space-y-2.5 text-xs">
@@ -326,11 +339,11 @@ function BusinessHome() {
               <ul className="space-y-3 text-xs">
                 <li className="flex items-center justify-between gap-3">
                   <span className="text-slate-500 font-medium">Verification</span>
-                  <VerificationBadge status={business?.verification || business?.verificationStatus || "pending"} compact />
+                  <VerificationBadge status={safeText(business?.verification || business?.verificationStatus, "pending")} compact />
                 </li>
                 <li className="flex items-center justify-between gap-3">
                   <span className="text-slate-500 font-medium">Plan</span>
-                  <MembershipBadge tier={business?.membership?.tier || business?.membership || "Free Listing"} />
+                  <MembershipBadge tier={safeText(business?.membership?.tier || business?.membership, "Free Listing")} />
                 </li>
                 <li className="flex items-center justify-between gap-3">
                   <span className="text-slate-500 font-medium">Status</span>
@@ -359,24 +372,29 @@ function BusinessHome() {
                 <p className="text-xs text-slate-400 font-medium text-center py-4">No recent messages</p>
               ) : (
                 <ul className="space-y-3">
-                  {messageList.map((msg, i) => (
-                    <li key={msg._id || msg.id || i} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold bg-sky-100 text-sky-700 uppercase">
-                          {(msg.otherUser?.name || msg.name || "U").slice(0, 2)}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="truncate text-xs font-bold text-slate-900">{msg.otherUser?.name || msg.name || "Buyer"}</p>
-                          <p className="truncate text-[11px] text-slate-400">{msg.lastMessage || msg.snippet || "No messages yet"}</p>
+                  {messageList.map((msg, i) => {
+                    const senderName = safeText(msg.otherUser?.name || msg.name, "Buyer");
+                    const lastMsg = safeText(msg.lastMessage || msg.snippet, "No messages yet");
+
+                    return (
+                      <li key={msg._id || msg.id || i} className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold bg-sky-100 text-sky-700 uppercase">
+                            {senderName.slice(0, 2)}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-bold text-slate-900">{senderName}</p>
+                            <p className="truncate text-[11px] text-slate-400">{lastMsg}</p>
+                          </div>
                         </div>
-                      </div>
-                      {Boolean(msg.unreadCount || msg.unread) && (
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-600 text-[10px] font-bold text-white">
-                          {msg.unreadCount || msg.unread}
-                        </span>
-                      )}
-                    </li>
-                  ))}
+                        {Boolean(msg.unreadCount || msg.unread) && (
+                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-600 text-[10px] font-bold text-white">
+                            {msg.unreadCount || msg.unread}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </Panel>
@@ -413,18 +431,23 @@ function BusinessHome() {
                 <p className="text-xs text-slate-400 font-medium text-center py-4">No notifications</p>
               ) : (
                 <ul className="divide-y divide-slate-100">
-                  {notificationItems.map((n, idx) => (
-                    <li key={n._id || n.id || idx} className="py-2.5 first:pt-0 last:pb-0">
-                      <p className="text-sm font-bold text-slate-900 leading-snug">
-                        {n.title || n.type || "Notification"}
-                      </p>
-                      {(n.body || n.message || n.desc) && (
-                        <p className="mt-0.5 text-xs text-slate-500 leading-normal truncate">
-                          {n.body || n.message || n.desc}
+                  {notificationItems.map((n, idx) => {
+                    const notifTitle = safeText(n.title || n.type, "Notification");
+                    const notifBody = safeText(n.body || n.message || n.desc, "");
+
+                    return (
+                      <li key={n._id || n.id || idx} className="py-2.5 first:pt-0 last:pb-0">
+                        <p className="text-sm font-bold text-slate-900 leading-snug">
+                          {notifTitle}
                         </p>
-                      )}
-                    </li>
-                  ))}
+                        {Boolean(notifBody) && (
+                          <p className="mt-0.5 text-xs text-slate-500 leading-normal truncate">
+                            {notifBody}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </Panel>
