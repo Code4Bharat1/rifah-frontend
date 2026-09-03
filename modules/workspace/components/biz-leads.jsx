@@ -93,18 +93,30 @@ function LeadsPage() {
 
   const handleSendQuotation = async (e) => {
     e.preventDefault();
-    if (!openLead || !quoteAmount) return;
+    const cleanAmount = String(quoteAmount).trim();
+    if (!openLead || !cleanAmount || isNaN(Number(cleanAmount)) || Number(cleanAmount) <= 0) {
+      alert("Please enter a valid quotation amount greater than zero.");
+      return;
+    }
     setSubmittingQuote(true);
     try {
       await leadApi.submitQuotation(openLead._id, {
-        amount: Number(quoteAmount),
-        notes: quoteNotes,
+        amount: cleanAmount,
+        notes: quoteNotes.trim(),
       });
-      alert("Quotation submitted successfully!");
+      // Update local openLead state immediately so drawer timeline & status reflect changes
+      setOpenLead((prev) => ({
+        ...prev,
+        status: "Responded",
+        quotation: {
+          amount: cleanAmount,
+          notes: quoteNotes.trim(),
+          submittedAt: new Date(),
+        },
+      }));
       setQuoteAmount("");
       setQuoteNotes("");
       setShowQuoteForm(false);
-      setOpenLead(null);
       refetch();
     } catch (err) {
       alert(err.message || "Failed to submit quotation.");
@@ -117,7 +129,7 @@ function LeadsPage() {
     if (!openLead) return;
     try {
       await leadApi.updateStatus(openLead._id, { status: newStatus });
-      setOpenLead(null);
+      setOpenLead((prev) => ({ ...prev, status: newStatus }));
       refetch();
     } catch (err) {
       alert(err.message || "Failed to update lead stage.");
@@ -352,6 +364,43 @@ function LeadsPage() {
                   {openLead.enquiry?.description || openLead.description}
                 </p>
 
+                {/* Interactive Stage Selector */}
+                <div className="flex flex-col gap-1.5 bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs font-sans">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700">Change Lead Stage:</span>
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                      Current: {openLead.status || "New"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1 pt-1">
+                    {["New", "In Progress", "Responded", "Won", "Closed"].map((s) => {
+                      const isActive = (openLead.status || "New") === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => handleUpdateStatus(s)}
+                          className={`rounded-xl py-1.5 text-[11px] font-bold transition-all text-center ${
+                            isActive
+                              ? s === "New"
+                                ? "bg-sky-500 text-white shadow-xs"
+                                : s === "In Progress"
+                                ? "bg-amber-500 text-white shadow-xs"
+                                : s === "Responded"
+                                ? "bg-blue-600 text-white shadow-xs"
+                                : s === "Won"
+                                ? "bg-emerald-600 text-white shadow-xs"
+                                : "bg-slate-700 text-white shadow-xs"
+                              : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Details Box matching Target Image 100% */}
                 <div className="rounded-2xl border border-slate-200/70 bg-white p-4.5 space-y-3 shadow-2xs font-sans">
                   <div className="flex justify-between items-center py-0.5">
@@ -415,32 +464,67 @@ function LeadsPage() {
                     <span className="text-[#8a99ad] font-normal">{openLead.timeAgo || "2 hours ago"}</span>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <span className="h-2 w-2 rounded-full bg-[#e2e8f0] shrink-0" />
-                      <span className="font-medium text-[#8a99ad]">Awaiting business response</span>
-                    </div>
-                    <span className="text-[#8a99ad] font-semibold">Pending</span>
-                  </div>
+                  {/* Step 3: Business Response - Dynamic */}
+                  {(() => {
+                    const isResponded = ["Responded", "Won", "In Progress"].includes(openLead.status) || Boolean(openLead.quotation?.amount);
+                    return (
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`h-2 w-2 rounded-full shrink-0 ${isResponded ? "bg-[#10b981]" : "bg-[#e2e8f0]"}`} />
+                          <span className={isResponded ? "font-bold text-[#0f172a]" : "font-medium text-[#8a99ad]"}>
+                            {isResponded ? "Quotation sent to buyer" : "Awaiting business response"}
+                          </span>
+                        </div>
+                        <span className={isResponded ? "text-[#10b981] font-bold" : "text-[#8a99ad] font-semibold"}>
+                          {isResponded ? (openLead.quotation?.amount ? `₹ ${Number(openLead.quotation.amount).toLocaleString("en-IN")}` : "Responded") : "Pending"}
+                        </span>
+                      </div>
+                    );
+                  })()}
 
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <span className="h-2 w-2 rounded-full bg-[#e2e8f0] shrink-0" />
-                      <span className="font-medium text-[#8a99ad]">Enquiry closed</span>
-                    </div>
-                    <span className="text-[#8a99ad] font-semibold">Pending</span>
-                  </div>
+                  {/* Step 4: Enquiry Closed - Dynamic */}
+                  {(() => {
+                    const isClosed = ["Closed", "Won", "Lost"].includes(openLead.status);
+                    return (
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`h-2 w-2 rounded-full shrink-0 ${isClosed ? "bg-[#10b981]" : "bg-[#e2e8f0]"}`} />
+                          <span className={isClosed ? "font-bold text-[#0f172a]" : "font-medium text-[#8a99ad]"}>
+                            {isClosed ? `Enquiry ${openLead.status}` : "Enquiry closed"}
+                          </span>
+                        </div>
+                        <span className={isClosed ? "text-[#10b981] font-bold" : "text-[#8a99ad] font-semibold"}>
+                          {isClosed ? "Completed" : "Pending"}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Action Buttons Stack matching Latest Image 100% */}
                 <div className="mt-6 space-y-3 font-sans">
-                  {openLead.quotation?.amount ? (
-                    <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-xs space-y-1">
-                      <p className="font-bold text-emerald-800">
-                        Quotation Submitted: ₹ {openLead.quotation.amount}
-                      </p>
+                  {openLead.quotation?.amount && !showQuoteForm ? (
+                    <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-emerald-900 text-sm">
+                          Quotation Submitted: ₹ {Number(openLead.quotation.amount).toLocaleString("en-IN")}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuoteAmount(openLead.quotation.amount);
+                            setQuoteNotes(openLead.quotation.notes || "");
+                            setShowQuoteForm(true);
+                          }}
+                          className="text-[11px] font-bold text-sky-700 hover:underline cursor-pointer"
+                        >
+                          Edit Quote
+                        </button>
+                      </div>
                       {openLead.quotation.notes && (
-                        <p className="text-emerald-700">{openLead.quotation.notes}</p>
+                        <p className="text-emerald-800 leading-relaxed border-t border-emerald-200/60 pt-1.5">
+                          {openLead.quotation.notes}
+                        </p>
                       )}
                     </div>
                   ) : showQuoteForm ? (
@@ -451,6 +535,7 @@ function LeadsPage() {
                         <Input
                           type="number"
                           required
+                          min="1"
                           value={quoteAmount}
                           onChange={(e) => setQuoteAmount(e.target.value)}
                           placeholder="e.g. 50000"
