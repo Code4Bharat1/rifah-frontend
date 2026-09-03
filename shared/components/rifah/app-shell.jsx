@@ -115,6 +115,18 @@ const roleSwitcher = [
   { role: "admin", label: "Admin", to: "/admin" },
 ];
 
+function useDynamicNav(role) {
+  const { user } = useAuth();
+  const getPath = (path) => {
+    if (role === "admin" && user?.role === "chapter_admin" && user?.chapter && path.startsWith("/admin")) {
+      const slug = user.chapter.toLowerCase().replace(/\s+/g, '-');
+      return path.replace("/admin", `/${slug}/admin`);
+    }
+    return path;
+  };
+  return { getPath };
+}
+
 function useCurrentPath() {
   return usePathname();
 }
@@ -168,7 +180,8 @@ export function AppShell({
     }
   }
   const nav = navs[role];
-  const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
+  const { getPath } = useDynamicNav(role);
+  const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more].map(i => ({ ...i, to: getPath(i.to) }));
   const isActive = (to) => {
     if (path === to) return true;
     
@@ -257,7 +270,7 @@ export function AppShell({
               </Button>
               <Button asChild variant="ghost" size="icon" className="relative">
                 <Link
-                  href={(role === "admin" ? "/admin/notifications" : role === "business" ? "/biz/notifications" : "/me/notifications")}
+                  href={getPath(role === "admin" ? "/admin/notifications" : role === "business" ? "/biz/notifications" : "/me/notifications")}
                   aria-label="Notifications"
                 >
                   <Bell className="h-5 w-5" />
@@ -268,7 +281,7 @@ export function AppShell({
               </Button>
               <Button asChild variant="ghost" size="icon" className="relative inline-flex">
                 <Link
-                  href={(role === "business" ? "/biz/messages" : "/me/messages")}
+                  href={getPath(role === "business" ? "/biz/messages" : "/me/messages")}
                   aria-label="Messages"
                 >
                   <Mail className="h-5 w-5" />
@@ -296,8 +309,9 @@ export function AppShell({
 }
 
 function MoreSheet({ role }) {
+  const { getPath } = useDynamicNav(role);
   const nav = navs[role];
-  const items = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
+  const items = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more].map(i => ({ ...i, to: getPath(i.to) }));
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -339,14 +353,18 @@ function MoreSheet({ role }) {
 
 export function BottomNav({ role }) {
   const path = useCurrentPath();
+  const { getPath } = useDynamicNav(role);
   const nav = navs[role];
+  
+  const primary = nav.primary.map(i => ({ ...i, to: getPath(i.to) }));
+  
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
       aria-label="Primary"
     >
       <ul className="grid grid-cols-5">
-        {nav.primary.map((item) => {
+        {primary.map((item) => {
           const active = path === item.to;
           return (
             <li key={item.label}>
