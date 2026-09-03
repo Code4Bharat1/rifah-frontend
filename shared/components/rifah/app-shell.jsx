@@ -167,7 +167,6 @@ export function AppShell({
       finalSubtitle = "Regional branch dashboard";
     }
   }
-
   const nav = navs[role];
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
   const isActive = (to) => {
