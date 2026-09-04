@@ -14,7 +14,9 @@ import { cn } from "@shared/lib/utils";
 function EventsPage() {
   const [tab, setTab] = useState("Upcoming");
   const { data: eventsData, isLoading } = useEvents({ status: tab });
-  const list = eventsData?.events || [];
+  const list = Array.isArray(eventsData)
+    ? eventsData
+    : (eventsData?.events || eventsData?.data || []);
 
   return (
     <PublicLayout>
@@ -31,7 +33,13 @@ function EventsPage() {
           </TabsList>
         </Tabs>
 
-        {list.length === 0 ? (
+        {isLoading ? (
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-44 rounded-2xl border border-border bg-surface/50 animate-pulse" />
+            ))}
+          </div>
+        ) : list.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             No {tab.toLowerCase()} events listed currently.
           </div>
@@ -44,12 +52,29 @@ function EventsPage() {
                   className="flex h-full flex-col rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/40 sm:p-5"
                 >
                   <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3">
-                    <div className="grid h-14 w-14 shrink-0 place-content-center rounded-xl bg-primary-soft text-center text-primary">
-                      <span className="text-sm font-bold leading-none">{ev.date}</span>
+                    <div className="grid h-14 w-14 shrink-0 place-content-center rounded-xl bg-primary-soft text-center text-primary px-1">
+                      {(() => {
+                        try {
+                          const d = new Date(ev.date);
+                          if (!isNaN(d.getTime())) {
+                            return (
+                              <>
+                                <span className="text-base font-bold leading-tight">{d.getDate()}</span>
+                                <span className="text-[10px] uppercase font-semibold tracking-wider text-primary/80">
+                                  {d.toLocaleDateString("en-US", { month: "short" })}
+                                </span>
+                              </>
+                            );
+                          }
+                        } catch {}
+                        return <span className="text-xs font-bold leading-none">{ev.date}</span>;
+                      })()}
                     </div>
                     <div className="min-w-0">
                       <h3 className="text-base font-semibold leading-tight">{ev.title}</h3>
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{ev.summary}</p>
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {ev.summary || ev.description || "Join this chamber event to connect with members and businesses."}
+                      </p>
                     </div>
                   </div>
                   <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">

@@ -210,7 +210,12 @@ export function useEvents(params = {}) {
     queryKey: ["events", params],
     queryFn: async () => {
       const res = await eventApi.list(params);
-      return res?.data || res;
+      const data = res?.data || res;
+      if (Array.isArray(data)) {
+        data.events = data;
+        return data;
+      }
+      return data;
     },
   });
 }
