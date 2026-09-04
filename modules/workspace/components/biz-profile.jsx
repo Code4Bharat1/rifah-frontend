@@ -10,12 +10,26 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Progress } from "@shared/components/ui/progress";
 import { Textarea } from "@shared/components/ui/textarea";
-import { useMyBusiness } from "@shared/hooks/use-rifah-api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+  SelectLabel
+} from "@shared/components/ui/select";
+import { useMyBusiness, useCategories } from "@shared/hooks/use-rifah-api";
 import { businessApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
 function BizProfile() {
   const { data: business, refetch } = useMyBusiness();
+  const { data: categoriesData } = useCategories();
+  
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
+  const mainCategories = categories.filter(c => !c.parent);
+  const subCategories = categories.filter(c => c.parent);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -181,13 +195,35 @@ function BizProfile() {
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="biz-industry">Industry</Label>
-                <Input
-                  id="biz-industry"
+                <Label htmlFor="biz-industry">Industry Category</Label>
+                <Select
                   value={formData.industry}
-                  onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                  className="h-11"
-                />
+                  onValueChange={(v) => setFormData({ ...formData, industry: v })}
+                >
+                  <SelectTrigger id="biz-industry" className="h-11">
+                    <SelectValue placeholder="Select industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mainCategories.length > 0 ? (
+                      <>
+                        {mainCategories.map(mc => {
+                          const subs = subCategories.filter(sc => sc.parent === mc.name);
+                          return (
+                            <SelectGroup key={mc.name}>
+                              <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
+                              <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
+                              {subs.map(sc => (
+                                <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          );
+                        })}
+                      </>
+                    ) : (
+                      <SelectItem value={formData.industry || "General"}>{formData.industry || "General"}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="biz-city">City</Label>

@@ -118,6 +118,7 @@ export const enquiryApi = {
 
 export const leadApi = {
   getMyLeads: (params = {}) => apiClient(`/leads/me${toQueryString(params)}`),
+  getEnquiryResponses: (enquiryId) => apiClient(`/leads/enquiry/${enquiryId}`),
   submitQuotation: (id, data) => apiClient(`/leads/${id}/quote`, { method: "POST", body: JSON.stringify(data) }),
   updateStatus: (id, data) => apiClient(`/leads/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   routeLead: (data) => apiClient("/leads/route", { method: "POST", body: JSON.stringify(data) }),
@@ -125,6 +126,9 @@ export const leadApi = {
 
 export const membershipApi = {
   getPlans: () => apiClient("/memberships/plans"),
+  createPlan: (data) => apiClient("/memberships/plans", { method: "POST", body: JSON.stringify(data) }),
+  updatePlan: (planId, data) => apiClient(`/memberships/plans/${planId}`, { method: "PUT", body: JSON.stringify(data) }),
+  deletePlan: (planId) => apiClient(`/memberships/plans/${planId}`, { method: "DELETE" }),
   getMyMembership: () => apiClient("/memberships/me"),
   upgradePlan: (data) => apiClient("/memberships/upgrade", { method: "POST", body: JSON.stringify(data) }),
 };

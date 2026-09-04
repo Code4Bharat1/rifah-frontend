@@ -187,25 +187,14 @@ function BizMembership() {
   });
 
   const plans = plansData || {};
-  const tierName = membershipData?.planId || business?.membership || "premium";
+  const tierName = membershipData?.planId || business?.membership || "free";
   const currentTier = tierName.toLowerCase();
 
   const currentPlan = plans[currentTier] || {
-    name: membershipData?.planName || (currentTier === "premium" ? "Premium" : currentTier === "enterprise" ? "Enterprise" : "Basic"),
-    price: membershipData?.price || (currentTier === "premium" ? 12999 : currentTier === "enterprise" ? 29999 : 4999),
-    summary: currentTier === "premium"
-      ? "For growing businesses that depend on lead generation."
-      : currentTier === "enterprise"
-      ? "For large organisations and multi-unit groups."
-      : "Active chamber membership plan",
-    features: membershipData?.features || [
-      "Everything in Basic",
-      "Priority lead access",
-      "Full analytics dashboard",
-      "Featured business card",
-      "Gallery and certifications",
-      "Event visibility",
-    ],
+    name: membershipData?.planName || (currentTier === "premium" ? "Premium" : currentTier === "enterprise" ? "Enterprise" : currentTier === "basic" ? "Basic" : "Free"),
+    price: membershipData?.price || (currentTier === "premium" ? 12999 : currentTier === "enterprise" ? 29999 : currentTier === "basic" ? 4999 : 0),
+    summary: "Active chamber membership plan",
+    features: membershipData?.features || [],
   };
 
   const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || []);
@@ -362,33 +351,31 @@ function BizMembership() {
 
         <div className="space-y-4">
           <Panel title="Upgrade">
-            <div className="rounded-xl border border-primary/30 bg-primary-soft p-4">
-              <p className="flex items-center gap-2 text-sm font-bold text-primary">
-                <Crown className="h-4 w-4" /> Enterprise
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                For large organisations and multi-unit groups.
-              </p>
-              <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-                <li className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-primary shrink-0" /> Everything in Premium
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-primary shrink-0" /> Multiple business units
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-primary shrink-0" /> Team accounts
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-primary shrink-0" /> Custom lead rules
-                </li>
-              </ul>
-              <Button asChild className="mt-4 w-full">
-                <Link href="/membership/checkout?plan=enterprise">
-                  Upgrade plan
-                </Link>
-              </Button>
-            </div>
+            {Object.entries(plans)
+              .filter(([_, p]) => p.price > currentPlan.price)
+              .map(([key, p]) => (
+                <div key={key} className="rounded-xl border border-primary/30 bg-primary-soft p-4 mb-3 last:mb-0">
+                  <p className="flex items-center gap-2 text-sm font-bold text-primary">
+                    <Crown className="h-4 w-4" /> {p.name}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{p.summary}</p>
+                  <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+                    {p.features?.slice(0, 4).map((f, i) => (
+                      <li key={i} className="flex items-center gap-1.5">
+                        <Check className="h-3.5 w-3.5 text-primary shrink-0" /> {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button asChild className="mt-4 w-full">
+                    <Link href={`/membership/checkout?plan=${key}`}>
+                      Upgrade to {p.name}
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            {Object.keys(plans).length > 0 && Object.values(plans).every(p => p.price <= currentPlan.price) && (
+              <p className="text-sm text-muted-foreground py-2 text-center">You are currently on the highest tier plan.</p>
+            )}
           </Panel>
 
           <Panel title="Manage">

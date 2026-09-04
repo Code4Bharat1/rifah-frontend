@@ -140,6 +140,26 @@ export function useMyLeads(params = {}) {
   });
 }
 
+export function useEnquiryResponses(enquiryId) {
+  return useQuery({
+    queryKey: ["enquiry-responses", enquiryId],
+    queryFn: async () => {
+      if (!enquiryId) return [];
+      try {
+        const res = await leadApi.getEnquiryResponses(enquiryId);
+        return res?.data || res;
+      } catch (err) {
+        if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
+          return [];
+        }
+        throw err;
+      }
+    },
+    enabled: Boolean(enquiryId),
+    retry: false,
+  });
+}
+
 // ==================== MEMBERSHIP & PAYMENTS ====================
 
 export function useMembershipPlans() {
@@ -335,6 +355,7 @@ export function useAdminUsers(params = {}) {
       const res = await userApi.getAdminUsers(params);
       return res?.data || res;
     },
+    enabled: typeof window !== "undefined",
   });
 }
 

@@ -61,17 +61,28 @@ export function VerificationBadge({ status, compact = false }) {
 }
 
 export function MembershipBadge({ tier }) {
-  if (tier === "Free") return <Pill tone="neutral">Free listing</Pill>;
-  if (tier === "Basic") return <Pill tone="primary">Basic member</Pill>;
-  if (tier === "Premium")
+  if (!tier) return <Pill tone="neutral">Free member</Pill>;
+  
+  const normalized = tier.toString().toLowerCase();
+  if (normalized === "free") return <Pill tone="neutral">Free member</Pill>;
+  if (normalized === "basic") return <Pill tone="primary">Basic member</Pill>;
+  if (normalized === "premium")
     return (
       <Pill tone="brand" icon={<Star className="h-3.5 w-3.5" />}>
         Premium member
       </Pill>
     );
+  if (normalized === "enterprise")
+    return (
+      <Pill tone="navy" icon={<Crown className="h-3.5 w-3.5" />}>
+        Enterprise member
+      </Pill>
+    );
+  
+  // Fallback for custom dynamic plans
   return (
-    <Pill tone="navy" icon={<Crown className="h-3.5 w-3.5" />}>
-      Enterprise member
+    <Pill tone="primary" icon={<Star className="h-3.5 w-3.5" />}>
+      {tier} member
     </Pill>
   );
 }

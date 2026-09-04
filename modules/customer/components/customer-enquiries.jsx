@@ -8,17 +8,22 @@ import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
-import { useMyEnquiries } from "@shared/hooks/use-rifah-api";
+import { useMyEnquiries, useEnquiryResponses } from "@shared/hooks/use-rifah-api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
+import { MessageSquare } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const tabs = ["All", "Submitted", "Routed", "Responded", "Closed"];
 
 function MyEnquiries() {
+  const router = useRouter();
   const [tab, setTab] = useState("All");
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const { data: enquiriesData, isLoading } = useMyEnquiries(
     tab === "All" ? {} : { status: tab === "Submitted" ? "New" : tab }
   );
+
+  const { data: responses, isLoading: loadingResponses } = useEnquiryResponses(selectedEnquiry?._id);
 
   const allRows = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
   const rows = allRows.filter((r) => {
@@ -155,6 +160,50 @@ function MyEnquiries() {
                  <p className="text-lg font-bold">{selectedEnquiry?.responsesCount || selectedEnquiry?.responses?.length || 0}</p>
                </div>
             </div>
+
+            {/* Quotations Section */}
+            {selectedEnquiry && (selectedEnquiry.responsesCount > 0 || (responses && responses.length > 0)) && (
+              <div className="mt-6 border-t border-border pt-4">
+                <h4 className="text-sm font-semibold mb-3">Quotations & Responses</h4>
+                {loadingResponses ? (
+                  <p className="text-sm text-muted-foreground">Loading responses...</p>
+                ) : responses && responses.length > 0 ? (
+                  <div className="space-y-3">
+                    {responses.map((resp) => (
+                      <div key={resp._id} className="rounded-lg border border-border p-3.5 bg-surface">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-sm">{resp.business?.name || "Business"}</p>
+                            {resp.quotation?.amount && (
+                              <p className="text-sm mt-1">
+                                <span className="text-muted-foreground">Amount:</span> <span className="font-medium">{resp.quotation.amount}</span>
+                              </p>
+                            )}
+                            {resp.quotation?.deliveryTime && (
+                              <p className="text-sm">
+                                <span className="text-muted-foreground">Delivery Time:</span> {resp.quotation.deliveryTime}
+                              </p>
+                            )}
+                            {resp.quotation?.notes && (
+                              <p className="text-sm mt-1 text-muted-foreground line-clamp-2">
+                                {resp.quotation.notes}
+                              </p>
+                            )}
+                          </div>
+                          {resp.business?.owner && (
+                            <Button size="sm" variant="outline" className="shrink-0" onClick={() => router.push(`/me/messages?userId=${resp.business?.owner}&name=${encodeURIComponent(resp.business?.name)}`)}>
+                              <MessageSquare className="h-4 w-4 mr-2" /> Message
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No quotations submitted yet.</p>
+                )}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
