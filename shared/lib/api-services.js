@@ -184,7 +184,54 @@ export const reviewApi = {
 export const reportApi = {
   getOverview: () => apiClient("/reports/admin/overview"),
   getBusinessAnalytics: () => apiClient("/reports/business/me"),
+  downloadAdminCsv: () => downloadFile("/reports/admin/export/csv", "admin_reports.csv"),
+  downloadRevenue: (params) => downloadFile(`/reports/admin/export/revenue${toQueryString(params)}`, "revenue_report.csv"),
+  downloadMemberships: (params) => downloadFile(`/reports/admin/export/memberships${toQueryString(params)}`, "memberships_report.csv"),
+  downloadLeads: (params) => downloadFile(`/reports/admin/export/leads${toQueryString(params)}`, "leads_report.csv"),
+  getRevenue: (params) => apiClient(`/reports/admin/export/revenue${toQueryString({ ...params, format: 'json' })}`),
+  getMemberships: (params) => apiClient(`/reports/admin/export/memberships${toQueryString({ ...params, format: 'json' })}`),
+  getLeads: (params) => apiClient(`/reports/admin/export/leads${toQueryString({ ...params, format: 'json' })}`),
 };
+
+// Helper for authenticated file downloads
+async function downloadFile(endpoint, defaultFilename = "download.csv") {
+  const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+  const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+
+  const response = await fetch(url, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "Failed to download file");
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  
+  // Try to get filename from Content-Disposition header
+  let filename = defaultFilename;
+  const disposition = response.headers.get("content-disposition");
+  if (disposition && disposition.indexOf("attachment") !== -1) {
+    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+    const matches = filenameRegex.exec(disposition);
+    if (matches != null && matches[1]) { 
+      filename = matches[1].replace(/['"]/g, '');
+    }
+  }
+
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
 
 export const auditApi = {
   getLogs: (params = {}) => apiClient(`/audit${toQueryString(params)}`),
