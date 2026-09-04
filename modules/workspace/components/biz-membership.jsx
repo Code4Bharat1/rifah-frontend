@@ -351,31 +351,40 @@ function BizMembership() {
 
         <div className="space-y-4">
           <Panel title="Upgrade">
-            {Object.entries(plans)
-              .filter(([_, p]) => p.price > currentPlan.price)
-              .map(([key, p]) => (
-                <div key={key} className="rounded-xl border border-primary/30 bg-primary-soft p-4 mb-3 last:mb-0">
-                  <p className="flex items-center gap-2 text-sm font-bold text-primary">
-                    <Crown className="h-4 w-4" /> {p.name}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">{p.summary}</p>
-                  <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-                    {p.features?.slice(0, 4).map((f, i) => (
-                      <li key={i} className="flex items-center gap-1.5">
-                        <Check className="h-3.5 w-3.5 text-primary shrink-0" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button asChild className="mt-4 w-full">
-                    <Link href={`/membership/checkout?plan=${key}`}>
-                      Upgrade to {p.name}
-                    </Link>
-                  </Button>
-                </div>
-              ))}
-            {Object.keys(plans).length > 0 && Object.values(plans).every(p => p.price <= currentPlan.price) && (
-              <p className="text-sm text-muted-foreground py-2 text-center">You are currently on the highest tier plan.</p>
-            )}
+            <div className="rounded-2xl border border-sky-200/90 bg-sky-50/70 dark:border-sky-900/60 dark:bg-sky-950/25 p-5">
+              <p className="flex items-center gap-2 text-sm font-bold text-[#0088d1]">
+                <Crown className="h-4 w-4 text-[#0088d1]" /> Enterprise
+              </p>
+              <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+                For large organisations and multi-unit groups.
+              </p>
+              <ul className="mt-4 space-y-2.5 text-xs text-foreground">
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Everything in Premium</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Multiple business units</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Team accounts</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Custom lead rules</span>
+                </li>
+              </ul>
+              <Button
+                asChild
+                className="mt-6 w-full rounded-xl bg-[#0088d1] hover:bg-[#0077b6] text-white font-semibold py-2.5 shadow-sm text-sm h-10 transition-all"
+              >
+                <Link href="/membership/checkout?plan=enterprise">
+                  Upgrade plan
+                </Link>
+              </Button>
+            </div>
           </Panel>
 
           <Panel title="Manage">

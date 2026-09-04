@@ -20,6 +20,8 @@ export const authApi = {
   resetPassword: (data) => apiClient("/auth/reset-password", { method: "POST", body: JSON.stringify(data) }),
   googleAuth: (data) => apiClient("/auth/google", { method: "POST", body: JSON.stringify(data) }),
   completeOnboarding: (data) => apiClient("/auth/complete-onboarding", { method: "POST", body: JSON.stringify(data) }),
+  sendRegisterOtp: (email) => apiClient("/auth/register-otp/send", { method: "POST", body: JSON.stringify({ email }) }),
+  verifyRegisterOtp: (email, otp) => apiClient("/auth/register-otp/verify", { method: "POST", body: JSON.stringify({ email, otp }) }),
 };
 
 export const userApi = {
@@ -33,6 +35,8 @@ export const userApi = {
 };
 
 export const businessApi = {
+  verifyGst: (gstin) => apiClient("/businesses/gst/verify", { method: "POST", body: JSON.stringify({ gstin }) }),
+  fetchGstDetails: (gstin) => apiClient("/businesses/gst/details", { method: "POST", body: JSON.stringify({ gstin }) }),
   list: (params = {}) => apiClient(`/businesses${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/businesses/detail/${idOrSlug}`),
   getMyBusiness: () => apiClient("/businesses/me"),
