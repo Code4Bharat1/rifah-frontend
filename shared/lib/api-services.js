@@ -32,6 +32,7 @@ export const userApi = {
   getAdminUsers: (params = {}) => apiClient(`/users${toQueryString(params)}`),
   updateUserStatus: (id, data) => apiClient(`/users/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   deactivateAccount: (data = {}) => apiClient("/users/me/deactivate", { method: "POST", body: JSON.stringify(data) }),
+  inviteUser: (data) => apiClient("/users/invite", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const businessApi = {
@@ -158,6 +159,9 @@ export const notificationApi = {
   list: () => apiClient("/notifications/me"),
   markAllAsRead: () => apiClient("/notifications/read-all", { method: "PATCH" }),
   broadcast: (data) => apiClient("/notifications/broadcast", { method: "POST", body: JSON.stringify(data) }),
+  deleteBroadcast: (broadcastId) => apiClient(`/notifications/broadcast/${broadcastId}`, { method: "DELETE" }),
+  deleteLocal: (id) => apiClient(`/notifications/${id}`, { method: "DELETE" }),
+  clearAll: () => apiClient("/notifications/clear-all", { method: "DELETE" }),
 };
 
 export const eventApi = {
