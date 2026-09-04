@@ -7,22 +7,37 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
-import { useAllEnquiries, useBusinesses } from "@shared/hooks/use-rifah-api";
-import { leadApi } from "@shared/lib/api-services";
+import { useAllEnquiries, useBusinesses, useChapters } from "@shared/hooks/use-rifah-api";
+import { leadApi, enquiryApi } from "@shared/lib/api-services";
 import { Button } from "@shared/components/ui/button";
+import { Input } from "@shared/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { ScrollArea } from "@shared/components/ui/scroll-area";
 
 function AdminLeads() {
-  const { data: enquiriesData, refetch: refetchEnquiries } = useAllEnquiries();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [chapterFilter, setChapterFilter] = useState("all");
+
+  const { data: enquiriesData, refetch: refetchEnquiries } = useAllEnquiries({
+    search: search || undefined,
+    status: statusFilter,
+    type: typeFilter,
+    chapter: chapterFilter,
+  });
   const enquiries = Array.isArray(enquiriesData) ? enquiriesData : [];
   
   const [selectedLead, setSelectedLead] = useState(null);
   const [selectedBusinessIds, setSelectedBusinessIds] = useState([]);
   const [isRouting, setIsRouting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Fetch businesses for routing (in a real app, you'd filter by category or allow search)
   const { data: businessesData } = useBusinesses();
+  const { data: chaptersData } = useChapters();
+  const chapters = Array.isArray(chaptersData) ? chaptersData : [];
   const businesses = Array.isArray(businessesData) ? businessesData : [];
 
   const handleRouteLead = async () => {
@@ -55,19 +70,21 @@ function AdminLeads() {
       title="Lead routing" 
       subtitle="Matching buyer requirements to verified enterprises"
       actions={
-        <Button variant="outline" onClick={async () => {
+        <Button variant="outline" disabled={isExporting} onClick={async () => {
           try {
+            setIsExporting(true);
             toast.info("Exporting leads...");
-            const token = localStorage.getItem("rifah_token");
-            const response = await fetch("http://localhost:3001/api/leads/export/csv", {
-              headers: { Authorization: `Bearer ${token}` }
+            const csvText = await enquiryApi.exportCsv({
+              search: search || undefined,
+              status: statusFilter,
+              type: typeFilter,
+              chapter: chapterFilter,
             });
-            if (!response.ok) throw new Error("Export failed");
-            const blob = await response.blob();
+            const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "leads_export.csv";
+            a.download = `leads_export_${new Date().toISOString().split("T")[0]}.csv`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -75,9 +92,12 @@ function AdminLeads() {
             toast.success("Export completed successfully!");
           } catch (e) {
             toast.error("Failed to export leads");
+          } finally {
+            setIsExporting(false);
           }
         }}>
-          <Download className="mr-2 h-4 w-4" /> Export CSV
+          {isExporting ? <Target className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+          Export CSV
         </Button>
       }
     >
@@ -87,6 +107,48 @@ function AdminLeads() {
           <StatCard label="Direct RFQs" value={String(enquiries.filter((e) => e.business).length)} tone="success" />
           <StatCard label="Broadcast RFQs" value={String(enquiries.filter((e) => !e.business).length)} tone="warning" />
           <StatCard label="Routing Desk" value="Active" />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Input 
+            placeholder="Search leads by title or buyer..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="sm:max-w-[300px]" 
+          />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="sm:max-w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="New">New</SelectItem>
+              <SelectItem value="Routed">Routed</SelectItem>
+              <SelectItem value="In Progress">In Progress</SelectItem>
+              <SelectItem value="Responded">Responded</SelectItem>
+              <SelectItem value="Closed">Closed</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="sm:max-w-[180px]">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="direct">Direct RFQs</SelectItem>
+              <SelectItem value="broadcast">Broadcast RFQs</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={chapterFilter} onValueChange={setChapterFilter}>
+            <SelectTrigger className="sm:max-w-[180px]">
+              <SelectValue placeholder="Filter by chapter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Chapters</SelectItem>
+              {chapters.map((ch) => (
+                <SelectItem key={ch._id || ch.name} value={ch.name}>{ch.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <Panel title="Routing worklist">

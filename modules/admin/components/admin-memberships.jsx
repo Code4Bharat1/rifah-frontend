@@ -1,5 +1,5 @@
 "use client";
-import { Star, MoreHorizontal } from "lucide-react";
+import { Star, MoreHorizontal, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -16,7 +16,7 @@ import { businessApi, membershipApi, paymentApi } from "@shared/lib/api-services
 import { useState, useEffect } from "react";
 
 function AdminMemberships() {
-  const { data: plansData } = useMembershipPlans();
+  const { data: plansData, refetch: refetchPlans } = useMembershipPlans();
   const { data: businessesData, refetch: refetchBusinesses } = useBusinesses();
 
   const plans = plansData || {};
@@ -103,7 +103,7 @@ function AdminMemberships() {
         toast.success("Plan created successfully");
       }
       setIsModalOpen(false);
-      window.location.reload(); // Simple refetch for this demo
+      refetchPlans(); // Live update instead of window.location.reload()
     } catch (err) {
       toast.error(err.message || "Failed to save plan");
     } finally {
@@ -116,14 +116,23 @@ function AdminMemberships() {
     try {
       await membershipApi.deletePlan(planId);
       toast.success("Plan deleted successfully");
-      window.location.reload();
+      refetchPlans(); // Live update instead of window.location.reload()
     } catch (err) {
       toast.error(err.message || "Failed to delete plan");
     }
   };
 
   return (
-    <AppShell role="admin" title="Memberships" subtitle="Tiers, subscription plans and member allocations">
+    <AppShell 
+      role="admin" 
+      title="Memberships" 
+      subtitle="Tiers, subscription plans and member allocations"
+      actions={
+        <Button onClick={() => openModal()} className="gap-2 shadow-sm" size="sm">
+          <Plus className="h-4 w-4" /> Create Plan
+        </Button>
+      }
+    >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Total members" value={String(businesses.length)} icon={Star} tone="primary" />
@@ -145,7 +154,6 @@ function AdminMemberships() {
 
         <Panel 
           title="Membership Tier Structure" 
-          actions={<Button onClick={() => openModal()}>Create Plan</Button>}
         >
           <div className="grid gap-3 md:grid-cols-3">
             {Object.entries(plans).map(([key, p]) => (

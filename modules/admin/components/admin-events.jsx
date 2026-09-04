@@ -11,6 +11,7 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Textarea } from "@shared/components/ui/textarea";
+import { Checkbox } from "@shared/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -18,13 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@shared/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@shared/components/ui/sheet";
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@shared/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useEvents } from "@shared/hooks/use-rifah-api";
 import { eventApi } from "@shared/lib/api-services";
@@ -33,45 +29,23 @@ function AdminEvents() {
   const { data: eventsData, refetch } = useEvents();
   const events = Array.isArray(eventsData) ? eventsData : [];
 
-  const [openAdd, setOpenAdd] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [newEvent, setNewEvent] = useState({
-    title: "",
-    description: "",
-    date: "",
-    time: "10:00 AM - 01:00 PM",
-    mode: "In-person",
-    location: "Chamber Conference Hall",
-    city: "Mumbai",
-    chapter: "Mumbai Chapter",
-  });
+  const [deleteId, setDeleteId] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleCreateEvent = async (e) => {
-    e.preventDefault();
-    if (!newEvent.title || !newEvent.date) return;
-    setLoading(true);
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
     try {
-      await eventApi.create({
-        ...newEvent,
-        venue: newEvent.location
-      });
-      toast.success("Event created successfully");
-      setOpenAdd(false);
-      setNewEvent({
-        title: "",
-        description: "",
-        date: "",
-        time: "10:00 AM - 01:00 PM",
-        mode: "In-person",
-        location: "Chamber Conference Hall",
-        city: "Mumbai",
-        chapter: "Mumbai Chapter",
-      });
+      await eventApi.delete(deleteId);
+      toast.success("Event deleted permanently");
+      setIsDeleteDialogOpen(false);
+      setDeleteId(null);
       refetch();
-    } catch (err) {
-      toast.error(err.message || "Failed to create event.");
+    } catch (e) {
+      toast.error(e.message || "Failed to delete event");
     } finally {
-      setLoading(false);
+      setIsDeleting(false);
     }
   };
 
@@ -81,8 +55,10 @@ function AdminEvents() {
       title="Events"
       subtitle="Chamber programme calendar & conferences"
       actions={
-        <Button onClick={() => setOpenAdd(true)}>
-          <Plus className="h-4 w-4" /> Create event
+        <Button asChild>
+          <Link href="/admin/events/create">
+            <Plus className="h-4 w-4 mr-2" /> Create event
+          </Link>
         </Button>
       }
     >
@@ -105,7 +81,20 @@ function AdminEvents() {
           <ResponsiveTable
             rows={events}
             columns={[
-              { key: "title", header: "Event", cell: (r) => <span className="font-semibold">{r.title}</span> },
+              { 
+                key: "title", 
+                header: "Event", 
+                cell: (r) => (
+                  <div className="flex flex-col gap-1">
+                    <span className="font-semibold">{r.title}</span>
+                    <div>
+                      <Pill tone={r.status === "Draft" ? "neutral" : "success"}>
+                        {r.status || "Upcoming"}
+                      </Pill>
+                    </div>
+                  </div>
+                )
+              },
               { key: "date", header: "Date", cell: (r) => `${new Date(r.date).toLocaleDateString()} · ${r.time}` },
               { key: "mode", header: "Mode", cell: (r) => r.mode },
               { key: "city", header: "Location", cell: (r) => r.city || "Online" },
@@ -137,16 +126,13 @@ function AdminEvents() {
                       }}>
                         Toggle Mode (Online/In-person)
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={async () => {
-                        if(confirm("Are you sure you want to completely delete this event? This action cannot be undone.")) {
-                          try {
-                             await eventApi.delete(r._id);
-                             toast.success("Event deleted permanently");
-                             refetch();
-                          } catch(e) {
-                             toast.error("Failed to delete event");
-                          }
-                        }
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/events/${r._id}/edit`}>Edit Event Details</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => {
+                        setDeleteId(r._id);
+                        setIsDeleteDialogOpen(true);
                       }}>
                         Delete Event
                       </DropdownMenuItem>
@@ -177,79 +163,25 @@ function AdminEvents() {
         </Panel>
       </div>
 
-      <Sheet open={openAdd} onOpenChange={setOpenAdd}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="text-left">Publish Chamber Event</SheetTitle>
-            <SheetDescription className="text-left">Schedule an event or workshop for members.</SheetDescription>
-          </SheetHeader>
-          <form onSubmit={handleCreateEvent} className="mt-4 space-y-4 px-4 pb-8">
-            <div className="space-y-1.5">
-              <Label htmlFor="ev-title">Title *</Label>
-              <Input
-                id="ev-title"
-                required
-                value={newEvent.title}
-                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                placeholder="e.g. Export Growth Conclave"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="ev-date">Date *</Label>
-                <Input
-                  id="ev-date"
-                  type="date"
-                  required
-                  value={newEvent.date}
-                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="ev-mode">Mode</Label>
-                <Select value={newEvent.mode} onValueChange={(val) => setNewEvent({ ...newEvent, mode: val })}>
-                  <SelectTrigger id="ev-mode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="In-person">In-person</SelectItem>
-                    <SelectItem value="Online">Online</SelectItem>
-                    <SelectItem value="Hybrid">Hybrid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="ev-city">City</Label>
-              <Input
-                id="ev-city"
-                value={newEvent.city}
-                onChange={(e) => setNewEvent({ ...newEvent, city: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="ev-loc">Venue / Link</Label>
-              <Input
-                id="ev-loc"
-                value={newEvent.location}
-                onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="ev-desc">Description</Label>
-              <Textarea
-                id="ev-desc"
-                rows={3}
-                value={newEvent.description}
-                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publish Event"}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Event</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to completely delete this event? This action cannot be undone and will remove all registrations.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-end gap-2 sm:space-x-0 mt-4">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>
+              Cancel
             </Button>
-          </form>
-        </SheetContent>
-      </Sheet>
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isDeleting}>
+              {isDeleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Delete Permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
