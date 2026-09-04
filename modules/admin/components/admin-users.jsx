@@ -1,5 +1,5 @@
 "use client";
-import { Search, UserPlus, Users, MoreHorizontal } from "lucide-react";
+import { Search, UserPlus, Users, MoreHorizontal, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -23,11 +23,14 @@ import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bi
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
 import { useAdminUsers } from "@shared/hooks/use-rifah-api";
 import { userApi } from "@shared/lib/api-services";
+import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminUsers() {
+  const { user: currentUser } = useAuth();
+  const isChapterAdmin = currentUser?.role === "chapter_admin";
   const [q, setQ] = useState("");
   const debouncedQ = useDebounce(q, 300);
   const { data: usersData, refetch, isLoading, error } = useAdminUsers({ search: debouncedQ || undefined });
@@ -45,6 +48,9 @@ function AdminUsers() {
   }
   
   const [selectedUser, setSelectedUser] = useState(null);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isInviting, setIsInviting] = useState(false);
 
   const handleChangeRole = async (user, newRole) => {
     try {
@@ -68,11 +74,33 @@ function AdminUsers() {
     }
   };
 
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    if (!inviteEmail) return;
+    setIsInviting(true);
+    try {
+      await userApi.inviteUser({ email: inviteEmail });
+      toast.success("Invitation sent successfully");
+      setIsInviteOpen(false);
+      setInviteEmail("");
+    } catch (err) {
+      toast.error(err.message || "Failed to send invite");
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
   return (
     <AppShell
       role="admin"
       title="Users and roles"
       subtitle={`${rows.length} accounts registered`}
+      actions={
+        <Button onClick={() => setIsInviteOpen(true)} className="gap-2">
+          <UserPlus className="h-4 w-4" />
+          Invite Member
+        </Button>
+      }
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -144,9 +172,11 @@ function AdminUsers() {
                         <DropdownMenuItem onClick={() => handleChangeRole(r, "business_owner")} disabled={r.role === "business_owner"}>
                           Make Business Owner
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleChangeRole(r, "secretariat")} disabled={r.role === "secretariat"}>
-                          Make Secretariat
-                        </DropdownMenuItem>
+                        {!isChapterAdmin && (
+                          <DropdownMenuItem onClick={() => handleChangeRole(r, "secretariat")} disabled={r.role === "secretariat"}>
+                            Make Secretariat
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           className={isActive ? "text-red-600 focus:bg-red-50" : "text-green-600 focus:bg-green-50"}
@@ -248,6 +278,44 @@ function AdminUsers() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Member Modal */}
+      <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite New Member</DialogTitle>
+            <DialogDescription>
+              Send an invitation email with a registration link to a prospective member.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleInvite}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email Address</label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="Enter email address"
+                    className="pl-9"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsInviteOpen(false)} disabled={isInviting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isInviting}>
+                {isInviting ? "Sending..." : "Send Invitation"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </AppShell>

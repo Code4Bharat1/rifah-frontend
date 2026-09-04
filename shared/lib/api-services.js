@@ -32,6 +32,7 @@ export const userApi = {
   getAdminUsers: (params = {}) => apiClient(`/users${toQueryString(params)}`),
   updateUserStatus: (id, data) => apiClient(`/users/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   deactivateAccount: (data = {}) => apiClient("/users/me/deactivate", { method: "POST", body: JSON.stringify(data) }),
+  inviteUser: (data) => apiClient("/users/invite", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const businessApi = {
