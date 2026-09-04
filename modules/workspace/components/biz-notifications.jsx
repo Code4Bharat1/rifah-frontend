@@ -3,8 +3,11 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
 import { useNotifications } from "@shared/hooks/use-rifah-api";
 import { notificationApi } from "@shared/lib/api-services";
+import { useState } from "react";
+import { Megaphone, Eye } from "lucide-react";
 
 function formatRelativeTime(dateString) {
   if (!dateString) return "Just now";
@@ -39,6 +42,7 @@ function safeText(val, fallback = "") {
 }
 
 function BizNotifications() {
+  const [viewNotif, setViewNotif] = useState(null);
   const { data: notifData, refetch } = useNotifications();
   const notifications = Array.isArray(notifData) ? notifData : (notifData?.notifications || []);
   const unreadCount = typeof notifData?.unreadCount === "number"
@@ -89,16 +93,32 @@ function BizNotifications() {
                     aria-hidden
                   />
                   <div className="min-w-0 pr-2">
-                    <p className="text-sm font-semibold text-foreground">{titleText}</p>
+                    <p className={`text-sm ${isUnread ? "font-bold text-foreground" : "font-medium text-foreground"}`}>{titleText}</p>
                     {Boolean(bodyText) && (
-                      <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{bodyText}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-1">{bodyText}</p>
                     )}
                     <p className="mt-1.5 text-[11px] text-muted-foreground/80">
                       {formatRelativeTime(n.createdAt)}
                     </p>
                   </div>
-                  <div className="shrink-0 pt-0.5">
-                    <Pill>{safeText(n.type, "System")}</Pill>
+                  <div className="shrink-0 pt-0.5 flex flex-col items-end gap-2">
+                    <Pill>{n.type || "System"}</Pill>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 text-xs" 
+                      onClick={async () => {
+                        setViewNotif({ ...n, title: titleText, body: bodyText });
+                        if (isUnread) {
+                          try {
+                            await notificationApi.markAsRead(n._id || n.id);
+                            refetch();
+                          } catch (e) {}
+                        }
+                      }}
+                    >
+                      <Eye className="mr-1 h-3 w-3" /> View
+                    </Button>
                   </div>
                 </li>
               );
@@ -106,6 +126,31 @@ function BizNotifications() {
           </ul>
         )}
       </Panel>
+      
+      {/* View Details Modal */}
+      <Dialog open={!!viewNotif} onOpenChange={(o) => !o && setViewNotif(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{viewNotif?.title}</DialogTitle>
+            <DialogDescription>
+              {viewNotif ? formatRelativeTime(viewNotif.createdAt) : ""} · {viewNotif?.type || "Broadcast"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+             <div className="bg-muted/50 p-4 rounded-lg text-sm text-foreground whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
+               {viewNotif?.body || viewNotif?.message}
+             </div>
+             {viewNotif?.broadcastId && (
+               <div className="flex items-center gap-2 mt-4 text-xs text-muted-foreground">
+                 <Megaphone className="h-4 w-4" /> This was a global broadcast
+               </div>
+             )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewNotif(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

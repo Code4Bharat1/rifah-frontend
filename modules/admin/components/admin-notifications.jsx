@@ -19,6 +19,7 @@ import { MoreHorizontal, Trash2, Undo2, Eye, Trash } from "lucide-react";
 
 function AdminNotifications() {
   const [audience, setAudience] = useState("all");
+  const [selectedChapter, setSelectedChapter] = useState("");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -37,12 +38,18 @@ function AdminNotifications() {
   const handleBroadcast = async (e) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) return;
+    if (audience === "chapter" && !selectedChapter) {
+      toast.error("Please select a chapter to broadcast to.");
+      return;
+    }
+    
     setSending(true);
     try {
       await notificationApi.broadcast({
         title: title.trim(),
         body: message.trim(),
-        targetRole: audience === "all" ? undefined : audience,
+        targetRole: ["all", "chapter"].includes(audience) ? undefined : audience,
+        chapter: audience === "chapter" ? selectedChapter : undefined,
       });
       toast.success("Broadcast announcement sent successfully!");
       setTitle("");
@@ -111,9 +118,27 @@ function AdminNotifications() {
                     <SelectItem value="all">All Registered Users</SelectItem>
                     <SelectItem value="business_owner">Member Businesses</SelectItem>
                     <SelectItem value="customer">Buyers</SelectItem>
+                    <SelectItem value="chapter">Specific Chapter Users</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              {audience === "chapter" && (
+                <div className="space-y-1.5">
+                  <Label>Select Chapter</Label>
+                  <Select value={selectedChapter} onValueChange={setSelectedChapter}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Choose a chapter..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chapters.map((ch) => (
+                        <SelectItem key={ch._id || ch.name} value={ch.name}>
+                          {ch.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Title</Label>
@@ -159,7 +184,14 @@ function AdminNotifications() {
               {notifications.map((n) => (
                 <li key={n._id} className="p-4">
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                    <p className="min-w-0 text-sm font-semibold">{n.title}</p>
+                    <div className="flex items-center gap-2">
+                      <p className={`min-w-0 text-sm ${!n.isRead ? "font-bold" : "font-medium"}`}>
+                        {n.title}
+                      </p>
+                      {!n.isRead && (
+                        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">New</span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Pill>{n.type || "Broadcast"}</Pill>
                       <DropdownMenu>
@@ -169,7 +201,15 @@ function AdminNotifications() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => setViewNotif(n)}>
+                          <DropdownMenuItem onClick={async () => {
+                            setViewNotif(n);
+                            if (!n.isRead) {
+                              try {
+                                await notificationApi.markAsRead(n._id);
+                                refetch();
+                              } catch (e) {}
+                            }
+                          }}>
                             <Eye className="mr-2 h-4 w-4" /> View Details
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -185,7 +225,7 @@ function AdminNotifications() {
                       </DropdownMenu>
                     </div>
                   </div>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{n.body || n.message}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{n.body || n.message}</p>
                   <p className="mt-1 text-[11px] text-muted-foreground">{new Date(n.createdAt).toLocaleString()}</p>
                 </li>
               ))}
@@ -203,7 +243,7 @@ function AdminNotifications() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-             <div className="bg-muted/50 p-4 rounded-lg text-sm text-foreground whitespace-pre-wrap">
+             <div className="bg-muted/50 p-4 rounded-lg text-sm text-foreground whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
                {viewNotif?.body || viewNotif?.message}
              </div>
              {viewNotif?.broadcastId && (
