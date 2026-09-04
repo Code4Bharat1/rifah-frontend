@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
@@ -12,7 +12,7 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@shared/components/ui/radio-group";
 import { useMembershipPlans, useMyBusiness } from "@shared/hooks/use-rifah-api";
-import { membershipApi, paymentApi } from "@shared/lib/api-services";
+import { membershipApi, paymentApi, businessApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
 
 const steps = ["Plan", "Billing", "Payment", "Confirmation"];
@@ -52,11 +52,62 @@ function Checkout() {
   const [invoiceId, setInvoiceId] = useState("");
   const [billingEmail, setBillingEmail] = useState("");
   const [legalName, setLegalName] = useState("");
+  const [gstNumber, setGstNumber] = useState("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [billingCity, setBillingCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [gstLoading, setGstLoading] = useState(false);
+  const [gstSuccess, setGstSuccess] = useState("");
 
   const active = plans.find((p) => p.id === selected) || plans[0] || {
     id: "premium",
     name: "Premium",
     price: 12999,
+  };
+
+  // Pre-fill existing business details if available
+  useEffect(() => {
+    if (business) {
+      if (business.name && !legalName) setLegalName(business.name);
+      if (business.email && !billingEmail) setBillingEmail(business.email);
+      if (business.taxId && !gstNumber) setGstNumber(business.taxId);
+      if (business.address && !billingAddress) setBillingAddress(business.address);
+      if (business.city && !billingCity) setBillingCity(business.city);
+    }
+  }, [business]);
+
+  // Automatically fetch business data as soon as 15-character GST is entered
+  const fetchAndPopulateGst = async (gstin) => {
+    const cleanGst = (gstin || "").trim().toUpperCase();
+    if (cleanGst.length !== 15) return;
+    setGstLoading(true);
+    setGstSuccess("");
+    try {
+      const res = await businessApi.verifyGst(cleanGst);
+      const data = res?.data || res;
+      if (data && (data.isValid || data.valid || data.status === "Active" || data.taxpayerStatus === "Active")) {
+        const fetchedName = data.businessName || data.tradeName || data.legalName || "";
+        if (fetchedName) setLegalName(fetchedName);
+        if (data.address) setBillingAddress(data.address);
+        if (data.city) setBillingCity(data.city);
+        if (data.pincode) setPostalCode(data.pincode);
+        setGstSuccess(fetchedName ? `✓ ${fetchedName}` : "✓ GST Verified");
+      }
+    } catch (err) {
+      console.warn("[Checkout GST] Auto-fetch error:", err.message);
+    } finally {
+      setGstLoading(false);
+    }
+  };
+
+  const handleGstChange = (e) => {
+    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    setGstNumber(val);
+    setGstSuccess("");
+    // Instant fetch when 15 chars reached without any button
+    if (val.length === 15) {
+      fetchAndPopulateGst(val);
+    }
   };
 
   const handleConfirmAndPay = async () => {
@@ -113,6 +164,10 @@ function Checkout() {
               description: `${active.name} Membership Subscription`,
               billingEmail: billingEmail || business?.email || "",
               businessName: legalName || business?.name || "",
+              taxId: gstNumber || business?.taxId || "",
+              billingAddress,
+              city: billingCity,
+              postalCode,
             });
 
             const resultData = verifyRes?.data || verifyRes;
@@ -212,8 +267,43 @@ function Checkout() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="gst">GST / Tax registration number</Label>
-                      <Input id="gst" placeholder="27AAAAA0000A1Z5" />
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="gst">GST / Tax registration number</Label>
+                        {gstLoading ? (
+                          <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
+                            <Loader2 className="h-3 w-3 animate-spin" /> Fetching...
+                          </span>
+                        ) : gstSuccess ? (
+                          <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                            <CheckCircle2 className="h-3 w-3" /> {gstSuccess}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {(gstNumber || "").length}/15
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          id="gst"
+                          maxLength={15}
+                          value={gstNumber}
+                          onChange={handleGstChange}
+                          onBlur={() => {
+                            if (gstNumber.length === 15 && !gstSuccess) {
+                              fetchAndPopulateGst(gstNumber);
+                            }
+                          }}
+                          placeholder="27AAAAA0000A1Z5"
+                          className="font-mono uppercase tracking-wider pr-8"
+                        />
+                        {gstLoading && (
+                          <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-primary" />
+                        )}
+                        {!gstLoading && gstSuccess && (
+                          <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="bemail">Billing email</Label>
@@ -227,15 +317,30 @@ function Checkout() {
                     </div>
                     <div className="space-y-1.5 sm:col-span-2">
                       <Label htmlFor="baddr">Billing address</Label>
-                      <Input id="baddr" placeholder="Street, area" />
+                      <Input
+                        id="baddr"
+                        value={billingAddress}
+                        onChange={(e) => setBillingAddress(e.target.value)}
+                        placeholder="Street, area"
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="bcity">City</Label>
-                      <Input id="bcity" placeholder="City" />
+                      <Input
+                        id="bcity"
+                        value={billingCity}
+                        onChange={(e) => setBillingCity(e.target.value)}
+                        placeholder="City"
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="bpin">Postal code</Label>
-                      <Input id="bpin" placeholder="PIN code" />
+                      <Input
+                        id="bpin"
+                        value={postalCode}
+                        onChange={(e) => setPostalCode(e.target.value)}
+                        placeholder="PIN code"
+                      />
                     </div>
                   </div>
                 </Panel>
