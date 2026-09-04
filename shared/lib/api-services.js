@@ -36,6 +36,8 @@ export const userApi = {
 };
 
 export const businessApi = {
+  verifyGst: (gstin) => apiClient("/businesses/gst/verify", { method: "POST", body: JSON.stringify({ gstin }) }),
+  fetchGstDetails: (gstin) => apiClient("/businesses/gst/details", { method: "POST", body: JSON.stringify({ gstin }) }),
   list: (params = {}) => apiClient(`/businesses${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/businesses/detail/${idOrSlug}`),
   getMyBusiness: () => apiClient("/businesses/me"),

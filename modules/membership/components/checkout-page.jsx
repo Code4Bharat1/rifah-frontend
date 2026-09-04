@@ -91,7 +91,7 @@ function Checkout() {
         if (data.address) setBillingAddress(data.address);
         if (data.city) setBillingCity(data.city);
         if (data.pincode) setPostalCode(data.pincode);
-        setGstSuccess(fetchedName ? `✓ ${fetchedName}` : "✓ GST Verified");
+        setGstSuccess("Verified");
       }
     } catch (err) {
       console.warn("[Checkout GST] Auto-fetch error:", err.message);
@@ -274,8 +274,8 @@ function Checkout() {
                             <Loader2 className="h-3 w-3 animate-spin" /> Fetching...
                           </span>
                         ) : gstSuccess ? (
-                          <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                            <CheckCircle2 className="h-3 w-3" /> {gstSuccess}
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Verified
                           </span>
                         ) : (
                           <span className="text-[10px] text-muted-foreground font-mono">
