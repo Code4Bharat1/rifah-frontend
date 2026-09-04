@@ -157,6 +157,7 @@ export const notificationApi = {
   list: () => apiClient("/notifications/me"),
   markAllAsRead: () => apiClient("/notifications/read-all", { method: "PATCH" }),
   broadcast: (data) => apiClient("/notifications/broadcast", { method: "POST", body: JSON.stringify(data) }),
+  deleteBroadcast: (broadcastId) => apiClient(`/notifications/broadcast/${broadcastId}`, { method: "DELETE" }),
 };
 
 export const eventApi = {

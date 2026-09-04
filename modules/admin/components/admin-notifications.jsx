@@ -23,7 +23,7 @@ function AdminNotifications() {
   const { data: notifData, refetch } = useNotifications();
   const { data: chaptersData } = useChapters();
 
-  const notifications = Array.isArray(notifData) ? notifData : [];
+  const notifications = Array.isArray(notifData?.notifications) ? notifData.notifications : (Array.isArray(notifData) ? notifData : []);
   const chapters = chaptersData || [];
 
   const handleBroadcast = async (e) => {
@@ -33,7 +33,7 @@ function AdminNotifications() {
     try {
       await notificationApi.broadcast({
         title: title.trim(),
-        message: message.trim(),
+        body: message.trim(),
         targetRole: audience === "all" ? undefined : audience,
       });
       toast.success("Broadcast announcement sent successfully!");
@@ -44,6 +44,17 @@ function AdminNotifications() {
       toast.error(err.message || "Failed to send announcement.");
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleDelete = async (broadcastId) => {
+    if (!confirm("Are you sure you want to undo this broadcast? It will be removed from all users' panels.")) return;
+    try {
+      await notificationApi.deleteBroadcast(broadcastId);
+      toast.success("Broadcast successfully recalled from all users.");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete broadcast.");
     }
   };
 
@@ -107,9 +118,22 @@ function AdminNotifications() {
                 <li key={n._id} className="p-4">
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                     <p className="min-w-0 text-sm font-semibold">{n.title}</p>
-                    <Pill>{n.type || "Broadcast"}</Pill>
+                    <div className="flex items-center gap-2">
+                      <Pill>{n.type || "Broadcast"}</Pill>
+                      {n.broadcastId && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10" 
+                          onClick={() => handleDelete(n.broadcastId)}
+                          title="Undo / Recall Broadcast"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{n.message}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{n.body || n.message}</p>
                   <p className="mt-1 text-[11px] text-muted-foreground">{new Date(n.createdAt).toLocaleString()}</p>
                 </li>
               ))}
