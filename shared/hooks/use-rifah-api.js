@@ -199,6 +199,7 @@ export function useAllPayments(params = {}) {
       const res = await paymentApi.getAllPayments(params);
       return res?.data || res;
     },
+    enabled: typeof window !== "undefined",
   });
 }
 

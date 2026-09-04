@@ -112,6 +112,7 @@ export const enquiryApi = {
   create: (data) => apiClient("/enquiries", { method: "POST", body: JSON.stringify(data) }),
   getMyEnquiries: (params = {}) => apiClient(`/enquiries/me${toQueryString(params)}`),
   getAllEnquiries: (params = {}) => apiClient(`/enquiries/admin/all${toQueryString(params)}`),
+  exportCsv: (params = {}) => apiClient(`/enquiries/admin/export/csv${toQueryString(params)}`),
   getById: (id) => apiClient(`/enquiries/${id}`),
   updateStatus: (id, data) => apiClient(`/enquiries/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
 };
@@ -165,6 +166,11 @@ export const eventApi = {
   create: (data) => apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/events/${id}`, { method: "DELETE" }),
+  uploadCover: (id, file) => {
+    const formData = new FormData();
+    formData.append("cover", file);
+    return apiClient(`/events/${id}/cover`, { method: "POST", body: formData });
+  },
 };
 
 export const reviewApi = {

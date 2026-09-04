@@ -68,6 +68,14 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
         // Token refresh attempt failed
       }
     }
+    
+    // If we reach here on a 401, refresh failed or didn't exist. Force logout.
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("rifah_access_token");
+      localStorage.removeItem("rifah_refresh_token");
+      localStorage.removeItem("rifah_user");
+      window.location.href = "/auth/login";
+    }
   }
 
   if (!response.ok) {
