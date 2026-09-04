@@ -25,6 +25,8 @@ function EventDetail() {
   const { data: event, isLoading } = useEventDetail(eventId);
   const { data: othersData } = useEvents({ status: "Upcoming", limit: 3 });
 
+  const others = Array.isArray(othersData) ? othersData : (othersData?.events || []);
+
   const [registered, setRegistered] = useState(false);
   const [registering, setRegistering] = useState(false);
 
@@ -127,7 +129,7 @@ function EventDetail() {
 
                 <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-4">
                   {[
-                    { icon: CalendarDays, label: "Date", value: event.date },
+                    { icon: CalendarDays, label: "Date", value: event.date ? new Date(event.date).toLocaleDateString() : "TBA" },
                     { icon: Clock, label: "Time", value: event.time },
                     { icon: MapPin, label: "Venue", value: event.venue },
                     { icon: Users, label: "Capacity", value: `${event.seats} seats` },
@@ -211,7 +213,7 @@ function EventDetail() {
                   {others.map((o) => (
                     <li key={o._id || o.slug}>
                       <Link href={`/events/${o.slug || o._id}`} className="group block">
-                        <p className="text-xs font-semibold text-primary">{o.date}</p>
+                        <p className="text-xs font-semibold text-primary">{o.date ? new Date(o.date).toLocaleDateString() : ""}</p>
                         <p className="text-sm font-medium leading-snug group-hover:underline">{o.title}</p>
                         <p className="text-xs text-muted-foreground">{o.city} · {o.mode}</p>
                       </Link>
