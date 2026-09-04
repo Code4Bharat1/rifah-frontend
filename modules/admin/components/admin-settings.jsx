@@ -67,6 +67,17 @@ function AdminSettings() {
   
   const [toggleStates, setToggleStates] = useState({});
 
+  const [fees, setFees] = useState({
+    registrationFee: 1000,
+    defaultMembershipFee: 5000,
+  });
+
+  const [limits, setLimits] = useState({
+    leadLimitPerMonth: 100,
+    maxCatalogueItems: 50,
+    maxImagesPerItem: 5,
+  });
+
   useEffect(() => {
     if (globalSettings) {
       setChamberDetails({
@@ -81,6 +92,17 @@ function AdminSettings() {
         newToggles[t.key] = globalSettings[t.key] !== undefined ? globalSettings[t.key] : t.defaultOn;
       });
       setToggleStates(newToggles);
+
+      setFees({
+        registrationFee: globalSettings.registrationFee ?? 1000,
+        defaultMembershipFee: globalSettings.defaultMembershipFee ?? 5000,
+      });
+
+      setLimits({
+        leadLimitPerMonth: globalSettings.leadLimitPerMonth ?? 100,
+        maxCatalogueItems: globalSettings.maxCatalogueItems ?? 50,
+        maxImagesPerItem: globalSettings.maxImagesPerItem ?? 5,
+      });
     }
   }, [globalSettings]);
   
@@ -104,6 +126,26 @@ function AdminSettings() {
       refetch();
     } catch (e) {
       toast.error("Failed to save chamber details");
+    }
+  };
+
+  const handleSaveFees = async () => {
+    try {
+      await settingsApi.update(fees);
+      toast.success("Fees configuration saved!");
+      refetch();
+    } catch (e) {
+      toast.error("Failed to save fees");
+    }
+  };
+
+  const handleSaveLimits = async () => {
+    try {
+      await settingsApi.update(limits);
+      toast.success("System limits saved!");
+      refetch();
+    } catch (e) {
+      toast.error("Failed to save limits");
     }
   };
 
@@ -179,6 +221,70 @@ function AdminSettings() {
             </div>
             <div className="col-span-full pt-2">
               <Button onClick={handleSaveChamberDetails}>Save Changes</Button>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel title="Fees configuration">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Registration fee (₹)</Label>
+              <Input 
+                type="number" 
+                value={fees.registrationFee} 
+                onChange={(e) => setFees({...fees, registrationFee: Number(e.target.value)})}
+                className="h-11" 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Default membership fee (₹)</Label>
+              <Input 
+                type="number" 
+                value={fees.defaultMembershipFee} 
+                onChange={(e) => setFees({...fees, defaultMembershipFee: Number(e.target.value)})}
+                className="h-11" 
+              />
+            </div>
+            <div className="col-span-full pt-2">
+              <Button onClick={handleSaveFees}>Save Fees</Button>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel title="System limits">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label>Lead limit per month</Label>
+              <Input 
+                type="number" 
+                value={limits.leadLimitPerMonth} 
+                onChange={(e) => setLimits({...limits, leadLimitPerMonth: Number(e.target.value)})}
+                className="h-11" 
+              />
+              <p className="text-xs text-muted-foreground">Max leads a business can receive monthly</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Max catalogue items</Label>
+              <Input 
+                type="number" 
+                value={limits.maxCatalogueItems} 
+                onChange={(e) => setLimits({...limits, maxCatalogueItems: Number(e.target.value)})}
+                className="h-11" 
+              />
+              <p className="text-xs text-muted-foreground">Max products a business can list</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Max images per item</Label>
+              <Input 
+                type="number" 
+                value={limits.maxImagesPerItem} 
+                onChange={(e) => setLimits({...limits, maxImagesPerItem: Number(e.target.value)})}
+                className="h-11" 
+              />
+              <p className="text-xs text-muted-foreground">Max images allowed per product listing</p>
+            </div>
+            <div className="col-span-full pt-2">
+              <Button onClick={handleSaveLimits}>Save Limits</Button>
             </div>
           </div>
         </Panel>

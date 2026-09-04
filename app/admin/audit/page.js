@@ -1,5 +1,10 @@
-import { AdminAudit } from "@modules/admin";
+import { AdminAudit } from "../../../modules/admin/components/admin-audit";
 
-export default function Page(props) {
-  return <AdminAudit {...props} />;
+export const metadata = {
+  title: "Audit Logs | Admin | RIFAH Connect",
+  description: "System activity and admin actions",
+};
+
+export default function AuditPage() {
+  return <AdminAudit />;
 }

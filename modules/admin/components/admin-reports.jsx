@@ -1,216 +1,241 @@
 "use client";
-import { Download, TrendingUp, FileBarChart } from "lucide-react";
-import { toast } from "sonner";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
-
+import { useState } from "react";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
-import { useAdminOverview, useChapters, useCategories } from "@shared/hooks/use-rifah-api";
+import { Input } from "@shared/components/ui/input";
+import { Label } from "@shared/components/ui/label";
+import { reportApi } from "@shared/lib/api-services";
+import { toast } from "sonner";
+import { FileDown, Receipt, Users, Megaphone, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
 
-const reportFiles = [
-  { name: "Membership register", period: "Sep 2026", format: "CSV", icon: "csv" },
-  { name: "Enquiry flow summary", period: "Q3 2026", format: "PDF", icon: "pdf" },
-  { name: "Revenue statement", period: "Sep 2026", format: "CSV", icon: "csv" },
-  { name: "Verification turnaround", period: "Q3 2026", format: "PDF", icon: "pdf" },
-];
+export function AdminReports() {
+  const [revenueDates, setRevenueDates] = useState({ start: "", end: "" });
+  const [memberDates, setMemberDates] = useState({ start: "", end: "" });
+  const [leadDates, setLeadDates] = useState({ start: "", end: "" });
+  
+  const [loading, setLoading] = useState({ revenue: false, members: false, leads: false });
+  const [viewing, setViewing] = useState({ revenue: false, members: false, leads: false });
+  const [viewData, setViewData] = useState(null);
 
-function AdminReports() {
-  const { data: overviewData } = useAdminOverview();
-  const { data: chaptersData } = useChapters();
-  const { data: categoriesData } = useCategories();
+  const handleDownload = async (type) => {
+    setLoading(prev => ({ ...prev, [type]: true }));
+    try {
+      let dates = {};
+      if (type === 'revenue') dates = revenueDates;
+      else if (type === 'memberships') dates = memberDates;
+      else if (type === 'leads') dates = leadDates;
 
-  const kpi = overviewData?.kpi || {};
-  const chapters = chaptersData || [];
-  const categories = Array.isArray(categoriesData) ? categoriesData : [];
+      const params = {};
+      if (dates.start) params.startDate = dates.start;
+      if (dates.end) params.endDate = dates.end;
 
-  const chartData = overviewData?.membershipGrowth?.length > 0 
-    ? overviewData.membershipGrowth.map(m => ({ name: m.name, value: m.new }))
-    : [];
+      if (type === 'revenue') {
+        await reportApi.downloadRevenue(params);
+      } else if (type === 'memberships') {
+        await reportApi.downloadMemberships(params);
+      } else if (type === 'leads') {
+        await reportApi.downloadLeads(params);
+      }
+      
+      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} report downloaded successfully.`);
+    } catch (err) {
+      toast.error(err.message || "Failed to download report.");
+    } finally {
+      setLoading(prev => ({ ...prev, [type]: false }));
+    }
+  };
 
-  // Sort chapters by member count from real overview data
-  const realChapterData = overviewData?.chaptersDistribution || [];
-  const sortedChapterData = [...realChapterData].sort((a, b) => b.members - a.members).slice(0, 5);
-  const chapterDisplayData = sortedChapterData.map(c => ({
-    name: c.name,
-    value: c.members,
-  }));
-  const maxChapterVal = Math.max(...chapterDisplayData.map(c => c.value), 1);
+  const handleView = async (type) => {
+    setViewing(prev => ({ ...prev, [type]: true }));
+    try {
+      let dates = {};
+      if (type === 'revenue') dates = revenueDates;
+      else if (type === 'memberships') dates = memberDates;
+      else if (type === 'leads') dates = leadDates;
 
-  // Take top categories
-  const topCategories = categories.slice(0, 5).map(c => c.name);
-  if (topCategories.length === 0) {
-    topCategories.push("Precision Engineering", "Agro Commodities", "Software Development", "Freight & Warehousing", "Corrugated Packaging");
-  }
+      const params = {};
+      if (dates.start) params.startDate = dates.start;
+      if (dates.end) params.endDate = dates.end;
+
+      let res;
+      if (type === 'revenue') {
+        res = await reportApi.getRevenue(params);
+      } else if (type === 'memberships') {
+        res = await reportApi.getMemberships(params);
+      } else if (type === 'leads') {
+        res = await reportApi.getLeads(params);
+      }
+      
+      setViewData({
+        title: `${type.charAt(0).toUpperCase() + type.slice(1)} Report`,
+        headers: res?.data?.headers || [],
+        rows: res?.data?.rows || []
+      });
+    } catch (err) {
+      toast.error(err.message || "Failed to fetch report data.");
+    } finally {
+      setViewing(prev => ({ ...prev, [type]: false }));
+    }
+  };
 
   return (
     <AppShell
       role="admin"
-      title="Reports and insights"
-      subtitle="Prototype analytics for the secretariat"
-      actions={
-        <Button variant="outline" onClick={async () => {
-          try {
-            toast.info("Exporting all reports...");
-            // Use native fetch to handle blob download
-            const token = localStorage.getItem("rifah_token");
-            const response = await fetch("http://localhost:3001/api/reports/admin/export/csv", {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            if (!response.ok) throw new Error("Export failed");
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "admin_reports.csv";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            toast.success("Export completed successfully!");
-          } catch (e) {
-            toast.error("Failed to export reports");
-          }
-        }}>
-          <Download className="mr-2 h-4 w-4" /> Export all
-        </Button>
-      }
+      title="Data Export & Reports"
+      subtitle="Download CSV reports for analysis"
     >
-      <div className="space-y-6">
-        {/* Top Stat Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">Members</p>
-            <div className="mt-2 text-3xl font-bold tracking-tight">{kpi.totalBusinesses || 0}</div>
-            <p className="mt-1 text-xs text-muted-foreground">+9.4% QoQ</p>
-          </div>
-          
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">Enquiries</p>
-            <div className="mt-2 text-3xl font-bold tracking-tight">{(kpi.totalEnquiries || 0).toLocaleString()}</div>
-            <p className="mt-1 text-xs text-muted-foreground">+17% QoQ</p>
-          </div>
-          
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">Response rate</p>
-            <div className="mt-2 text-3xl font-bold tracking-tight">78%</div>
-          </div>
-          
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">Renewals due</p>
-            <div className="mt-2 text-3xl font-bold tracking-tight">63</div>
-          </div>
-        </div>
-
-        {/* Middle Section: Chart and Progress Bars */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]">
-          {/* Registration Volume Chart */}
-          <Panel title="Registration volume" description="Monthly new registrations" className="flex flex-col">
-            <div className="h-[300px] w-full pt-4 mt-auto">
-              <div className="flex h-full flex-col justify-end">
-                {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <Tooltip cursor={{ fill: "hsl(var(--muted)/0.5)" }} contentStyle={{ borderRadius: "8px" }} />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={index === chartData.length - 1 ? "hsl(var(--primary))" : "hsl(var(--muted-foreground)/0.2)"} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No growth data available</div>
-                )}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Revenue Report */}
+        <Panel 
+          title="Revenue & Payments" 
+          icon={<Receipt className="h-5 w-5 text-primary" />}
+        >
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">Export all paid transactions, invoices, and payment details.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Start Date (Optional)</Label>
+                <Input type="date" value={revenueDates.start} onChange={e => setRevenueDates({...revenueDates, start: e.target.value})} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">End Date (Optional)</Label>
+                <Input type="date" value={revenueDates.end} onChange={e => setRevenueDates({...revenueDates, end: e.target.value})} />
               </div>
             </div>
-            <div className="mt-6 flex items-center text-sm font-medium text-emerald-600">
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Sourcing demand strongest in textiles and packaging
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="outline"
+                className="w-full" 
+                onClick={() => handleView('revenue')} 
+                disabled={viewing.revenue}
+              >
+                <Eye className="mr-2 h-4 w-4" /> View
+              </Button>
+              <Button 
+                className="w-full" 
+                onClick={() => handleDownload('revenue')} 
+                disabled={loading.revenue}
+              >
+                <FileDown className="mr-2 h-4 w-4" /> Download
+              </Button>
             </div>
-          </Panel>
-
-          {/* Chapter Performance Progress Bars */}
-          <Panel title="Chapter performance" description="Share of active member businesses">
-            <div className="mt-6 flex flex-col gap-6">
-              {chapterDisplayData.map((chapter) => {
-                const percentage = Math.round((chapter.value / maxChapterVal) * 100);
-                return (
-                  <div key={chapter.name} className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-semibold text-foreground">{chapter.name}</span>
-                      <span className="font-medium text-muted-foreground">{chapter.value}</span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                      <div 
-                        className="h-full rounded-full bg-[#0284c7]" 
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Panel>
-        </div>
-
-        {/* Bottom Section: Categories */}
-        <Panel title="Category demand" description="Most requested sourcing categories">
-          <div className="mt-4 flex flex-wrap gap-3">
-            {topCategories.map((cat, index) => {
-              // The first 3 get the red tint based on the screenshot design
-              const isRedTint = index < 3;
-              return (
-                <span 
-                  key={cat} 
-                  className={`inline-flex items-center rounded-full px-4 py-1.5 text-xs font-semibold ${
-                    isRedTint 
-                      ? 'bg-red-50 text-red-600 border border-red-100' 
-                      : 'bg-slate-50 text-slate-600 border border-slate-200'
-                  }`}
-                >
-                  {cat}
-                </span>
-              );
-            })}
           </div>
         </Panel>
-        
-        {/* Downloadable Reports List */}
-        <Panel title="Downloadable reports" bodyClassName="p-0 sm:p-0">
-          <ul className="divide-y divide-border">
-            {reportFiles.map((r) => (
-              <li key={r.name} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-6 py-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-slate-50">
-                  <FileBarChart className="h-5 w-5 text-slate-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{r.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {r.period} · {r.format}
-                  </p>
-                </div>
-                <Button size="sm" variant="outline" className="px-5 font-semibold text-slate-700 h-9" onClick={() => {
-                  toast.success(`Preparing ${r.name}...`);
-                  setTimeout(() => toast.info(`${r.name} downloaded successfully!`), 1500);
-                }}>
-                  Download
-                </Button>
-              </li>
-            ))}
-          </ul>
+
+        {/* Memberships Report */}
+        <Panel 
+          title="Memberships" 
+          icon={<Users className="h-5 w-5 text-blue-500" />}
+        >
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">Export all registered active users, their roles, and chapters.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Start Date (Optional)</Label>
+                <Input type="date" value={memberDates.start} onChange={e => setMemberDates({...memberDates, start: e.target.value})} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">End Date (Optional)</Label>
+                <Input type="date" value={memberDates.end} onChange={e => setMemberDates({...memberDates, end: e.target.value})} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="outline"
+                className="w-full" 
+                onClick={() => handleView('memberships')} 
+                disabled={viewing.members}
+              >
+                <Eye className="mr-2 h-4 w-4" /> View
+              </Button>
+              <Button 
+                className="w-full" 
+                onClick={() => handleDownload('memberships')} 
+                disabled={loading.members}
+              >
+                <FileDown className="mr-2 h-4 w-4" /> Download
+              </Button>
+            </div>
+          </div>
+        </Panel>
+
+        {/* Leads & Enquiries Report */}
+        <Panel 
+          title="Leads & Enquiries" 
+          icon={<Megaphone className="h-5 w-5 text-orange-500" />}
+        >
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">Export lead distribution data, statuses, and enquiry sources.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Start Date (Optional)</Label>
+                <Input type="date" value={leadDates.start} onChange={e => setLeadDates({...leadDates, start: e.target.value})} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">End Date (Optional)</Label>
+                <Input type="date" value={leadDates.end} onChange={e => setLeadDates({...leadDates, end: e.target.value})} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="outline"
+                className="w-full" 
+                onClick={() => handleView('leads')} 
+                disabled={viewing.leads}
+              >
+                <Eye className="mr-2 h-4 w-4" /> View
+              </Button>
+              <Button 
+                className="w-full" 
+                onClick={() => handleDownload('leads')} 
+                disabled={loading.leads}
+              >
+                <FileDown className="mr-2 h-4 w-4" /> Download
+              </Button>
+            </div>
+          </div>
         </Panel>
       </div>
+
+      <Dialog open={!!viewData} onOpenChange={(o) => !o && setViewData(null)}>
+        <DialogContent className="max-w-[90vw] md:max-w-4xl h-[80vh] flex flex-col overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>{viewData?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto border rounded-md">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs uppercase bg-muted text-muted-foreground sticky top-0">
+                <tr>
+                  {viewData?.headers.map((h, i) => (
+                    <th key={i} className="px-4 py-3 whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {viewData?.rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={viewData.headers.length} className="px-4 py-8 text-center text-muted-foreground">
+                      No data found for the selected dates.
+                    </td>
+                  </tr>
+                ) : (
+                  viewData?.rows.map((row, i) => (
+                    <tr key={i} className="hover:bg-muted/50">
+                      {row.map((cell, j) => (
+                        <td key={j} className="px-4 py-3 whitespace-nowrap">
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
-
-export { AdminReports };
-export default AdminReports;
