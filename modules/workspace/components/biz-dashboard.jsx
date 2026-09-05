@@ -54,9 +54,21 @@ function BusinessHome() {
   const rawLeads = Array.isArray(leadsData) ? leadsData : leadsData?.leads || [];
   const catalogue = catalogueItems || [];
   const stats = analyticsData?.summary || analyticsData || {};
-  const conversations = convData || [];
-  const rawNotifs = Array.isArray(notifData) ? notifData : notifData?.notifications || [];
-  const reviews = reviewsData?.reviews || [];
+  const conversations = Array.isArray(convData) ? convData : (convData?.conversations || []);
+  const rawNotifs = Array.isArray(notifData)
+    ? notifData
+    : Array.isArray(notifData?.notifications)
+    ? notifData.notifications
+    : [];
+  const reviews = Array.isArray(reviewsData)
+    ? reviewsData
+    : Array.isArray(reviewsData?.reviews)
+    ? reviewsData.reviews
+    : [];
+
+  const avgRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) / reviews.length).toFixed(1)
+    : (business?.rating ? Number(business.rating).toFixed(1) : "0.0");
 
   // Profile Completeness list dynamically computed from real business profile
   const completenessList = [
@@ -367,31 +379,58 @@ function BusinessHome() {
             </Panel>
 
             {/* Box 3: Recent Messages */}
+            {/* Box 3: Recent Messages */}
             <Panel title="Recent messages" action={<MoreLink href="/biz/messages" label="View all →" />}>
               {messageList.length === 0 ? (
                 <p className="text-xs text-slate-400 font-medium text-center py-4">No recent messages</p>
               ) : (
-                <ul className="space-y-3">
+                <ul className="space-y-2.5">
                   {messageList.map((msg, i) => {
-                    const senderName = safeText(msg.otherUser?.name || msg.name, "Buyer");
-                    const lastMsg = safeText(msg.lastMessage || msg.snippet, "No messages yet");
+                    const senderName = safeText(msg.otherUser?.name || msg.name, "Customer");
+                    const lastMsg = safeText(msg.lastMessage?.text || msg.lastMessage?.body || msg.lastMessage || msg.snippet, "New message");
+                    const unreadCount = Number(msg.unreadCount || msg.unread || 0);
+                    const isUnread = unreadCount > 0 || !msg.isRead;
+                    const otherUserId = msg.otherUser?._id || msg.otherUser?.id || "";
 
                     return (
-                      <li key={msg._id || msg.id || i} className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold bg-sky-100 text-sky-700 uppercase">
-                            {senderName.slice(0, 2)}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-slate-900">{senderName}</p>
-                            <p className="truncate text-[11px] text-slate-400">{lastMsg}</p>
+                      <li key={msg._id || msg.id || msg.conversationId || i}>
+                        <Link
+                          href={otherUserId ? `/biz/messages?userId=${otherUserId}` : "/biz/messages"}
+                          className={`flex items-center justify-between gap-3 p-2 rounded-xl transition-all hover:bg-slate-50 ${
+                            isUnread ? "bg-red-50/40 border border-red-100/60" : "border border-transparent"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="relative shrink-0">
+                              <span className="grid h-8 w-8 place-items-center rounded-full text-xs font-bold bg-sky-100 text-sky-700 uppercase">
+                                {senderName.slice(0, 2)}
+                              </span>
+                              {isUnread && (
+                                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className={`truncate text-xs ${isUnread ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}>
+                                  {senderName}
+                                </p>
+                                {isUnread && (
+                                  <span className="rounded-full bg-red-100 px-1.5 py-0.2 text-[9px] font-bold text-red-700">
+                                    {unreadCount > 1 ? `${unreadCount} new` : "New"}
+                                  </span>
+                                )}
+                              </div>
+                              <p className={`truncate text-[11px] ${isUnread ? "font-medium text-slate-700" : "text-slate-400"}`}>
+                                {lastMsg}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        {Boolean(msg.unreadCount || msg.unread) && (
-                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-600 text-[10px] font-bold text-white">
-                            {msg.unreadCount || msg.unread}
-                          </span>
-                        )}
+                          {unreadCount > 0 && (
+                            <span className="grid h-5 min-w-5 px-1.5 place-items-center rounded-full bg-red-600 text-[10px] font-bold text-white shrink-0 shadow-2xs">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </Link>
                       </li>
                     );
                   })}
@@ -400,29 +439,74 @@ function BusinessHome() {
             </Panel>
 
             {/* Box 4: Reviews */}
-            <Panel title="Reviews" action={<MoreLink href="/biz/analytics" label="View all →" />}>
-              <div className="flex items-center gap-3">
-                <span className="text-3xl font-bold text-slate-900 tabular-nums">
-                  {reviewsData?.averageRating ? reviewsData.averageRating.toFixed(1) : "0.0"}
-                </span>
-                <div>
-                  <div className="flex items-center gap-0.5 text-amber-400">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`h-4 w-4 ${
-                          star <= Math.round(reviewsData?.averageRating || 0)
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-slate-200 fill-slate-100"
-                        }`}
-                      />
-                    ))}
+            <Panel title="Reviews" action={<MoreLink href={bizSlugOrId ? `/business/${bizSlugOrId}` : "/biz/profile"} label="View all →" />}>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl font-bold text-slate-900 tabular-nums">
+                    {avgRating}
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-0.5 text-amber-400">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-3.5 w-3.5 ${
+                            star <= Math.round(Number(avgRating))
+                              ? "fill-amber-400 text-amber-400"
+                              : "text-slate-200 fill-slate-100"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+                      {reviews.length} published {reviews.length === 1 ? "review" : "reviews"}
+                    </p>
                   </div>
-                  <p className="mt-0.5 text-[11px] font-medium text-slate-400">
-                    {reviews.length} published reviews
-                  </p>
                 </div>
               </div>
+
+              {reviews.length === 0 ? (
+                <div className="py-4 text-center">
+                  <p className="text-xs text-slate-400 font-medium">No reviews published yet</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Customer feedback and ratings will appear here.</p>
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2.5">
+                  {reviews.slice(0, 3).map((rev, idx) => {
+                    const authorName = safeText(rev.author?.name || rev.authorName, "Verified Customer");
+                    const revRating = Number(rev.rating) || 5;
+                    const revText = safeText(rev.body || rev.comment, "Great service and business.");
+                    const revDate = rev.createdAt ? new Date(rev.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "";
+
+                    return (
+                      <div key={rev._id || idx} className="rounded-xl bg-slate-50/80 p-3 border border-slate-100">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-100 text-[10px] font-bold text-amber-800 uppercase">
+                              {authorName.slice(0, 1)}
+                            </span>
+                            <span className="text-xs font-bold text-slate-900 truncate">{authorName}</span>
+                          </div>
+                          <div className="flex items-center gap-0.5 text-amber-400">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                className={`h-2.5 w-2.5 ${s <= revRating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="mt-1.5 text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                          "{revText}"
+                        </p>
+                        {revDate && (
+                          <p className="mt-1 text-[10px] text-slate-400 text-right">{revDate}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </Panel>
 
             {/* Box 5: Notifications */}
@@ -434,14 +518,27 @@ function BusinessHome() {
                   {notificationItems.map((n, idx) => {
                     const notifTitle = safeText(n.title || n.type, "Notification");
                     const notifBody = safeText(n.body || n.message || n.desc, "");
+                    const isUnread = !n.isRead && !n.readAt;
 
                     return (
                       <li key={n._id || n.id || idx} className="py-2.5 first:pt-0 last:pb-0">
-                        <p className="text-sm font-bold text-slate-900 leading-snug">
-                          {notifTitle}
-                        </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isUnread && (
+                              <span className="h-2 w-2 shrink-0 rounded-full bg-red-600 ring-2 ring-red-100" />
+                            )}
+                            <p className={`text-sm leading-snug truncate ${isUnread ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
+                              {notifTitle}
+                            </p>
+                          </div>
+                          {isUnread && (
+                            <span className="shrink-0 rounded-full bg-red-50 border border-red-100 px-1.5 py-0.2 text-[10px] font-bold text-red-600">
+                              Unread
+                            </span>
+                          )}
+                        </div>
                         {Boolean(notifBody) && (
-                          <p className="mt-0.5 text-xs text-slate-500 leading-normal truncate">
+                          <p className={`mt-0.5 text-xs leading-normal truncate ${isUnread ? "text-slate-600 font-medium" : "text-slate-400"}`}>
                             {notifBody}
                           </p>
                         )}

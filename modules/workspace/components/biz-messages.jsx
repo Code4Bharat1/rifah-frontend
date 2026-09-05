@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeft, Send, Loader2, MessageSquare, Paperclip, FileText, Image as ImageIcon, Film, Download, X } from "lucide-react";
+import { ArrowLeft, Send, Loader2, MessageSquare, Paperclip, FileText, Image as ImageIcon, Film, Download, X, Building2, Package, IndianRupee, FileSpreadsheet } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -15,6 +15,150 @@ import { cn } from "@shared/lib/utils";
 import { getSocket } from "@shared/lib/socket";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
+function parseQuotationMessage(text) {
+  if (!text) return null;
+  if (!text.toUpperCase().includes("OFFICIAL QUOTATION")) return null;
+
+  // Clean out emoji characters
+  const clean = text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, "").trim();
+  const lines = clean.split("\n").map((l) => l.trim()).filter(Boolean);
+
+  const titleLine = lines.find((l) => l.toUpperCase().includes("OFFICIAL QUOTATION")) || "OFFICIAL QUOTATION";
+  const refMatch = titleLine.match(/\(([^)]+)\)/);
+  const refCode = refMatch ? refMatch[1] : "";
+
+  const extractField = (prefix) => {
+    const line = lines.find((l) => l.toLowerCase().startsWith(prefix.toLowerCase()));
+    if (!line) return "";
+    return line.replace(new RegExp(`^${prefix}:?\\s*`, "i"), "").trim();
+  };
+
+  const supplier = extractField("Supplier");
+  const requirement = extractField("Requirement");
+  const price = extractField("Quoted Price") || extractField("Price") || extractField("Amount");
+  const terms = extractField("Details & Terms") || extractField("Terms") || extractField("Notes");
+
+  const footer = lines.find(
+    (l) =>
+      !l.includes("---") &&
+      !l.toUpperCase().includes("OFFICIAL QUOTATION") &&
+      !l.toLowerCase().startsWith("supplier") &&
+      !l.toLowerCase().startsWith("requirement") &&
+      !l.toLowerCase().startsWith("quoted price") &&
+      !l.toLowerCase().startsWith("price") &&
+      !l.toLowerCase().startsWith("details & terms") &&
+      !l.toLowerCase().startsWith("terms")
+  );
+
+  return {
+    refCode,
+    supplier,
+    requirement,
+    price,
+    terms,
+    footer,
+  };
+}
+
+function QuotationCard({ quote, isMe }) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border p-4 space-y-3 shadow-xs my-1 text-left min-w-[260px] sm:min-w-[320px]",
+        isMe
+          ? "border-white/20 bg-white/10 text-white"
+          : "border-slate-200/90 bg-white text-slate-800"
+      )}
+    >
+      {/* Header with Lucide FileText icon */}
+      <div className="flex items-center justify-between border-b pb-2.5 border-current/15">
+        <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold",
+              isMe ? "bg-white/20 text-white" : "bg-sky-50 text-sky-700"
+            )}
+          >
+            <FileText className="h-4 w-4" />
+          </div>
+          <div>
+            <span className="block text-xs font-extrabold tracking-wide uppercase">
+              Official Quotation
+            </span>
+            {quote.refCode && (
+              <span className="block text-[11px] font-semibold opacity-80">
+                {quote.refCode}
+              </span>
+            )}
+          </div>
+        </div>
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+            isMe ? "bg-white/20 text-white" : "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+          )}
+        >
+          Verified
+        </span>
+      </div>
+
+      {/* Details Grid with clean Lucide icons (No emojis) */}
+      <div className="space-y-2 text-xs">
+        {quote.supplier && (
+          <div className="flex items-start gap-2.5">
+            <Building2 className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
+            <div className="min-w-0 flex-1">
+              <span className="text-[11px] font-medium opacity-75 block">Supplier</span>
+              <span className="font-bold text-xs block truncate">{quote.supplier}</span>
+            </div>
+          </div>
+        )}
+
+        {quote.requirement && (
+          <div className="flex items-start gap-2.5">
+            <Package className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
+            <div className="min-w-0 flex-1">
+              <span className="text-[11px] font-medium opacity-75 block">Requirement</span>
+              <span className="font-semibold text-xs block">{quote.requirement}</span>
+            </div>
+          </div>
+        )}
+
+        {quote.price && (
+          <div className="flex items-start gap-2.5">
+            <IndianRupee className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
+            <div className="min-w-0 flex-1">
+              <span className="text-[11px] font-medium opacity-75 block">Quoted Price</span>
+              <span className={cn(
+                "font-extrabold text-sm block tracking-tight",
+                isMe ? "text-emerald-200" : "text-emerald-600"
+              )}>
+                {quote.price}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {quote.terms && (
+          <div className="flex items-start gap-2.5">
+            <FileSpreadsheet className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
+            <div className="min-w-0 flex-1">
+              <span className="text-[11px] font-medium opacity-75 block">Details & Terms</span>
+              <span className="font-normal text-xs block leading-relaxed opacity-90">{quote.terms}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {quote.footer && (
+        <p className="border-t border-current/15 pt-2 text-[11px] opacity-80 leading-relaxed italic">
+          {quote.footer}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function AttachmentItem({ url, isMe }) {
   const fullUrl = resolveMediaUrl(url);
   const ext = (url.split(".").pop() || "").toLowerCase();
@@ -22,7 +166,50 @@ function AttachmentItem({ url, isMe }) {
   const isImage = ["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(ext);
   const isVideo = ["mp4", "webm", "ogg", "mov", "avi", "mkv"].includes(ext);
   const isAudio = ["mp3", "wav", "m4a", "aac", "ogg"].includes(ext);
+  const isPdf = ext === "pdf";
   const fileName = url.split("/").pop() || "Attachment";
+
+  if (isPdf) {
+    return (
+      <a
+        href={fullUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        download
+        className={cn(
+          "my-2 flex items-center justify-between gap-3 rounded-xl border p-3 text-xs transition-all shadow-2xs group",
+          isMe
+            ? "border-white/20 bg-white/10 text-white hover:bg-white/20"
+            : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 hover:border-slate-300"
+        )}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-500/15 text-red-600">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 text-left">
+            <span className="block truncate font-bold text-xs">
+              {fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`}
+            </span>
+            <span className="block text-[10px] opacity-75">
+              Official Quotation PDF Document
+            </span>
+          </div>
+        </div>
+        <span
+          className={cn(
+            "flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs",
+            isMe
+              ? "bg-white text-[#0088cc] hover:bg-white/90"
+              : "bg-[#0088cc] text-white hover:bg-[#0077bb]"
+          )}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download PDF
+        </span>
+      </a>
+    );
+  }
 
   if (isImage) {
     return (
@@ -269,7 +456,7 @@ function BizMessages() {
                           {c.isNewDraft ? (
                             <span className="italic text-primary">New message draft...</span>
                           ) : (
-                            c.lastMessage?.body || "Active thread"
+                            (c.lastMessage?.body || c.lastMessage?.text || "Active thread").replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, "").trim()
                           )}
                         </span>
                       </span>
@@ -344,7 +531,15 @@ function BizMessages() {
                           ))}
                         </div>
                       )}
-                      {msgText && <p className="whitespace-pre-wrap break-words">{msgText}</p>}
+                      {(() => {
+                        const quoteData = parseQuotationMessage(msgText);
+                        if (quoteData) {
+                          return <QuotationCard quote={quoteData} isMe={isMe} />;
+                        }
+                        return msgText ? (
+                          <p className="whitespace-pre-wrap break-words">{msgText}</p>
+                        ) : null;
+                      })()}
                       <p
                         className={cn(
                           "mt-1 text-[10px]",

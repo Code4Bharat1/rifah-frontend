@@ -115,7 +115,7 @@ function BizEnquiries() {
             {
               key: "buyer",
               header: "BUYER",
-              cell: (r) => r.enquiry?.buyerName || r.buyerName || r.buyer || "Registered Buyer",
+              cell: (r) => r.buyerName || r.enquiry?.buyerName || r.enquiry?.requesterName || r.enquiry?.requester?.name || r.requesterName || r.buyer || "Registered Buyer",
             },
             {
               key: "qty",
@@ -158,7 +158,7 @@ function BizEnquiries() {
                   {r.enquiry?.title || r.title || r.requirement || "Buyer RFQ"}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {r.enquiry?.buyerName || r.buyerName || "Registered Buyer"}
+                  {r.buyerName || r.enquiry?.buyerName || r.enquiry?.requesterName || r.enquiry?.requester?.name || r.requesterName || "Registered Buyer"}
                 </p>
               </div>
               <div className="flex justify-between items-center text-xs text-muted-foreground">
