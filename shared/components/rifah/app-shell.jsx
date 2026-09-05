@@ -131,17 +131,24 @@ function useCurrentPath() {
   return usePathname();
 }
 
-function SidebarLink({ item, active }) {
+function SidebarLink({ item, active, badge }) {
   return (
     <Link
       href={item.to}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         active && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary",
       )}
     >
-      <item.icon className="h-[18px] w-[18px] shrink-0" />
-      <span className="truncate">{item.label}</span>
+      <div className="flex items-center gap-3 min-w-0">
+        <item.icon className="h-[18px] w-[18px] shrink-0" />
+        <span className="truncate">{item.label}</span>
+      </div>
+      {Boolean(badge && badge > 0) && (
+        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white shadow-xs">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </Link>
   );
 }
@@ -219,9 +226,19 @@ export function AppShell({
           </p>
         </div>
         <nav className="mt-2 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
-          {all.map((item) => (
-            <SidebarLink key={item.to + item.label} item={item} active={isActive(item.to)} />
-          ))}
+          {all.map((item) => {
+            let badge = null;
+            if (item.label === "Messages") badge = unreadMsgs;
+            if (item.label === "Notifications") badge = unreadNotifs;
+            return (
+              <SidebarLink
+                key={item.to + item.label}
+                item={item}
+                active={isActive(item.to)}
+                badge={badge}
+              />
+            );
+          })}
         </nav>
         <div className="border-t border-sidebar-border p-3">
           {user && (
@@ -277,7 +294,10 @@ export function AppShell({
                 >
                   <Bell className="h-5 w-5" />
                   {unreadNotifs > 0 && (
-                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#C90000]" />
+                    <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600 border border-white"></span>
+                    </span>
                   )}
                 </Link>
               </Button>
@@ -288,7 +308,10 @@ export function AppShell({
                 >
                   <Mail className="h-5 w-5" />
                   {unreadMsgs > 0 && (
-                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#C90000]" />
+                    <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600 border border-white"></span>
+                    </span>
                   )}
                 </Link>
               </Button>

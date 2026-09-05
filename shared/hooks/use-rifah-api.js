@@ -250,9 +250,10 @@ export function useBusinessReviews(businessId) {
   return useQuery({
     queryKey: ["reviews", businessId],
     queryFn: async () => {
-      if (!businessId) return { reviews: [] };
+      if (!businessId) return [];
       const res = await reviewApi.getByBusiness(businessId);
-      return res?.data || res;
+      const data = res?.data || res;
+      return Array.isArray(data) ? data : (data?.reviews || []);
     },
     enabled: Boolean(businessId),
   });
@@ -284,6 +285,7 @@ export function useConversations() {
         throw err;
       }
     },
+    refetchInterval: 6000,
     retry: false,
   });
 }
@@ -304,6 +306,7 @@ export function useMessages(otherUserId) {
       }
     },
     enabled: Boolean(otherUserId),
+    refetchInterval: 4000,
     retry: false,
   });
 }
@@ -330,6 +333,7 @@ export function useNotifications() {
         throw err;
       }
     },
+    refetchInterval: 8000,
     retry: false,
   });
 }

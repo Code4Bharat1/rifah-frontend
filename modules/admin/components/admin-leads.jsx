@@ -158,7 +158,7 @@ function AdminLeads() {
             columns={[
               { key: "title", header: "Requirement", cell: (r) => <span className="font-semibold">{r.title}</span> },
               { key: "category", header: "Category", cell: (r) => r.category },
-              { key: "buyer", header: "Buyer", cell: (r) => r.requesterName || r.buyerName || "Registered Buyer" },
+              { key: "buyer", header: "Buyer", cell: (r) => r.requesterName || r.requester?.name || r.buyerName || "Registered Buyer" },
               { key: "location", header: "Location", cell: (r) => r.city || r.location },
               { key: "quantity", header: "Quantity", cell: (r) => r.quantity || "On request" },
               { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
@@ -208,7 +208,7 @@ function AdminLeads() {
                 <div className="grid grid-cols-2 gap-4 rounded-lg bg-surface border border-border p-4">
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">Buyer Details</p>
-                    <p className="text-sm font-semibold mt-0.5">{selectedLead?.requesterName || selectedLead?.buyerName || "Registered Buyer"}</p>
+                    <p className="text-sm font-semibold mt-0.5">{selectedLead?.requesterName || selectedLead?.requester?.name || selectedLead?.buyerName || "Registered Buyer"}</p>
                   </div>
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">Target Location</p>
