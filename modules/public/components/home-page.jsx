@@ -54,8 +54,8 @@ function HeroSearch({ compact = false }) {
       }}
       className={
         compact
-          ? "flex gap-2"
-          : "flex flex-col gap-2 rounded-2xl border border-border bg-surface p-2 sm:flex-row sm:items-center"
+          ? "flex gap-2 text-foreground"
+          : "flex flex-col gap-2 rounded-2xl border border-border bg-surface p-2 text-foreground sm:flex-row sm:items-center"
       }
       role="search"
     >
@@ -69,7 +69,7 @@ function HeroSearch({ compact = false }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search businesses, products or services"
-          className="h-12 border-0 bg-transparent pl-9 shadow-none focus-visible:ring-0"
+          className="h-12 border-0 bg-transparent pl-9 text-foreground placeholder:text-muted-foreground shadow-none focus-visible:ring-0"
         />
       </div>
       <Button type="submit" size="lg" className="shrink-0">
