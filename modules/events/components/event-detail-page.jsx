@@ -163,7 +163,7 @@ function EventDetail() {
                   <FieldRow label="Organiser" value={event.organizer} />
                   <FieldRow label="Chapter" value={event.chapter} />
                   <FieldRow label="Mode" value={event.mode} />
-                  <FieldRow label="Location" value={`${event.venue}, ${event.city}`} />
+                  <FieldRow label="Location" value={`${event.venue || ""}${event.city ? `, ${event.city}` : ""}`} />
                   <FieldRow label="Participation fee" value={event.fee} />
                   <FieldRow label="Who should attend" value="Member businesses, buyers and chapter invitees" />
                 </dl>

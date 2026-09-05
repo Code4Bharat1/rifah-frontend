@@ -17,6 +17,9 @@ import {
   RotateCcw,
   Eye,
   EyeOff,
+  Users,
+  BarChart3,
+  Calendar,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -291,61 +294,150 @@ function LoginPage() {
 
   return (
     <PublicLayout bare>
-      <div className="grid min-h-screen lg:grid-cols-2">
-        <div className="hidden flex-col justify-between bg-navy p-10 lg:flex">
-          <RifahLogo className="h-10" onDark />
-          <div>
-            <h2 className="max-w-sm text-3xl font-bold leading-tight tracking-tight text-primary-foreground">
-              One chamber network for discovery, enquiries and verified trade.
-            </h2>
-            <p className="mt-3 max-w-sm text-sm text-primary-foreground/70">
-              Members receive matched buyer enquiries, manage their catalogue and participate in chapter events from a
-              single workspace.
-            </p>
+      <div className="grid h-[calc(100vh-68px)] lg:grid-cols-12 bg-[#f8fafc] overflow-hidden">
+        {/* Left Hero / Brand Showcase (Hidden on mobile, shown on lg+) */}
+        <div className="relative hidden lg:flex lg:col-span-7 flex-col justify-between overflow-hidden bg-[#071328] p-8 xl:p-12 text-white select-none h-full">
+          {/* Skyscraper background image with wider coverage to remove gap */}
+          <div className="absolute right-0 top-0 bottom-0 w-[72%] pointer-events-none select-none overflow-hidden">
+            <img
+              src="/images/login-building.jpg"
+              alt="RIFAH Architecture"
+              className="h-full w-full object-cover object-center"
+            />
+            {/* Smooth gradient fade to blend with text naturally */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#071328] via-[#071328]/75 via-35% to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#071328] via-transparent to-transparent" />
+
+            {/* Red curved accent arc at top-right */}
+            <svg
+              className="absolute -top-3 -right-3 w-48 h-48 pointer-events-none opacity-95"
+              viewBox="0 0 150 150"
+              fill="none"
+            >
+              <path
+                d="M 150 5 C 95 20 40 75 5 150"
+                stroke="#C90000"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+            </svg>
           </div>
-          <p className="text-xs text-primary-foreground/50">RIFAH Connect · Production Authenticated Session</p>
+
+          {/* Top Tag */}
+          <div className="relative z-10 flex items-center gap-2.5">
+            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400">
+              RIFAH CONNECT
+            </span>
+            <div className="h-0.5 w-10 rounded-full bg-sky-500/60" />
+          </div>
+
+          {/* Middle Content: Heading, Subtitle & 4 Pillars */}
+          <div className="relative z-10 my-auto space-y-4 max-w-lg py-2">
+            <h1 className="text-2xl sm:text-3xl lg:text-[34px] font-extrabold tracking-tight text-white leading-[1.2]">
+              One chamber network<br />
+              for discovery, enquiries<br />
+              and <span className="text-[#38bdf8]">verified trade.</span>
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-300/90 leading-relaxed max-w-md">
+              Members receive matched buyer enquiries, manage their catalogue and participate in chapter events from a single workspace.
+            </p>
+
+            {/* 4 Feature Items in a row */}
+            <div className="grid grid-cols-4 gap-2.5 pt-1.5">
+              <div className="flex flex-col items-start gap-1.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
+                  <Users className="h-4 w-4 stroke-[2]" />
+                </div>
+                <span className="text-[11px] font-medium text-slate-200 leading-tight">Verified Network</span>
+              </div>
+              <div className="flex flex-col items-start gap-1.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
+                  <BarChart3 className="h-4 w-4 stroke-[2]" />
+                </div>
+                <span className="text-[11px] font-medium text-slate-200 leading-tight">Business Opportunities</span>
+              </div>
+              <div className="flex flex-col items-start gap-1.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
+                  <Calendar className="h-4 w-4 stroke-[2]" />
+                </div>
+                <span className="text-[11px] font-medium text-slate-200 leading-tight">Events & Collaborations</span>
+              </div>
+              <div className="flex flex-col items-start gap-1.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
+                  <ShieldCheck className="h-4 w-4 stroke-[2]" />
+                </div>
+                <span className="text-[11px] font-medium text-slate-200 leading-tight">Trusted Ecosystem</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Floating Quote Card on bottom-right & Bottom Brand Tag on bottom-left */}
+          <div className="relative z-10 flex items-end justify-between gap-3 pt-2">
+            {/* Tagline on bottom-left */}
+            <div className="flex items-center gap-2">
+              <div className="h-0.5 w-5 bg-slate-500/60" />
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-slate-400 uppercase">
+                TOGETHER FOR A SUSTAINABLE FUTURE
+              </span>
+            </div>
+
+            {/* Frosted Glass Quote Card */}
+            <div className="rounded-xl border border-white/10 bg-slate-900/60 p-3.5 shadow-xl backdrop-blur-md max-w-[210px] text-left">
+              <span className="text-2xl font-serif text-sky-400 leading-none block select-none">“</span>
+              <p className="mt-0.5 text-xs font-bold text-white leading-snug">Stronger Businesses</p>
+              <p className="text-[11px] text-slate-300">A Brighter Tomorrow</p>
+              <div className="mt-2 h-0.5 w-6 rounded-full bg-[#C90000]" />
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center justify-center px-4 py-10 sm:px-8">
-          <div className="w-full max-w-sm">
-            <div className="lg:hidden">
-              <RifahLogo className="h-9" />
+        {/* Right Form Container - Fits on screen without scrolling */}
+        <div className="lg:col-span-5 flex items-center justify-center p-4 sm:p-6 lg:p-8 h-full overflow-hidden">
+          <div className="w-full max-w-[400px] rounded-[24px] border border-slate-200/80 bg-white p-5 sm:p-6 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] space-y-3.5">
+            {/* Header */}
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
+              <p className="mt-0.5 text-xs text-slate-500">Sign in to your RIFAH account</p>
             </div>
-            <h1 className="mt-6 text-2xl font-bold tracking-tight lg:mt-0">Sign in</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Access your RIFAH account using your credentials.
-            </p>
 
             {error && (
-              <div className="mt-4 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+              <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive animate-in fade-in-50">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {successMsg && (
-              <div className="mt-4 flex items-center gap-2 rounded-xl border border-success/30 bg-success-soft p-3 text-xs font-semibold text-success">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-50 p-2.5 text-xs font-semibold text-emerald-700 animate-in fade-in-50">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                 <span>{successMsg}</span>
               </div>
             )}
 
-            <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="h-11"
-                />
+            {/* Form */}
+            <form className="space-y-3" onSubmit={handleSubmit}>
+              {/* Email Field with Left Icon */}
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-[11px] font-semibold text-slate-700">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="h-10 pl-9 rounded-lg bg-[#f0f6ff]/40 border-slate-200 text-xs focus-visible:ring-primary/20"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
+
+              {/* Password Field with Left Icon & Forgot Password Link */}
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-[11px] font-semibold text-slate-700">Password</Label>
                   <button
                     type="button"
                     onClick={() => {
@@ -358,72 +450,106 @@ function LoginPage() {
                       setForgotStep(1);
                       setIsForgotOpen(true);
                     }}
-                    className="text-xs font-semibold text-primary hover:underline"
+                    className="text-[11px] font-semibold text-[#0066cc] hover:underline"
                   >
                     Forgot password?
                   </button>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="h-11"
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="h-10 pl-9 rounded-lg bg-[#f0f6ff]/40 border-slate-200 text-xs focus-visible:ring-primary/20"
+                  />
+                </div>
               </div>
-              <label className="flex items-center gap-2.5 text-sm">
-                <Checkbox defaultChecked /> <span>Keep me signed in</span>
+
+              {/* Keep me signed in */}
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer pt-0.5 select-none">
+                <Checkbox
+                  id="keep-signed"
+                  defaultChecked
+                  className="h-3.5 w-3.5 rounded border-slate-300 data-[state=checked]:bg-[#0066cc] data-[state=checked]:border-[#0066cc]"
+                />
+                <span className="text-[11px]">Keep me signed in</span>
               </label>
-              <Button type="submit" size="lg" className="w-full" disabled={loading}>
+
+              {/* Sign In Button */}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full h-10 rounded-lg bg-[#0066cc] hover:bg-[#0052a3] text-white font-semibold text-xs shadow-md shadow-blue-500/20 flex items-center justify-center gap-1.5 transition-all"
+              >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Signing in...
                   </>
                 ) : (
-                  "Sign in"
+                  <>
+                    <span>Sign in</span>
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </>
                 )}
               </Button>
             </form>
 
-            <div className="my-5 flex items-center gap-3">
-              <span className="h-px flex-1 bg-border" />
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">or</span>
-              <span className="h-px flex-1 bg-border" />
+            {/* Divider */}
+            <div className="relative my-2.5 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <span className="relative bg-white px-2.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                OR
+              </span>
             </div>
 
+            {/* Google Login Button */}
             <GoogleAuthButton
               roleTarget="customer"
               text="Continue with Google"
+              className="h-10 rounded-lg border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-2xs"
               onError={(msg) => setError(msg)}
             />
 
-            <div className="my-6 border-t border-border" />
-
-            <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Don&apos;t have an account?</p>
-              <div className="grid gap-2">
+            {/* Don't have an account? Section */}
+            <div className="mt-3 rounded-xl border border-slate-200/80 bg-[#f8fafc] p-2.5 space-y-1.5">
+              <p className="text-[11px] font-semibold text-slate-800">Don&apos;t have an account?</p>
+              <div className="grid gap-1.5">
                 <Link
                   href="/register"
-                  className="flex items-center justify-between rounded-xl border border-border bg-surface p-3 text-left text-sm font-medium transition-colors hover:border-primary/40 hover:bg-muted/40"
+                  className="group flex items-center justify-between rounded-lg border border-slate-200/80 bg-white p-2 transition-all hover:border-slate-300 hover:shadow-2xs"
                 >
-                  <div>
-                    <span className="block font-semibold">Create a buyer account</span>
-                    <span className="block text-xs text-muted-foreground">Post sourcing enquiries and find members</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-600">
+                      <UserRound className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <span className="block text-[11px] font-bold text-slate-800">Create a buyer account</span>
+                      <span className="block text-[10px] text-slate-500">Post sourcing enquiries and find members</span>
+                    </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 ml-1" />
                 </Link>
 
                 <Link
                   href="/register-business"
-                  className="flex items-center justify-between rounded-xl border border-border bg-surface p-3 text-left text-sm font-medium transition-colors hover:border-primary/40 hover:bg-muted/40"
+                  className="group flex items-center justify-between rounded-lg border border-slate-200/80 bg-white p-2 transition-all hover:border-slate-300 hover:shadow-2xs"
                 >
-                  <div>
-                    <span className="block font-semibold">Register your business</span>
-                    <span className="block text-xs text-muted-foreground">Join chamber directory & receive sales leads</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-600">
+                      <Building2 className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <span className="block text-[11px] font-bold text-slate-800">Register your business</span>
+                      <span className="block text-[10px] text-slate-500">Join chamber directory & receive sales leads</span>
+                    </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 ml-1" />
                 </Link>
               </div>
             </div>
