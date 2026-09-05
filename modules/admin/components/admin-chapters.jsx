@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { MapPin, Plus, Users, Loader2, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -127,7 +128,11 @@ function AdminChapters() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => setAdminModalChapter(r)}>Assign Admin</DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/chapters/${r._id || r.id}`}>
+                          View Details & Manage Admin
+                        </Link>
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => handleUpdateStatus(r._id || r.id, "Active")} disabled={r.status === "Active"}>
                         Mark as Active

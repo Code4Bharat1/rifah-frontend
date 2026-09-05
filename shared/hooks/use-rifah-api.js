@@ -100,6 +100,18 @@ export function useChapters() {
   });
 }
 
+export function useChapterDetails(id) {
+  return useQuery({
+    queryKey: ["chapters", id, "details"],
+    queryFn: async () => {
+      if (!id) return null;
+      const res = await chapterApi.getChapterDetails(id);
+      return res?.data || res;
+    },
+    enabled: Boolean(id),
+  });
+}
+
 // ==================== ENQUIRIES & LEADS ====================
 
 export function useMyEnquiries(params = {}) {

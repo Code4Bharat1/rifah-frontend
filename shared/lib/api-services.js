@@ -78,6 +78,7 @@ export const categoryApi = {
 export const chapterApi = {
   list: () => apiClient("/chapters"),
   getById: (id) => apiClient(`/chapters/${id}`),
+  getChapterDetails: (id) => apiClient(`/chapters/${id}/details`),
   create: (data) => apiClient("/chapters", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/chapters/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   addUnit: (chapterId, data) => apiClient(`/chapters/${chapterId}/units`, { method: "POST", body: JSON.stringify(data) }),
