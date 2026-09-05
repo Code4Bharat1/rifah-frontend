@@ -1,0 +1,49 @@
+{
+  "Navbar": {
+    "login": "Log in",
+    "register": "Join Network",
+    "dashboard": "Dashboard",
+    "myRifah": "My RIFAH",
+    "logout": "Log out",
+    "nav": {
+      "discover": "Discover",
+      "catalogue": "Products & Services",
+      "events": "Events",
+      "membership": "Membership",
+      "about": "About RIFAH",
+      "contact": "Contact"
+    }
+  },
+  "Login": {
+    "title": "Welcome back",
+    "subtitle": "Sign in to your account to continue",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "Password",
+    "forgotPassword": "Forgot password?",
+    "keepSignedIn": "Keep me signed in",
+    "signInButton": "Sign in",
+    "signingIn": "Signing in...",
+    "continueWithGoogle": "Continue with Google",
+    "noAccount": "Don't have an account?",
+    "joinNow": "Join RIFAH"
+  },
+  "Discover": {
+    "title": "Discover businesses",
+    "subtitle": "Search verified RIFAH member businesses by industry, product, service, location or chapter.",
+    "searchPlaceholder": "Search businesses, products or services",
+    "searchButton": "Search",
+    "filters": "Filters",
+    "industry": "Industry",
+    "allIndustries": "All industries",
+    "city": "City",
+    "allCities": "All cities",
+    "chapter": "RIFAH chapter",
+    "allChapters": "All chapters",
+    "membershipLevel": "Membership level",
+    "verifiedOnly": "Verified members only",
+    "businessesFound": "businesses found",
+    "clearAllFilters": "Clear all filters",
+    "verified": "Verified"
+  }
+}

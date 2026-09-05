@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, Search, SlidersHorizontal, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { BusinessCard, CompactBusinessCard } from "@shared/components/rifah/business-card";
 import { EmptyState, SkeletonCard } from "@shared/components/rifah/empty-state";
@@ -25,6 +26,7 @@ function DiscoverPage() {
   const search = Object.fromEntries(searchParams ? searchParams.entries() : []);
   const router = useRouter();
   const [query, setQuery] = useState(search.q || search.search || "");
+  const t = useTranslations("Discover");
 
   const { data: businessesData, isLoading } = useBusinesses({
     search: search.q || search.search,
@@ -68,20 +70,20 @@ function DiscoverPage() {
     search.industry && { label: search.industry, clear: () => setParam({ industry: undefined }) },
     search.city && { label: search.city, clear: () => setParam({ city: undefined }) },
     search.chapter && { label: search.chapter, clear: () => setParam({ chapter: undefined }) },
-    search.membership && { label: `${search.membership} member`, clear: () => setParam({ membership: undefined }) },
-    search.verified && { label: "Verified only", clear: () => setParam({ verified: undefined }) },
+    search.membership && { label: search.membership, clear: () => setParam({ membership: undefined }) },
+    search.verified && { label: t("verifiedOnly"), clear: () => setParam({ verified: undefined }) },
   ].filter(Boolean);
 
   const filters = (
     <div className="space-y-5">
       <div>
-        <Label htmlFor="f-industry">Industry</Label>
+        <Label htmlFor="f-industry">{t("industry")}</Label>
         <Select value={search.industry ?? "all"} onValueChange={(v) => setParam({ industry: v === "all" ? undefined : v })}>
           <SelectTrigger id="f-industry" className="mt-1.5">
-            <SelectValue placeholder="All industries" />
+            <SelectValue placeholder={t("allIndustries")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All industries</SelectItem>
+            <SelectItem value="all">{t("allIndustries")}</SelectItem>
             {mainCategories.length > 0 ? (
               <>
                 {mainCategories.map(mc => {
@@ -108,61 +110,66 @@ function DiscoverPage() {
         </Select>
       </div>
       <div>
-        <Label htmlFor="f-city">City</Label>
+        <Label htmlFor="f-city">{t("city")}</Label>
         <Select value={search.city ?? "all"} onValueChange={(v) => setParam({ city: v === "all" ? undefined : v })}>
           <SelectTrigger id="f-city" className="mt-1.5">
-            <SelectValue placeholder="All cities" />
+            <SelectValue placeholder={t("allCities")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All cities</SelectItem>
-            {cities.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
+            <SelectItem value="all">{t("allCities")}</SelectItem>
+            {cities.map((city) => (
+              <SelectItem key={city} value={city}>
+                {city}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       <div>
-        <Label htmlFor="f-chapter">RIFAH chapter</Label>
+        <Label htmlFor="f-chapter">{t("chapter")}</Label>
         <Select value={search.chapter ?? "all"} onValueChange={(v) => setParam({ chapter: v === "all" ? undefined : v })}>
           <SelectTrigger id="f-chapter" className="mt-1.5">
-            <SelectValue placeholder="All chapters" />
+            <SelectValue placeholder={t("allChapters")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All chapters</SelectItem>
-            {chaptersList.map((c) => (
-              <SelectItem key={c._id || c.name} value={c.name}>
-                {c.name}
+            <SelectItem value="all">{t("allChapters")}</SelectItem>
+            {chaptersList.map((ch) => (
+              <SelectItem key={ch._id || ch.name} value={ch.name}>
+                {ch.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       <fieldset>
-        <legend className="text-sm font-medium">Membership level</legend>
-        <div className="mt-2 space-y-2">
-          {membershipLevels.map((m) => (
-            <label key={m} className="flex min-h-9 items-center gap-2.5 text-sm">
+        <Label htmlFor="f-membership">{t("membershipLevel")}</Label>
+        <div className="mt-3 space-y-2.5">
+          {membershipLevels.map((lvl) => (
+            <label key={lvl} className="flex min-h-9 items-center gap-2.5 text-sm">
               <Checkbox
-                checked={search.membership === m}
-                onCheckedChange={(c) => setParam({ membership: c ? m : undefined })}
+                checked={search.membership === lvl}
+                onCheckedChange={(c) => setParam({ membership: c ? lvl : undefined })}
               />
-              {m}
+              {lvl}
             </label>
           ))}
         </div>
       </fieldset>
-      <label className="flex min-h-11 items-center gap-2.5 text-sm font-medium">
-        <Checkbox checked={!!search.verified} onCheckedChange={(c) => setParam({ verified: c ? true : undefined })} />
-        Verified businesses only
-      </label>
+      <div>
+        <label className="flex items-center gap-2 text-sm font-medium leading-none cursor-pointer">
+          <Checkbox
+            checked={!!search.verified}
+            onCheckedChange={(c) => setParam({ verified: c ? true : undefined })}
+          />
+          {t("verifiedOnly")}
+        </label>
+      </div>
       <Button
         variant="outline"
         className="w-full"
         onClick={() => router.push("/discover")}
       >
-        Clear all filters
+        {t("clearAllFilters")}
       </Button>
     </div>
   );
@@ -170,11 +177,9 @@ function DiscoverPage() {
   return (
     <PublicLayout>
       <div className="border-b border-border bg-surface">
-        <div className="rifah-container py-5 md:py-8">
-          <h1 className="text-xl font-bold tracking-tight md:text-3xl">Discover businesses</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Search verified RIFAH member businesses by industry, product, service, location or chapter.
-          </p>
+        <div className="rifah-container py-8 lg:py-12">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground lg:text-4xl">{t("title")}</h1>
+          <p className="mt-2 max-w-2xl text-base text-muted-foreground">{t("subtitle")}</p>
           <form
             className="mt-4 flex gap-2"
             role="search"
@@ -188,13 +193,13 @@ function DiscoverPage() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search businesses, products or services"
+                placeholder={t("searchPlaceholder")}
                 className="h-11 pl-9"
-                aria-label="Search businesses, products or services"
+                aria-label={t("searchPlaceholder")}
               />
             </div>
             <Button type="submit" className="shrink-0">
-              Search
+              {t("searchButton")}
             </Button>
           </form>
 
@@ -203,7 +208,7 @@ function DiscoverPage() {
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="shrink-0">
-                  <SlidersHorizontal className="h-4 w-4" /> Filters
+                  <SlidersHorizontal className="h-4 w-4" /> {t("filters")}
                   {activeChips.length > 0 && (
                     <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">
                       {activeChips.length}
@@ -213,7 +218,7 @@ function DiscoverPage() {
               </SheetTrigger>
               <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-3xl">
                 <SheetHeader>
-                  <SheetTitle className="text-left">Filter businesses</SheetTitle>
+                  <SheetTitle className="text-left">{t("filters")}</SheetTitle>
                 </SheetHeader>
                 <div className="pt-4">{filters}</div>
               </SheetContent>
@@ -240,7 +245,7 @@ function DiscoverPage() {
                   search.verified && "border-primary bg-primary-soft text-primary",
                 )}
               >
-                Verified
+                {t("verified")}
               </button>
             </div>
           </div>
@@ -249,16 +254,16 @@ function DiscoverPage() {
 
       <div className="rifah-container grid gap-6 py-6 lg:grid-cols-[268px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
-          <Panel title="Filters" className="sticky top-24">
+          <Panel title={t("filters")} className="sticky top-24">
             {filters}
           </Panel>
         </aside>
 
         <div className="min-w-0">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{results.length}</span> businesses found
-            </p>
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <span className="text-foreground">{results.length}</span> {t("businessesFound")}
+            </div>
             <Select
               value={search.sort ?? "recommended"}
               onValueChange={(v) => setParam({ sort: v })}

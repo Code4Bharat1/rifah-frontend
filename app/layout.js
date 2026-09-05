@@ -1,4 +1,6 @@
 import { Providers } from "@shared/providers/providers";
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import "@/app/globals.css";
 
 export const metadata = {
@@ -18,9 +20,12 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -31,7 +36,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        <NextIntlClientProvider messages={messages} locale={locale}>
+          <Providers>{children}</Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

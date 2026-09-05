@@ -14,21 +14,22 @@ import {
   Star,
   UserRound,
 } from "lucide-react";
-
+import { useTranslations } from "next-intl";
 
 import { RifahLogo } from "@shared/components/rifah/brand";
+import { LanguageSelector } from "@shared/components/rifah/language-selector";
 import { Button } from "@shared/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
 import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
 
 const primaryNav = [
-  { label: "Discover", to: "/discover" },
-  { label: "Products & Services", to: "/catalogue" },
-  { label: "Events", to: "/events" },
-  { label: "Membership", to: "/membership" },
-  { label: "About RIFAH", to: "/about" },
-  { label: "Contact", to: "/contact" },
+  { tKey: "discover", to: "/discover" },
+  { tKey: "catalogue", to: "/catalogue" },
+  { tKey: "events", to: "/events" },
+  { tKey: "membership", to: "/membership" },
+  { tKey: "about", to: "/about" },
+  { tKey: "contact", to: "/contact" },
 ];
 
 const mobileTabs = [
@@ -42,6 +43,7 @@ const mobileTabs = [
 export function PublicHeader() {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuth();
+  const t = useTranslations("Navbar");
 
   const handleLogout = () => {
     logout();
@@ -62,7 +64,7 @@ export function PublicHeader() {
               href={item.to }
               className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              {item.label}
+              {t(`nav.${item.tKey}`)}
             </Link>
           ))}
         </nav>
@@ -75,8 +77,9 @@ export function PublicHeader() {
           </Button>
           {isAuthenticated ? (
             <>
+              <LanguageSelector />
               <Button asChild variant="ghost" className="hidden md:inline-flex">
-                <Link href={dashboardPath}>Dashboard</Link>
+                <Link href={dashboardPath}>{t("dashboard")}</Link>
               </Button>
               <div className="hidden items-center gap-1.5 md:flex">
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
@@ -89,11 +92,12 @@ export function PublicHeader() {
             </>
           ) : (
             <>
+              <LanguageSelector />
               <Button asChild variant="ghost" className="hidden md:inline-flex">
-                <Link href="/login">Log in</Link>
+                <Link href="/login">{t("login")}</Link>
               </Button>
               <Button asChild variant="brand" className="hidden sm:inline-flex">
-                <Link href="/register-business">Join RIFAH</Link>
+                <Link href="/register-business">{t("register")}</Link>
               </Button>
             </>
           )}
