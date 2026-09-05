@@ -171,7 +171,7 @@ export const notificationApi = {
 export const eventApi = {
   list: (params = {}) => apiClient(`/events${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/events/detail/${idOrSlug}`),
-  register: (id) => apiClient(`/events/${id}/register`, { method: "POST" }),
+  register: (id) => apiClient(`/events/${id}/register`, { method: "POST", body: JSON.stringify({}) }),
   create: (data) => apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/events/${id}`, { method: "DELETE" }),

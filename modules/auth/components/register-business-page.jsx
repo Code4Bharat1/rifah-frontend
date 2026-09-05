@@ -82,7 +82,7 @@ function RegisterBusiness() {
     businessName: "",
     businessType: "Proprietorship",
     industry: "Manufacturing",
-    founded: "2018",
+    founded: "",
     employees: "11–50",
     about: "",
     contactPerson: "",
@@ -91,7 +91,8 @@ function RegisterBusiness() {
     password: "",
     taxId: "",
     address: "",
-    city: "Mumbai",
+    city: "",
+    pincode: "",
     chapter: "Mumbai Chapter",
   });
 
@@ -232,16 +233,37 @@ function RegisterBusiness() {
 
         // Instantly populate form fields directly from verified GST records
         const fetchedName = data.businessName || data.tradeName || data.legalName || "";
+        const contactPerson = data.contactPerson || data.authorizedSignatory || data.promoter || data.legalName || "";
+        const phone = data.phone || data.mobile || "";
+        const email = data.email || "";
+        const address = data.address || "";
+        const city = data.city || "";
+        const pincode = data.pincode || "";
+        const founded = data.founded ? String(data.founded) : "";
+
+        // Auto-match chapter based on city or state
+        let matchingChapter = "";
+        if (city) {
+          const directMatch = chapters.find((c) => c.name.toLowerCase().includes(city.toLowerCase()));
+          if (directMatch) matchingChapter = directMatch.name;
+        }
+        if (!matchingChapter && data.state) {
+          const stateMatch = chapters.find((c) => c.name.toLowerCase().includes(data.state.toLowerCase()));
+          if (stateMatch) matchingChapter = stateMatch.name;
+        }
+
         setFormData((prev) => ({
           ...prev,
           businessName: fetchedName || prev.businessName,
           businessType: data.businessType || prev.businessType,
-          founded: data.founded ? String(data.founded) : prev.founded,
-          address: data.address || prev.address,
-          city: data.city || prev.city,
-          chapter: chapters.some((c) => c.name === `${data.city} Chapter`)
-            ? `${data.city} Chapter`
-            : prev.chapter,
+          founded: founded || prev.founded,
+          contactPerson: contactPerson || prev.contactPerson,
+          phone: phone || prev.phone,
+          email: email || prev.email,
+          address: address || prev.address,
+          city: city || prev.city,
+          pincode: pincode || prev.pincode,
+          chapter: matchingChapter || prev.chapter,
         }));
 
         setGstSuccessMsg(
@@ -295,6 +317,8 @@ function RegisterBusiness() {
         city: formData.city,
         state: "Maharashtra",
         address: formData.address,
+        pincode: formData.pincode,
+        founded: formData.founded,
         chapter: formData.chapter,
         membership: tier,
         about: formData.about,
@@ -546,12 +570,15 @@ function RegisterBusiness() {
                           value={formData.taxId}
                           onChange={(e) => {
                             const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-                            setFormData({ ...formData, taxId: val });
+                            setFormData((prev) => ({ ...prev, taxId: val }));
                             setGstVerified(false);
                             setGstData(null);
                             setGstSuccessMsg("");
                             setGstErrorMsg("");
                             setError("");
+                            if (val.length === 15) {
+                              handleVerifyGst(val);
+                            }
                           }}
                           placeholder="e.g. 27AAACT2727Q1ZW"
                           className="font-mono uppercase tracking-wider text-sm h-10 pr-8"
@@ -592,7 +619,7 @@ function RegisterBusiness() {
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      Enter official 15-character Goods and Services Tax Identification Number (GSTIN) and click Verify.
+                      Enter official 15-character Goods and Services Tax Identification Number (GSTIN) to auto-fetch details.
                     </p>
 
                     {/* Error message */}
@@ -603,32 +630,12 @@ function RegisterBusiness() {
                       </div>
                     )}
 
-                    {/* Verified Status Card (Details are auto-populated directly) */}
+                    {/* Verified Status Note */}
                     {gstVerified && (
-                      <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-950/20 p-3 shadow-2xs space-y-1.5 animate-in fade-in-50 duration-300">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                            GSTIN Verified
-                          </span>
-                          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                            Status: {gstData?.taxpayerStatus || gstData?.status || "Active Taxpayer"}
-                          </span>
-                        </div>
-                        {(gstData?.businessName || gstData?.legalName || gstData?.tradeName) && (
-                          <p className="text-xs font-semibold text-foreground">
-                            {gstData.businessName || gstData.legalName || gstData.tradeName}
-                            {gstData.state && <span className="font-normal text-muted-foreground"> • {gstData.state}</span>}
-                            {gstData.businessType && <span className="font-normal text-muted-foreground"> • {gstData.businessType}</span>}
-                          </p>
-                        )}
-                        {gstSuccessMsg && (
-                          <div className="text-[11px] text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 font-medium pt-0.5 border-t border-emerald-500/15 mt-1.5">
-                            <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                            <span>{gstSuccessMsg}</span>
-                          </div>
-                        )}
-                      </div>
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 animate-in fade-in-50">
+                        <Check className="h-3.5 w-3.5 shrink-0" />
+                        <span>GSTIN Verified — details automatically filled into form fields.</span>
+                      </p>
                     )}
                   </div>
 
@@ -767,35 +774,38 @@ function RegisterBusiness() {
                       id="baddress"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      placeholder="Street, area"
+                      placeholder="Street, area, premises"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="bcity">City</Label>
-                    <Select
+                    <Label htmlFor="bcity">City *</Label>
+                    <Input
+                      id="bcity"
+                      required
                       value={formData.city}
-                      onValueChange={(v) => setFormData({ ...formData, city: v })}
-                    >
-                      <SelectTrigger id="bcity">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cities.map((c) => (
-                          <SelectItem key={c} value={c}>
-                            {c}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="e.g. Mumbai, Bhopal, Bhubaneswar"
+                    />
                   </div>
                   <div className="space-y-1.5">
+                    <Label htmlFor="bpincode">Pincode / Postal code</Label>
+                    <Input
+                      id="bpincode"
+                      maxLength={6}
+                      inputMode="numeric"
+                      value={formData.pincode}
+                      onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, "") })}
+                      placeholder="6-digit pincode"
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="bchapter">RIFAH chapter</Label>
                     <Select
                       value={formData.chapter}
                       onValueChange={(v) => setFormData({ ...formData, chapter: v })}
                     >
                       <SelectTrigger id="bchapter">
-                        <SelectValue placeholder="Select" />
+                        <SelectValue placeholder="Select chapter" />
                       </SelectTrigger>
                       <SelectContent>
                         {chapters.map((c) => (

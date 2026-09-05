@@ -35,7 +35,12 @@ function DiscoverPage() {
     verified: search.verified,
   });
 
-  const chaptersList = chaptersData || [];
+  const { data: chaptersData } = useChapters();
+  const chaptersList = Array.isArray(chaptersData?.chapters)
+    ? chaptersData.chapters
+    : Array.isArray(chaptersData)
+    ? chaptersData
+    : [];
 
   const { data: categoriesData } = useCategories();
   const categories = Array.isArray(categoriesData) ? categoriesData : [];

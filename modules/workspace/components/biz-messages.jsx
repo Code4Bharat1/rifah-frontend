@@ -2,7 +2,7 @@
 import { ArrowLeft, Send, Loader2, MessageSquare, Paperclip, FileText, Image as ImageIcon, Film, Download, X } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
@@ -79,7 +79,7 @@ function BizMessages() {
   const { user } = useAuth();
 
   const { data: convData, refetch: refetchConversations } = useConversations();
-  const conversations = convData || [];
+  const conversations = useMemo(() => convData || [], [convData]);
 
   const [activeOtherUser, setActiveOtherUser] = useState(null);
   const [openOnMobile, setOpenOnMobile] = useState(false);
@@ -97,19 +97,22 @@ function BizMessages() {
         (c) => String(c.otherUser?._id) === String(targetUserId)
       );
       if (existing) {
-        setActiveOtherUser(existing.otherUser);
-      } else {
+        if (activeOtherUser !== existing.otherUser) {
+          setActiveOtherUser(existing.otherUser);
+          setOpenOnMobile(true);
+        }
+      } else if (String(activeOtherUser?._id) !== String(targetUserId)) {
         setActiveOtherUser({
           _id: targetUserId,
           name: targetName ? decodeURIComponent(targetName) : "Buyer / Customer",
           email: "",
         });
+        setOpenOnMobile(true);
       }
-      setOpenOnMobile(true);
     } else if (!activeOtherUser && conversations.length > 0) {
       setActiveOtherUser(conversations[0]?.otherUser);
     }
-  }, [targetUserId, targetName, conversations]);
+  }, [targetUserId, targetName, conversations, activeOtherUser]);
 
   const selectedUserId = activeOtherUser?._id;
   const { data: messagesData, refetch: refetchMessages } = useMessages(selectedUserId);

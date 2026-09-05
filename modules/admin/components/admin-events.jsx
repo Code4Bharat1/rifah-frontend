@@ -29,6 +29,20 @@ function AdminEvents() {
   const { data: eventsData, refetch } = useEvents();
   const events = Array.isArray(eventsData) ? eventsData : [];
 
+  const [filterMode, setFilterMode] = useState("all");
+
+  const totalCount = events.length;
+  const inPersonCount = events.filter((e) => e.mode === "In-person").length;
+  const onlineCount = events.filter((e) => e.mode === "Online").length;
+
+  let displayEvents = events;
+  if (filterMode === "In-person") {
+    displayEvents = events.filter((e) => e.mode === "In-person");
+  } else if (filterMode === "Online") {
+    displayEvents = events.filter((e) => e.mode === "Online");
+  }
+
+
   const [deleteId, setDeleteId] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -64,22 +78,23 @@ function AdminEvents() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Total events" value={String(events.length)} icon={CalendarDays} tone="primary" />
-          <StatCard
-            label="In-person"
-            value={String(events.filter((e) => e.mode === "In-person").length)}
-            tone="success"
-          />
-          <StatCard
-            label="Online / Webinar"
-            value={String(events.filter((e) => e.mode === "Online").length)}
-          />
-          <StatCard label="Program Desk" value="Active" tone="warning" />
+          <button type="button" onClick={() => setFilterMode("all")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Total events" value={String(totalCount)} icon={CalendarDays} tone="primary" />
+          </button>
+          <button type="button" onClick={() => setFilterMode("In-person")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "In-person" ? "ring-2 ring-success ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="In-person" value={String(inPersonCount)} tone="success" />
+          </button>
+          <button type="button" onClick={() => setFilterMode("Online")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Online" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Online / Webinar" value={String(onlineCount)} />
+          </button>
+          <div className="text-left opacity-75">
+            <StatCard label="Program Desk" value="Active" tone="warning" />
+          </div>
         </div>
 
         <Panel title="All events">
           <ResponsiveTable
-            rows={events}
+            rows={displayEvents}
             columns={[
               { 
                 key: "title", 

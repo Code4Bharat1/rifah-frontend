@@ -3,6 +3,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users } from "lucide-react";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useAuth } from "@shared/providers/auth-provider";
 
 import { Pill } from "@shared/components/rifah/badges";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -16,18 +19,63 @@ import { resolveMediaUrl } from "@shared/lib/api-client";
 function EventDetail() {
   const params = useParams();
   const eventId = params?.eventId;
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: event, isLoading } = useEventDetail(eventId);
   const { data: othersData } = useEvents({ status: "Upcoming", limit: 3 });
 
+  const others = Array.isArray(othersData) ? othersData : (othersData?.events || []);
+
   const [registered, setRegistered] = useState(false);
   const [registering, setRegistering] = useState(false);
+
+  const isUserRegistered = Boolean(
+    registered ||
+    (user?._id && Array.isArray(event?.registeredUsers) && event.registeredUsers.some(
+      (u) => String(u?._id || u) === String(user._id)
+    ))
+  );
+
+  const handleRegister = async () => {
+    if (!user) {
+      toast.info("Please log in to RSVP / register for this event");
+      window.location.href = `/login?redirect=/events/${eventId || event?.slug}`;
+      return;
+    }
+
+    if (isUserRegistered) {
+      toast.info("You are already registered for this event!");
+      return;
+    }
+
+    setRegistering(true);
+    try {
+      await eventApi.register(event._id);
+      setRegistered(true);
+      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("RSVP confirmed! You are registered for this event.");
+    } catch (err) {
+      console.error("Register error:", err);
+      const message = err.message || "Failed to register for this event";
+      if (message.toLowerCase().includes("already registered")) {
+        setRegistered(true);
+        toast.info("You are already registered for this event!");
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setRegistering(false);
+    }
+  };
 
   if (isLoading) {
     return (
       <PublicLayout>
-        <div className="rifah-container py-12 text-center text-sm text-muted-foreground">
-          Loading event details...
+        <div className="rifah-container py-16 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="mt-4 text-sm text-muted-foreground">Loading event details...</p>
         </div>
       </PublicLayout>
     );
@@ -46,20 +94,6 @@ function EventDetail() {
       </PublicLayout>
     );
   }
-
-  const others = (othersData?.events || []).filter((e) => e._id !== event._id);
-
-  const handleRegister = async () => {
-    setRegistering(true);
-    try {
-      await eventApi.register(event._id);
-      setRegistered(true);
-    } catch (err) {
-      alert(err.message || "Failed to register. Please make sure you are logged in.");
-    } finally {
-      setRegistering(false);
-    }
-  };
 
   const coverUrl = event.coverImage ? resolveMediaUrl(event.coverImage) : eventImage;
 
@@ -89,11 +123,13 @@ function EventDetail() {
                   <Pill tone={event.status === "Upcoming" ? "success" : "neutral"}>{event.status}</Pill>
                 </div>
                 <h1 className="mt-3 text-xl font-bold leading-tight tracking-tight sm:text-3xl">{event.title}</h1>
-                <p className="mt-2 text-sm text-muted-foreground sm:text-base">{event.summary}</p>
+                <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+                  {event.summary || event.description || "Join this chamber event to connect with members and businesses."}
+                </p>
 
                 <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-4">
                   {[
-                    { icon: CalendarDays, label: "Date", value: event.date },
+                    { icon: CalendarDays, label: "Date", value: event.date ? new Date(event.date).toLocaleDateString() : "TBA" },
                     { icon: Clock, label: "Time", value: event.time },
                     { icon: MapPin, label: "Venue", value: event.venue },
                     { icon: Users, label: "Capacity", value: `${event.seats} seats` },
@@ -127,7 +163,7 @@ function EventDetail() {
                   <FieldRow label="Organiser" value={event.organizer} />
                   <FieldRow label="Chapter" value={event.chapter} />
                   <FieldRow label="Mode" value={event.mode} />
-                  <FieldRow label="Location" value={`${event.venue}, ${event.city}`} />
+                  <FieldRow label="Location" value={`${event.venue || ""}${event.city ? `, ${event.city}` : ""}`} />
                   <FieldRow label="Participation fee" value={event.fee} />
                   <FieldRow label="Who should attend" value="Member businesses, buyers and chapter invitees" />
                 </dl>
@@ -137,20 +173,27 @@ function EventDetail() {
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
             <Panel title="Registration">
-              {registered ? (
-                <div className="rounded-xl border border-success/30 bg-success-soft p-3">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-success">
-                    <CheckCircle2 className="h-4 w-4" /> You're registered
-                  </p>
+              {isUserRegistered ? (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
+                  <div className="mx-auto w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center mb-2">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">You are registered!</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Confirmation sent to your email. Joining details will follow prior to the event.
+                    Confirmation has been recorded. Joining details will be shared prior to the session.
                   </p>
+                  <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground flex justify-between">
+                    <span>Status</span>
+                    <span className="font-semibold text-emerald-600">RSVP Confirmed</span>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div>
                     <p className="text-2xl font-bold tracking-tight">{event.fee}</p>
-                    <p className="text-xs text-muted-foreground">{event.seats - (event.registeredCount || 0)} seats remaining</p>
+                    <p className="text-xs text-muted-foreground">
+                      {Math.max(0, (event.seats || 100) - (event.registeredCount || 0))} seats remaining
+                    </p>
                   </div>
                   <Button
                     className="w-full"
@@ -170,7 +213,7 @@ function EventDetail() {
                   {others.map((o) => (
                     <li key={o._id || o.slug}>
                       <Link href={`/events/${o.slug || o._id}`} className="group block">
-                        <p className="text-xs font-semibold text-primary">{o.date}</p>
+                        <p className="text-xs font-semibold text-primary">{o.date ? new Date(o.date).toLocaleDateString() : ""}</p>
                         <p className="text-sm font-medium leading-snug group-hover:underline">{o.title}</p>
                         <p className="text-xs text-muted-foreground">{o.city} · {o.mode}</p>
                       </Link>

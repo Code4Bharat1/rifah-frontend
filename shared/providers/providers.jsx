@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { AuthProvider } from "./auth-provider";
 import { PrototypeActionProvider } from "@shared/components/rifah/prototype-action";
+import { Toaster } from "@shared/components/ui/sonner";
 
 export function Providers({ children }) {
   const [queryClient] = useState(
@@ -20,7 +21,10 @@ export function Providers({ children }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <PrototypeActionProvider>{children}</PrototypeActionProvider>
+        <PrototypeActionProvider>
+          {children}
+          <Toaster richColors position="top-center" />
+        </PrototypeActionProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

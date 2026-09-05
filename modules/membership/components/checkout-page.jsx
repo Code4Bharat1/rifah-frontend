@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2 } from "lucide-react";
+import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2, ArrowRight, FileText, Printer, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -395,27 +395,57 @@ function Checkout() {
               )}
 
               {step === 3 && (
-                <Panel title="Membership confirmed">
-                  <div className="text-center sm:text-left">
-                    <span className="inline-grid h-12 w-12 place-items-center rounded-full bg-success-soft text-success">
-                      <CheckCircle2 className="h-6 w-6" />
+                <div className="rounded-2xl border border-emerald-200/90 bg-white p-6 sm:p-8 shadow-sm dark:bg-card dark:border-emerald-900/50">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-600" /> Payment Successful & Confirmed
                     </span>
-                    <h2 className="mt-3 text-lg font-bold tracking-tight">
-                      {active.name} membership activated
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Invoice {invoiceId || "INV-4821"} has been generated. Your business profile now reflects the {active.name} tier and priority lead routing rules apply from today.
-                    </p>
-                    <div className="mt-5 grid gap-2 sm:max-w-xs">
-                      <Button asChild>
-                        <Link href="/biz">Go to business dashboard</Link>
-                      </Button>
-                      <Button asChild variant="outline">
-                        <Link href="/biz/membership">View membership & invoices</Link>
-                      </Button>
+                  </div>
+
+                  <div className="mt-5 flex items-start gap-4">
+                    <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/20">
+                      <CheckCircle2 className="h-7 w-7 sm:h-8 sm:w-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                        {active.name} Membership Activated
+                      </h2>
+                      <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                        Invoice <span className="font-mono font-bold text-foreground">{invoiceId || "INV-8661"}</span> has been issued. Your business profile now holds the official{" "}
+                        <strong className="text-foreground font-semibold">{active.name} Tier</strong> with chamber privileges active from today.
+                      </p>
                     </div>
                   </div>
-                </Panel>
+
+                  {/* Features list */}
+                  <div className="mt-6 rounded-xl bg-slate-50/80 p-4 border border-slate-200/80 dark:bg-muted/30 dark:border-border/60">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                      Privileges Unlocked with {active.name}:
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {active.features?.map((f, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs font-medium text-foreground">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-6 flex flex-col gap-2.5">
+                    <Button asChild size="lg" className="w-full shadow-sm">
+                      <Link href="/biz" className="flex items-center justify-center gap-2">
+                        Go to Business Dashboard <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="lg" className="w-full">
+                      <Link href="/biz/membership" className="flex items-center justify-center gap-2">
+                        <FileText className="h-4 w-4" /> View Membership & Invoices
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               )}
 
               {step < 3 && (
@@ -454,31 +484,100 @@ function Checkout() {
             </div>
 
             <aside className="lg:sticky lg:top-24 lg:self-start">
-              <Panel title="Order summary">
-                <dl className="space-y-2.5 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">Plan</dt>
-                    <dd className="font-semibold">{active.name}</dd>
+              {step === 3 ? (
+                <Panel title="Tax Invoice Receipt">
+                  <div className="space-y-4 text-sm">
+                    <div className="flex items-center justify-between pb-3 border-b border-border">
+                      <span className="text-xs text-muted-foreground">Status</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                        ● Paid & Active
+                      </span>
+                    </div>
+
+                    <dl className="space-y-2.5 text-xs">
+                      <div className="flex justify-between items-center">
+                        <dt className="text-muted-foreground">Invoice No.</dt>
+                        <dd className="font-mono font-bold text-foreground">{invoiceId || "INV-8661"}</dd>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <dt className="text-muted-foreground">Date</dt>
+                        <dd className="font-medium text-foreground">
+                          {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <dt className="text-muted-foreground">Billed To</dt>
+                        <dd className="font-medium text-foreground text-right truncate max-w-[150px]">
+                          {legalName || business?.name || "Registered Member"}
+                        </dd>
+                      </div>
+                      {gstNumber && (
+                        <div className="flex justify-between items-center">
+                          <dt className="text-muted-foreground">GSTIN</dt>
+                          <dd className="font-mono font-medium text-foreground">{gstNumber}</dd>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center">
+                        <dt className="text-muted-foreground">Plan</dt>
+                        <dd className="font-semibold text-primary">{active.name} (1 Year)</dd>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <dt className="text-muted-foreground">Payment Mode</dt>
+                        <dd className="font-medium text-foreground">Razorpay Online</dd>
+                      </div>
+                    </dl>
+
+                    <div className="pt-3 border-t border-dashed border-border flex justify-between items-baseline">
+                      <span className="text-sm font-semibold text-foreground">Total Paid</span>
+                      <span className="text-lg font-bold text-emerald-600">
+                        ₹ {active.price?.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+
+                    <div className="pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.print()}
+                        className="w-full text-xs flex items-center justify-center gap-1.5 border-dashed"
+                      >
+                        <Printer className="h-3.5 w-3.5" /> Print Tax Receipt
+                      </Button>
+                    </div>
+
+                    <p className="text-[11px] text-muted-foreground text-center pt-1">
+                      Confirmation receipt sent to {billingEmail || business?.email || "registered email"}.
+                    </p>
                   </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">Term</dt>
-                    <dd className="font-medium">1 Year</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">Subtotal</dt>
-                    <dd className="font-medium">₹ {active.price?.toLocaleString("en-IN")}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 border-t border-border pt-2.5">
-                    <dt className="font-semibold">Total</dt>
-                    <dd className="font-bold">₹ {active.price?.toLocaleString("en-IN")}</dd>
-                  </div>
-                </dl>
-                <ul className="mt-4 space-y-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
-                  {active.features?.map((f, i) => (
-                    <li key={i}>• {f}</li>
-                  ))}
-                </ul>
-              </Panel>
+                </Panel>
+              ) : (
+                <Panel title="Order summary">
+                  <dl className="space-y-2.5 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">Plan</dt>
+                      <dd className="font-semibold">{active.name}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">Term</dt>
+                      <dd className="font-medium">1 Year</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">Subtotal</dt>
+                      <dd className="font-medium">₹ {active.price?.toLocaleString("en-IN")}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-t border-border pt-2.5">
+                      <dt className="font-semibold">Total</dt>
+                      <dd className="font-bold">₹ {active.price?.toLocaleString("en-IN")}</dd>
+                    </div>
+                  </dl>
+                  <ul className="mt-4 space-y-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
+                    {active.features?.map((f, i) => (
+                      <li key={i}>• {f}</li>
+                    ))}
+                  </ul>
+                </Panel>
+              )}
             </aside>
           </div>
         </div>

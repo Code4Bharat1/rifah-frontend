@@ -47,7 +47,22 @@ function AdminUsers() {
            (Array.isArray(usersData.data?.users) ? usersData.data.users : []));
   }
   
+  const [roleFilter, setRoleFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState(null);
+
+  const totalCount = rows.length;
+  const businessOwnersCount = rows.filter((u) => u.role === "business_owner").length;
+  const buyersCount = rows.filter((u) => u.role === "customer").length;
+  const secretariatCount = rows.filter((u) => u.role === "super_admin" || u.role === "secretariat").length;
+
+  let displayRows = rows;
+  if (roleFilter === "business_owner") {
+    displayRows = rows.filter((u) => u.role === "business_owner");
+  } else if (roleFilter === "customer") {
+    displayRows = rows.filter((u) => u.role === "customer");
+  } else if (roleFilter === "secretariat") {
+    displayRows = rows.filter((u) => u.role === "super_admin" || u.role === "secretariat");
+  }
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [isInviting, setIsInviting] = useState(false);
@@ -104,20 +119,18 @@ function AdminUsers() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Total accounts" value={String(rows.length)} icon={Users} tone="primary" />
-          <StatCard
-            label="Business owners"
-            value={String(rows.filter((u) => u.role === "business_owner").length)}
-          />
-          <StatCard
-            label="Buyers"
-            value={String(rows.filter((u) => u.role === "customer").length)}
-          />
-          <StatCard
-            label="Secretariat admins"
-            value={String(rows.filter((u) => u.role === "super_admin" || u.role === "secretariat").length)}
-            tone="warning"
-          />
+          <button type="button" onClick={() => setRoleFilter("all")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${roleFilter === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Total accounts" value={String(totalCount)} icon={Users} tone="primary" />
+          </button>
+          <button type="button" onClick={() => setRoleFilter("business_owner")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${roleFilter === "business_owner" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Business owners" value={String(businessOwnersCount)} />
+          </button>
+          <button type="button" onClick={() => setRoleFilter("customer")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${roleFilter === "customer" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Buyers" value={String(buyersCount)} />
+          </button>
+          <button type="button" onClick={() => setRoleFilter("secretariat")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${roleFilter === "secretariat" ? "ring-2 ring-warning ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Secretariat admins" value={String(secretariatCount)} tone="warning" />
+          </button>
         </div>
 
         <div className="relative">
@@ -132,7 +145,7 @@ function AdminUsers() {
 
         <Panel>
           <ResponsiveTable
-            rows={rows}
+            rows={displayRows}
             isLoading={isLoading}
             empty={
               error ? (
