@@ -33,6 +33,9 @@ export default function AdminChapterDetails({ chapterId }) {
   const [adminLoading, setAdminLoading] = useState(false);
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "" });
 
+  const [openStatusModal, setOpenStatusModal] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+
   if (isLoading) {
     return (
       <AppShell role="admin" title="Chapter Details">
@@ -74,6 +77,21 @@ export default function AdminChapterDetails({ chapterId }) {
     }
   };
 
+  const handleToggleStatus = async () => {
+    setStatusLoading(true);
+    try {
+      const newStatus = chapter.status === "Active" ? "Inactive" : "Active";
+      await chapterApi.updateStatus(chapterId, newStatus);
+      toast.success(`Chapter has been ${newStatus === "Active" ? "activated" : "deactivated"}.`);
+      setOpenStatusModal(false);
+      refetch();
+    } catch (error) {
+      toast.error(error.message || "Failed to update chapter status.");
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   return (
     <AppShell
       role="admin"
@@ -99,10 +117,17 @@ export default function AdminChapterDetails({ chapterId }) {
               <p className="text-sm text-muted-foreground">{chapter.address || "No address provided"}</p>
             </div>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
             <Pill tone={chapter.status === "Active" ? "success" : "warning"}>
               {chapter.status}
             </Pill>
+            <Button 
+              size="sm" 
+              variant={chapter.status === "Active" ? "destructive" : "default"} 
+              onClick={() => setOpenStatusModal(true)}
+            >
+              {chapter.status === "Active" ? "Deactivate" : "Activate"}
+            </Button>
           </div>
         </div>
 
@@ -243,6 +268,33 @@ export default function AdminChapterDetails({ chapterId }) {
               {adminLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Change"}
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Toggle Status Modal */}
+      <Dialog open={openStatusModal} onOpenChange={setOpenStatusModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{chapter.status === "Active" ? "Deactivate Chapter" : "Activate Chapter"}</DialogTitle>
+            <DialogDescription>
+              {chapter.status === "Active" 
+                ? "This will block all logins for customers, businesses, and admins associated with this chapter. Are you sure you want to proceed?" 
+                : "This will restore access for all users associated with this chapter. Are you sure?"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setOpenStatusModal(false)} disabled={statusLoading}>
+              Cancel
+            </Button>
+            <Button 
+              variant={chapter.status === "Active" ? "destructive" : "default"} 
+              onClick={handleToggleStatus} 
+              disabled={statusLoading}
+            >
+              {statusLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {chapter.status === "Active" ? "Confirm Deactivation" : "Confirm Activation"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
