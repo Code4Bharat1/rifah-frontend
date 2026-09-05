@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Check, Crown, Download } from "lucide-react";
 import { toast } from "sonner";
@@ -178,13 +178,33 @@ function BizMembership() {
   const [autoRenew, setAutoRenew] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [billingForm, setBillingForm] = useState({
-    legalName: business?.name || "",
-    gstNo: "27AAAAA0000A1Z5",
-    billingEmail: business?.email || "accounts@example.com",
-    address: business?.city ? `${business.city}, India` : "Main Street",
-    city: business?.city || "Mumbai",
-    postalCode: "400001",
+    legalName: "",
+    gstNo: "",
+    billingEmail: "",
+    address: "",
+    city: "",
+    postalCode: "",
   });
+
+  useEffect(() => {
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem("rifah_billing_details") || "null");
+    } catch (err) {}
+
+    if (saved) {
+      setBillingForm(saved);
+    } else if (business) {
+      setBillingForm({
+        legalName: business.name || "",
+        gstNo: business.gstin || business.taxId || "",
+        billingEmail: business.email || "",
+        address: business.address || (business.city ? `${business.city}, India` : ""),
+        city: business.city || "",
+        postalCode: business.pincode || business.postalCode || "",
+      });
+    }
+  }, [business]);
 
   const plans = plansData || {};
   const tierName = membershipData?.planId || business?.membership || "free";
@@ -277,7 +297,7 @@ function BizMembership() {
                   </span>
                 }
               />
-              <FieldRow label="Chapter" value={business?.chapter || "Mumbai Chapter"} />
+              <FieldRow label="Chapter" value={typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || "General Chapter")} />
             </dl>
             <ul className="mt-4 grid gap-2 border-t border-border pt-3 sm:grid-cols-2">
               {currentPlan.features?.map((f, i) => (

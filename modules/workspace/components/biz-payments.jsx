@@ -484,7 +484,7 @@ function BizPayments() {
   ).length;
 
   // 3. Next renewal date
-  let nextRenewalText = backendSummary.nextRenewal || "14 Nov 2026";
+  let nextRenewalText = backendSummary.nextRenewal || null;
   if (membershipData?.expiresAt || membershipData?.validUntil || membershipData?.endDate) {
     const d = new Date(membershipData.expiresAt || membershipData.validUntil || membershipData.endDate);
     nextRenewalText = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -493,17 +493,21 @@ function BizPayments() {
     const d = new Date(latest.paidAt || latest.createdAt || Date.now());
     d.setFullYear(d.getFullYear() + 1);
     nextRenewalText = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  } else {
+    nextRenewalText = "Annual renewal pending";
   }
 
   // 4. Payment method
   const latestPayment = payments[0];
-  let paymentMethodText = backendSummary.latestPaymentMethod || "Card ····4242";
+  let paymentMethodText = backendSummary.latestPaymentMethod || null;
   if (latestPayment?.method) {
     paymentMethodText = latestPayment.method;
   } else if (latestPayment?.transactionId) {
     paymentMethodText = latestPayment.transactionId.startsWith("pay_")
       ? "UPI / Razorpay"
-      : "Card ····4242";
+      : "Card / Netbanking";
+  } else if (!paymentMethodText) {
+    paymentMethodText = payments.length > 0 ? "Online Gateway" : "Not registered";
   }
 
   return (

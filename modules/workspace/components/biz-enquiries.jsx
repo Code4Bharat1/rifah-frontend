@@ -8,22 +8,22 @@ import { StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
-import { useMyLeads } from "@shared/hooks/use-rifah-api";
+import { useBusinessEnquiries } from "@shared/hooks/use-rifah-api";
 
 function formatEnquiryCode(item, index) {
+  if (item.referenceId) return item.referenceId;
   if (item.enquiryCode) return item.enquiryCode;
   if (item.code) return item.code;
+  if (item.enquiry?.referenceId) return item.enquiry.referenceId;
   if (item.enquiry?.code) return item.enquiry.code;
   if (item._id) {
-    const hex = item._id.toString().replace(/[^0-9]/g, "");
-    const num = hex ? parseInt(hex.slice(-4), 10) : 2041;
-    return `ENQ-${isNaN(num) ? 2041 - index : num}`;
+    return `ENQ-${String(item._id).slice(-4).toUpperCase()}`;
   }
-  return `ENQ-${2041 - index}`;
+  return `ENQ-${index + 1}`;
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return "30 Sep 2026";
+  if (!dateStr) return "Immediate / Flexible";
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
   return date.toLocaleDateString("en-GB", {
@@ -33,19 +33,20 @@ function formatDate(dateStr) {
   });
 }
 
-function handleExportList(leads) {
-  if (!leads || leads.length === 0) {
-    toast.error("No enquiries to export");
+function handleExportList(enquiries) {
+  if (!enquiries || enquiries.length === 0) {
+    toast.error("No direct enquiries to export");
     return;
   }
 
-  const headers = ["Enquiry", "Requirement", "Buyer", "Quantity", "Required By", "Status"];
-  const rows = leads.map((r, i) => [
+  const headers = ["Enquiry ID", "Requirement", "Buyer", "Quantity", "Budget", "Required By", "Status"];
+  const rows = enquiries.map((r, i) => [
     `"${formatEnquiryCode(r, i)}"`,
-    `"${(r.enquiry?.title || r.title || r.requirement || "Machined brackets for assembly line").replace(/"/g, '""')}"`,
-    `"${(r.enquiry?.buyerName || r.buyerName || r.buyer || "Registered Buyer").replace(/"/g, '""')}"`,
-    `"${r.enquiry?.quantity || r.quantity || "On request"}"`,
-    `"${formatDate(r.enquiry?.requiredBy || r.requiredBy)}"`,
+    `"${(r.title || r.enquiry?.title || "Requirement").replace(/"/g, '""')}"`,
+    `"${(r.requesterName || r.requester?.name || r.buyerName || "Customer").replace(/"/g, '""')}"`,
+    `"${r.quantity || r.enquiry?.quantity || "On request"}"`,
+    `"${r.budget || "Market standard"}"`,
+    `"${formatDate(r.requiredBy || r.enquiry?.requiredBy)}"`,
     `"${r.status || "New"}"`,
   ]);
 
@@ -59,12 +60,12 @@ function handleExportList(leads) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-  toast.success("Enquiries list exported successfully");
+  toast.success("Enquiries exported successfully");
 }
 
 function BizEnquiries() {
-  const { data: leadsData } = useMyLeads();
-  const rows = Array.isArray(leadsData) ? leadsData : (leadsData?.leads || []);
+  const { data: enquiriesData, isLoading } = useBusinessEnquiries();
+  const rows = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
 
   return (
     <AppShell
@@ -77,6 +78,7 @@ function BizEnquiries() {
           size="sm"
           className="gap-2"
           onClick={() => handleExportList(rows)}
+          disabled={rows.length === 0}
         >
           <Download className="h-4 w-4" />
           Export list
@@ -90,7 +92,7 @@ function BizEnquiries() {
             <EmptyState
               icon={MessageSquare}
               title="No direct enquiries yet"
-              description="Buyers who open your profile or category and submit an enquiry will appear here."
+              description="Buyers who view your business profile and submit a direct requirement will appear here."
             />
           }
           columns={[
@@ -107,25 +109,41 @@ function BizEnquiries() {
               key: "title",
               header: "REQUIREMENT",
               cell: (r) => (
-                <span className="font-medium">
-                  {r.enquiry?.title || r.title || r.requirement || "Buyer RFQ"}
-                </span>
+                <div>
+                  <span className="font-medium text-foreground block">
+                    {r.title || r.enquiry?.title || "Requirement"}
+                  </span>
+                  {Boolean(r.category) && (
+                    <span className="text-xs text-muted-foreground">{r.category}</span>
+                  )}
+                </div>
               ),
             },
             {
               key: "buyer",
               header: "BUYER",
-              cell: (r) => r.buyerName || r.enquiry?.buyerName || r.enquiry?.requesterName || r.enquiry?.requester?.name || r.requesterName || r.buyer || "Registered Buyer",
+              cell: (r) => (
+                <div>
+                  <span className="font-medium text-foreground block">
+                    {r.requesterName || r.requester?.name || r.buyerName || "Customer"}
+                  </span>
+                  {Boolean(r.requester?.email || r.location) && (
+                    <span className="text-xs text-muted-foreground block">
+                      {r.location || r.requester?.email}
+                    </span>
+                  )}
+                </div>
+              ),
             },
             {
               key: "qty",
               header: "QUANTITY",
-              cell: (r) => r.enquiry?.quantity || r.quantity || "On request",
+              cell: (r) => r.quantity || r.enquiry?.quantity || "On request",
             },
             {
               key: "by",
               header: "REQUIRED BY",
-              cell: (r) => formatDate(r.enquiry?.requiredBy || r.requiredBy),
+              cell: (r) => formatDate(r.requiredBy || r.enquiry?.requiredBy),
             },
             {
               key: "status",
@@ -139,34 +157,42 @@ function BizEnquiries() {
                 const buyerId = r.requester?._id || r.requester || r.enquiry?.requester?._id || r.enquiry?.requester || "";
                 return (
                   <Button asChild size="sm" variant="outline" className="h-8 text-xs font-semibold">
-                    <Link href={`/biz/messages?userId=${buyerId}`}>Message</Link>
+                    <Link href={buyerId ? `/biz/messages?userId=${buyerId}` : "/biz/messages"}>Message</Link>
                   </Button>
                 );
               },
             },
           ]}
-          mobile={(r, i) => (
-            <div className="rounded-xl border border-border p-3.5 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">
-                  {formatEnquiryCode(r, i)}
-                </span>
-                <StatusBadge status={r.status || "New"} />
+          mobile={(r, i) => {
+            const buyerId = r.requester?._id || r.requester || r.enquiry?.requester?._id || r.enquiry?.requester || "";
+            return (
+              <div className="rounded-xl border border-border p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {formatEnquiryCode(r, i)}
+                  </span>
+                  <StatusBadge status={r.status || "New"} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">
+                    {r.title || r.enquiry?.title || "Requirement"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {r.requesterName || r.requester?.name || r.buyerName || "Customer"}
+                  </p>
+                </div>
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span>Qty: {r.quantity || r.enquiry?.quantity || "On request"}</span>
+                  <span>Date: {formatDate(r.requiredBy || r.enquiry?.requiredBy)}</span>
+                </div>
+                <div className="pt-1 flex justify-end">
+                  <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                    <Link href={buyerId ? `/biz/messages?userId=${buyerId}` : "/biz/messages"}>Message Buyer</Link>
+                  </Button>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold">
-                  {r.enquiry?.title || r.title || r.requirement || "Buyer RFQ"}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {r.buyerName || r.enquiry?.buyerName || r.enquiry?.requesterName || r.enquiry?.requester?.name || r.requesterName || "Registered Buyer"}
-                </p>
-              </div>
-              <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <span>Qty: {r.enquiry?.quantity || r.quantity || "On request"}</span>
-                <span>Date: {formatDate(r.enquiry?.requiredBy || r.requiredBy)}</span>
-              </div>
-            </div>
-          )}
+            );
+          }}
         />
       </Panel>
     </AppShell>
@@ -175,4 +201,3 @@ function BizEnquiries() {
 
 export { BizEnquiries };
 export default BizEnquiries;
-

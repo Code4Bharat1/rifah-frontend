@@ -6,6 +6,7 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { FieldRow, Panel, Steps } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
+import { toast } from "sonner";
 import { useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { verificationApi } from "@shared/lib/api-services";
 
@@ -72,7 +73,7 @@ function BizVerification() {
       const filePath = fileData?.fileUrl || fileData?.path || fileData?.url;
 
       if (!filePath) {
-        alert("File upload failed — no URL returned from server.");
+        toast.error("File upload failed — no URL returned from server.");
         return;
       }
 
@@ -100,10 +101,10 @@ function BizVerification() {
 
       await fetchVerification();
       await refetchBiz();
-      alert("Document uploaded and submitted for review!");
+      toast.success("Document uploaded and submitted for review!");
     } catch (err) {
       console.error("Upload error:", err);
-      alert(err.message || "Failed to upload document.");
+      toast.error(err.message || "Failed to upload document.");
     } finally {
       setUploadingDoc(null);
     }
@@ -112,6 +113,11 @@ function BizVerification() {
   const status = verificationData?.status || business?.verification || "pending";
   const isVerified = status === "approved" || status === "verified";
   const stepIndex = isVerified ? 3 : status === "under_review" ? 2 : status === "correction_requested" ? 1 : 1;
+
+  const reviewerName =
+    verificationData?.reviewedBy?.name ||
+    verificationData?.reviewerName ||
+    "Secretariat Verification Desk";
 
   return (
     <AppShell role="business" title="Verification" subtitle="RIFAH secretariat vetting status">
@@ -122,7 +128,7 @@ function BizVerification() {
             <dl className="mt-4">
               <FieldRow label="Current status" value={<VerificationBadge status={status} compact />} />
               <FieldRow label="Application Ref" value={`VER-${business?._id?.slice(-6).toUpperCase() || "NEW"}`} />
-              <FieldRow label="Assigned Reviewer" value="Secretariat Verification Desk" />
+              <FieldRow label="Assigned Reviewer" value={reviewerName} />
             </dl>
           </Panel>
 

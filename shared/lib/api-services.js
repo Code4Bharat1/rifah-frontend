@@ -118,6 +118,7 @@ export const catalogueApi = {
 export const enquiryApi = {
   create: (data) => apiClient("/enquiries", { method: "POST", body: JSON.stringify(data) }),
   getMyEnquiries: (params = {}) => apiClient(`/enquiries/me${toQueryString(params)}`),
+  getMyBusinessEnquiries: (params = {}) => apiClient(`/enquiries/business/me${toQueryString(params)}`),
   getAllEnquiries: (params = {}) => apiClient(`/enquiries/admin/all${toQueryString(params)}`),
   getById: (id) => apiClient(`/enquiries/${id}`),
   updateStatus: (id, data) => apiClient(`/enquiries/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),

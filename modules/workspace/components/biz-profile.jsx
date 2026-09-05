@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Eye, FileBadge2, ImagePlus, Loader2, CheckCircle2, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
@@ -87,9 +88,10 @@ function BizProfile() {
       }
       await refetch();
       setSaveSuccess(true);
+      toast.success("Business profile saved successfully!");
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      alert(err.message || "Failed to save business profile.");
+      toast.error(err.message || "Failed to save business profile.");
     } finally {
       setSaving(false);
     }
@@ -100,9 +102,10 @@ function BizProfile() {
     if (!file || !business?._id) return;
     try {
       await businessApi.uploadLogo(business._id, file);
+      toast.success("Logo uploaded successfully");
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to upload logo.");
+      toast.error(err.message || "Failed to upload logo.");
     }
   };
 
@@ -112,9 +115,10 @@ function BizProfile() {
     setUploadingCover(true);
     try {
       await businessApi.uploadCover(business._id, file);
+      toast.success("Cover image updated successfully");
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to upload cover image.");
+      toast.error(err.message || "Failed to upload cover image.");
     } finally {
       setUploadingCover(false);
       e.target.value = "";
@@ -127,9 +131,10 @@ function BizProfile() {
     setUploadingGallery(true);
     try {
       await businessApi.uploadGallery(business._id, files);
+      toast.success("Gallery photos updated successfully");
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to upload gallery photos.");
+      toast.error(err.message || "Failed to upload gallery photos.");
     } finally {
       setUploadingGallery(false);
     }
@@ -141,9 +146,10 @@ function BizProfile() {
     setUploadingCert(true);
     try {
       await businessApi.uploadCertificate(business._id, file);
+      toast.success("Certificate uploaded successfully");
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to upload certificate.");
+      toast.error(err.message || "Failed to upload certificate.");
     } finally {
       setUploadingCert(false);
       e.target.value = "";

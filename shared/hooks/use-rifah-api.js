@@ -124,6 +124,24 @@ export function useMyEnquiries(params = {}) {
   });
 }
 
+export function useBusinessEnquiries(params = {}) {
+  return useQuery({
+    queryKey: ["business-enquiries", params],
+    queryFn: async () => {
+      try {
+        const res = await enquiryApi.getMyBusinessEnquiries(params);
+        return res?.data || res;
+      } catch (err) {
+        if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
+          return [];
+        }
+        throw err;
+      }
+    },
+    retry: false,
+  });
+}
+
 export function useAllEnquiries(params = {}) {
   return useQuery({
     queryKey: ["all-enquiries", params],

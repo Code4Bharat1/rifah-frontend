@@ -1,6 +1,7 @@
 "use client";
 import { Package, Pencil, Plus, Trash2, Loader2, UploadCloud, X, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { EmptyState } from "@shared/components/rifah/empty-state";
@@ -126,9 +127,10 @@ function BizCatalogue() {
       });
       setAddFiles([]);
       setAddPreviews([]);
+      toast.success("Catalogue item added successfully!");
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to add catalogue item.");
+      toast.error(err.message || "Failed to add catalogue item.");
     } finally {
       setLoading(false);
     }
@@ -168,9 +170,10 @@ function BizCatalogue() {
       setEditingItem(null);
       setEditFiles([]);
       setEditPreviews([]);
+      toast.success("Catalogue item updated successfully!");
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to update item.");
+      toast.error(err.message || "Failed to update item.");
     } finally {
       setSavingEdit(false);
     }
@@ -180,9 +183,10 @@ function BizCatalogue() {
     if (!confirm("Are you sure you want to delete this catalogue entry?")) return;
     try {
       await catalogueApi.delete(id);
+      toast.success("Catalogue item deleted");
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to delete item.");
+      toast.error(err.message || "Failed to delete item.");
     }
   };
 

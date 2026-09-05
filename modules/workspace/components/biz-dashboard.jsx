@@ -22,6 +22,7 @@ import { Progress } from "@shared/components/ui/progress";
 import {
   useMyBusiness,
   useMyLeads,
+  useBusinessEnquiries,
   useBusinessCatalogue,
   useBusinessAnalytics,
   useConversations,
@@ -45,6 +46,7 @@ function safeText(val, fallback = "") {
 function BusinessHome() {
   const { data: business } = useMyBusiness();
   const { data: leadsData } = useMyLeads();
+  const { data: enquiriesData } = useBusinessEnquiries();
   const { data: catalogueItems } = useBusinessCatalogue(business?._id);
   const { data: analyticsData } = useBusinessAnalytics();
   const { data: convData } = useConversations();
@@ -52,6 +54,7 @@ function BusinessHome() {
   const { data: reviewsData } = useBusinessReviews(business?._id);
 
   const rawLeads = Array.isArray(leadsData) ? leadsData : leadsData?.leads || [];
+  const rawEnquiries = Array.isArray(enquiriesData) ? enquiriesData : enquiriesData?.enquiries || [];
   const catalogue = catalogueItems || [];
   const stats = analyticsData?.summary || analyticsData || {};
   const conversations = Array.isArray(convData) ? convData : (convData?.conversations || []);
@@ -103,14 +106,29 @@ function BusinessHome() {
 
   // Dynamic Performance Stats
   const totalLeadsCount = rawLeads.length;
+  const totalEnquiriesCount = rawEnquiries.length || stats.enquiries || 0;
   const wonCount = rawLeads.filter((l) => ["Won", "Responded"].includes(l.status)).length;
   const conversionRate = totalLeadsCount > 0 ? `${Math.round((wonCount / totalLeadsCount) * 100)}%` : "0%";
 
-  // Monthly breakdown calculation from real leads data or analytics
-  const months = ["Mar", "Apr", "May", "Jun", "Jul", "Aug"];
-  const monthlyData = months.map((m, idx) => ({
+  // Monthly breakdown calculation dynamically computed for the last 6 months
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const currentDate = new Date();
+  const dynamicMonths = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+    dynamicMonths.push(monthNames[d.getMonth()]);
+  }
+
+  const monthlyViewsMap = {};
+  if (Array.isArray(analyticsData?.monthlyProfileViews)) {
+    analyticsData.monthlyProfileViews.forEach((item) => {
+      if (item.month) monthlyViewsMap[item.month] = Number(item.views) || 0;
+    });
+  }
+
+  const monthlyData = dynamicMonths.map((m, idx) => ({
     month: m,
-    val: stats.monthlyViews?.[m] || (idx === months.length - 1 ? (stats.profileViews || rawLeads.length || 0) : 0),
+    val: monthlyViewsMap[m] || stats.monthlyViews?.[m] || (idx === dynamicMonths.length - 1 ? (stats.profileViews || rawLeads.length || 0) : 0),
   }));
   const maxVal = Math.max(...monthlyData.map((d) => d.val), 1);
 
@@ -303,7 +321,7 @@ function BusinessHome() {
                     <p className="text-xs text-slate-400 font-medium">Leads</p>
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-slate-900 tabular-nums">{totalLeadsCount}</p>
+                    <p className="text-xl font-bold text-slate-900 tabular-nums">{totalEnquiriesCount}</p>
                     <p className="text-xs text-slate-400 font-medium">Enquiries</p>
                   </div>
                   <div>

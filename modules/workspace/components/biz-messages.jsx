@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeft, Send, Loader2, MessageSquare, Paperclip, FileText, Image as ImageIcon, Film, Download, X, Building2, Package, IndianRupee, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Send, Loader2, MessageSquare, Paperclip, FileText, Image as ImageIcon, Film, Download, X, Building2, Package, IndianRupee, FileSpreadsheet, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -60,41 +60,70 @@ function parseQuotationMessage(text) {
   };
 }
 
-function QuotationCard({ quote, isMe }) {
+function QuotationCard({ quote, isMe, pdfUrl }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const downloadUrl = pdfUrl ? resolveMediaUrl(pdfUrl) : null;
+
   return (
     <div
       className={cn(
-        "rounded-2xl border p-4 space-y-3 shadow-xs my-1 text-left min-w-[260px] sm:min-w-[320px]",
+        "rounded-2xl border p-3.5 space-y-2 shadow-xs my-1 text-left min-w-[260px] sm:min-w-[320px] transition-all",
         isMe
           ? "border-white/20 bg-white/10 text-white"
           : "border-slate-200/90 bg-white text-slate-800"
       )}
     >
-      {/* Header with Lucide FileText icon */}
-      <div className="flex items-center justify-between border-b pb-2.5 border-current/15">
-        <div className="flex items-center gap-2">
-          <div
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold",
-              isMe ? "bg-white/20 text-white" : "bg-sky-50 text-sky-700"
-            )}
-          >
-            <FileText className="h-4 w-4" />
-          </div>
-          <div>
-            <span className="block text-xs font-extrabold tracking-wide uppercase">
-              Official Quotation
+      {/* Header: Left Download Icon, Quotation Title, Verified Badge */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {/* Left Download Icon */}
+          {downloadUrl ? (
+            <a
+              href={downloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              title="Download PDF Quotation"
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all hover:scale-105 active:scale-95 shadow-2xs",
+                isMe
+                  ? "bg-white/20 text-white hover:bg-white/30"
+                  : "bg-sky-50 text-[#0088d1] hover:bg-sky-100 border border-sky-200/60"
+              )}
+            >
+              <Download className="h-4 w-4" />
+            </a>
+          ) : (
+            <div
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold",
+                isMe ? "bg-white/20 text-white" : "bg-sky-50 text-sky-700"
+              )}
+            >
+              <FileText className="h-4 w-4" />
+            </div>
+          )}
+
+          <div className="min-w-0">
+            <span className="block text-xs font-bold tracking-wide truncate">
+              Official Quotation {quote.refCode ? quote.refCode : ""}
             </span>
-            {quote.refCode && (
-              <span className="block text-[11px] font-semibold opacity-80">
-                {quote.refCode}
+            {quote.price && !isExpanded && (
+              <span
+                className={cn(
+                  "block text-xs font-extrabold tracking-tight mt-0.5",
+                  isMe ? "text-emerald-200" : "text-emerald-600"
+                )}
+              >
+                {quote.price}
               </span>
             )}
           </div>
         </div>
+
         <span
           className={cn(
-            "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+            "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0",
             isMe ? "bg-white/20 text-white" : "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
           )}
         >
@@ -102,58 +131,100 @@ function QuotationCard({ quote, isMe }) {
         </span>
       </div>
 
-      {/* Details Grid with clean Lucide icons (No emojis) */}
-      <div className="space-y-2 text-xs">
-        {quote.supplier && (
-          <div className="flex items-start gap-2.5">
-            <Building2 className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
-            <div className="min-w-0 flex-1">
-              <span className="text-[11px] font-medium opacity-75 block">Supplier</span>
-              <span className="font-bold text-xs block truncate">{quote.supplier}</span>
-            </div>
-          </div>
-        )}
-
-        {quote.requirement && (
-          <div className="flex items-start gap-2.5">
-            <Package className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
-            <div className="min-w-0 flex-1">
-              <span className="text-[11px] font-medium opacity-75 block">Requirement</span>
-              <span className="font-semibold text-xs block">{quote.requirement}</span>
-            </div>
-          </div>
-        )}
-
-        {quote.price && (
-          <div className="flex items-start gap-2.5">
-            <IndianRupee className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
-            <div className="min-w-0 flex-1">
-              <span className="text-[11px] font-medium opacity-75 block">Quoted Price</span>
-              <span className={cn(
-                "font-extrabold text-sm block tracking-tight",
-                isMe ? "text-emerald-200" : "text-emerald-600"
-              )}>
-                {quote.price}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {quote.terms && (
-          <div className="flex items-start gap-2.5">
-            <FileSpreadsheet className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
-            <div className="min-w-0 flex-1">
-              <span className="text-[11px] font-medium opacity-75 block">Details & Terms</span>
-              <span className="font-normal text-xs block leading-relaxed opacity-90">{quote.terms}</span>
-            </div>
-          </div>
-        )}
+      {/* Read more / Read me Link */}
+      <div className="pt-0.5">
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={cn(
+            "inline-flex items-center gap-1 text-xs font-semibold underline underline-offset-2 transition-colors cursor-pointer",
+            isMe ? "text-white/90 hover:text-white" : "text-[#0088d1] hover:text-[#0077b6]"
+          )}
+        >
+          <span>{isExpanded ? "Show less" : "Read more"}</span>
+          {isExpanded ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
       </div>
 
-      {quote.footer && (
-        <p className="border-t border-current/15 pt-2 text-[11px] opacity-80 leading-relaxed italic">
-          {quote.footer}
-        </p>
+      {/* Expandable Details Section */}
+      {isExpanded && (
+        <div className="space-y-2.5 pt-2.5 border-t border-current/15 text-xs animate-in fade-in-50 duration-200">
+          {quote.supplier && (
+            <div className="flex items-start gap-2.5">
+              <Building2 className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-medium opacity-75 block">Supplier</span>
+                <span className="font-bold text-xs block truncate">{quote.supplier}</span>
+              </div>
+            </div>
+          )}
+
+          {quote.requirement && (
+            <div className="flex items-start gap-2.5">
+              <Package className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-medium opacity-75 block">Requirement</span>
+                <span className="font-semibold text-xs block">{quote.requirement}</span>
+              </div>
+            </div>
+          )}
+
+          {quote.price && (
+            <div className="flex items-start gap-2.5">
+              <IndianRupee className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-medium opacity-75 block">Quoted Price</span>
+                <span
+                  className={cn(
+                    "font-extrabold text-sm block tracking-tight",
+                    isMe ? "text-emerald-200" : "text-emerald-600"
+                  )}
+                >
+                  {quote.price}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {quote.terms && (
+            <div className="flex items-start gap-2.5">
+              <FileSpreadsheet className="h-4 w-4 shrink-0 mt-0.5 opacity-70" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-medium opacity-75 block">Details & Terms</span>
+                <span className="font-normal text-xs block leading-relaxed opacity-90">{quote.terms}</span>
+              </div>
+            </div>
+          )}
+
+          {quote.footer && (
+            <p className="border-t border-current/15 pt-2 text-[11px] opacity-80 leading-relaxed italic">
+              {quote.footer}
+            </p>
+          )}
+
+          {downloadUrl && (
+            <div className="pt-2 border-t border-current/15">
+              <a
+                href={downloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition-all shadow-xs",
+                  isMe
+                    ? "bg-white text-sky-700 hover:bg-white/90"
+                    : "bg-[#0088d1] text-white hover:bg-[#0077b6]"
+                )}
+              >
+                <Download className="h-3.5 w-3.5" /> Download Quotation PDF
+              </a>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -524,21 +595,33 @@ function BizMessages() {
                           : "border border-border bg-muted text-foreground"
                       )}
                     >
-                      {attachments.length > 0 && (
-                        <div className="space-y-1 mb-1">
-                          {attachments.map((att, idx) => (
-                            <AttachmentItem key={idx} url={att} isMe={isMe} />
-                          ))}
-                        </div>
-                      )}
                       {(() => {
                         const quoteData = parseQuotationMessage(msgText);
-                        if (quoteData) {
-                          return <QuotationCard quote={quoteData} isMe={isMe} />;
-                        }
-                        return msgText ? (
-                          <p className="whitespace-pre-wrap break-words">{msgText}</p>
-                        ) : null;
+                        const quotationPdf = quoteData
+                          ? attachments.find((att) =>
+                              (att.split("?")[0] || "").toLowerCase().endsWith(".pdf")
+                            )
+                          : null;
+                        const otherAttachments = quotationPdf
+                          ? attachments.filter((att) => att !== quotationPdf)
+                          : attachments;
+
+                        return (
+                          <>
+                            {otherAttachments.length > 0 && (
+                              <div className="space-y-1 mb-1">
+                                {otherAttachments.map((att, idx) => (
+                                  <AttachmentItem key={idx} url={att} isMe={isMe} />
+                                ))}
+                              </div>
+                            )}
+                            {quoteData ? (
+                              <QuotationCard quote={quoteData} isMe={isMe} pdfUrl={quotationPdf} />
+                            ) : msgText ? (
+                              <p className="whitespace-pre-wrap break-words">{msgText}</p>
+                            ) : null}
+                          </>
+                        );
                       })()}
                       <p
                         className={cn(
