@@ -1,0 +1,49 @@
+{
+  "Navbar": {
+    "login": "لاگ ان",
+    "register": "نیٹ ورک میں شامل ہوں",
+    "dashboard": "ڈیش بورڈ",
+    "myRifah": "میرا RIFAH",
+    "logout": "لاگ آؤٹ",
+    "nav": {
+      "discover": "دریافت کریں",
+      "catalogue": "مصنوعات اور خدمات",
+      "events": "تقریبات",
+      "membership": "رکنیت",
+      "about": "RIFAH کے بارے میں",
+      "contact": "رابطہ کریں"
+    }
+  },
+  "Login": {
+    "title": "خوش آمدید",
+    "subtitle": "جاری رکھنے کے لیے اپنے اکاؤنٹ میں سائن ان کریں",
+    "emailLabel": "ای میل ایڈریس",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "پاس ورڈ",
+    "forgotPassword": "پاس ورڈ بھول گئے؟",
+    "keepSignedIn": "مجھے سائن ان رکھیں",
+    "signInButton": "سائن ان کریں",
+    "signingIn": "سائن ان ہو رہا ہے...",
+    "continueWithGoogle": "گوگل کے ساتھ جاری رکھیں",
+    "noAccount": "کیا آپ کے پاس اکاؤنٹ نہیں ہے؟",
+    "joinNow": "RIFAH میں شامل ہوں"
+  },
+  "Discover": {
+    "title": "کاروبار دریافت کریں",
+    "subtitle": "صنعت، پروڈکٹ، سروس، مقام یا چیپٹر کے لحاظ سے تصدیق شدہ RIFAH ممبر کاروبار تلاش کریں۔",
+    "searchPlaceholder": "کاروبار، مصنوعات یا خدمات تلاش کریں",
+    "searchButton": "تلاش کریں",
+    "filters": "فلٹرز",
+    "industry": "صنعت",
+    "allIndustries": "تمام صنعتیں",
+    "city": "شہر",
+    "allCities": "تمام شہر",
+    "chapter": "RIFAH چیپٹر",
+    "allChapters": "تمام چیپٹرز",
+    "membershipLevel": "رکنیت کی سطح",
+    "verifiedOnly": "صرف تصدیق شدہ اراکین",
+    "businessesFound": "کاروبار مل گئے",
+    "clearAllFilters": "تمام فلٹرز صاف کریں",
+    "verified": "تصدیق شدہ"
+  }
+}

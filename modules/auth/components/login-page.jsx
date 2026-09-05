@@ -22,6 +22,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 
 import { RifahLogo } from "@shared/components/rifah/brand";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -68,9 +69,10 @@ const quickDemoLogins = [
   },
 ];
 
-function LoginPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
+  const t = useTranslations("Login");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -396,9 +398,9 @@ function LoginPage() {
         <div className="lg:col-span-5 flex items-center justify-center p-4 sm:p-6 lg:p-8 h-full overflow-hidden">
           <div className="w-full max-w-[400px] rounded-[24px] border border-slate-200/80 bg-white p-5 sm:p-6 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] space-y-3.5">
             {/* Header */}
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
-              <p className="mt-0.5 text-xs text-slate-500">Sign in to your RIFAH account</p>
+            <div className="text-center md:text-left">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">{t("title")}</h1>
+              <p className="mt-0.5 text-xs text-slate-500">{t("subtitle")}</p>
             </div>
 
             {error && (
@@ -428,13 +430,12 @@ function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder="name@company.com"
                     className="h-10 pl-9 rounded-lg bg-[#f0f6ff]/40 border-slate-200 text-xs focus-visible:ring-primary/20"
                   />
                 </div>
               </div>
 
-              {/* Password Field with Left Icon & Forgot Password Link */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-[11px] font-semibold text-slate-700">Password</Label>
@@ -476,7 +477,7 @@ function LoginPage() {
                   defaultChecked
                   className="h-3.5 w-3.5 rounded border-slate-300 data-[state=checked]:bg-[#0066cc] data-[state=checked]:border-[#0066cc]"
                 />
-                <span className="text-[11px]">Keep me signed in</span>
+                <span className="text-[11px]">{t("keepSignedIn")}</span>
               </label>
 
               {/* Sign In Button */}
@@ -487,11 +488,11 @@ function LoginPage() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Signing in...
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> {t("signingIn")}
                   </>
                 ) : (
                   <>
-                    <span>Sign in</span>
+                    <span>{t("signInButton")}</span>
                     <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </>
                 )}
@@ -873,4 +874,3 @@ function LoginPage() {
 }
 
 export { LoginPage };
-export default LoginPage;

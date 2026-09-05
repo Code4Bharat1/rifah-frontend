@@ -1,0 +1,49 @@
+{
+  "Navbar": {
+    "login": "लॉग इन करा",
+    "register": "नेटवर्कमध्ये सामील व्हा",
+    "dashboard": "डॅशबोर्ड",
+    "myRifah": "माझे RIFAH",
+    "logout": "लॉग आउट",
+    "nav": {
+      "discover": "शोधा",
+      "catalogue": "उत्पादने आणि सेवा",
+      "events": "कार्यक्रम",
+      "membership": "सदस्यत्व",
+      "about": "RIFAH बद्दल",
+      "contact": "संपर्क करा"
+    }
+  },
+  "Login": {
+    "title": "पुन्हा स्वागत आहे",
+    "subtitle": "सुरू ठेवण्यासाठी आपल्या खात्यात साइन इन करा",
+    "emailLabel": "ईमेल पत्ता",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "पासवर्ड",
+    "forgotPassword": "पासवर्ड विसरलात?",
+    "keepSignedIn": "मला साइन इन ठेवा",
+    "signInButton": "साइन इन करा",
+    "signingIn": "साइन इन होत आहे...",
+    "continueWithGoogle": "Google सह सुरू ठेवा",
+    "noAccount": "खाते नाही का?",
+    "joinNow": "RIFAH मध्ये सामील व्हा"
+  },
+  "Discover": {
+    "title": "व्यवसाय शोधा",
+    "subtitle": "उद्योग, उत्पादन, सेवा, स्थान किंवा चॅप्टरनुसार सत्यापित RIFAH सदस्य व्यवसाय शोधा.",
+    "searchPlaceholder": "व्यवसाय, उत्पादने किंवा सेवा शोधा",
+    "searchButton": "शोधा",
+    "filters": "फिल्टर्स",
+    "industry": "उद्योग",
+    "allIndustries": "सर्व उद्योग",
+    "city": "शहर",
+    "allCities": "सर्व शहरे",
+    "chapter": "RIFAH चॅप्टर",
+    "allChapters": "सर्व चॅप्टर्स",
+    "membershipLevel": "सदस्यत्व स्तर",
+    "verifiedOnly": "केवळ सत्यापित सदस्य",
+    "businessesFound": "व्यवसाय सापडले",
+    "clearAllFilters": "सर्व फिल्टर्स साफ करा",
+    "verified": "सत्यापित"
+  }
+}
