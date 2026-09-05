@@ -98,11 +98,11 @@ export default function AdminChapterDetails({ chapterId }) {
       title={chapter.name}
       subtitle={`Regional branch in ${chapter.city}, ${chapter.state}`}
       actions={
-        <Link href="/admin/chapters">
-          <Button variant="outline">
+        <Button variant="outline" asChild>
+          <Link href="/admin/chapters">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       }
     >
       <div className="space-y-6">
