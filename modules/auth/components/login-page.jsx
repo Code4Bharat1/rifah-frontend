@@ -76,6 +76,8 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -296,46 +298,64 @@ export default function LoginPage() {
 
   return (
     <PublicLayout bare>
-      <div className="grid min-h-[calc(100vh-68px)] lg:h-[calc(100vh-68px)] lg:grid-cols-12 bg-[#f8fafc] overflow-y-auto lg:overflow-hidden">
+      <div className="grid min-h-[calc(100vh-68px)] lg:h-[calc(100vh-68px)] lg:max-h-[calc(100vh-68px)] lg:grid-cols-12 bg-[#f8fafc] overflow-y-auto lg:overflow-hidden no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {/* Left Hero / Brand Showcase (Hidden on mobile, shown on lg+) */}
         <div className="relative hidden lg:flex lg:col-span-7 flex-col justify-between overflow-hidden bg-[#071328] p-8 xl:p-12 text-white select-none h-full">
-          {/* Skyscraper background image with wider coverage to remove gap */}
-          <div className="absolute right-0 top-0 bottom-0 w-[72%] pointer-events-none select-none overflow-hidden">
+          {/* Skyscraper background image with smooth gradient blend */}
+          <div className="absolute right-0 top-0 bottom-0 w-[72%] xl:w-[68%] pointer-events-none select-none overflow-hidden">
             <img
               src="/images/login-building.jpg"
               alt="RIFAH Architecture"
               className="h-full w-full object-cover object-center"
             />
             {/* Smooth gradient fade to blend with text naturally */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#071328] via-[#071328]/75 via-35% to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#071328] via-[#071328]/80 via-35% to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#071328] via-transparent to-transparent" />
 
-            {/* Red curved accent arc at top-right */}
-            <svg
-              className="absolute -top-3 -right-3 w-48 h-48 pointer-events-none opacity-95"
-              viewBox="0 0 150 150"
-              fill="none"
-            >
-              <path
-                d="M 150 5 C 95 20 40 75 5 150"
-                stroke="#C90000"
-                strokeWidth="4"
-                strokeLinecap="round"
-              />
-            </svg>
+            {/* Illuminated RIFAH Building Logo on glass facade */}
+            <div className="absolute top-[28%] right-[14%] xl:right-[18%] flex items-center gap-2.5 z-10 pointer-events-none drop-shadow-[0_0_20px_rgba(56,189,248,0.6)]">
+              <svg className="w-9 h-9 shrink-0 filter drop-shadow" viewBox="0 0 100 100" fill="none">
+                <path d="M15 15 L50 50 L15 85 L32 85 L60 50 L32 15 Z" fill="#38bdf8" />
+                <path d="M42 15 L77 50 L42 85 L59 85 L87 50 L59 15 Z" fill="#ffffff" />
+              </svg>
+              <div className="text-white">
+                <div className="text-sm xl:text-base font-extrabold tracking-wider leading-none">RIFAH</div>
+                <div className="text-[7px] xl:text-[8px] font-semibold text-slate-200 tracking-wider leading-tight uppercase mt-0.5">
+                  Chamber Of Commerce<br />And Industry
+                </div>
+              </div>
+            </div>
+
+            {/* Script text in the sky: Stronger Businesses A Brighter Tomorrow */}
+            <div className="absolute top-6 right-8 xl:top-8 xl:right-10 z-10 text-right pointer-events-none select-none">
+              <div
+                className="text-2xl xl:text-3xl text-sky-200/90 leading-[1.1] font-bold"
+                style={{ fontFamily: "'Caveat', cursive, sans-serif" }}
+              >
+                <span>Stronger</span><br />
+                <span>Businesses</span><br />
+                <span>A Brighter</span><br />
+                <span>Tomorrow</span>
+              </div>
+              <div className="flex justify-end mt-1">
+                <svg width="105" height="12" viewBox="0 0 105 12" fill="none">
+                  <path d="M 5 6 Q 52 1 100 8" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* Top Tag */}
-          <div className="relative z-10 flex items-center gap-2.5">
-            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400">
+          <div className="relative z-10 flex items-center gap-3">
+            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#38bdf8]">
               RIFAH CONNECT
             </span>
-            <div className="h-0.5 w-10 rounded-full bg-sky-500/60" />
+            <div className="h-[2px] w-8 rounded-full bg-[#38bdf8]" />
           </div>
 
-          {/* Middle Content: Heading, Subtitle & 4 Pillars */}
-          <div className="relative z-10 my-auto space-y-4 max-w-lg py-2">
-            <h1 className="text-2xl sm:text-3xl lg:text-[34px] font-extrabold tracking-tight text-white leading-[1.2]">
+          {/* Middle Content: Heading, Subtitle, 4 Pillars & Stats */}
+          <div className="relative z-10 my-auto space-y-4 xl:space-y-5 max-w-xl py-2">
+            <h1 className="text-2xl sm:text-3xl xl:text-[36px] 2xl:text-[40px] font-extrabold tracking-tight text-white leading-[1.18]">
               One chamber network<br />
               for discovery, enquiries<br />
               and <span className="text-[#38bdf8]">verified trade.</span>
@@ -345,100 +365,171 @@ export default function LoginPage() {
               Members receive matched buyer enquiries, manage their catalogue and participate in chapter events from a single workspace.
             </p>
 
-            {/* 4 Feature Items in a row */}
-            <div className="grid grid-cols-4 gap-2.5 pt-1.5">
+            {/* 4 Feature Badges in a row */}
+            <div className="grid grid-cols-4 gap-2 xl:gap-3 pt-1">
               <div className="flex flex-col items-start gap-1.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
-                  <Users className="h-4 w-4 stroke-[2]" />
+                <div className="flex h-9 w-9 xl:h-10 xl:w-10 items-center justify-center rounded-xl bg-[#0c1e38]/80 border border-sky-500/20 text-[#38bdf8] shadow-sm">
+                  <Users className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-200 leading-tight">Verified Network</span>
               </div>
               <div className="flex flex-col items-start gap-1.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
-                  <BarChart3 className="h-4 w-4 stroke-[2]" />
+                <div className="flex h-9 w-9 xl:h-10 xl:w-10 items-center justify-center rounded-xl bg-[#0c1e38]/80 border border-sky-500/20 text-[#38bdf8] shadow-sm">
+                  <BarChart3 className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-200 leading-tight">Business Opportunities</span>
               </div>
               <div className="flex flex-col items-start gap-1.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
-                  <Calendar className="h-4 w-4 stroke-[2]" />
+                <div className="flex h-9 w-9 xl:h-10 xl:w-10 items-center justify-center rounded-xl bg-[#0c1e38]/80 border border-sky-500/20 text-[#38bdf8] shadow-sm">
+                  <Calendar className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-200 leading-tight">Events & Collaborations</span>
               </div>
               <div className="flex flex-col items-start gap-1.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
-                  <ShieldCheck className="h-4 w-4 stroke-[2]" />
+                <div className="flex h-9 w-9 xl:h-10 xl:w-10 items-center justify-center rounded-xl bg-[#0c1e38]/80 border border-sky-500/20 text-[#38bdf8] shadow-sm">
+                  <ShieldCheck className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-200 leading-tight">Trusted Ecosystem</span>
               </div>
             </div>
+
+            {/* Stats Row (4 stats across with indicator lines & dividers) */}
+            <div className="flex items-center gap-3 xl:gap-4 pt-3 border-t border-slate-700/40">
+              {/* Stat 1 */}
+              <div className="flex items-center gap-2">
+                <div className="w-[3px] h-7 bg-[#dc2626] rounded-full shrink-0" />
+                <div>
+                  <div className="text-base xl:text-lg font-bold text-white leading-none">5,000+</div>
+                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">Verified Members</div>
+                </div>
+              </div>
+
+              <div className="h-6 w-px bg-slate-700/60" />
+
+              {/* Stat 2 */}
+              <div className="flex items-center gap-2">
+                <div className="w-[2px] h-7 bg-sky-400 rounded-full shrink-0" />
+                <div>
+                  <div className="text-base xl:text-lg font-bold text-white leading-none">28+</div>
+                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">Chapters Across India</div>
+                </div>
+              </div>
+
+              <div className="h-6 w-px bg-slate-700/60" />
+
+              {/* Stat 3 */}
+              <div className="flex items-center gap-2">
+                <div className="w-[3px] h-7 bg-[#dc2626] rounded-full shrink-0" />
+                <div>
+                  <div className="text-base xl:text-lg font-bold text-white leading-none">50+</div>
+                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">Events Every Year</div>
+                </div>
+              </div>
+
+              <div className="h-6 w-px bg-slate-700/60" />
+
+              {/* Stat 4 */}
+              <div className="flex items-center gap-2">
+                <div className="w-[3px] h-7 bg-[#dc2626] rounded-full shrink-0" />
+                <div>
+                  <div className="text-base xl:text-lg font-bold text-white leading-none">100+</div>
+                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">Business Categories</div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Floating Quote Card on bottom-right & Bottom Brand Tag on bottom-left */}
+          {/* Bottom Row: Tagline on bottom-left & Floating Quote Card on bottom-right */}
           <div className="relative z-10 flex items-end justify-between gap-3 pt-2">
             {/* Tagline on bottom-left */}
             <div className="flex items-center gap-2">
-              <div className="h-0.5 w-5 bg-slate-500/60" />
-              <span className="text-[10px] font-semibold tracking-[0.2em] text-slate-400 uppercase">
+              <div className="h-0.5 w-6 bg-[#dc2626]" />
+              <span className="text-[10px] font-semibold tracking-[0.22em] text-slate-400 uppercase">
                 TOGETHER FOR A SUSTAINABLE FUTURE
               </span>
             </div>
 
             {/* Frosted Glass Quote Card */}
-            <div className="rounded-xl border border-white/10 bg-slate-900/60 p-3.5 shadow-xl backdrop-blur-md max-w-[210px] text-left">
-              <span className="text-2xl font-serif text-sky-400 leading-none block select-none">“</span>
-              <p className="mt-0.5 text-xs font-bold text-white leading-snug">Stronger Businesses</p>
-              <p className="text-[11px] text-slate-300">A Brighter Tomorrow</p>
-              <div className="mt-2 h-0.5 w-6 rounded-full bg-[#C90000]" />
+            <div className="rounded-2xl border border-white/10 bg-[#071328]/85 backdrop-blur-md p-4 shadow-2xl max-w-[230px] text-left">
+              <span className="text-2xl font-serif text-[#38bdf8] leading-none block select-none">“</span>
+              <p className="mt-1 text-xs font-semibold text-slate-100 leading-snug">
+                Building connections today for a stronger tomorrow.
+              </p>
+              <div className="mt-2.5 h-0.5 w-8 rounded-full bg-[#dc2626]" />
             </div>
           </div>
         </div>
 
         {/* Right Form Container - Responsive for mobile & desktop */}
-        <div className="lg:col-span-5 flex items-center justify-center py-6 px-3 sm:p-6 lg:p-8 min-h-full overflow-y-auto lg:overflow-hidden">
-          <div className="w-full max-w-[420px] rounded-[24px] border border-slate-200/80 bg-white p-4 sm:p-6 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] space-y-3.5 my-auto">
+        <div className="lg:col-span-5 flex items-center justify-center p-3 sm:p-5 lg:p-6 xl:p-8 bg-[#f8fafc] min-h-full overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="w-full max-w-[450px] rounded-[28px] sm:rounded-[32px] border border-slate-100 bg-white p-5 sm:p-7 xl:p-8 shadow-[0_12px_45px_-12px_rgba(0,0,0,0.08)] relative overflow-hidden my-auto">
+            {/* Top Right Decorative Watermark with Curved Lines and Connect / Collaborate / Grow */}
+            <div className="absolute top-0 right-0 pointer-events-none select-none w-44 h-44 overflow-hidden">
+              <svg viewBox="0 0 160 160" fill="none" className="w-full h-full text-sky-400/30">
+                <path d="M 160 20 A 140 140 0 0 0 20 160" stroke="currentColor" strokeWidth="1" />
+                <path d="M 160 45 A 115 115 0 0 0 45 160" stroke="currentColor" strokeWidth="1" />
+                <path d="M 160 70 A 90 90 0 0 0 70 160" stroke="currentColor" strokeWidth="1" />
+                <path d="M 160 95 A 65 65 0 0 0 95 160" stroke="currentColor" strokeWidth="1" />
+                <path d="M 160 120 A 40 40 0 0 0 120 160" stroke="currentColor" strokeWidth="1" />
+              </svg>
+              <div className="absolute top-5 right-6 flex flex-col items-start gap-1 text-[11px] font-semibold text-slate-400/90 leading-tight">
+                <span>Connect</span>
+                <span>Collaborate</span>
+                <span>Grow</span>
+              </div>
+            </div>
+
             {/* Header */}
-            <div className="text-center md:text-left">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">{t("title")}</h1>
-              <p className="mt-0.5 text-xs text-slate-500">{t("subtitle")}</p>
+            <div className="relative z-10">
+              <h1 className="text-2xl sm:text-[25px] font-bold tracking-tight text-slate-900">
+                {t("title")}
+              </h1>
+              <p className="mt-0.5 text-xs sm:text-sm text-slate-500">
+                {t("subtitle")}
+              </p>
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive animate-in fade-in-50">
+              <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive animate-in fade-in-50 relative z-10">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {successMsg && (
-              <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-50 p-2.5 text-xs font-semibold text-emerald-700 animate-in fade-in-50">
+              <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-50 p-2 text-xs font-semibold text-emerald-700 animate-in fade-in-50 relative z-10">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                 <span>{successMsg}</span>
               </div>
             )}
 
             {/* Form */}
-            <form className="space-y-3" onSubmit={handleSubmit}>
+            <form className="mt-4 space-y-3 relative z-10" onSubmit={handleSubmit}>
               {/* Email Field with Left Icon */}
               <div className="space-y-1">
-                <Label htmlFor="email" className="text-[11px] font-semibold text-slate-700">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                  <Input
+                <Label htmlFor="email" className="text-xs font-semibold text-slate-700">
+                  Email
+                </Label>
+                <div className="relative flex items-center rounded-xl bg-[#f0f4f9] border border-transparent focus-within:border-[#0077e6] focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all px-3.5 py-2.5">
+                  <Mail className="h-4 w-4 text-slate-400 mr-2.5 shrink-0 pointer-events-none" />
+                  <input
                     id="email"
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="h-10 pl-9 rounded-lg bg-[#f0f6ff]/40 border-slate-200 text-xs focus-visible:ring-primary/20"
+                    placeholder="rs9940806@gmail.com"
+                    className="w-full bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none"
                   />
                 </div>
               </div>
 
+              {/* Password Field with Left Lock & Right Eye Toggle */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-[11px] font-semibold text-slate-700">Password</Label>
+                  <Label htmlFor="password" className="text-xs font-semibold text-slate-700">
+                    Password
+                  </Label>
                   <button
                     type="button"
                     onClick={() => {
@@ -451,106 +542,116 @@ export default function LoginPage() {
                       setForgotStep(1);
                       setIsForgotOpen(true);
                     }}
-                    className="text-[11px] font-semibold text-[#0066cc] hover:underline"
+                    className="text-xs font-semibold text-[#0077e6] hover:underline"
                   >
                     Forgot password?
                   </button>
                 </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                  <Input
+                <div className="relative flex items-center rounded-xl bg-[#f0f4f9] border border-transparent focus-within:border-[#0077e6] focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all px-3.5 py-2.5">
+                  <Lock className="h-4 w-4 text-slate-400 mr-2.5 shrink-0 pointer-events-none" />
+                  <input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="h-10 pl-9 rounded-lg bg-[#f0f6ff]/40 border-slate-200 text-xs focus-visible:ring-primary/20"
+                    className="w-full bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none pr-7"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
               {/* Keep me signed in */}
               <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer pt-0.5 select-none">
-                <Checkbox
-                  id="keep-signed"
-                  defaultChecked
-                  className="h-3.5 w-3.5 rounded border-slate-300 data-[state=checked]:bg-[#0066cc] data-[state=checked]:border-[#0066cc]"
+                <input
+                  type="checkbox"
+                  checked={keepSignedIn}
+                  onChange={(e) => setKeepSignedIn(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-[#0077e6] focus:ring-[#0077e6] accent-[#0077e6] cursor-pointer"
                 />
-                <span className="text-[11px]">{t("keepSignedIn")}</span>
+                <span className="text-xs text-slate-600">Keep me signed in</span>
               </label>
 
               {/* Sign In Button */}
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-10 rounded-lg bg-[#0066cc] hover:bg-[#0052a3] text-white font-semibold text-xs shadow-md shadow-blue-500/20 flex items-center justify-center gap-1.5 transition-all"
+                className="w-full h-10 sm:h-11 rounded-xl bg-[#0077e6] hover:bg-[#0066cc] text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition-all mt-0.5"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> {t("signingIn")}
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("signingIn")}
                   </>
                 ) : (
                   <>
-                    <span>{t("signInButton")}</span>
-                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    <span>Sign in</span>
+                    <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </Button>
             </form>
 
             {/* Divider */}
-            <div className="relative my-2.5 flex items-center justify-center">
+            <div className="relative my-3 flex items-center justify-center relative z-10">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-200" />
               </div>
-              <span className="relative bg-white px-2.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+              <span className="relative bg-white px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 OR
               </span>
             </div>
 
             {/* Google Login Button */}
-            <GoogleAuthButton
-              roleTarget="customer"
-              text="Continue with Google"
-              className="h-10 rounded-lg border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-2xs"
-              onError={(msg) => setError(msg)}
-            />
+            <div className="relative z-10">
+              <GoogleAuthButton
+                roleTarget="customer"
+                text="Continue with Google"
+                className="w-full h-10 sm:h-10.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm shadow-2xs transition-all flex items-center justify-center gap-2.5"
+                onError={(msg) => setError(msg)}
+              />
+            </div>
 
             {/* Don't have an account? Section */}
-            <div className="mt-3 rounded-xl border border-slate-200/80 bg-[#f8fafc] p-2.5 space-y-1.5">
-              <p className="text-[11px] font-semibold text-slate-800">Don&apos;t have an account?</p>
+            <div className="mt-3.5 sm:mt-4 rounded-2xl border border-slate-100 bg-[#f8fafc] p-2.5 sm:p-3 space-y-1.5 relative z-10">
+              <p className="text-xs font-bold text-slate-800 px-1">Don&apos;t have an account?</p>
               <div className="grid gap-1.5">
                 <Link
                   href="/register"
-                  className="group flex items-center justify-between rounded-lg border border-slate-200/80 bg-white p-2 transition-all hover:border-slate-300 hover:shadow-2xs"
+                  className="group flex items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 transition-all hover:border-slate-200 hover:shadow-2xs"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-600">
-                      <UserRound className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-[#0284c7]">
+                      <Building2 className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <span className="block text-[11px] font-bold text-slate-800">Create a buyer account</span>
+                      <span className="block text-xs font-bold text-slate-800">Create a buyer account</span>
                       <span className="block text-[10px] text-slate-500">Post sourcing enquiries and find members</span>
                     </div>
                   </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 ml-1" />
+                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 mr-1" />
                 </Link>
 
                 <Link
                   href="/register-business"
-                  className="group flex items-center justify-between rounded-lg border border-slate-200/80 bg-white p-2 transition-all hover:border-slate-300 hover:shadow-2xs"
+                  className="group flex items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 transition-all hover:border-slate-200 hover:shadow-2xs"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-600">
-                      <Building2 className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-[#0284c7]">
+                      <UserRound className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <span className="block text-[11px] font-bold text-slate-800">Register your business</span>
+                      <span className="block text-xs font-bold text-slate-800">Register your business</span>
                       <span className="block text-[10px] text-slate-500">Join chamber directory & receive sales leads</span>
                     </div>
                   </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 ml-1" />
+                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 mr-1" />
                 </Link>
               </div>
             </div>
