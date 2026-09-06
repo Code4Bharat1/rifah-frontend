@@ -225,7 +225,7 @@ export function AppShell({
             {nav.title}
           </p>
         </div>
-        <nav className="mt-2 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+        <nav className="mt-2 flex-1 space-y-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-4">
           {all.map((item) => {
             let badge = null;
             if (item.label === "Messages") badge = unreadMsgs;
@@ -265,7 +265,7 @@ export function AppShell({
       <div className="lg:pl-64">
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
-          <div className="flex h-14 items-center gap-3 px-4 md:h-16 md:px-6">
+          <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 md:h-16 md:px-6">
             {backTo ? (
               <Button asChild variant="ghost" size="icon" className="shrink-0 lg:hidden">
                 <Link href={backTo} aria-label="Go back">
@@ -278,10 +278,10 @@ export function AppShell({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-base font-semibold md:text-lg">{finalTitle}</h1>
-              {finalSubtitle && <p className="truncate text-xs text-muted-foreground md:text-sm">{finalSubtitle}</p>}
+              <h1 className="truncate text-sm sm:text-base font-semibold md:text-lg">{finalTitle}</h1>
+              {finalSubtitle && <p className="truncate text-[11px] sm:text-xs text-muted-foreground md:text-sm">{finalSubtitle}</p>}
             </div>
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
                 <Link href={"/discover"} aria-label="Search">
                   <Search className="h-5 w-5" />
@@ -292,7 +292,7 @@ export function AppShell({
                   href={getPath(role === "admin" ? "/admin/notifications" : role === "business" ? "/biz/notifications" : "/me/notifications")}
                   aria-label="Notifications"
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                   {unreadNotifs > 0 && (
                     <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -306,7 +306,7 @@ export function AppShell({
                   href={getPath(role === "business" ? "/biz/messages" : "/me/messages")}
                   aria-label="Messages"
                 >
-                  <Mail className="h-5 w-5" />
+                  <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
                   {unreadMsgs > 0 && (
                     <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -317,18 +317,19 @@ export function AppShell({
               </Button>
               {actions}
               <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" title="Logout">
-                <LogOut className="h-5 w-5" />
+                <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
           </div>
         </header>
 
-        <main className="px-4 pb-10 pt-4 md:px-6 md:pb-10 md:pt-6 xl:px-10">
+        <main className="px-3 pb-24 pt-3 sm:px-4 sm:pb-24 sm:pt-4 md:px-6 md:pb-10 md:pt-6 xl:px-10">
           <div className="mx-auto w-full max-w-[1440px]">{children}</div>
         </main>
       </div>
 
-
+      {/* Mobile Bottom Navigation Bar */}
+      <BottomNav role={role} />
     </div>
   );
 }
@@ -344,7 +345,7 @@ function MoreSheet({ role }) {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[86vw] max-w-sm p-0">
+      <SheetContent side="left" className="w-[86vw] max-w-sm p-0 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <SheetHeader className="border-b border-border px-4 py-4">
           <SheetTitle className="text-left">
             <RifahLogo />

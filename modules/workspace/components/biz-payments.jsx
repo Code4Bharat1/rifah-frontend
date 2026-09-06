@@ -45,6 +45,16 @@ function handleExportCSV(payments) {
   toast.success("CSV exported successfully");
 }
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function handleDownloadPDF(payment) {
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
@@ -363,7 +373,7 @@ function handleDownloadPDF(payment) {
               </div>
               <div class="invoice-tag">
                 <div class="invoice-title">OFFICIAL INVOICE</div>
-                <div class="invoice-number"># ${payment.invoiceNumber || "INV-0000"}</div>
+                <div class="invoice-number"># ${escapeHtml(payment.invoiceNumber || "INV-0000")}</div>
                 <div class="invoice-date">Issued: ${new Date(payment.paidAt || payment.createdAt || Date.now()).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}</div>
               </div>
             </div>
@@ -372,9 +382,9 @@ function handleDownloadPDF(payment) {
             <div class="grid-two">
               <div class="info-card">
                 <div class="info-card-header">BILLED TO</div>
-                <div class="info-name">${payment.payer?.name || "Member User"}</div>
-                ${payment.payer?.email ? `<div class="info-detail">✉ ${payment.payer.email}</div>` : ""}
-                ${payment.business?.name ? `<div class="info-detail">🏢 ${payment.business.name}</div>` : ""}
+                <div class="info-name">${escapeHtml(payment.payer?.name || "Member User")}</div>
+                ${payment.payer?.email ? `<div class="info-detail">✉ ${escapeHtml(payment.payer.email)}</div>` : ""}
+                ${payment.business?.name ? `<div class="info-detail">🏢 ${escapeHtml(payment.business.name)}</div>` : ""}
               </div>
 
               <div class="info-card">
@@ -383,11 +393,11 @@ function handleDownloadPDF(payment) {
                   Status: 
                   <span class="status-pill">
                     <span class="status-dot"></span>
-                    ${payment.status || "Paid"}
+                    ${escapeHtml(payment.status || "Paid")}
                   </span>
                 </div>
-                <div class="info-detail">Transaction ID: <strong>${payment.transactionId || "N/A"}</strong></div>
-                <div class="info-detail">Payment Method: <strong>${payment.method || "Online (Razorpay)"}</strong></div>
+                <div class="info-detail">Transaction ID: <strong>${escapeHtml(payment.transactionId || "N/A")}</strong></div>
+                <div class="info-detail">Payment Method: <strong>${escapeHtml(payment.method || "Online (Razorpay)")}</strong></div>
               </div>
             </div>
 
@@ -404,11 +414,11 @@ function handleDownloadPDF(payment) {
                 <tbody>
                   <tr>
                     <td>
-                      <div class="item-desc">${payment.description || payment.purpose || payment.itemType || "Membership Subscription"}</div>
+                      <div class="item-desc">${escapeHtml(payment.description || payment.purpose || payment.itemType || "Membership Subscription")}</div>
                       <div class="item-sub">RIFAH Connect Member Services & Tier Access</div>
                     </td>
                     <td style="text-align: center; font-weight: 600;">1</td>
-                    <td style="text-align: right; font-weight: 700; color: #0b1f33;">₹ ${(payment.amount || 0).toLocaleString("en-IN")}</td>
+                    <td style="text-align: right; font-weight: 700; color: #0b1f33;">₹ ${(Number(payment.amount) || 0).toLocaleString("en-IN")}</td>
                   </tr>
                 </tbody>
               </table>

@@ -296,7 +296,7 @@ export default function LoginPage() {
 
   return (
     <PublicLayout bare>
-      <div className="grid h-[calc(100vh-68px)] lg:grid-cols-12 bg-[#f8fafc] overflow-hidden">
+      <div className="grid min-h-[calc(100vh-68px)] lg:h-[calc(100vh-68px)] lg:grid-cols-12 bg-[#f8fafc] overflow-y-auto lg:overflow-hidden">
         {/* Left Hero / Brand Showcase (Hidden on mobile, shown on lg+) */}
         <div className="relative hidden lg:flex lg:col-span-7 flex-col justify-between overflow-hidden bg-[#071328] p-8 xl:p-12 text-white select-none h-full">
           {/* Skyscraper background image with wider coverage to remove gap */}
@@ -394,9 +394,9 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Right Form Container - Fits on screen without scrolling */}
-        <div className="lg:col-span-5 flex items-center justify-center p-4 sm:p-6 lg:p-8 h-full overflow-hidden">
-          <div className="w-full max-w-[400px] rounded-[24px] border border-slate-200/80 bg-white p-5 sm:p-6 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] space-y-3.5">
+        {/* Right Form Container - Responsive for mobile & desktop */}
+        <div className="lg:col-span-5 flex items-center justify-center py-6 px-3 sm:p-6 lg:p-8 min-h-full overflow-y-auto lg:overflow-hidden">
+          <div className="w-full max-w-[420px] rounded-[24px] border border-slate-200/80 bg-white p-4 sm:p-6 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] space-y-3.5 my-auto">
             {/* Header */}
             <div className="text-center md:text-left">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">{t("title")}</h1>
@@ -560,14 +560,14 @@ export default function LoginPage() {
 
       {/* Forgot Password Dialog */}
       <Dialog open={isForgotOpen} onOpenChange={setIsForgotOpen}>
-        <DialogContent className="sm:max-w-[480px] rounded-[28px] p-7 sm:p-8 border border-slate-100 bg-white shadow-2xl">
-          {/* Header with Circular Icon Badge matching Image */}
-          <div className="flex items-start gap-4 mb-2">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#f0f7ff] text-[#0060df] border border-[#d9ebfb]">
-              <KeyRound className="h-7 w-7 stroke-[2.2]" />
+        <DialogContent className="w-[94vw] max-w-[480px] rounded-[24px] sm:rounded-[28px] p-5 sm:p-8 border border-slate-100 bg-white shadow-2xl max-h-[92vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {/* Header with Circular Icon Badge */}
+          <div className="flex items-start gap-3 sm:gap-4 mb-2">
+            <div className="flex h-11 w-11 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-full bg-[#f0f7ff] text-[#0060df] border border-[#d9ebfb]">
+              <KeyRound className="h-5 w-5 sm:h-7 sm:w-7 stroke-[2.2]" />
             </div>
             <div>
-              <DialogTitle className="text-2xl font-bold tracking-tight text-[#0f172a]">
+              <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight text-[#0f172a]">
                 {forgotStep === 1 && (
                   <>
                     Reset <span className="text-[#C90000]">Password</span>
@@ -689,8 +689,8 @@ export default function LoginPage() {
                   </button>
                 </div>
 
-                {/* 6 Individual Digit Input Boxes */}
-                <div className="flex items-center justify-between gap-2 sm:gap-2.5 my-3">
+                {/* 6 Individual Digit Input Boxes - Responsive across all phone screens */}
+                <div className="flex items-center justify-between gap-1.5 sm:gap-2.5 my-3">
                   {otpDigits.map((digit, idx) => (
                     <input
                       key={idx}
@@ -710,7 +710,7 @@ export default function LoginPage() {
                           handleOtpDigitChange(idx, pasteData);
                         }
                       }}
-                      className={`h-16 w-11 sm:w-14 rounded-2xl border text-center text-2xl font-bold transition-all outline-none bg-white ${
+                      className={`h-12 w-9 sm:h-14 sm:w-11 md:h-16 md:w-14 rounded-xl sm:rounded-2xl border text-center text-lg sm:text-xl md:text-2xl font-bold transition-all outline-none bg-white ${
                         digit
                           ? "border-slate-300 text-slate-900 shadow-sm"
                           : "border-slate-200 text-slate-900"

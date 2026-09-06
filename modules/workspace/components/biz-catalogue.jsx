@@ -198,8 +198,10 @@ function BizCatalogue() {
       actions={
         <Sheet open={openAdd} onOpenChange={setOpenAdd}>
           <SheetTrigger asChild>
-            <Button className="rounded-xl">
-              <Plus className="h-4 w-4" /> Add item
+            <Button size="sm" className="rounded-xl px-2.5 sm:px-3 text-xs">
+              <Plus className="h-3.5 w-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">Add item</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">

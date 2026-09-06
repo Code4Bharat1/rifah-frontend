@@ -145,9 +145,11 @@ function BusinessHome() {
       subtitle={`Business workspace · ${bizChapter}`}
       actions={
         bizSlugOrId ? (
-          <Button asChild variant="outline" className="rounded-xl border-slate-200 shadow-2xs hover:bg-slate-50">
+          <Button asChild variant="outline" size="sm" className="rounded-xl border-slate-200 shadow-2xs hover:bg-slate-50 px-2.5 sm:px-3 text-xs">
             <Link href={`/business/${bizSlugOrId}`}>
-              <Eye className="h-4 w-4 mr-1.5" /> View public profile
+              <Eye className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">View public profile</span>
+              <span className="sm:hidden">Profile</span>
             </Link>
           </Button>
         ) : null
@@ -155,7 +157,7 @@ function BusinessHome() {
     >
       <div className="space-y-4">
         {/* Top 4 Stat Cards dynamically bound to live backend data */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
           <StatCard
             label="New leads"
             value={String(rawLeads.filter((l) => l.status === "New").length)}
@@ -296,7 +298,7 @@ function BusinessHome() {
             >
               <div className="pt-2 pb-4">
                 {/* Bar Chart Bars */}
-                <div className="flex items-end justify-between gap-3 h-44 px-4 pt-6 pb-2">
+                <div className="flex items-end justify-between gap-1.5 sm:gap-3 h-44 px-1 sm:px-4 pt-6 pb-2 overflow-x-auto no-scrollbar">
                   {monthlyData.map((d) => {
                     const heightPercent = Math.round((d.val / maxVal) * 100);
                     return (

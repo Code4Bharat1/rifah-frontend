@@ -1,21 +1,28 @@
 import Link from "next/link";
 import { Bookmark, ChevronRight, MapPin, Send, Star } from "lucide-react";
+import { useState } from "react";
 
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { Button } from "@shared/components/ui/button";
-import { businessImage } from "@shared/lib/media";
+import { businessImage, businessLogo } from "@shared/lib/media";
 
 import { cn } from "@shared/lib/utils";
 
 function Monogram({ business, className }) {
+  const defaultImg = "/images/biz/manufacturing.jpg";
+  const [imgSrc, setImgSrc] = useState(() => businessLogo(business));
+
   return (
     <img
-      src={businessImage(business)}
-      alt={`${business.name} — ${business.industry}`}
+      src={imgSrc}
+      alt={`${business?.name || "Business"} — ${business?.industry || ""}`}
       loading="lazy"
       width={1024}
       height={640}
-      className={cn("shrink-0 rounded-xl border border-border object-cover", className)}
+      onError={() => {
+        if (imgSrc !== defaultImg) setImgSrc(defaultImg);
+      }}
+      className={cn("shrink-0 rounded-xl border border-border object-cover bg-surface", className)}
     />
   );
 }
@@ -105,15 +112,21 @@ export function PremiumBusinessCard({ business }) {
     ...(business.categories || []),
   ];
 
-  return (
+    const defaultCover = "/images/biz/manufacturing.jpg";
+    const [coverSrc, setCoverSrc] = useState(() => businessImage(business));
+
+    return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface">
-      <div className="relative h-24 overflow-hidden sm:h-28">
+      <div className="relative h-24 overflow-hidden sm:h-28 bg-muted">
         <img
-          src={businessImage(business)}
+          src={coverSrc}
           alt={`${business.name} facility`}
           loading="lazy"
           width={1024}
           height={640}
+          onError={() => {
+            if (coverSrc !== defaultCover) setCoverSrc(defaultCover);
+          }}
           className="h-full w-full object-cover"
         />
         <div className="absolute right-3 top-3">

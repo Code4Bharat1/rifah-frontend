@@ -17,13 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@shared/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@shared/components/ui/sheet";
 import { useMyLeads } from "@shared/hooks/use-rifah-api";
 import { leadApi } from "@shared/lib/api-services";
 
@@ -390,21 +383,21 @@ function LeadsPage() {
         </Panel>
       </div>
 
-      {/* Detail Slide-Over Sheet matching Target Screenshot 100% */}
-      <Sheet open={openLead !== null} onOpenChange={(o) => !o && setOpenLead(null)}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[430px] p-6 bg-[#f8fafc] border-l border-slate-200 shadow-2xl font-sans">
+      {/* Detail Centered Dialog Box for Leads */}
+      <Dialog open={openLead !== null} onOpenChange={(o) => !o && setOpenLead(null)}>
+        <DialogContent className="w-[94vw] max-w-xl max-h-[90vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden rounded-3xl p-5 sm:p-7 bg-[#f8fafc] border border-slate-200/80 shadow-2xl font-sans">
           {openLead && (
             <div className="space-y-4">
               {/* Header Title & Subtitle */}
-              <div className="space-y-1 pr-6">
-                <h3 className="text-left text-xl font-bold text-[#0f172a] leading-tight font-sans">
+              <DialogHeader className="space-y-1 text-left pr-6">
+                <DialogTitle className="text-left text-xl font-bold text-[#0f172a] leading-tight font-sans">
                   {openLead.enquiry?.title || openLead.title}
-                </h3>
-                <p className="text-left text-xs font-semibold text-[#8a99ad] font-sans">
+                </DialogTitle>
+                <DialogDescription className="text-left text-xs font-semibold text-[#8a99ad] font-sans">
                   {openLead.refCode || `ENQ-${(openLead._id || "2041").slice(-4).toUpperCase()}`} ·{" "}
                   {openLead.enquiry?.category || openLead.category || "Precision Engineering"}
-                </p>
-              </div>
+                </DialogDescription>
+              </DialogHeader>
 
               <div className="space-y-4 pt-0.5">
                 {/* Description */}
@@ -644,7 +637,7 @@ function LeadsPage() {
                       onClick={() => {
                         handleUpdateStatus("Closed");
                       }}
-                      className="w-full bg-white hover:bg-slate-50 text-[#0f172a] font-bold text-sm h-12 shadow-2xs cursor-pointer"
+                      className="w-full rounded-full border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 font-semibold text-sm h-11 shadow-2xs transition-colors cursor-pointer"
                     >
                       Mark as not relevant
                     </button>
@@ -653,12 +646,12 @@ function LeadsPage() {
               </div>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* Dynamic Filter Modal for Leads */}
       <Dialog open={showFilterModal} onOpenChange={setShowFilterModal}>
-        <DialogContent className="max-w-md rounded-3xl p-6 bg-white border border-slate-100 shadow-2xl font-sans">
+        <DialogContent className="max-w-md rounded-3xl p-6 bg-white border border-slate-100 shadow-2xl font-sans max-h-[90vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <DialogHeader className="space-y-1 text-left">
             <div className="flex items-center gap-1.5 text-xs font-bold text-sky-600 tracking-wider uppercase">
               <Filter className="h-3.5 w-3.5" /> DYNAMIC FILTER

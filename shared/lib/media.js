@@ -51,11 +51,31 @@ export const galleryPool = [
   ifdpPanels,
 ];
 
+const SERVER_BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
+
+export function resolveMediaUrl(path) {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:") || path.startsWith("/images/")) {
+    return path;
+  }
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${SERVER_BASE_URL}${cleanPath}`;
+}
+
 /** Cover / thumbnail photo for a member business. */
 export function businessImage(business) {
   if (!business) return manufacturing;
-  if (business.coverImage) return business.coverImage;
-  if (business.logo) return business.logo;
+  if (business.coverImage) return resolveMediaUrl(business.coverImage);
+  if (business.logo) return resolveMediaUrl(business.logo);
+  const bId = business.id || business._id || business.slug || "";
+  return byId[bId] ?? byIndustry[business.industry] ?? manufacturing;
+}
+
+/** Logo photo for a member business. */
+export function businessLogo(business) {
+  if (!business) return manufacturing;
+  if (business.logo) return resolveMediaUrl(business.logo);
+  if (business.coverImage) return resolveMediaUrl(business.coverImage);
   const bId = business.id || business._id || business.slug || "";
   return byId[bId] ?? byIndustry[business.industry] ?? manufacturing;
 }

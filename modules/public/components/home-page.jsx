@@ -26,7 +26,7 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { MoreLink, SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
-import { eventImage } from "@shared/lib/media";
+import { eventImage, resolveMediaUrl } from "@shared/lib/media";
 import {
   useBusinesses,
   useCatalogue,
@@ -87,14 +87,20 @@ function HomePage() {
 
   const featured = Array.isArray(businessesData)
     ? businessesData
-    : (businessesData?.businesses || []);
+    : (businessesData?.businesses || businessesData?.data || []);
   const catalogueList = Array.isArray(catalogueData)
     ? catalogueData
-    : (catalogueData?.items || []);
+    : (catalogueData?.items || catalogueData?.data || []);
   const upcoming = Array.isArray(eventsData)
     ? eventsData
-    : (eventsData?.events || []);
-  const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
+    : (eventsData?.events || eventsData?.data || []);
+  const plans = plansData
+    ? (Array.isArray(plansData)
+        ? plansData
+        : typeof plansData === "object"
+          ? Object.entries(plansData).map(([id, p]) => ({ id, ...p }))
+          : [])
+    : [];
 
   return (
     <PublicLayout>
@@ -215,11 +221,26 @@ function HomePage() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {catalogueList.slice(0, 4).map((item) => {
             const biz = item.business;
+            const itemImg = item.images && item.images.length > 0 ? resolveMediaUrl(item.images[0]) : null;
             return (
               <article key={item._id || item.slug} className="flex flex-col rounded-2xl border border-border bg-surface p-4">
-                <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-primary">
-                  <Package className="h-4.5 w-4.5" />
-                </span>
+                {itemImg ? (
+                  <div className="mb-3 h-28 w-full overflow-hidden rounded-xl bg-muted">
+                    <img
+                      src={itemImg}
+                      alt={item.name}
+                      loading="lazy"
+                      onError={(ev) => {
+                        ev.currentTarget.parentElement.style.display = "none";
+                      }}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-primary">
+                    <Package className="h-4.5 w-4.5" />
+                  </span>
+                )}
                 <div className="mt-3 flex items-center gap-2">
                   <Pill tone={item.type === "Product" ? "primary" : "neutral"}>{item.type}</Pill>
                 </div>
@@ -229,7 +250,7 @@ function HomePage() {
                   {biz?.name} · {item.city}
                 </p>
                 <Button asChild size="sm" variant="outline" className="mt-4">
-                  <Link href={`/enquiry/new?category=${encodeURIComponent(item.category)}`}>
+                  <Link href={`/enquiry/new?category=${encodeURIComponent(item.category || "")}`}>
                     Enquire
                   </Link>
                 </Button>
@@ -249,13 +270,16 @@ function HomePage() {
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {upcoming.map((e) => (
             <article key={e._id || e.slug} className="overflow-hidden rounded-2xl border border-border bg-surface">
-              <div className="relative h-24 overflow-hidden">
+              <div className="relative h-24 overflow-hidden bg-muted">
                 <img
-                  src={eventImage}
+                  src={e.coverImage ? resolveMediaUrl(e.coverImage) : eventImage}
                   alt={`${e.title} — RIFAH event`}
                   loading="lazy"
                   width={1024}
                   height={640}
+                  onError={(ev) => {
+                    ev.currentTarget.src = eventImage;
+                  }}
                   className="h-full w-full object-cover"
                 />
                 <div className="absolute inset-x-0 bottom-0 flex items-end p-4">
@@ -270,7 +294,7 @@ function HomePage() {
                 </p>
                 <h3 className="mt-1.5 text-sm font-semibold leading-snug">{e.title}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {e.venue} · {e.city}
+                  {e.venue}{e.city ? ` · ${e.city}` : ""}
                 </p>
                 <Button asChild size="sm" variant="outline" className="mt-3 w-full">
                   <Link href={`/events/${e._id || e.slug}`}>
