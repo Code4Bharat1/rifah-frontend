@@ -19,8 +19,19 @@ export function LanguageSelector() {
 
   const handleLanguageChange = (newLocale) => {
     startTransition(() => {
+      // Set NEXT_LOCALE for any remaining next-intl functionality
       document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
-      router.refresh();
+      
+      // Set Google Translate cookie
+      if (newLocale === 'en') {
+        document.cookie = `googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        document.cookie = `googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+      } else {
+        document.cookie = `googtrans=/en/${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+      
+      // Reload the page to apply Google Translate
+      window.location.reload();
     });
   };
 

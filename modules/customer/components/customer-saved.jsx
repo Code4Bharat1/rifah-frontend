@@ -10,7 +10,8 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 function SavedPage() {
   const { user } = useAuth();
-  const saved = user?.savedBusinesses || [];
+  const rawSaved = user?.savedBusinesses || [];
+  const saved = Array.isArray(rawSaved) ? rawSaved.filter(Boolean) : [];
 
   return (
     <AppShell role="customer" title="Saved businesses" subtitle={`${saved.length} shortlisted members`}>
@@ -27,9 +28,12 @@ function SavedPage() {
         />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {saved.map((b) => (
-            <BusinessCard key={b._id || b.slug} business={b} />
-          ))}
+          {saved.map((b, idx) => {
+            const isObj = typeof b === "object" && b !== null;
+            const key = (isObj ? (b._id || b.slug || b.id) : b) || `saved-biz-${idx}`;
+            const biz = isObj ? b : { _id: b, name: "Saved business" };
+            return <BusinessCard key={key} business={biz} />;
+          })}
         </div>
       )}
     </AppShell>

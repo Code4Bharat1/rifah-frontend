@@ -14,8 +14,11 @@ import { Input } from "@shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { ScrollArea } from "@shared/components/ui/scroll-area";
+import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminLeads() {
+  const { user } = useAuth();
+  const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -40,6 +43,19 @@ function AdminLeads() {
   const chapters = Array.isArray(chaptersData) ? chaptersData : [];
   const businesses = Array.isArray(businessesData) ? businessesData : [];
 
+  const displayBusinesses = businesses
+    .filter(b => isSuperAdmin || b.chapter === user?.chapter)
+    .sort((a, b) => {
+      // Premium/Enterprise members first
+      const aPremium = ["Premium", "Enterprise", "premium", "enterprise"].includes(a.membership) ? 1 : 0;
+      const bPremium = ["Premium", "Enterprise", "premium", "enterprise"].includes(b.membership) ? 1 : 0;
+      if (aPremium !== bPremium) return bPremium - aPremium;
+      // Verified next
+      const aVerified = ["verified", "Verified"].includes(a.verification) ? 1 : 0;
+      const bVerified = ["verified", "Verified"].includes(b.verification) ? 1 : 0;
+      return bVerified - aVerified;
+    });
+
   const handleRouteLead = async () => {
     if (!selectedLead || selectedBusinessIds.length === 0) return;
     setIsRouting(true);
@@ -54,6 +70,21 @@ function AdminLeads() {
       refetchEnquiries();
     } catch (error) {
       alert(error.message || "Failed to route lead.");
+    } finally {
+      setIsRouting(false);
+    }
+  };
+
+  const handleEscalate = async () => {
+    if (!selectedLead) return;
+    setIsRouting(true);
+    try {
+      await enquiryApi.update(selectedLead._id, { status: "Escalated", resolutionNote: "Escalated to Super Admin by Chapter Admin" });
+      toast.success("Lead escalated to Super Admin successfully!");
+      setSelectedLead(null);
+      refetchEnquiries();
+    } catch (error) {
+      toast.error(error.message || "Failed to escalate lead.");
     } finally {
       setIsRouting(false);
     }
@@ -138,17 +169,23 @@ function AdminLeads() {
               <SelectItem value="broadcast">Broadcast RFQs</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={chapterFilter} onValueChange={setChapterFilter}>
-            <SelectTrigger className="sm:max-w-[180px]">
-              <SelectValue placeholder="Filter by chapter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Chapters</SelectItem>
-              {chapters.map((ch) => (
-                <SelectItem key={ch._id || ch.name} value={ch.name}>{ch.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isSuperAdmin ? (
+            <Select value={chapterFilter} onValueChange={setChapterFilter}>
+              <SelectTrigger className="sm:max-w-[180px]">
+                <SelectValue placeholder="Filter by chapter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Chapters</SelectItem>
+                {chapters.map((ch) => (
+                  <SelectItem key={ch._id || ch.name} value={ch.name}>{ch.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="flex h-10 items-center justify-between rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-primary font-medium sm:max-w-[180px]">
+              {user?.chapter ? `${user.chapter} Leads` : "Your Chapter Leads"}
+            </div>
+          )}
         </div>
 
         <Panel title="Routing worklist">
@@ -239,7 +276,10 @@ function AdminLeads() {
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-3">
-                  {businesses.map((b) => (
+                  {displayBusinesses.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-8">No matching businesses found in your chapter.</p>
+                  )}
+                  {displayBusinesses.map((b) => (
                     <label key={b._id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-surface hover:bg-muted/50 cursor-pointer transition-colors">
                       <input
                         type="checkbox"
@@ -254,11 +294,16 @@ function AdminLeads() {
                         }}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-foreground">{b.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">{b.name}</p>
+                          {["Premium", "Enterprise", "premium", "enterprise"].includes(b.membership) && (
+                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Priority</span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground mt-0.5 truncate">{b.industry} · {b.city}</p>
                       </div>
-                      {b.verification === "verified" && (
-                        <div className="shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-600">
+                      {["verified", "Verified"].includes(b.verification) && (
+                        <div className="shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-600" title="Verified">
                           <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
                         </div>
                       )}
@@ -266,11 +311,18 @@ function AdminLeads() {
                   ))}
                 </div>
               </div>
-              <div className="p-4 border-t border-border bg-surface flex justify-between items-center">
-                <span className="text-sm font-medium">{selectedBusinessIds.length} selected</span>
-                <Button onClick={handleRouteLead} disabled={selectedBusinessIds.length === 0 || isRouting}>
-                  {isRouting ? "Routing..." : "Route Lead"}
-                </Button>
+              <div className="p-4 border-t border-border bg-surface flex justify-between items-center gap-2">
+                {!isSuperAdmin && (
+                  <Button variant="outline" onClick={handleEscalate} disabled={isRouting}>
+                    {isRouting ? "Escalating..." : "Escalate to Super Admin"}
+                  </Button>
+                )}
+                <div className="flex items-center gap-3 ml-auto">
+                  <span className="text-sm font-medium">{selectedBusinessIds.length} selected</span>
+                  <Button onClick={handleRouteLead} disabled={selectedBusinessIds.length === 0 || isRouting}>
+                    {isRouting ? "Routing..." : "Route Lead"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

@@ -13,6 +13,7 @@ import { Label } from "@shared/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@shared/components/ui/radio-group";
 import { useMembershipPlans, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { membershipApi, paymentApi, businessApi } from "@shared/lib/api-services";
+import { useAuth } from "@shared/providers/auth-provider";
 import { cn } from "@shared/lib/utils";
 
 const steps = ["Plan", "Billing", "Payment", "Confirmation"];
@@ -37,6 +38,7 @@ function Checkout() {
   const searchParams = useSearchParams();
   const planParam = searchParams?.get("plan") || "premium";
 
+  const { user: currentUser, refreshProfile } = useAuth();
   const { data: business } = useMyBusiness();
   const { data: plansData } = useMembershipPlans();
   const plans = plansData 
@@ -65,7 +67,7 @@ function Checkout() {
     price: 12999,
   };
 
-  // Pre-fill existing business details if available
+  // Pre-fill existing business or user details if available
   useEffect(() => {
     if (business) {
       if (business.name && !legalName) setLegalName(business.name);
@@ -73,8 +75,12 @@ function Checkout() {
       if (business.taxId && !gstNumber) setGstNumber(business.taxId);
       if (business.address && !billingAddress) setBillingAddress(business.address);
       if (business.city && !billingCity) setBillingCity(business.city);
+    } else if (currentUser) {
+      if (currentUser.organization && !legalName) setLegalName(currentUser.organization);
+      if (currentUser.email && !billingEmail) setBillingEmail(currentUser.email);
+      if (currentUser.city && !billingCity) setBillingCity(currentUser.city);
     }
-  }, [business]);
+  }, [business, currentUser]);
 
   // Automatically fetch business data as soon as 15-character GST is entered
   const fetchAndPopulateGst = async (gstin) => {
@@ -171,6 +177,25 @@ function Checkout() {
             });
 
             const resultData = verifyRes?.data || verifyRes;
+
+            // Immediately update local session with upgraded business owner credentials
+            if (resultData?.accessToken) {
+              localStorage.setItem("rifah_access_token", resultData.accessToken);
+            }
+            if (resultData?.refreshToken) {
+              localStorage.setItem("rifah_refresh_token", resultData.refreshToken);
+            }
+            if (resultData?.user) {
+              localStorage.setItem("rifah_user", JSON.stringify(resultData.user));
+            }
+            if (refreshProfile) {
+              try {
+                await refreshProfile();
+              } catch (e) {
+                console.warn("[Checkout] Profile refresh warning:", e.message);
+              }
+            }
+
             const invoiceNum = resultData?.payment?.invoiceNumber || orderData.invoiceNumber || `INV-${Date.now().toString().slice(-4)}`;
             setInvoiceId(invoiceNum);
             setStep(3);
