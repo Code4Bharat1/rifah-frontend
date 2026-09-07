@@ -23,6 +23,7 @@ function AdminLeads() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("total");
 
   const { data: enquiriesData, refetch: refetchEnquiries } = useAllEnquiries({
     search: search || undefined,
@@ -42,6 +43,12 @@ function AdminLeads() {
   const { data: chaptersData } = useChapters();
   const chapters = Array.isArray(chaptersData) ? chaptersData : [];
   const businesses = Array.isArray(businessesData) ? businessesData : [];
+
+  const filteredEnquiries = enquiries.filter(e => {
+    if (activeTab === "direct") return !!e.business;
+    if (activeTab === "broadcast") return !e.business;
+    return true;
+  });
 
   const displayBusinesses = businesses
     .filter(b => isSuperAdmin || b.chapter === user?.chapter)
@@ -134,9 +141,15 @@ function AdminLeads() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Total leads" value={String(enquiries.length)} icon={Target} tone="primary" />
-          <StatCard label="Direct RFQs" value={String(enquiries.filter((e) => e.business).length)} tone="success" />
-          <StatCard label="Broadcast RFQs" value={String(enquiries.filter((e) => !e.business).length)} tone="warning" />
+          <div className={`cursor-pointer transition-all ${activeTab === 'total' ? 'ring-2 ring-primary rounded-xl' : 'opacity-80 hover:opacity-100'}`} onClick={() => setActiveTab('total')}>
+            <StatCard label="Total leads" value={String(enquiries.length)} icon={Target} tone="primary" />
+          </div>
+          <div className={`cursor-pointer transition-all ${activeTab === 'direct' ? 'ring-2 ring-primary rounded-xl' : 'opacity-80 hover:opacity-100'}`} onClick={() => setActiveTab('direct')}>
+            <StatCard label="Direct RFQs" value={String(enquiries.filter((e) => e.business).length)} tone="success" />
+          </div>
+          <div className={`cursor-pointer transition-all ${activeTab === 'broadcast' ? 'ring-2 ring-primary rounded-xl' : 'opacity-80 hover:opacity-100'}`} onClick={() => setActiveTab('broadcast')}>
+            <StatCard label="Broadcast RFQs" value={String(enquiries.filter((e) => !e.business).length)} tone="warning" />
+          </div>
           <StatCard label="Routing Desk" value="Active" />
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -182,15 +195,15 @@ function AdminLeads() {
               </SelectContent>
             </Select>
           ) : (
-            <div className="flex h-10 items-center justify-between rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-primary font-medium sm:max-w-[180px]">
-              {user?.chapter ? `${user.chapter} Leads` : "Your Chapter Leads"}
+            <div className="flex h-10 items-center justify-between rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-primary font-medium sm:max-w-[180px] truncate" title={user?.chapter ? `${user.chapter.replace(/\s*[Cc]hapter\s*/g, '')}'s Leads` : "Your Leads"}>
+              {user?.chapter ? `${user.chapter.replace(/\s*[Cc]hapter\s*/g, '')}'s Leads` : "Your Leads"}
             </div>
           )}
         </div>
 
         <Panel title="Routing worklist">
           <ResponsiveTable
-            rows={enquiries}
+            rows={filteredEnquiries}
             empty={<EmptyState icon={Target} title="No leads to route" description="New buyer requirements appear here." />}
             columns={[
               { key: "title", header: "Requirement", cell: (r) => <span className="font-semibold">{r.title}</span> },

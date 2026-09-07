@@ -14,6 +14,7 @@ import {
   paymentApi,
   messageApi,
   notificationApi,
+  announcementApi,
   eventApi,
   reviewApi,
   reportApi,
@@ -353,6 +354,16 @@ export function useNotifications() {
     },
     refetchInterval: 8000,
     retry: false,
+  });
+}
+
+export function useAnnouncements(params = {}) {
+  return useQuery({
+    queryKey: ["announcements", params],
+    queryFn: async () => {
+      const res = await announcementApi.list(params);
+      return res?.data || res;
+    },
   });
 }
 

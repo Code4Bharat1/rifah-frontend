@@ -1,6 +1,7 @@
 import { Providers } from "@shared/providers/providers";
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import Script from 'next/script';
 import "@/app/globals.css";
 
 export const metadata = {
@@ -42,14 +43,14 @@ export default async function RootLayout({ children }) {
         
         {/* Google Translate Global Script */}
         <div id="google_translate_element" style={{ display: 'none' }}></div>
-        <script type="text/javascript" dangerouslySetInnerHTML={{
-          __html: `
+        <Script id="google-translate-init">
+          {`
             function googleTranslateElementInit() {
               new google.translate.TranslateElement({pageLanguage: 'en', autoDisplay: false}, 'google_translate_element');
             }
-          `
-        }} />
-        <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" />
+          `}
+        </Script>
+        <Script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" />
       </body>
     </html>
   );

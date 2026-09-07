@@ -170,6 +170,14 @@ export const notificationApi = {
   clearAll: () => apiClient("/notifications/clear-all", { method: "DELETE" }),
 };
 
+export const announcementApi = {
+  list: (params = {}) => apiClient(`/announcements${toQueryString(params)}`),
+  getById: (id) => apiClient(`/announcements/${id}`),
+  create: (data) => apiClient("/announcements", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/announcements/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/announcements/${id}`, { method: "DELETE" }),
+};
+
 export const eventApi = {
   list: (params = {}) => apiClient(`/events${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/events/detail/${idOrSlug}`),

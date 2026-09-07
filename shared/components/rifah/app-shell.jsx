@@ -101,6 +101,7 @@ const navs = {
       { label: "Units", to: "/admin/units", icon: Users },
       { label: "Events", to: "/admin/events", icon: Ticket },
       { label: "Payments", to: "/admin/payments", icon: CreditCard },
+      { label: "Announcements", to: "/admin/announcements", icon: Megaphone },
       { label: "Notifications", to: "/admin/notifications", icon: Bell },
       { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
@@ -167,19 +168,19 @@ export function AppShell({
   const nav = navs[role];
   const { getPath } = useDynamicNav(role);
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more].map(i => ({ ...i, to: getPath(i.to) }));
-  
+
   const { data: notificationsData } = useNotifications();
   const { data: conversationsData } = useConversations();
-  
+
   const unreadNotifs = notificationsData?.unreadCount ?? (
     Array.isArray(notificationsData)
       ? notificationsData.filter((n) => !n.isRead && !n.readAt && n.type !== "Message").length
       : 0
   );
-  
+
   const rawConversations = Array.isArray(conversationsData) ? conversationsData : (conversationsData?.conversations || []);
   const unreadMsgs = rawConversations.reduce((acc, c) => acc + (Number(c.unreadCount || c.unread) || 0), 0);
-  
+
   let finalTitle = title;
   let finalSubtitle = subtitle;
 
@@ -193,13 +194,13 @@ export function AppShell({
   }
   const isActive = (to) => {
     if (path === to) return true;
-    
+
     // Root workspace routes should only match exactly
     const rootRoutes = ["/biz", "/admin", "/me", "/discover"];
-    
+
     // Check if `to` is a dynamic root route (e.g., /mumbai-chapter/admin)
     if (rootRoutes.includes(to) || to.endsWith("/admin")) return false;
-    
+
     return to !== "/" && path.startsWith(to + "/");
   };
 
@@ -381,9 +382,9 @@ export function BottomNav({ role }) {
   const path = useCurrentPath();
   const { getPath } = useDynamicNav(role);
   const nav = navs[role];
-  
+
   const primary = nav.primary.map(i => ({ ...i, to: getPath(i.to) }));
-  
+
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
