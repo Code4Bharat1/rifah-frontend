@@ -33,7 +33,8 @@ function CustomerHome() {
   const { data: eventsData } = useEvents({ status: "Upcoming", limit: 3 });
 
   const enquiries = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || []);
-  const savedBusinesses = user?.savedBusinesses || [];
+  const rawSaved = user?.savedBusinesses || [];
+  const savedBusinesses = Array.isArray(rawSaved) ? rawSaved.filter(Boolean) : [];
   const notifications = Array.isArray(notifData) ? notifData : (notifData?.notifications || []);
   const unreadCount = notifData?.unreadCount ?? (Array.isArray(notifications) ? notifications.filter((n) => !n.read).length : 0);
   const conversations = convData || [];
@@ -126,8 +127,8 @@ function CustomerHome() {
                 </div>
               ) : (
                 <ul className="space-y-3">
-                  {enquiries.slice(0, 4).map((e) => (
-                    <li key={e._id} className="rounded-xl border border-border p-3.5">
+                  {enquiries.slice(0, 4).map((e, idx) => (
+                    <li key={e._id || e.id || `enquiry-${idx}`} className="rounded-xl border border-border p-3.5">
                       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold">{e.title}</p>
@@ -157,25 +158,38 @@ function CustomerHome() {
                 </p>
               ) : (
                 <ul className="grid gap-3 sm:grid-cols-2">
-                  {savedBusinesses.slice(0, 4).map((b) => (
-                    <li key={b._id || b.slug}>
-                      <Link
-                        href={`/business/${b.slug || b._id}`}
-                        className="block rounded-xl border border-border p-3.5 transition-colors hover:border-primary/40"
-                      >
-                        <p className="truncate text-sm font-semibold">{b.name}</p>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {b.industry} · {b.city}
-                        </p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <VerificationBadge status={b.verification} compact />
-                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                            <Star className="h-3 w-3 fill-warning text-warning" /> {(b.rating || 5).toFixed(1)}
-                          </span>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
+                  {savedBusinesses.slice(0, 4).map((b, idx) => {
+                    const isObj = typeof b === "object" && b !== null;
+                    const id = isObj ? (b._id || b.slug || b.id) : b;
+                    const slugOrId = isObj ? (b.slug || b._id || b.id) : b;
+                    const name = isObj ? (b.name || "Saved business") : "Saved business";
+                    const key = id ? String(id) : `saved-biz-${idx}`;
+
+                    return (
+                      <li key={key}>
+                        <Link
+                          href={`/business/${slugOrId || key}`}
+                          className="block rounded-xl border border-border p-3.5 transition-colors hover:border-primary/40"
+                        >
+                          <p className="truncate text-sm font-semibold">{name}</p>
+                          {isObj && (b.industry || b.city) && (
+                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                              {b.industry} {b.industry && b.city ? "·" : ""} {b.city}
+                            </p>
+                          )}
+                          {isObj && (
+                            <div className="mt-2 flex items-center gap-2">
+                              {b.verification && <VerificationBadge status={b.verification} compact />}
+                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                <Star className="h-3 w-3 fill-warning text-warning" />{" "}
+                                {(b.rating !== undefined && b.rating !== null ? Number(b.rating) : 5).toFixed(1)}
+                              </span>
+                            </div>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </Panel>
@@ -188,7 +202,7 @@ function CustomerHome() {
               ) : (
                 <ul className="space-y-3">
                   {conversations.slice(0, 3).map((c, i) => (
-                    <li key={i} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
+                    <li key={c._id || c.id || `conv-${i}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-bold text-primary">
                         {(c.otherUser?.name || "U")[0]}
                       </span>
@@ -204,10 +218,10 @@ function CustomerHome() {
 
             <Panel title="Upcoming events" action={<MoreLink href="/events" />}>
               <ul className="space-y-3">
-                {events.map((e) => (
-                  <li key={e._id || e.slug}>
+                {events.map((e, idx) => (
+                  <li key={e._id || e.slug || e.id || `event-${idx}`}>
                     <Link
-                      href={`/events/${e.slug || e._id}`}
+                      href={`/events/${e.slug || e._id || e.id}`}
                       className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-xl border border-border p-3 transition-colors hover:border-primary/40"
                     >
                       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
@@ -230,8 +244,8 @@ function CustomerHome() {
                 <p className="py-4 text-xs text-muted-foreground">No notifications.</p>
               ) : (
                 <ul className="space-y-3">
-                  {notifications.slice(0, 4).map((n) => (
-                    <li key={n._id} className="flex gap-2.5">
+                  {notifications.slice(0, 4).map((n, idx) => (
+                    <li key={n._id || n.id || `notif-${idx}`} className="flex gap-2.5">
                       <span
                         className={
                           !n.read
