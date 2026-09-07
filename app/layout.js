@@ -39,6 +39,17 @@ export default async function RootLayout({ children }) {
         <NextIntlClientProvider messages={messages} locale={locale}>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
+        
+        {/* Google Translate Global Script */}
+        <div id="google_translate_element" style={{ display: 'none' }}></div>
+        <script type="text/javascript" dangerouslySetInnerHTML={{
+          __html: `
+            function googleTranslateElementInit() {
+              new google.translate.TranslateElement({pageLanguage: 'en', autoDisplay: false}, 'google_translate_element');
+            }
+          `
+        }} />
+        <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" />
       </body>
     </html>
   );
