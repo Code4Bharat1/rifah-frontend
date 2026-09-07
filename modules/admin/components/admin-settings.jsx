@@ -45,7 +45,16 @@ const modules = [
   { label: "Announcements", to: "/admin/notifications", icon: Bell },
   { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
   { label: "Audit log", to: "/admin/audit", icon: ScrollText },
-] ;
+];
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@shared/components/ui/dialog";
 
 const togglesTemplate = [
   { key: "manualVerificationRequired", title: "Manual verification required", desc: "Every new listing is reviewed by the secretariat", defaultOn: true },
@@ -66,6 +75,7 @@ function AdminSettings() {
   });
   
   const [toggleStates, setToggleStates] = useState({});
+  const [confirmModal, setConfirmModal] = useState({ open: false, key: null, value: null, title: "" });
 
   const [fees, setFees] = useState({
     registrationFee: 1000,
@@ -106,12 +116,20 @@ function AdminSettings() {
     }
   }, [globalSettings]);
   
-  const handleToggle = async (key, value) => {
+  const handleToggleClick = (key, value, title) => {
+    setConfirmModal({ open: true, key, value, title });
+  };
+
+  const confirmToggle = async () => {
+    const { key, value } = confirmModal;
+    setConfirmModal({ open: false, key: null, value: null, title: "" });
+    
     // Optimistic UI update
     setToggleStates(prev => ({ ...prev, [key]: value }));
     try {
       await settingsApi.update({ [key]: value });
-      toast.success("Settings updated");
+      toast.success("Settings updated successfully");
+      refetch();
     } catch (e) {
       // Revert on failure
       setToggleStates(prev => ({ ...prev, [key]: !value }));
@@ -177,7 +195,7 @@ function AdminSettings() {
                   </div>
                   <Switch 
                     checked={isOn} 
-                    onCheckedChange={(checked) => handleToggle(key, checked)} 
+                    onCheckedChange={(checked) => handleToggleClick(key, checked, title)} 
                   />
                 </li>
               );
@@ -289,6 +307,25 @@ function AdminSettings() {
           </div>
         </Panel>
       </div>
+
+      <Dialog open={confirmModal.open} onOpenChange={(open) => setConfirmModal(prev => ({ ...prev, open }))}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Action</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to {confirmModal.value ? "enable" : "disable"} "{confirmModal.title}"? This will affect how the platform operates globally.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setConfirmModal({ open: false, key: null, value: null, title: "" })}>
+              Cancel
+            </Button>
+            <Button onClick={confirmToggle}>
+              Confirm & Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
