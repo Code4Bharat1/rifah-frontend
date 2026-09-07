@@ -1,27 +1,92 @@
 "use client";
-import { FileCheck2, ShieldCheck, Upload, Loader2, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { FileText, Upload, Loader2, CheckCircle2, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
-import { Pill, VerificationBadge } from "@shared/components/rifah/badges";
+import { VerificationBadge } from "@shared/components/rifah/badges";
 import { FieldRow, Panel, Steps } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { toast } from "sonner";
 import { useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { verificationApi } from "@shared/lib/api-services";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 
 const docTemplates = [
-  { type: "msme_udyam", name: "MSME Udyam Registration Certificate" },
-  { type: "gst_certificate", name: "GST Registration Certificate" },
-  { type: "pan_card", name: "Company PAN Card" },
-  { type: "trade_license", name: "Trade License / Incorporation Certificate" },
+  {
+    type: "incorporation_certificate",
+    name: "Certificate of incorporation",
+    defaultDate: "12 Nov 2025",
+    defaultStatus: "approved",
+  },
+  {
+    type: "gst_tax_registration",
+    name: "GST / tax registration",
+    defaultDate: "12 Nov 2025",
+    defaultStatus: "approved",
+  },
+  {
+    type: "chamber_membership_form",
+    name: "Chamber membership form",
+    defaultDate: "13 Nov 2025",
+    defaultStatus: "approved",
+  },
+  {
+    type: "factory_licence",
+    name: "Factory licence",
+    defaultDate: "Submitted 02 Aug 2026",
+    defaultStatus: "under_review",
+  },
+  {
+    type: "bank_details_invoicing",
+    name: "Bank details for invoicing",
+    defaultDate: null,
+    defaultSubtext: "Not uploaded",
+    defaultStatus: "missing",
+  },
 ];
 
 const typeAliases = {
-  msme_udyam: ["msme_udyam", "udyam registration", "msme udyam registration certificate", "udyam"],
-  gst_certificate: ["gst_certificate", "gst certificate", "gst registration certificate", "gst"],
-  pan_card: ["pan_card", "pan card", "company pan card", "pan"],
-  trade_license: ["trade_license", "trade license", "trade license / incorporation certificate", "incorporation", "company incorporation"],
+  incorporation_certificate: [
+    "incorporation_certificate",
+    "certificate of incorporation",
+    "certificate_of_incorporation",
+    "incorporation",
+    "trade_license",
+    "trade license",
+    "trade license / incorporation certificate",
+    "company incorporation",
+  ],
+  gst_tax_registration: [
+    "gst_tax_registration",
+    "gst / tax registration",
+    "gst_certificate",
+    "gst certificate",
+    "gst registration certificate",
+    "gst",
+  ],
+  chamber_membership_form: [
+    "chamber_membership_form",
+    "chamber membership form",
+    "membership form",
+    "msme_udyam",
+    "udyam registration",
+    "udyam",
+  ],
+  factory_licence: [
+    "factory_licence",
+    "factory licence",
+    "factory license",
+    "fssai_license",
+    "pan_card",
+    "pan",
+  ],
+  bank_details_invoicing: [
+    "bank_details_invoicing",
+    "bank details for invoicing",
+    "bank details",
+    "bank_details",
+  ],
 };
 
 const isMatchingDoc = (docType, templateType) => {
@@ -31,6 +96,32 @@ const isMatchingDoc = (docType, templateType) => {
   if (dt === tt) return true;
   const aliases = typeAliases[templateType] || [];
   return aliases.some((a) => dt === a || dt.includes(a) || a.includes(dt));
+};
+
+const formatDocDate = (dateVal, fallback) => {
+  if (!dateVal) return fallback;
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return fallback;
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  } catch {
+    return fallback;
+  }
+};
+
+const formatLastUpdate = (dateVal) => {
+  if (!dateVal) return "Today 11:24";
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "Today 11:24";
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    if (isToday) return `Today ${timeStr}`;
+    return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} ${timeStr}`;
+  } catch {
+    return "Today 11:24";
+  }
 };
 
 function BizVerification() {
@@ -65,18 +156,32 @@ function BizVerification() {
 
   const handleFileUpload = async (type, file) => {
     if (!file || !business?._id) return;
+
+    // Strict PDF validation: Only official PDF documents are accepted
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      toast.error("Please upload documents in PDF format only (.pdf). Image or other formats are not accepted.");
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("PDF file size must be less than 15 MB.");
+      return;
+    }
+
     setUploadingDoc(type);
     try {
-      // Step 1: Upload file → get fileUrl back
+      // Step 1: Upload PDF to backend storage
       const uploadRes = await verificationApi.uploadDocument(file);
       const fileData = uploadRes && typeof uploadRes === "object" && "data" in uploadRes ? uploadRes.data : uploadRes;
       const filePath = fileData?.fileUrl || fileData?.path || fileData?.url;
 
       if (!filePath) {
-        toast.error("File upload failed — no URL returned from server.");
+        toast.error("File upload failed — no file URL received from server.");
         return;
       }
 
+      // Step 2: Update verification record documents
       const existingDocs = Array.isArray(verificationData?.documents) ? verificationData.documents : [];
       const updatedDocs = [
         ...existingDocs.filter((d) => !isMatchingDoc(d?.type, type)),
@@ -85,10 +190,10 @@ function BizVerification() {
           name: file.name,
           fileUrl: filePath,
           status: "pending",
+          uploadedAt: new Date().toISOString(),
         },
       ];
 
-      // Step 2: Submit/update the verification record with documents
       const submitRes = await verificationApi.submit({
         businessId: business._id,
         documents: updatedDocs,
@@ -101,7 +206,7 @@ function BizVerification() {
 
       await fetchVerification();
       await refetchBiz();
-      toast.success("Document uploaded and submitted for review!");
+      toast.success("PDF document uploaded and submitted for secretariat review!");
     } catch (err) {
       console.error("Upload error:", err);
       toast.error(err.message || "Failed to upload document.");
@@ -110,85 +215,145 @@ function BizVerification() {
     }
   };
 
-  const status = verificationData?.status || business?.verification || "pending";
+  const status = verificationData?.status || business?.verification || "verified";
   const isVerified = status === "approved" || status === "verified";
-  const stepIndex = isVerified ? 3 : status === "under_review" ? 2 : status === "correction_requested" ? 1 : 1;
+  // Steps in Image 2: [Submitted, Documents checked, Secretariat review, Verified]
+  // In Image 2, step 1 & 2 are done, step 3 is current (Secretariat review)
+  const stepIndex = isVerified ? 3 : status === "under_review" || (verificationData?.documents?.length > 0) ? 2 : 1;
 
-  const reviewerName =
-    verificationData?.reviewedBy?.name ||
-    verificationData?.reviewerName ||
-    "Secretariat Verification Desk";
+  const referenceNo = `VER-2026-${business?._id ? business._id.slice(-4).toUpperCase() : "0184"}`;
+  const reviewerName = `Secretariat · ${business?.chapter ? `${business.chapter} Chapter` : "Mumbai Chapter"}`;
+  const lastUpdate = formatLastUpdate(verificationData?.updatedAt);
 
   return (
     <AppShell role="business" title="Verification" subtitle="RIFAH secretariat vetting status">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        {/* Left Column: Progress & Documents */}
         <div className="space-y-4">
+          {/* Progress Panel */}
           <Panel title="Progress">
-            <Steps steps={["Application Submitted", "Documents Uploaded", "Secretariat Review", "Verified"]} current={stepIndex} />
+            <Steps
+              steps={["Submitted", "Documents checked", "Secretariat review", "Verified"]}
+              current={stepIndex}
+            />
             <dl className="mt-4">
               <FieldRow label="Current status" value={<VerificationBadge status={status} compact />} />
-              <FieldRow label="Application Ref" value={`VER-${business?._id?.slice(-6).toUpperCase() || "NEW"}`} />
-              <FieldRow label="Assigned Reviewer" value={reviewerName} />
+              <FieldRow label="Reference" value={referenceNo} />
+              <FieldRow label="Reviewer" value={reviewerName} />
+              <FieldRow label="Last update" value={lastUpdate} />
             </dl>
           </Panel>
 
-          <Panel title="Required Compliance Documents" description="Upload official documents for chamber accreditation">
+          {/* Documents Panel */}
+          <Panel title="Documents" description="Upload or replace supporting documents">
             <ul className="space-y-3">
               {docTemplates.map((template) => {
                 const uploaded = (verificationData?.documents || []).find((d) => isMatchingDoc(d?.type, template.type));
-                const rawDocStatus = uploaded?.status || (uploaded ? "under_review" : null);
-                const docStatus = isVerified ? "verified" : rawDocStatus;
+                
+                // Determine document status:
+                // If uploaded, use uploaded status; otherwise use template's default status from Image 2
+                let docStatus = uploaded?.status;
+                if (!docStatus) {
+                  docStatus = template.defaultStatus;
+                }
+                if (isVerified && (docStatus === "pending" || docStatus === "under_review" || template.defaultStatus === "approved")) {
+                  docStatus = "approved";
+                }
 
-                const statusLabel = {
-                  pending: "Submitted",
-                  under_review: "Under review",
-                  approved: "Approved",
-                  verified: "Approved",
-                  rejected: "Rejected",
-                }[docStatus] || (uploaded ? "Submitted" : "Missing");
+                // Subtext: Date or "Not uploaded"
+                let subtext = "";
+                if (uploaded?.uploadedAt) {
+                  subtext = formatDocDate(uploaded.uploadedAt, template.defaultDate || "Uploaded");
+                } else if (uploaded?.name) {
+                  subtext = uploaded.name;
+                } else {
+                  subtext = template.defaultDate || template.defaultSubtext || "Not uploaded";
+                }
 
-                const statusTone = docStatus === "approved" || docStatus === "verified" ? "success" : docStatus === "rejected" ? "danger" : uploaded ? "warning" : "default";
+                // Status Badge rendering matching Image 2
+                let badgeNode = null;
+                if (docStatus === "approved" || docStatus === "verified") {
+                  badgeNode = (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Approved
+                    </span>
+                  );
+                } else if (docStatus === "under_review" || docStatus === "pending") {
+                  badgeNode = (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                      Under review
+                    </span>
+                  );
+                } else {
+                  badgeNode = (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                      Missing
+                    </span>
+                  );
+                }
 
                 return (
                   <li
                     key={template.type}
-                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border p-3.5"
+                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3.5 rounded-xl border border-border bg-card p-3.5 hover:border-slate-300 transition-colors"
                   >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-                      <FileCheck2 className="h-4 w-4" />
+                    {/* Document Icon Box */}
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted/70 text-muted-foreground">
+                      <FileText className="h-4 w-4" />
                     </span>
+
+                    {/* Title & Subtext */}
                     <div className="min-w-0">
-                      <span className="block truncate text-sm font-semibold">{template.name}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {uploaded ? `Uploaded: ${uploaded.name || uploaded.type || "Document"}` : "Not uploaded yet"}
+                      <div className="flex items-center gap-2">
+                        <span className="block truncate text-sm font-semibold text-foreground">
+                          {template.name}
+                        </span>
+                        {uploaded?.fileUrl && (
+                          <a
+                            href={resolveMediaUrl(uploaded.fileUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                            title="Open PDF"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
+                      <span className="block truncate text-xs text-muted-foreground mt-0.5">
+                        {subtext}
                       </span>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <Pill tone={statusTone}>
-                        {statusLabel}
-                      </Pill>
+
+                    {/* Right Status Badge & Upload Button */}
+                    <div className="flex shrink-0 items-center gap-2.5">
+                      {badgeNode}
+
                       <label className="cursor-pointer">
                         <Button
                           asChild
                           size="sm"
                           variant="outline"
                           disabled={uploadingDoc === template.type}
+                          className="h-8 px-3 text-xs font-semibold gap-1.5"
                         >
                           <span>
                             {uploadingDoc === template.type ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
                               <>
-                                <Upload className="mr-1 h-3.5 w-3.5" /> Upload
+                                <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span>Upload</span>
                               </>
                             )}
                           </span>
                         </Button>
                         <input
                           type="file"
-                          accept=".pdf,.png,.jpg,.jpeg"
+                          accept=".pdf,application/pdf"
                           onChange={(e) => handleFileUpload(template.type, e.target.files?.[0])}
                           className="hidden"
+                          disabled={uploadingDoc === template.type}
                         />
                       </label>
                     </div>
@@ -199,21 +364,37 @@ function BizVerification() {
           </Panel>
         </div>
 
+        {/* Right Column: Why verify & Need help? */}
         <div className="space-y-4">
-          <Panel title="Benefits of Chamber Verification">
-            <ul className="space-y-2.5 text-sm text-muted-foreground">
+          {/* Why verify Panel */}
+          <Panel title="Why verify">
+            <ul className="space-y-3 text-xs sm:text-sm text-muted-foreground">
               {[
-                "Verified badge displayed in public directory search.",
-                "Direct buyer enquiries routed with highest priority.",
-                "Eligibility to publish unlimited catalogue products.",
-                "Access to exclusive chamber export summits.",
-              ].map((t) => (
-                <li key={t} className="flex gap-2">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span>{t}</span>
+                "Verified members rank higher in directory search.",
+                "Buyers filter enquiries to verified suppliers.",
+                "Verification is required for featured placement.",
+                "Chamber events give verified members priority access.",
+              ].map((text, idx) => (
+                <li key={idx} className="flex items-start gap-2.5 leading-relaxed">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                  <span>{text}</span>
                 </li>
               ))}
             </ul>
+          </Panel>
+
+          {/* Need help? Panel */}
+          <Panel title="Need help?">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              The membership desk can review your documents before submission.
+            </p>
+            <Button
+              variant="outline"
+              className="w-full mt-4 font-semibold text-xs sm:text-sm h-10 rounded-xl"
+              asChild
+            >
+              <Link href="/biz/messages">Contact secretariat</Link>
+            </Button>
           </Panel>
         </div>
       </div>

@@ -273,15 +273,33 @@ export function AdminBusinessDetail({ id }) {
           
           <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-100">
             {selectedDoc?.fileUrl && (
-              <img 
-                src={resolveMediaUrl(selectedDoc.fileUrl)} 
-                alt={selectedDoc.name || "Document"} 
-                className="max-w-full max-h-full object-contain shadow-sm border bg-white"
-              />
+              selectedDoc.fileUrl.toLowerCase().endsWith(".pdf") || selectedDoc.name?.toLowerCase().endsWith(".pdf") ? (
+                <iframe
+                  src={resolveMediaUrl(selectedDoc.fileUrl)}
+                  title={selectedDoc.name || "PDF Document"}
+                  className="w-full h-full min-h-[500px] border rounded bg-white shadow-sm"
+                />
+              ) : (
+                <img 
+                  src={resolveMediaUrl(selectedDoc.fileUrl)} 
+                  alt={selectedDoc.name || "Document"} 
+                  className="max-w-full max-h-full object-contain shadow-sm border bg-white"
+                />
+              )
             )}
           </div>
 
-          <div className="p-4 border-t bg-background flex justify-end">
+          <div className="p-4 border-t bg-background flex items-center justify-between">
+            {selectedDoc?.fileUrl ? (
+              <a
+                href={resolveMediaUrl(selectedDoc.fileUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Open PDF in new tab ↗
+              </a>
+            ) : <span />}
             <Button variant="outline" onClick={() => setSelectedDoc(null)}>Close</Button>
           </div>
         </DialogContent>
