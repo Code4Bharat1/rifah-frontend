@@ -55,10 +55,19 @@ const SERVER_BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:
 
 export function resolveMediaUrl(path) {
   if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:") || path.startsWith("/images/")) {
+  if (path.startsWith("data:") || path.startsWith("/images/")) {
+    return path;
+  }
+  if (path.startsWith("http://localhost:5000/uploads/")) {
+    return path.replace("http://localhost:5000", "");
+  }
+  if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  if (cleanPath.startsWith("/uploads/")) {
+    return cleanPath;
+  }
   return `${SERVER_BASE_URL}${cleanPath}`;
 }
 

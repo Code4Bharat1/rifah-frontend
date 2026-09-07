@@ -1,5 +1,5 @@
 "use client";
-import { FileCheck2, ShieldCheck, Download } from "lucide-react";
+import { FileCheck2, ShieldCheck, Download, ExternalLink, FileText } from "lucide-react";
 import { useState } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -142,24 +142,36 @@ function AdminVerification() {
       </div>
 
       <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
-        <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-4xl h-[88vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-4 border-b bg-muted/20">
-            <DialogTitle>{selectedDoc?.name || selectedDoc?.type}</DialogTitle>
+            <DialogTitle className="truncate pr-8">{selectedDoc?.name || selectedDoc?.type}</DialogTitle>
           </DialogHeader>
           
-          <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-100">
+          <div className="flex-1 overflow-hidden p-3 flex flex-col items-center justify-center bg-slate-100">
             {selectedDoc?.fileUrl && (
               selectedDoc.fileUrl.toLowerCase().endsWith(".pdf") || selectedDoc.name?.toLowerCase().endsWith(".pdf") ? (
-                <iframe
-                  src={resolveMediaUrl(selectedDoc.fileUrl)}
-                  title={selectedDoc.name || "PDF Document"}
-                  className="w-full h-full min-h-[500px] border rounded bg-white shadow-sm"
-                />
+                <div className="w-full h-full flex flex-col relative">
+                  <iframe
+                    src={resolveMediaUrl(selectedDoc.fileUrl)}
+                    title={selectedDoc.name || "PDF Document"}
+                    className="w-full flex-1 border rounded-lg bg-white shadow-sm"
+                  />
+                  <div className="absolute top-3 right-3 flex gap-2">
+                    <a
+                      href={resolveMediaUrl(selectedDoc.fileUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-white/95 hover:bg-white border shadow-sm text-foreground backdrop-blur transition-colors"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" /> Open Fullscreen ↗
+                    </a>
+                  </div>
+                </div>
               ) : (
                 <img 
                   src={resolveMediaUrl(selectedDoc.fileUrl)} 
                   alt={selectedDoc.name || "Document"} 
-                  className="max-w-full max-h-full object-contain shadow-sm border bg-white"
+                  className="max-w-full max-h-full object-contain shadow-sm border bg-white rounded-lg"
                 />
               )
             )}
@@ -167,14 +179,24 @@ function AdminVerification() {
 
           <div className="p-4 border-t bg-background flex items-center justify-between">
             {selectedDoc?.fileUrl ? (
-              <a
-                href={resolveMediaUrl(selectedDoc.fileUrl)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-semibold text-primary hover:underline"
-              >
-                Open PDF in new tab ↗
-              </a>
+              <div className="flex items-center gap-3">
+                <a
+                  href={resolveMediaUrl(selectedDoc.fileUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" /> Open PDF in new tab ↗
+                </a>
+                <span className="text-muted-foreground text-xs">•</span>
+                <a
+                  href={resolveMediaUrl(selectedDoc.fileUrl)}
+                  download={selectedDoc.name || "document.pdf"}
+                  className="text-xs font-semibold text-muted-foreground hover:underline inline-flex items-center gap-1"
+                >
+                  <Download className="h-3.5 w-3.5" /> Download PDF
+                </a>
+              </div>
             ) : <span />}
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => setSelectedDoc(null)}>Close</Button>
