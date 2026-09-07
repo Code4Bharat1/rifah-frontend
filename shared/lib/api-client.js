@@ -49,7 +49,7 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
     data = await response.text();
   }
 
-  if (response.status === 401 && !isRetry && !endpoint.includes("/auth/login") && !endpoint.includes("/auth/refresh-token")) {
+  if (response.status === 401 && !isRetry && !endpoint.includes("/login") && !endpoint.includes("/auth/refresh-token")) {
     const refreshToken = typeof window !== "undefined" ? localStorage.getItem("rifah_refresh_token") : null;
     if (refreshToken) {
       try {
@@ -83,7 +83,7 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
       localStorage.removeItem("rifah_access_token");
       localStorage.removeItem("rifah_refresh_token");
       localStorage.removeItem("rifah_user");
-      window.location.href = "/auth/login";
+      window.location.href = "/login";
     }
   }
 

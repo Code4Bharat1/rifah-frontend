@@ -98,7 +98,7 @@ function AdminAnnouncements() {
 
         <Panel 
           title="Announcements List" 
-          actions={
+          action={
             <Button onClick={() => handleOpenForm()}>
               <Plus className="mr-2 h-4 w-4" /> Create Announcement
             </Button>

@@ -16,6 +16,7 @@ import {
   LogOut,
   Mail,
   MapPinned,
+  Megaphone,
   Menu,
   MessageSquare,
   Package,
