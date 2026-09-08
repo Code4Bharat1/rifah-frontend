@@ -29,6 +29,7 @@ import {
   Ticket,
   UserRound,
   Users,
+  RotateCcw,
 } from "lucide-react";
 
 
@@ -165,7 +166,7 @@ export function AppShell({
 }) {
   const path = useCurrentPath();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole } = useAuth();
   const nav = navs[role];
   const { getPath } = useDynamicNav(role);
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more].map(i => ({ ...i, to: getPath(i.to) }));
@@ -253,6 +254,20 @@ export function AppShell({
                 <span className="block truncate text-[10px] text-sidebar-foreground/50">{user.email}</span>
               </span>
             </div>
+          )}
+          {user?.previousRole && (
+            <button
+              onClick={async () => {
+                await switchRole(user.previousRole);
+                if (user.previousRole === "chapter_admin") router.push(`/${user.chapter.toLowerCase().replace(/\s+/g, '-')}/admin`);
+                else if (user.previousRole === "business_owner") router.push("/biz");
+                else router.push("/me");
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
+            >
+              <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+              <span>Switch to {user.previousRole === "chapter_admin" ? "Admin" : "User"} View</span>
+            </button>
           )}
           <button
             onClick={handleLogout}
