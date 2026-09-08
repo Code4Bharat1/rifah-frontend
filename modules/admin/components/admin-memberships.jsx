@@ -22,6 +22,14 @@ function AdminMemberships() {
   const plans = plansData || {};
   const businesses = Array.isArray(businessesData) ? businessesData : [];
 
+  const [filter, setFilter] = useState("all");
+  const filteredBusinesses = businesses.filter((b) => {
+    if (filter === "premium") return b.membership === "Premium" || b.membership === "Enterprise";
+    if (filter === "basic") return b.membership === "Basic";
+    if (filter === "verified") return b.verification === "verified";
+    return true;
+  });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlanId, setEditingPlanId] = useState(null);
   const [formData, setFormData] = useState({ planId: "", name: "", price: 0, summary: "", features: "" });
@@ -135,21 +143,29 @@ function AdminMemberships() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Total members" value={String(businesses.length)} icon={Star} tone="primary" />
-          <StatCard
-            label="Premium / Enterprise"
-            value={String(businesses.filter((b) => b.membership === "Premium" || b.membership === "Enterprise").length)}
-            tone="success"
-          />
-          <StatCard
-            label="Basic"
-            value={String(businesses.filter((b) => b.membership === "Basic").length)}
-          />
-          <StatCard
-            label="Verified"
-            value={String(businesses.filter((b) => b.verification === "verified").length)}
-            tone="warning"
-          />
+          <div onClick={() => setFilter("all")} className={`cursor-pointer transition-all duration-200 ${filter === 'all' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard label="Total members" value={String(businesses.length)} icon={Star} tone="primary" />
+          </div>
+          <div onClick={() => setFilter("premium")} className={`cursor-pointer transition-all duration-200 ${filter === 'premium' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard
+              label="Premium / Enterprise"
+              value={String(businesses.filter((b) => b.membership === "Premium" || b.membership === "Enterprise").length)}
+              tone="success"
+            />
+          </div>
+          <div onClick={() => setFilter("basic")} className={`cursor-pointer transition-all duration-200 ${filter === 'basic' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard
+              label="Basic"
+              value={String(businesses.filter((b) => b.membership === "Basic").length)}
+            />
+          </div>
+          <div onClick={() => setFilter("verified")} className={`cursor-pointer transition-all duration-200 ${filter === 'verified' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard
+              label="Verified"
+              value={String(businesses.filter((b) => b.verification === "verified").length)}
+              tone="warning"
+            />
+          </div>
         </div>
 
         <Panel 
@@ -196,9 +212,9 @@ function AdminMemberships() {
           </div>
         </Panel>
 
-        <Panel title="Member subscriptions">
+        <Panel title={filter === "all" ? "Member subscriptions" : filter === "premium" ? "Premium/Enterprise Subscriptions" : filter === "basic" ? "Basic Subscriptions" : "Verified Members"}>
           <ResponsiveTable
-            rows={businesses}
+            rows={filteredBusinesses}
             columns={[
               { key: "name", header: "Business", cell: (r) => <span className="font-semibold">{r.name}</span> },
               { key: "tier", header: "Tier", cell: (r) => <MembershipBadge tier={r.membership} /> },
