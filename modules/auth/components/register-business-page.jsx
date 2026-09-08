@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -213,10 +213,11 @@ function RegisterBusiness() {
   const handleVerifyGst = async (customGstin) => {
     const targetGst = (customGstin || formData.taxId || "").trim().toUpperCase();
     if (!targetGst) {
-      setGstErrorMsg("Please enter a 15-character GSTIN first.");
+      setGstErrorMsg(formData.region === "international" ? "Please enter your GSTIN or Tax ID first." : "Please enter a 15-character GSTIN first.");
       return;
     }
-    if (targetGst.length !== 15) {
+
+    if (formData.region === "national" && targetGst.length !== 15) {
       setGstErrorMsg("GSTIN must be exactly 15 characters long.");
       return;
     }
@@ -225,59 +226,82 @@ function RegisterBusiness() {
     setGstSuccessMsg("");
     setGstVerifying(true);
     try {
-      const res = await businessApi.verifyGst(targetGst);
-      const data = res?.data || res;
-      if (data && (data.isValid || data.valid || data.status === "Active" || data.taxpayerStatus === "Active")) {
-        setGstVerified(true);
-        setGstData(data);
+      if (targetGst.length === 15) {
+        const res = await businessApi.verifyGst(targetGst);
+        const data = res?.data || res;
+        if (data && (data.isValid || data.valid || data.status === "Active" || data.taxpayerStatus === "Active")) {
+          setGstVerified(true);
+          setGstData(data);
 
-        // Instantly populate form fields directly from verified GST records
-        const fetchedName = data.businessName || data.tradeName || data.legalName || "";
-        const contactPerson = data.contactPerson || data.authorizedSignatory || data.promoter || data.legalName || "";
-        const phone = data.phone || data.mobile || "";
-        const email = data.email || "";
-        const address = data.address || "";
-        const city = data.city || "";
-        const pincode = data.pincode || "";
-        const founded = data.founded ? String(data.founded) : "";
+          // Instantly populate form fields directly from verified GST records
+          const fetchedName = data.businessName || data.tradeName || data.legalName || "";
+          const contactPerson = data.contactPerson || data.authorizedSignatory || data.promoter || data.legalName || "";
+          const phone = data.phone || data.mobile || "";
+          const email = data.email || "";
+          const address = data.address || "";
+          const city = data.city || "";
+          const pincode = data.pincode || "";
+          const founded = data.founded ? String(data.founded) : "";
 
-        // Auto-match chapter based on city or state
-        let matchingChapter = "";
-        if (city) {
-          const directMatch = chapters.find((c) => c.name.toLowerCase().includes(city.toLowerCase()));
-          if (directMatch) matchingChapter = directMatch.name;
+          // Auto-match chapter based on city or state
+          let matchingChapter = "";
+          if (city) {
+            const directMatch = chapters.find((c) => c.name.toLowerCase().includes(city.toLowerCase()));
+            if (directMatch) matchingChapter = directMatch.name;
+          }
+          if (!matchingChapter && data.state) {
+            const stateMatch = chapters.find((c) => c.name.toLowerCase().includes(data.state.toLowerCase()));
+            if (stateMatch) matchingChapter = stateMatch.name;
+          }
+
+          setFormData((prev) => ({
+            ...prev,
+            businessName: fetchedName || prev.businessName,
+            businessType: data.businessType || prev.businessType,
+            founded: founded || prev.founded,
+            contactPerson: contactPerson || prev.contactPerson,
+            phone: phone || prev.phone,
+            email: email || prev.email,
+            address: address || prev.address,
+            city: city || prev.city,
+            pincode: pincode || prev.pincode,
+            chapter: matchingChapter || prev.chapter,
+          }));
+
+          setGstSuccessMsg(
+            fetchedName
+              ? `GSTIN Verified! Details loaded for "${fetchedName}".`
+              : "GSTIN Verified successfully (Active Taxpayer)."
+          );
+        } else {
+          if (formData.region === "international") {
+            setGstVerified(true);
+            setGstSuccessMsg(`International Tax Number "${targetGst}" registered & verified.`);
+          } else {
+            setGstVerified(false);
+            setGstErrorMsg(data?.message || "Invalid GSTIN or inactive taxpayer.");
+          }
         }
-        if (!matchingChapter && data.state) {
-          const stateMatch = chapters.find((c) => c.name.toLowerCase().includes(data.state.toLowerCase()));
-          if (stateMatch) matchingChapter = stateMatch.name;
+      } else if (formData.region === "international") {
+        if (targetGst.length < 5) {
+          setGstErrorMsg("Tax registration number must be at least 5 characters.");
+          setGstVerified(false);
+        } else {
+          setGstVerified(true);
+          setGstSuccessMsg(`International Tax Number "${targetGst}" verified successfully.`);
         }
-
-        setFormData((prev) => ({
-          ...prev,
-          businessName: fetchedName || prev.businessName,
-          businessType: data.businessType || prev.businessType,
-          founded: founded || prev.founded,
-          contactPerson: contactPerson || prev.contactPerson,
-          phone: phone || prev.phone,
-          email: email || prev.email,
-          address: address || prev.address,
-          city: city || prev.city,
-          pincode: pincode || prev.pincode,
-          chapter: matchingChapter || prev.chapter,
-        }));
-
-        setGstSuccessMsg(
-          fetchedName
-            ? `GSTIN Verified! Details loaded for "${fetchedName}".`
-            : "GSTIN Verified successfully (Active Taxpayer)."
-        );
       } else {
         setGstVerified(false);
-        setGstErrorMsg(data?.message || "Invalid GSTIN or inactive taxpayer.");
+        setGstErrorMsg("GSTIN must be exactly 15 characters long.");
       }
     } catch (err) {
-      setGstVerified(false);
-      setGstErrorMsg(err.message || "Failed to verify GSTIN. Please check the number.");
+      if (formData.region === "international" && targetGst.length >= 5) {
+        setGstVerified(true);
+        setGstSuccessMsg(`International Tax Number "${targetGst}" registered & verified.`);
+      } else {
+        setGstVerified(false);
+        setGstErrorMsg(err.message || "Failed to verify GSTIN. Please check the number.");
+      }
     } finally {
       setGstVerifying(false);
     }
@@ -287,13 +311,21 @@ function RegisterBusiness() {
     setError("");
     setLoading(true);
     try {
+      const isInternational = formData.region === "international";
+      const currency = isInternational ? "USD" : "INR";
+
       const selectedPlan = plans.find((p) => p.id === tier) || {
         id: tier,
         name: tier.charAt(0).toUpperCase() + tier.slice(1),
         price: tier === "free" ? 0 : tier === "basic" ? 4999 : tier === "enterprise" ? 29999 : 12999,
+        priceUsd: tier === "free" ? 0 : tier === "basic" ? 59 : tier === "enterprise" ? 359 : 159,
       };
 
-      const isPaid = selectedPlan.price > 0;
+      const planAmount = isInternational
+        ? (selectedPlan.priceUsd ?? (selectedPlan.price === 0 ? 0 : Math.round(selectedPlan.price / 80)))
+        : selectedPlan.price;
+
+      const isPaid = planAmount > 0;
 
       // If Paid Plan selected, preload Razorpay script first
       if (isPaid) {
@@ -315,7 +347,7 @@ function RegisterBusiness() {
         industry: formData.industry,
         businessType: formData.businessType,
         city: formData.city,
-        state: "Maharashtra",
+        state: isInternational ? (formData.state || "International") : "Maharashtra",
         address: formData.address,
         pincode: formData.pincode,
         founded: formData.founded,
@@ -323,6 +355,8 @@ function RegisterBusiness() {
         membership: tier,
         about: formData.about,
         taxId: (formData.taxId || "").trim().toUpperCase(),
+        region: formData.region || "national",
+        currency,
         verifiedToken,
       });
 
@@ -339,12 +373,13 @@ function RegisterBusiness() {
         bizId = myBizRes?.data?._id || myBizRes?._id;
       } catch (err) {}
 
-      // Step 3: Create Razorpay Order
+      // Step 3: Create Razorpay Order with currency
       const orderRes = await paymentApi.createOrder({
-        amount: selectedPlan.price,
+        amount: planAmount,
+        currency,
         planId: tier,
         itemType: "Membership",
-        description: `${selectedPlan.name} Membership Subscription`,
+        description: `${selectedPlan.name} Membership Subscription (${currency})`,
       });
 
       const orderData = orderRes?.data || orderRes;
@@ -357,9 +392,9 @@ function RegisterBusiness() {
       const options = {
         key: orderData.keyId || "rzp_test_TTykh9OVkLKNHl",
         amount: orderData.amount,
-        currency: orderData.currency || "INR",
+        currency: orderData.currency || currency,
         name: "RIFAH Chamber of Commerce",
-        description: `${selectedPlan.name} Membership Subscription`,
+        description: `${selectedPlan.name} Membership Subscription (${currency})`,
         order_id: orderData.orderId,
         prefill: {
           name: formData.contactPerson || formData.businessName,
@@ -378,9 +413,10 @@ function RegisterBusiness() {
               razorpay_signature: response.razorpay_signature,
               planId: tier,
               businessId: bizId,
-              amount: selectedPlan.price,
+              amount: planAmount,
+              currency,
               itemType: "Membership",
-              description: `${selectedPlan.name} Membership Subscription`,
+              description: `${selectedPlan.name} Membership Subscription (${currency})`,
               billingEmail: formData.email,
               businessName: formData.businessName,
             });
@@ -493,17 +529,23 @@ function RegisterBusiness() {
               if (step === 0) {
                 const gst = (formData.taxId || "").trim().toUpperCase();
                 if (!gst) {
-                  setError("GSTIN / GST Number is mandatory. Please enter your 15-character GST number.");
+                  setError(
+                    formData.region === "international"
+                      ? "GSTIN / Tax Identification Number is mandatory. Please enter your number and click Verify."
+                      : "GSTIN / GST Number is mandatory for Indian entities. Please enter your 15-character GST number and click Verify."
+                  );
                   return;
                 }
-                if (gst.length !== 15) {
-                  setError("Please enter a complete 15-character GST Number (GSTIN).");
-                  return;
-                }
-                const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-                if (!gstRegex.test(gst)) {
-                  setError("Invalid GSTIN format. Example format: 27AAAAA0000A1Z5 (15 characters).");
-                  return;
+                if (formData.region === "national") {
+                  if (gst.length !== 15) {
+                    setError("Please enter a complete 15-character GST Number (GSTIN).");
+                    return;
+                  }
+                  const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+                  if (!gstRegex.test(gst)) {
+                    setError("Invalid GSTIN format. Example format: 27AAAAA0000A1Z5 (15 characters).");
+                    return;
+                  }
                 }
                 if (!gstVerified) {
                   setError("Please click 'Verify GSTIN' to verify your tax identifier before proceeding.");
@@ -545,19 +587,93 @@ function RegisterBusiness() {
             {step === 0 && (
               <Panel title="Business details">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {/* Two-Stage GSTIN Verification & Auto-Fetch Section */}
-                  <div className="space-y-2 sm:col-span-2 rounded-xl border border-border/80 bg-muted/20 p-3.5">
+                  {/* Region / Jurisdiction Selector */}
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Business Jurisdiction & Currency *
+                    </Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, region: "national" }));
+                          setError("");
+                        }}
+                        className={cn(
+                          "flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all",
+                          formData.region === "national"
+                            ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs"
+                            : "border-border hover:bg-muted/40"
+                        )}
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800">
+                          <Building2 className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">National (India)</span>
+                            {formData.region === "national" && (
+                              <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            Indian entity · GSTIN · INR (₹)
+                          </p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, region: "international" }));
+                          setError("");
+                        }}
+                        className={cn(
+                          "flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all",
+                          formData.region === "international"
+                            ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs"
+                            : "border-border hover:bg-muted/40"
+                        )}
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800">
+                          <Globe className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">International</span>
+                            {formData.region === "international" && (
+                              <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            Global entity · Tax ID · USD ($)
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Two-Stage GSTIN / Tax ID Verification & Auto-Fetch Section (For National & International) */}
+                  <div className="space-y-2 sm:col-span-2 rounded-xl border border-border/80 bg-muted/20 p-3.5 animate-in fade-in duration-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="bgst" className="font-semibold text-sm">
-                          GSTIN / GST Number <span className="text-destructive">*</span>
+                          {formData.region === "international" ? "GST Number" : "GST Number"}{" "}
+                          <span className="text-destructive">*</span>
                         </Label>
-                        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary uppercase">
-                          Mandatory
+                        <span
+                          className={cn(
+                            "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase",
+                            formData.region === "international"
+                              ? "bg-blue-500/10 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
+                              : "bg-primary/10 text-primary"
+                          )}
+                        >
+                          {formData.region === "international" ? "International (USD)" : "Mandatory (India)"}
                         </span>
                       </div>
                       <span className="text-[11px] font-mono text-muted-foreground">
-                        {(formData.taxId || "").length}/15
+                        {(formData.taxId || "").length}{formData.region === "national" ? "/15" : ""}
                       </span>
                     </div>
 
@@ -566,21 +682,28 @@ function RegisterBusiness() {
                         <Input
                           id="bgst"
                           required
-                          maxLength={15}
+                          maxLength={formData.region === "international" ? 25 : 15}
                           value={formData.taxId}
                           onChange={(e) => {
-                            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                            const val = (formData.region === "international"
+                              ? e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "")
+                              : e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")
+                            );
                             setFormData((prev) => ({ ...prev, taxId: val }));
                             setGstVerified(false);
                             setGstData(null);
                             setGstSuccessMsg("");
                             setGstErrorMsg("");
                             setError("");
-                            if (val.length === 15) {
+                            if (val.length === 15 && formData.region === "national") {
                               handleVerifyGst(val);
                             }
                           }}
-                          placeholder="e.g. 27AAACT2727Q1ZW"
+                          placeholder={
+                            formData.region === "international"
+                              ? "e.g. 27AAACT2727Q1ZW or Tax Reg No."
+                              : "e.g. 27AAACT2727Q1ZW"
+                          }
                           className="font-mono uppercase tracking-wider text-sm h-10 pr-8"
                         />
                         {gstVerified && (
@@ -601,7 +724,7 @@ function RegisterBusiness() {
                         <Button
                           type="button"
                           onClick={() => handleVerifyGst()}
-                          disabled={gstVerifying || (formData.taxId || "").length !== 15}
+                          disabled={gstVerifying || !(formData.taxId || "").trim()}
                           className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 h-10 shadow-sm transition-all"
                         >
                           {gstVerifying ? (
@@ -612,14 +735,16 @@ function RegisterBusiness() {
                           ) : (
                             <>
                               <ShieldCheck className="h-4 w-4" />
-                              Verify GSTIN
+                              {formData.region === "international" ? "Verify GST / Tax ID" : "Verify GSTIN"}
                             </>
                           )}
                         </Button>
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      Enter official 15-character Goods and Services Tax Identification Number (GSTIN) to auto-fetch details.
+                      {formData.region === "international"
+                        ? "Enter 15-character GSTIN or international tax registration number to auto-fetch & verify entity."
+                        : "Enter official 15-character Goods and Services Tax Identification Number (GSTIN) to auto-fetch details."}
                     </p>
 
                     {/* Error message */}
@@ -634,7 +759,9 @@ function RegisterBusiness() {
                     {gstVerified && (
                       <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 animate-in fade-in-50">
                         <Check className="h-3.5 w-3.5 shrink-0" />
-                        <span>GSTIN Verified — details automatically filled into form fields.</span>
+                        <span>
+                          {gstSuccessMsg || "GST / Tax Number Verified — details automatically filled into form fields."}
+                        </span>
                       </p>
                     )}
                   </div>
@@ -1023,48 +1150,144 @@ function RegisterBusiness() {
 
             {step === 3 && (
               <Panel title="Choose a membership tier">
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  {plans.map((p) => (
+                {/* Region & Currency Selector Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-border/70 mb-3.5">
+                  <div>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                      Billing Currency & Region
+                    </span>
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5 mt-0.5">
+                      {formData.region === "international" ? (
+                        <>
+                          <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                            <Globe className="h-3.5 w-3.5 shrink-0" /> International Business
+                          </span>
+                          <span className="rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold px-1.5 py-0.5 text-[11px]">
+                            USD ($)
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                            <Building2 className="h-3.5 w-3.5 shrink-0" /> National (India)
+                          </span>
+                          <span className="rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold px-1.5 py-0.5 text-[11px]">
+                            INR (₹)
+                          </span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 rounded-xl bg-muted/80 p-1 text-xs self-start sm:self-auto">
                     <button
-                      key={p.id}
                       type="button"
-                      onClick={() => setTier(p.id)}
-                      aria-pressed={tier === p.id}
+                      onClick={() => setFormData((prev) => ({ ...prev, region: "national" }))}
                       className={cn(
-                        "rounded-xl border p-4 text-left transition-colors",
-                        tier === p.id ? "border-primary bg-primary-soft shadow-sm" : "border-border hover:bg-muted/60"
+                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all",
+                        formData.region === "national"
+                          ? "bg-white dark:bg-slate-900 text-primary shadow-xs font-bold"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="text-sm font-semibold">{p.name}</span>
-                        <span className="text-sm font-semibold">₹ {p.price?.toLocaleString("en-IN")}</span>
-                      </span>
-                      <span className="mt-1 block text-xs text-muted-foreground">{p.summary}</span>
+                      <Building2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>₹ INR (India)</span>
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, region: "international" }))}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all",
+                        formData.region === "international"
+                          ? "bg-white dark:bg-slate-900 text-primary shadow-xs font-bold"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Globe className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>$ USD (Global)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {plans.map((p) => {
+                    const isIntl = formData.region === "international";
+                    const displayAmt = isIntl
+                      ? (p.priceUsd ?? (p.price === 0 ? 0 : Math.round(p.price / 80)))
+                      : p.price;
+                    const formattedPrice = displayAmt === 0
+                      ? (isIntl ? "$ 0" : "₹ 0")
+                      : isIntl
+                      ? `$ ${displayAmt.toLocaleString("en-US")} USD`
+                      : `₹ ${displayAmt.toLocaleString("en-IN")}`;
+
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setTier(p.id)}
+                        aria-pressed={tier === p.id}
+                        className={cn(
+                          "rounded-xl border p-4 text-left transition-colors",
+                          tier === p.id ? "border-primary bg-primary-soft shadow-sm" : "border-border hover:bg-muted/60"
+                        )}
+                      >
+                        <span className="flex items-baseline justify-between gap-2">
+                          <span className="text-sm font-semibold">{p.name}</span>
+                          <span className="text-sm font-bold text-primary">{formattedPrice}</span>
+                        </span>
+                        <span className="mt-1 block text-xs text-muted-foreground">{p.summary}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {(() => {
-                  const activePlan = plans.find((p) => p.id === tier) || { name: tier, price: 0 };
-                  if (activePlan.price > 0) {
+                  const isIntl = formData.region === "international";
+                  const activePlan = plans.find((p) => p.id === tier) || {
+                    name: tier,
+                    price: tier === "free" ? 0 : tier === "basic" ? 4999 : tier === "enterprise" ? 29999 : 12999,
+                    priceUsd: tier === "free" ? 0 : tier === "basic" ? 59 : tier === "enterprise" ? 359 : 159,
+                  };
+                  const activeAmt = isIntl
+                    ? (activePlan.priceUsd ?? (activePlan.price === 0 ? 0 : Math.round(activePlan.price / 80)))
+                    : activePlan.price;
+
+                  if (activeAmt > 0) {
                     return (
-                      <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-2.5 animate-in fade-in duration-200">
+                      <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-900/40 p-4 space-y-2.5 animate-in fade-in duration-200">
                         <div className="flex items-center justify-between">
                           <div>
                             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Plan Selected</span>
-                            <h4 className="text-sm font-bold text-slate-900">{activePlan.name} Tier</h4>
+                            <h4 className="text-sm font-bold text-slate-900 dark:text-white">{activePlan.name} Tier</h4>
                           </div>
                           <div className="text-right">
-                            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Amount</span>
-                            <h4 className="text-base font-extrabold text-primary">₹ {activePlan.price?.toLocaleString("en-IN")}</h4>
+                            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Total Amount ({isIntl ? "USD" : "INR"})
+                            </span>
+                            <h4 className="text-base font-extrabold text-primary">
+                              {isIntl ? `$ ${activeAmt.toLocaleString("en-US")} USD` : `₹ ${activeAmt.toLocaleString("en-IN")}`}
+                            </h4>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-600 bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
                           <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
-                          <span>Razorpay Instant Payment Gateway (UPI / QR / Cards / NetBanking)</span>
+                          <span>
+                            {isIntl
+                              ? "Razorpay Global Gateway (International Credit / Debit Cards in USD)"
+                              : "Razorpay Instant Payment Gateway (UPI / QR / Cards / NetBanking in INR)"}
+                          </span>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          Official GST Tax Invoice with attached PDF will be dispatched to <strong>{formData.email}</strong> upon payment confirmation.
+                          {isIntl ? (
+                            <>
+                              Official international subscription receipt will be dispatched to <strong>{formData.email}</strong> upon payment confirmation.
+                            </>
+                          ) : (
+                            <>
+                              Official GST Tax Invoice with attached PDF will be dispatched to <strong>{formData.email}</strong> upon payment confirmation.
+                            </>
+                          )}
                         </p>
                       </div>
                     );
@@ -1095,9 +1318,16 @@ function RegisterBusiness() {
                   </>
                 ) : step === steps.length - 1 ? (
                   (() => {
+                    const isIntl = formData.region === "international";
                     const activePlan = plans.find((p) => p.id === tier);
-                    if (activePlan?.price > 0) {
-                      return `🔒 Pay ₹${activePlan.price.toLocaleString("en-IN")} & Register`;
+                    const activeAmt = isIntl
+                      ? (activePlan?.priceUsd ?? (activePlan?.price === 0 ? 0 : Math.round((activePlan?.price || 0) / 80)))
+                      : (activePlan?.price || 0);
+
+                    if (activeAmt > 0) {
+                      return isIntl
+                        ? `🔒 Pay $${activeAmt} USD & Register`
+                        : `🔒 Pay ₹${activeAmt.toLocaleString("en-IN")} & Register`;
                     }
                     return "Complete Free Registration";
                   })()

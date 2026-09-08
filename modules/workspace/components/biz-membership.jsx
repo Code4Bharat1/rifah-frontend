@@ -320,7 +320,7 @@ function BizMembership() {
                   { key: "purpose", header: "ITEM", cell: (r) => r.description || r.purpose || r.itemType || "Membership Subscription" },
                   { key: "date", header: "DATE", cell: (r) => new Date(r.paidAt || r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) },
                   { key: "method", header: "METHOD", cell: (r) => r.method || "Card" },
-                  { key: "amount", header: "AMOUNT", cell: (r) => `₹ ${r.amount?.toLocaleString("en-IN")}` },
+                  { key: "amount", header: "AMOUNT", cell: (r) => (r.currency === "USD" ? `$ ${r.amount?.toLocaleString("en-US")} USD` : `₹ ${r.amount?.toLocaleString("en-IN")}`) },
                   {
                     key: "status",
                     header: "STATUS",
@@ -352,7 +352,7 @@ function BizMembership() {
                     </div>
                     <p className="text-sm font-semibold">{r.description || r.purpose || "Membership"}</p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>₹ {r.amount?.toLocaleString("en-IN")} · {r.method || "Card"}</span>
+                      <span>{r.currency === "USD" ? `$ ${r.amount?.toLocaleString("en-US")} USD` : `₹ ${r.amount?.toLocaleString("en-IN")}`} · {r.method || "Card"}</span>
                       <Button
                         variant="ghost"
                         size="sm"

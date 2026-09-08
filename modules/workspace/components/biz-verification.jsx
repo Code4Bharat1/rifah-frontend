@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { FileText, Upload, Loader2, CheckCircle2, ExternalLink } from "lucide-react";
+import { FileText, Upload, Loader2, CheckCircle2, ExternalLink, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -16,33 +16,22 @@ const docTemplates = [
   {
     type: "incorporation_certificate",
     name: "Certificate of incorporation",
-    defaultDate: "12 Nov 2025",
-    defaultStatus: "approved",
   },
   {
     type: "gst_tax_registration",
     name: "GST / tax registration",
-    defaultDate: "12 Nov 2025",
-    defaultStatus: "approved",
   },
   {
     type: "chamber_membership_form",
     name: "Chamber membership form",
-    defaultDate: "13 Nov 2025",
-    defaultStatus: "approved",
   },
   {
     type: "factory_licence",
     name: "Factory licence",
-    defaultDate: "Submitted 02 Aug 2026",
-    defaultStatus: "under_review",
   },
   {
     type: "bank_details_invoicing",
     name: "Bank details for invoicing",
-    defaultDate: null,
-    defaultSubtext: "Not uploaded",
-    defaultStatus: "missing",
   },
 ];
 
@@ -109,18 +98,19 @@ const formatDocDate = (dateVal, fallback) => {
   }
 };
 
-const formatLastUpdate = (dateVal) => {
-  if (!dateVal) return "Today 11:24";
+const formatLastUpdate = (dateVal, fallbackDate) => {
+  const target = dateVal || fallbackDate;
+  if (!target) return "Pending document submission";
   try {
-    const d = new Date(dateVal);
-    if (isNaN(d.getTime())) return "Today 11:24";
+    const d = new Date(target);
+    if (isNaN(d.getTime())) return "Pending document submission";
     const now = new Date();
     const isToday = d.toDateString() === now.toDateString();
     const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
     if (isToday) return `Today ${timeStr}`;
     return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} ${timeStr}`;
   } catch {
-    return "Today 11:24";
+    return "Pending document submission";
   }
 };
 
@@ -215,15 +205,23 @@ function BizVerification() {
     }
   };
 
-  const status = verificationData?.status || business?.verification || "verified";
+  const status = verificationData?.status || business?.verification || business?.verificationStatus || "not_verified";
   const isVerified = status === "approved" || status === "verified";
-  // Steps in Image 2: [Submitted, Documents checked, Secretariat review, Verified]
-  // In Image 2, step 1 & 2 are done, step 3 is current (Secretariat review)
-  const stepIndex = isVerified ? 3 : status === "under_review" || (verificationData?.documents?.length > 0) ? 2 : 1;
+  const uploadedDocs = Array.isArray(verificationData?.documents) ? verificationData.documents : [];
+  const uploadedCount = uploadedDocs.length;
 
-  const referenceNo = `VER-2026-${business?._id ? business._id.slice(-4).toUpperCase() : "0184"}`;
-  const reviewerName = `Secretariat · ${business?.chapter ? `${business.chapter} Chapter` : "Mumbai Chapter"}`;
-  const lastUpdate = formatLastUpdate(verificationData?.updatedAt);
+  // Steps in Progress: [Submitted, Documents checked, Secretariat review, Verified]
+  const stepIndex = isVerified
+    ? 3
+    : status === "under_review"
+    ? 2
+    : uploadedCount > 0
+    ? 1
+    : 0;
+
+  const referenceNo = verificationData?.referenceNo || `VER-2026-${business?._id ? business._id.slice(-4).toUpperCase() : "PENDING"}`;
+  const reviewerName = `Secretariat · ${business?.chapter ? `${business.chapter} Chapter` : "Central Chapter"}`;
+  const lastUpdate = formatLastUpdate(verificationData?.updatedAt, business?.updatedAt);
 
   return (
     <AppShell role="business" title="Verification" subtitle="RIFAH secretariat vetting status">
@@ -246,47 +244,64 @@ function BizVerification() {
 
           {/* Documents Panel */}
           <Panel title="Documents" description="Upload or replace supporting documents">
+            {uploadedCount === 0 && (
+              <div className="mb-3.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300 flex items-start gap-2.5">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="font-semibold">Documents Required for Secretariat Vetting</p>
+                  <p className="mt-0.5 text-[11px] opacity-90">
+                    Please upload your official business documents in PDF format to initiate secretariat review and earn your Verified badge.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <ul className="space-y-3">
               {docTemplates.map((template) => {
-                const uploaded = (verificationData?.documents || []).find((d) => isMatchingDoc(d?.type, template.type));
+                const uploaded = uploadedDocs.find((d) => isMatchingDoc(d?.type, template.type));
                 
-                // Determine document status:
-                // If uploaded, use uploaded status; otherwise use template's default status from Image 2
-                let docStatus = uploaded?.status;
-                if (!docStatus) {
-                  docStatus = template.defaultStatus;
-                }
-                if (isVerified && (docStatus === "pending" || docStatus === "under_review" || template.defaultStatus === "approved")) {
-                  docStatus = "approved";
+                // Determine document status based strictly on uploaded documents
+                let docStatus = "missing";
+                let subtext = "Not uploaded";
+
+                if (uploaded) {
+                  docStatus = uploaded.status || "pending";
+                  if (docStatus === "approved" || docStatus === "verified") {
+                    subtext = uploaded.reviewedAt
+                      ? `Approved ${formatDocDate(uploaded.reviewedAt, "")}`
+                      : `Approved ${formatDocDate(uploaded.uploadedAt, "")}`;
+                  } else if (docStatus === "under_review" || docStatus === "pending") {
+                    subtext = `Submitted ${formatDocDate(uploaded.uploadedAt, "Recently")}`;
+                  } else if (docStatus === "rejected") {
+                    subtext = uploaded.notes || uploaded.rejectionReason || "Document rejected, please re-upload";
+                  } else {
+                    subtext = `Uploaded ${formatDocDate(uploaded.uploadedAt, "Recently")}`;
+                  }
                 }
 
-                // Subtext: Date or "Not uploaded"
-                let subtext = "";
-                if (uploaded?.uploadedAt) {
-                  subtext = formatDocDate(uploaded.uploadedAt, template.defaultDate || "Uploaded");
-                } else if (uploaded?.name) {
-                  subtext = uploaded.name;
-                } else {
-                  subtext = template.defaultDate || template.defaultSubtext || "Not uploaded";
-                }
-
-                // Status Badge rendering matching Image 2
+                // Status Badge rendering
                 let badgeNode = null;
                 if (docStatus === "approved" || docStatus === "verified") {
                   badgeNode = (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
                       Approved
                     </span>
                   );
                 } else if (docStatus === "under_review" || docStatus === "pending") {
                   badgeNode = (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800">
                       Under review
+                    </span>
+                  );
+                } else if (docStatus === "rejected") {
+                  badgeNode = (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800">
+                      Rejected
                     </span>
                   );
                 } else {
                   badgeNode = (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800">
                       Missing
                     </span>
                   );
@@ -295,7 +310,7 @@ function BizVerification() {
                 return (
                   <li
                     key={template.type}
-                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3.5 rounded-xl border border-border bg-card p-3.5 hover:border-slate-300 transition-colors"
+                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3.5 rounded-xl border border-border bg-card p-3.5 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
                   >
                     {/* Document Icon Box */}
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted/70 text-muted-foreground">
@@ -343,7 +358,7 @@ function BizVerification() {
                             ) : (
                               <>
                                 <Upload className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span>Upload</span>
+                                <span>{uploaded ? "Replace" : "Upload"}</span>
                               </>
                             )}
                           </span>

@@ -1,5 +1,5 @@
 "use client";
-import { Download, Wallet, MoreHorizontal, Eye } from "lucide-react";
+import { Download, Wallet, MoreHorizontal, Eye, CheckCircle2, ShieldCheck, Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -35,41 +35,66 @@ function AdminPayments() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const handleDownloadReceipt = (r) => {
+    if (!r) return;
+    const isUsd = (r.currency || "").toUpperCase() === "USD";
+    const currSymbol = isUsd ? "$" : "₹";
+    const formattedAmount = `${currSymbol} ${Number(r.amount || 0).toLocaleString(isUsd ? "en-US" : "en-IN")}${isUsd ? " USD" : ""}`;
+
     const receiptContent = `
       <html>
         <head>
-          <title>Receipt - ${r.invoiceNumber}</title>
+          <title>Official Receipt - ${r.invoiceNumber || "INV"}</title>
           <style>
-            body { font-family: 'Inter', sans-serif; padding: 40px; color: #333; }
-            .header { text-align: center; margin-bottom: 40px; }
-            .header h1 { margin: 0; color: #1a1a1a; }
-            .header p { color: #666; }
-            .details-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            .details-table th, .details-table td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-            .total { font-size: 24px; font-weight: bold; text-align: right; margin-top: 20px; }
-            .footer { text-align: center; color: #888; font-size: 12px; margin-top: 50px; }
+            body { font-family: 'Inter', -apple-system, sans-serif; padding: 30px; color: #1e293b; background: #f8fafc; }
+            .receipt-box { max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; padding: 36px; background: #ffffff; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+            .header-bar { height: 6px; background: linear-gradient(90deg, #10b981 0%, #0284c7 100%); border-radius: 6px 6px 0 0; margin: -36px -36px 30px -36px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; border-bottom: 2px solid #0f172a; padding-bottom: 20px; }
+            .header h1 { margin: 0; font-size: 22px; font-weight: 800; color: #0b192c; }
+            .header p { margin: 4px 0 0 0; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+            .inv-meta { text-align: right; }
+            .inv-meta h2 { margin: 0; font-size: 16px; font-weight: 800; color: #0284c7; }
+            .inv-meta p { margin: 3px 0 0 0; font-size: 12px; color: #64748b; }
+            .details-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+            .details-table th, .details-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; font-size: 13px; }
+            .details-table th { color: #64748b; width: 35%; background: #f8fafc; font-weight: 600; }
+            .total-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px 20px; text-align: right; margin-top: 24px; }
+            .total-box span.label { font-size: 13px; color: #166534; font-weight: 600; text-transform: uppercase; margin-right: 12px; }
+            .total-box span.val { font-size: 22px; font-weight: 800; color: #15803d; }
+            .badge-verified { display: inline-block; background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+            .footer { text-align: center; color: #94a3b8; font-size: 11px; margin-top: 36px; border-top: 1px solid #f1f5f9; padding-top: 16px; }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>RIFAH Chamber of Commerce</h1>
-            <p>Official Payment Receipt</p>
-          </div>
-          <table class="details-table">
-            <tr><th>Invoice Number</th><td>${r.invoiceNumber || "N/A"}</td></tr>
-            <tr><th>Date</th><td>${new Date(r.paidAt || r.createdAt).toLocaleString()}</td></tr>
-            <tr><th>Payer</th><td>${r.payer?.name || r.user?.name || "Member"}</td></tr>
-            <tr><th>Item Type</th><td>${r.itemType || "Membership"}</td></tr>
-            <tr><th>Description</th><td>${r.description || r.purpose || "N/A"}</td></tr>
-            <tr><th>Payment Method</th><td>${r.method || "Online"}</td></tr>
-            <tr><th>Transaction ID</th><td>${r.transactionId || "N/A"}</td></tr>
-            <tr><th>Status</th><td>${r.status}</td></tr>
-          </table>
-          <div class="total">
-            Total Paid: ₹ ${Number(r.amount || 0).toLocaleString("en-IN")}
-          </div>
-          <div class="footer">
-            Thank you for being a part of RIFAH Connect. This is a computer-generated receipt.
+          <div class="receipt-box">
+            <div class="header-bar"></div>
+            <div class="header">
+              <div>
+                <h1>RIFAH Chamber of Commerce</h1>
+                <p>Secretariat Payment Receipt & Official Voucher</p>
+              </div>
+              <div class="inv-meta">
+                <h2>INVOICE #${r.invoiceNumber || "N/A"}</h2>
+                <p>Date: ${new Date(r.paidAt || r.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+            <table class="details-table">
+              <tr><th>Payer Member</th><td><strong>${r.payer?.name || r.user?.name || "Member User"}</strong></td></tr>
+              <tr><th>Business / Enterprise</th><td>${r.business?.name || "Member Enterprise"}</td></tr>
+              <tr><th>Contact Email</th><td>${r.payer?.email || "N/A"}</td></tr>
+              <tr><th>Subscription Item</th><td>${r.description || r.purpose || r.itemType || "Membership Subscription"}</td></tr>
+              <tr><th>Payment Method</th><td>${r.method || "Online Gateway"}</td></tr>
+              <tr><th>Currency</th><td>${r.currency || "INR"}</td></tr>
+              <tr><th>Transaction ID</th><td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${r.transactionId || "N/A"}</code></td></tr>
+              <tr><th>Audit Status</th><td><span class="badge-verified">✓ ${r.status || "Paid"}</span></td></tr>
+            </table>
+            <div class="total-box">
+              <span class="label">Total Paid & Verified:</span>
+              <span class="val">${formattedAmount}</span>
+            </div>
+            <div class="footer">
+              This is a verified computer-generated payment receipt issued by RIFAH Chamber Secretariat.<br/>
+              www.rifah.org · Official transaction record for tax & audit verification
+            </div>
           </div>
           <script>
             window.onload = function() { window.print(); }
@@ -130,7 +155,14 @@ function AdminPayments() {
               { key: "payer", header: "Payer", cell: (r) => r.payer?.name || r.user?.name || "Member Enterprise" },
               { key: "purpose", header: "Purpose", cell: (r) => r.description || r.purpose || r.itemType || "Membership Subscription" },
               { key: "date", header: "Date", cell: (r) => new Date(r.paidAt || r.createdAt).toLocaleDateString() },
-              { key: "amount", header: "Amount", cell: (r) => `₹ ${Number(r.amount || 0).toLocaleString("en-IN")}` },
+              {
+                key: "amount",
+                header: "Amount",
+                cell: (r) => {
+                  const isUsd = (r.currency || "").toUpperCase() === "USD";
+                  return `${isUsd ? "$" : "₹"} ${Number(r.amount || 0).toLocaleString(isUsd ? "en-US" : "en-IN")}${isUsd ? " USD" : ""}`;
+                },
+              },
               { key: "status", header: "Status", cell: (r) => <Pill tone={tone(r.status)}>{r.status}</Pill> },
               {
                 key: "act",
@@ -151,8 +183,27 @@ function AdminPayments() {
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </DropdownMenuItem>
+
+                      {r.status !== "completed" && r.status !== "Paid" && (
+                        <DropdownMenuItem
+                          className="text-emerald-600 focus:bg-emerald-50 focus:text-emerald-700 font-semibold"
+                          onClick={async () => {
+                            try {
+                              await paymentApi.verifyByAdmin(r._id);
+                              toast.success(`Payment #${r.invoiceNumber} verified & approved!`);
+                              refetch();
+                            } catch (e) {
+                              toast.error(e.message || "Failed to verify payment");
+                            }
+                          }}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-600" />
+                          Verify & Approve Payment
+                        </DropdownMenuItem>
+                      )}
+
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleDownloadReceipt(r)} disabled={r.status !== "completed" && r.status !== "Paid"}>
+                      <DropdownMenuItem onClick={() => handleDownloadReceipt(r)}>
                         <Download className="h-4 w-4 mr-2" />
                         Download Receipt
                       </DropdownMenuItem>
@@ -216,7 +267,13 @@ function AdminPayments() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="block text-xs text-muted-foreground mb-1">Amount</span>
-                  <span className="font-semibold text-lg">₹ {Number(selectedTransaction.amount || 0).toLocaleString("en-IN")}</span>
+                  <span className="font-semibold text-lg text-emerald-600">
+                    {(selectedTransaction.currency || "").toUpperCase() === "USD" ? "$" : "₹"}{" "}
+                    {Number(selectedTransaction.amount || 0).toLocaleString(
+                      (selectedTransaction.currency || "").toUpperCase() === "USD" ? "en-US" : "en-IN"
+                    )}{" "}
+                    {selectedTransaction.currency || "INR"}
+                  </span>
                 </div>
                 <div>
                   <span className="block text-xs text-muted-foreground mb-1">Date</span>
@@ -247,16 +304,35 @@ function AdminPayments() {
             </div>
           )}
 
-          <DialogFooter className="sm:justify-between border-t pt-4">
+          <DialogFooter className="sm:justify-between border-t pt-4 gap-2 flex-wrap">
             <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
               Close
             </Button>
-            <Button 
-              onClick={() => handleDownloadReceipt(selectedTransaction)}
-              disabled={selectedTransaction?.status !== "completed" && selectedTransaction?.status !== "Paid"}
-            >
-              <Download className="h-4 w-4 mr-2" /> Download Receipt
-            </Button>
+            <div className="flex items-center gap-2">
+              {selectedTransaction && selectedTransaction.status !== "completed" && selectedTransaction.status !== "Paid" && (
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5"
+                  onClick={async () => {
+                    try {
+                      await paymentApi.verifyByAdmin(selectedTransaction._id);
+                      toast.success(`Payment #${selectedTransaction.invoiceNumber} verified & approved!`);
+                      setIsDetailOpen(false);
+                      refetch();
+                    } catch (e) {
+                      toast.error(e.message || "Failed to verify payment");
+                    }
+                  }}
+                >
+                  <CheckCircle2 className="h-4 w-4" /> Verify Payment
+                </Button>
+              )}
+              <Button 
+                onClick={() => handleDownloadReceipt(selectedTransaction)}
+                className="gap-1.5"
+              >
+                <Download className="h-4 w-4" /> Download Receipt
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

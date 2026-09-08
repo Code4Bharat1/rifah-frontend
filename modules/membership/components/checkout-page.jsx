@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2, ArrowRight, FileText, Printer, Sparkles } from "lucide-react";
+import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2, ArrowRight, FileText, Printer, Sparkles, Building2, Globe } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -61,11 +61,20 @@ function Checkout() {
   const [gstLoading, setGstLoading] = useState(false);
   const [gstSuccess, setGstSuccess] = useState("");
 
+  const initialCurrency = searchParams?.get("currency") || (business?.region === "international" || business?.currency === "USD" ? "USD" : "INR");
+  const [currency, setCurrency] = useState(initialCurrency);
+  const isIntl = currency === "USD";
+
   const active = plans.find((p) => p.id === selected) || plans[0] || {
     id: "premium",
     name: "Premium",
     price: 12999,
+    priceUsd: 159,
   };
+
+  const checkoutAmount = isIntl
+    ? (active.priceUsd ?? (active.price === 0 ? 0 : Math.round(active.price / 80)))
+    : active.price;
 
   // Pre-fill existing business or user details if available
   useEffect(() => {
@@ -136,10 +145,11 @@ function Checkout() {
 
       // Step 1: Create Razorpay Order
       const orderRes = await paymentApi.createOrder({
-        amount: active.price,
+        amount: checkoutAmount,
+        currency,
         planId: selected,
         itemType: "Membership",
-        description: `${active.name} Membership Subscription`,
+        description: `${active.name} Membership Subscription (${currency})`,
       });
 
       const orderData = orderRes?.data || orderRes;
@@ -151,9 +161,9 @@ function Checkout() {
       const options = {
         key: orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TTykh9OVkLKNHl",
         amount: orderData.amount,
-        currency: orderData.currency || "INR",
+        currency: orderData.currency || currency,
         name: "RIFAH Chamber of Commerce",
-        description: `${active.name} Membership Subscription`,
+        description: `${active.name} Membership Subscription (${currency})`,
         order_id: orderData.orderId,
         handler: async function (response) {
           try {
@@ -165,9 +175,10 @@ function Checkout() {
               razorpay_signature: response.razorpay_signature,
               planId: selected,
               businessId: business?._id,
-              amount: active.price,
+              amount: checkoutAmount,
+              currency,
               itemType: "Membership",
-              description: `${active.name} Membership Subscription`,
+              description: `${active.name} Membership Subscription (${currency})`,
               billingEmail: billingEmail || business?.email || "",
               businessName: legalName || business?.name || "",
               taxId: gstNumber || business?.taxId || "",
@@ -254,27 +265,62 @@ function Checkout() {
             <div className="space-y-4">
               {step === 0 && (
                 <Panel title="Select membership tier">
-                  <RadioGroup value={selected} onValueChange={setSelected} className="space-y-2.5">
-                    {plans.map((p) => (
-                      <label
-                        key={p.id}
+                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/80">
+                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                      Currency:
+                    </span>
+                    <div className="flex items-center gap-1 rounded-xl bg-muted/60 p-1 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setCurrency("INR")}
                         className={cn(
-                          "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
-                          selected === p.id ? "border-primary bg-primary-soft" : "border-border hover:bg-muted/60"
+                          "flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all",
+                          !isIntl ? "bg-white dark:bg-slate-900 text-primary shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        <RadioGroupItem value={p.id} className="mt-0.5" />
-                        <span className="min-w-0 flex-1">
-                          <span className="flex flex-wrap items-baseline justify-between gap-2">
-                            <span className="text-sm font-semibold">{p.name}</span>
-                            <span className="text-sm font-semibold">
-                              ₹ {p.price?.toLocaleString("en-IN")} / year
+                        <Building2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>₹ INR (India)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrency("USD")}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all",
+                          isIntl ? "bg-white dark:bg-slate-900 text-primary shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <Globe className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                        <span>$ USD (Global)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <RadioGroup value={selected} onValueChange={setSelected} className="space-y-2.5">
+                    {plans.map((p) => {
+                      const pAmt = isIntl
+                        ? (p.priceUsd ?? (p.price === 0 ? 0 : Math.round(p.price / 80)))
+                        : p.price;
+                      return (
+                        <label
+                          key={p.id}
+                          className={cn(
+                            "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
+                            selected === p.id ? "border-primary bg-primary-soft" : "border-border hover:bg-muted/60"
+                          )}
+                        >
+                          <RadioGroupItem value={p.id} className="mt-0.5" />
+                          <span className="min-w-0 flex-1">
+                            <span className="flex flex-wrap items-baseline justify-between gap-2">
+                              <span className="text-sm font-semibold">{p.name}</span>
+                              <span className="text-sm font-bold text-primary">
+                                {isIntl ? `$ ${pAmt.toLocaleString("en-US")} USD` : `₹ ${pAmt.toLocaleString("en-IN")}`} / year
+                              </span>
                             </span>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">{p.summary}</span>
                           </span>
-                          <span className="mt-0.5 block text-xs text-muted-foreground">{p.summary}</span>
-                        </span>
-                      </label>
-                    ))}
+                        </label>
+                      );
+                    })}
                   </RadioGroup>
                 </Panel>
               )}
@@ -555,7 +601,7 @@ function Checkout() {
                     <div className="pt-3 border-t border-dashed border-border flex justify-between items-baseline">
                       <span className="text-sm font-semibold text-foreground">Total Paid</span>
                       <span className="text-lg font-bold text-emerald-600">
-                        ₹ {active.price?.toLocaleString("en-IN")}
+                        {isIntl ? `$ ${checkoutAmount.toLocaleString("en-US")} USD` : `₹ ${checkoutAmount.toLocaleString("en-IN")}`}
                       </span>
                     </div>
 
@@ -589,11 +635,15 @@ function Checkout() {
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">Subtotal</dt>
-                      <dd className="font-medium">₹ {active.price?.toLocaleString("en-IN")}</dd>
+                      <dd className="font-medium">
+                        {isIntl ? `$ ${checkoutAmount.toLocaleString("en-US")} USD` : `₹ ${checkoutAmount.toLocaleString("en-IN")}`}
+                      </dd>
                     </div>
                     <div className="flex items-center justify-between gap-3 border-t border-border pt-2.5">
                       <dt className="font-semibold">Total</dt>
-                      <dd className="font-bold">₹ {active.price?.toLocaleString("en-IN")}</dd>
+                      <dd className="font-bold text-primary">
+                        {isIntl ? `$ ${checkoutAmount.toLocaleString("en-US")} USD` : `₹ ${checkoutAmount.toLocaleString("en-IN")}`}
+                      </dd>
                     </div>
                   </dl>
                   <ul className="mt-4 space-y-1.5 border-t border-border pt-3 text-xs text-muted-foreground">

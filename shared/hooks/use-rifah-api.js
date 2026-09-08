@@ -410,11 +410,11 @@ export function useAdminUsers(params = {}) {
   });
 }
 
-export function useVerificationQueue() {
+export function useVerificationQueue(params = {}) {
   return useQuery({
-    queryKey: ["verification-queue"],
+    queryKey: ["verification-queue", params],
     queryFn: async () => {
-      const res = await verificationApi.getQueue();
+      const res = await verificationApi.getQueue(params);
       return res?.data?.queue || res?.data || res;
     },
   });
