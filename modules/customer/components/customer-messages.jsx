@@ -62,7 +62,37 @@ function parseQuotationMessage(text) {
 
 function QuotationCard({ quote, isMe, pdfUrl }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const downloadUrl = pdfUrl ? resolveMediaUrl(pdfUrl) : null;
+  const [downloading, setDownloading] = useState(false);
+
+  // If pdfUrl is not explicitly given, compute fallback from quotation reference
+  const effectivePdfUrl =
+    pdfUrl || (quote.refCode ? `/uploads/attachments/quotation-${quote.refCode}.pdf` : null);
+  const downloadUrl = effectivePdfUrl ? resolveMediaUrl(effectivePdfUrl) : null;
+
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    if (!downloadUrl) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(downloadUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      const cleanRef = (quote.refCode || "Official").replace(/[^a-zA-Z0-9_-]/g, "");
+      a.download = `quotation-${cleanRef}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.warn("Direct download failed, opening in new tab:", err);
+      window.open(downloadUrl, "_blank", "noopener,noreferrer");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div
@@ -78,21 +108,20 @@ function QuotationCard({ quote, isMe, pdfUrl }) {
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Left Download Icon */}
           {downloadUrl ? (
-            <a
-              href={downloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              download
-              title="Download PDF Quotation"
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
+              title="Download Official PDF Quotation"
               className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all hover:scale-105 active:scale-95 shadow-2xs",
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all hover:scale-105 active:scale-95 shadow-2xs cursor-pointer",
                 isMe
                   ? "bg-white/20 text-white hover:bg-white/30"
                   : "bg-sky-50 text-[#0088d1] hover:bg-sky-100 border border-sky-200/60"
               )}
             >
-              <Download className="h-4 w-4" />
-            </a>
+              <Download className={cn("h-4 w-4", downloading && "animate-bounce")} />
+            </button>
           ) : (
             <div
               className={cn(
@@ -208,20 +237,20 @@ function QuotationCard({ quote, isMe, pdfUrl }) {
 
           {downloadUrl && (
             <div className="pt-2 border-t border-current/15">
-              <a
-                href={downloadUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition-all shadow-xs",
+                  "flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition-all shadow-xs w-full cursor-pointer",
                   isMe
                     ? "bg-white text-sky-700 hover:bg-white/90"
                     : "bg-[#0088d1] text-white hover:bg-[#0077b6]"
                 )}
               >
-                <Download className="h-3.5 w-3.5" /> Download Quotation PDF
-              </a>
+                <Download className={cn("h-3.5 w-3.5", downloading && "animate-bounce")} />
+                {downloading ? "Downloading Quotation PDF..." : "Download Quotation PDF"}
+              </button>
             </div>
           )}
         </div>
@@ -232,21 +261,43 @@ function QuotationCard({ quote, isMe, pdfUrl }) {
 
 function AttachmentItem({ url, isMe }) {
   const fullUrl = resolveMediaUrl(url);
-  const ext = (url.split(".").pop() || "").toLowerCase();
+  const cleanUrl = (url || "").split("?")[0];
+  const ext = (cleanUrl.split(".").pop() || "").toLowerCase();
+  const [downloading, setDownloading] = useState(false);
 
   const isImage = ["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(ext);
   const isVideo = ["mp4", "webm", "ogg", "mov", "avi", "mkv"].includes(ext);
   const isAudio = ["mp3", "wav", "m4a", "aac", "ogg"].includes(ext);
   const isPdf = ext === "pdf";
-  const fileName = url.split("/").pop() || "Attachment";
+  const rawFileName = cleanUrl.split("/").pop() || "Document.pdf";
+  const fileName = decodeURIComponent(rawFileName);
+
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    if (!fullUrl) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(fullUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      window.open(fullUrl, "_blank", "noopener,noreferrer");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (isPdf) {
     return (
-      <a
-        href={fullUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        download
+      <div
         className={cn(
           "my-2 flex items-center justify-between gap-3 rounded-xl border p-3 text-xs transition-all shadow-2xs group",
           isMe
@@ -254,7 +305,11 @@ function AttachmentItem({ url, isMe }) {
             : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 hover:border-slate-300"
         )}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div
+          onClick={() => window.open(fullUrl, "_blank", "noopener,noreferrer")}
+          className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1"
+          title="Click to preview PDF"
+        >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-500/15 text-red-600">
             <FileText className="h-5 w-5" />
           </div>
@@ -267,18 +322,21 @@ function AttachmentItem({ url, isMe }) {
             </span>
           </div>
         </div>
-        <span
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading}
           className={cn(
-            "flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs",
+            "flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer",
             isMe
               ? "bg-white text-[#0088cc] hover:bg-white/90"
               : "bg-[#0088cc] text-white hover:bg-[#0077bb]"
           )}
         >
-          <Download className="h-3.5 w-3.5" />
-          Download PDF
-        </span>
-      </a>
+          <Download className={cn("h-3.5 w-3.5", downloading && "animate-bounce")} />
+          {downloading ? "Saving..." : "Download PDF"}
+        </button>
+      </div>
     );
   }
 

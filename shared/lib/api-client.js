@@ -2,20 +2,32 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/a
 const SERVER_BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
 
 export function resolveMediaUrl(path) {
-  if (!path) return "";
+  if (!path || typeof path !== "string") return "";
+
+  // 1. Data URLs or local public images
   if (path.startsWith("data:") || path.startsWith("/images/")) {
     return path;
   }
-  if (path.startsWith("http://localhost:5000/uploads/")) {
-    return path.replace("http://localhost:5000", "");
+
+  // 2. Cloudinary or other external remote URLs (already fully qualified https://)
+  if (path.startsWith("https://res.cloudinary.com") || (path.startsWith("https://") && !path.includes("localhost"))) {
+    return path;
   }
+
+  // 3. If path contains hardcoded localhost:5000 from local development/database seeds, replace with live SERVER_BASE_URL
+  if (path.includes("localhost:5000")) {
+    const cleaned = path.replace(/http:\/\/localhost:5000\/?/, "");
+    const cleanSub = cleaned.startsWith("/") ? cleaned : `/${cleaned}`;
+    return `${SERVER_BASE_URL}${cleanSub}`;
+  }
+
+  // 4. Any other remote URL
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
+
+  // 5. Relative paths (like uploads/... or /uploads/...)
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  if (cleanPath.startsWith("/uploads/")) {
-    return cleanPath;
-  }
   return `${SERVER_BASE_URL}${cleanPath}`;
 }
 

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Filter, Target, Loader2, Send, CheckCircle2, Clock, MapPin, Building2, User, Check, Sparkles } from "lucide-react";
+import { Filter, Target, Loader2, Send, CheckCircle2, Clock, MapPin, Building2, User, Check, Sparkles, FileText, Download } from "lucide-react";
 import { useState } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -19,6 +19,7 @@ import {
 } from "@shared/components/ui/dialog";
 import { useMyLeads } from "@shared/hooks/use-rifah-api";
 import { leadApi } from "@shared/lib/api-services";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 
 const stages = ["All", "New", "In Progress", "Responded", "Won", "Closed"];
 
@@ -572,6 +573,34 @@ function LeadsPage() {
                           {openLead.quotation.notes}
                         </p>
                       )}
+                      <div className="pt-2 border-t border-emerald-200/60">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const qtnRef = `QTN-${String(openLead._id).slice(-6).toUpperCase()}`;
+                            const pdfPath = openLead.quotation?.pdfUrl || `/uploads/attachments/quotation-${qtnRef}.pdf`;
+                            const fullUrl = resolveMediaUrl(pdfPath);
+                            try {
+                              const res = await fetch(fullUrl);
+                              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                              const blob = await res.blob();
+                              const blobUrl = window.URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = blobUrl;
+                              a.download = `quotation-${qtnRef}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              window.URL.revokeObjectURL(blobUrl);
+                            } catch (e) {
+                              window.open(fullUrl, "_blank", "noopener,noreferrer");
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-950 underline underline-offset-2 cursor-pointer"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Download Official Quotation PDF
+                        </button>
+                      </div>
                     </div>
                   ) : showQuoteForm ? (
                     <form onSubmit={handleSendQuotation} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
