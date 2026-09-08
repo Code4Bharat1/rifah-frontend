@@ -280,11 +280,11 @@ export function PublicMobileTabs() {
   );
 }
 
-export function PublicLayout({ children, bare = false }) {
+export function PublicLayout({ children, bare = false, className, mainClassName }) {
   return (
-    <div className={cn("flex min-h-screen flex-col bg-background", bare && "lg:h-screen lg:overflow-hidden")}>
+    <div className={cn("flex min-h-screen flex-col bg-background", className)}>
       <PublicHeader />
-      <main className={cn("flex-1", bare && "lg:overflow-hidden")}>{children}</main>
+      <main className={cn("flex-1", mainClassName)}>{children}</main>
       {!bare && <PublicFooter />}
     </div>
   );

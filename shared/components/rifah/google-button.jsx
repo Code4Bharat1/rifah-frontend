@@ -28,6 +28,29 @@ export function GoogleIcon({ className = "h-4 w-4" }) {
   );
 }
 
+const loadGsiScript = () => {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if (window.google?.accounts?.oauth2 || window.google?.accounts?.id) {
+      return resolve(true);
+    }
+    const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if (existing) {
+      existing.addEventListener("load", () => resolve(true), { once: true });
+      existing.addEventListener("error", () => resolve(false), { once: true });
+      if (window.google?.accounts) return resolve(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+};
+
 export function GoogleAuthButton({
   roleTarget = "customer",
   text = "Continue with Google",
@@ -46,16 +69,12 @@ export function GoogleAuthButton({
 
   useEffect(() => {
     // Load Google Identity Services script if not present
-    if (typeof window !== "undefined" && !window.google && clientId) {
-      const script = document.createElement("script");
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
+    if (typeof window !== "undefined" && !window.google?.accounts && clientId) {
+      loadGsiScript();
     }
   }, [clientId]);
 
-  const handleGoogleClick = () => {
+  const handleGoogleClick = async () => {
     if (disabled || loading) return;
 
     if (!clientId) {
@@ -66,38 +85,75 @@ export function GoogleAuthButton({
       return;
     }
 
-    if (typeof window === "undefined" || !window.google) {
-      // Fallback: direct OAuth2 redirect or GIS
-      const redirectUri = `${window.location.origin}/api/auth/callback/google`;
-      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
-        clientId
-      )}&redirect_uri=${encodeURIComponent(
-        redirectUri
-      )}&response_type=token%20id_token&scope=openid%20email%20profile&nonce=${Date.now()}`;
-      window.location.href = googleAuthUrl;
-      return;
-    }
-
     setLoading(true);
 
+    // If Google accounts library hasn't loaded yet, attempt to load it on demand
+    if (!window.google?.accounts) {
+      const loaded = await loadGsiScript();
+      if (!loaded || !window.google?.accounts) {
+        setLoading(false);
+        const errorMsg = "Google Sign-In service could not be loaded. Please check your network or ad blocker.";
+        if (onError) onError(errorMsg);
+        else alert(errorMsg);
+        return;
+      }
+    }
+
     try {
-      const client = window.google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: "openid email profile",
-        callback: async (tokenResponse) => {
-          if (tokenResponse && tokenResponse.access_token) {
+      if (window.google?.accounts?.oauth2?.initTokenClient) {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: "openid email profile",
+          callback: async (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              try {
+                // If id_token exists in response or simulated token
+                const credential = tokenResponse.id_token || tokenResponse.access_token;
+
+                const loggedInUser = await loginWithGoogle({
+                  credential,
+                  roleTarget,
+                });
+
+                if (onSuccess) {
+                  onSuccess(loggedInUser);
+                } else if (loggedInUser.isProfileComplete === false) {
+                  router.push("/onboarding");
+                } else if (loggedInUser.role === "business_owner") {
+                  router.push("/biz");
+                } else {
+                  router.push("/me");
+                }
+              } catch (err) {
+                const msg = err.message || "Google authentication failed on server.";
+                if (onError) onError(msg);
+                else alert(msg);
+              } finally {
+                setLoading(false);
+              }
+            } else {
+              setLoading(false);
+            }
+          },
+          error_callback: (err) => {
+            setLoading(false);
+            const msg = err?.message || "Google sign-in was cancelled or failed.";
+            if (onError) onError(msg);
+          },
+        });
+
+        client.requestAccessToken();
+        return;
+      }
+
+      // Fallback: One Tap / ID Token prompt if oauth2 client is not available
+      if (window.google?.accounts?.id?.initialize) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async (response) => {
             try {
-              // Fetch user info with access token to send credential
-              const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-              });
-              const userInfo = await userInfoRes.json();
-
-              // If id_token exists in response or simulated token
-              const credential = tokenResponse.id_token || tokenResponse.access_token;
-
               const loggedInUser = await loginWithGoogle({
-                credential,
+                credential: response.credential,
                 roleTarget,
               });
 
@@ -110,55 +166,25 @@ export function GoogleAuthButton({
               } else {
                 router.push("/me");
               }
-            } catch (err) {
-              const msg = err.message || "Google authentication failed on server.";
+            } catch (serverErr) {
+              const msg = serverErr.message || "Failed to authenticate with Google.";
               if (onError) onError(msg);
               else alert(msg);
             } finally {
               setLoading(false);
             }
-          } else {
-            setLoading(false);
-          }
-        },
-        error_callback: (err) => {
-          setLoading(false);
-          const msg = err.message || "Google sign-in was cancelled or failed.";
-          if (onError) onError(msg);
-        },
-      });
+          },
+        });
+        window.google.accounts.id.prompt();
+        return;
+      }
 
-      client.requestAccessToken();
+      throw new Error("Google Identity Services are not initialized properly.");
     } catch (err) {
-      // Fallback to ID token prompt
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async (response) => {
-          try {
-            const loggedInUser = await loginWithGoogle({
-              credential: response.credential,
-              roleTarget,
-            });
-
-            if (onSuccess) {
-              onSuccess(loggedInUser);
-            } else if (loggedInUser.isProfileComplete === false) {
-              router.push("/onboarding");
-            } else if (loggedInUser.role === "business_owner") {
-              router.push("/biz");
-            } else {
-              router.push("/me");
-            }
-          } catch (serverErr) {
-            const msg = serverErr.message || "Failed to authenticate with Google.";
-            if (onError) onError(msg);
-            else alert(msg);
-          } finally {
-            setLoading(false);
-          }
-        },
-      });
-      window.google.accounts.id.prompt();
+      setLoading(false);
+      const msg = err?.message || "Google sign-in encountered an error.";
+      if (onError) onError(msg);
+      else alert(msg);
     }
   };
 

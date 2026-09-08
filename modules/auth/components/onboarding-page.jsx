@@ -237,7 +237,7 @@ export function OnboardingPage() {
   if (submitted) {
     return (
       <PublicLayout bare>
-        <div className="min-h-screen bg-muted/20 py-12 px-4 flex items-center justify-center">
+        <div className="min-h-[calc(100vh-68px)] bg-muted/20 py-12 px-4 flex items-center justify-center">
           <div className="w-full max-w-lg rounded-2xl border border-border bg-surface p-8 text-center shadow-sm">
             <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-success-soft text-success">
               <CheckCircle2 className="h-9 w-9" />
@@ -294,7 +294,7 @@ export function OnboardingPage() {
 
   return (
     <PublicLayout bare>
-      <div className="min-h-screen bg-muted/20 py-8 px-4 sm:py-12 sm:px-6">
+      <div className="min-h-[calc(100vh-68px)] bg-muted/20 py-8 px-4 sm:py-12 sm:px-6">
         <div className="mx-auto max-w-2xl">
           {/* Header */}
           <div className="text-center">
