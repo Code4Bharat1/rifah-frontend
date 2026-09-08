@@ -13,6 +13,7 @@ export const authApi = {
   register: (data) => apiClient("/auth/register", { method: "POST", body: JSON.stringify(data) }),
   registerBusiness: (data) => apiClient("/auth/register-business", { method: "POST", body: JSON.stringify(data) }),
   getMe: () => apiClient("/auth/me"),
+  switchRole: (targetRole) => apiClient("/auth/switch-role", { method: "POST", body: JSON.stringify({ targetRole }) }),
   refreshToken: (refreshToken) => apiClient("/auth/refresh-token", { method: "POST", body: JSON.stringify({ refreshToken }) }),
   changePassword: (data) => apiClient("/auth/change-password", { method: "PATCH", body: JSON.stringify(data) }),
   forgotPassword: (email) => apiClient("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
