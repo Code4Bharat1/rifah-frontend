@@ -55,7 +55,7 @@ function HeroSearch({ compact = false }) {
       className={
         compact
           ? "flex gap-2 text-foreground"
-          : "flex flex-col gap-2 rounded-2xl border border-border bg-surface p-2 text-foreground sm:flex-row sm:items-center"
+          : "flex flex-col gap-2 rounded-2xl border border-white/20 bg-surface/95 backdrop-blur p-2 text-foreground shadow-xl transition-all duration-300 focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-2xl sm:flex-row sm:items-center"
       }
       role="search"
     >
@@ -72,7 +72,7 @@ function HeroSearch({ compact = false }) {
           className="h-12 border-0 bg-transparent pl-9 text-foreground placeholder:text-muted-foreground shadow-none focus-visible:ring-0"
         />
       </div>
-      <Button type="submit" size="lg" className="shrink-0">
+      <Button type="submit" size="lg" className="shrink-0 transition-transform duration-200 hover:scale-105 active:scale-95 shadow-md">
         Search
       </Button>
     </form>
@@ -105,48 +105,55 @@ function HomePage() {
   return (
     <PublicLayout>
       {/* Hero */}
-      <section className="hero-navy text-navy-foreground">
-        <div className="rifah-container grid gap-8 py-8 md:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-20">
+      <section className="hero-navy text-navy-foreground relative overflow-hidden">
+        {/* Ambient Animated Glow Orbs */}
+        <div className="pointer-events-none absolute -top-24 -left-20 h-96 w-96 rounded-full bg-primary/20 blur-3xl animate-pulse-slow" />
+        <div className="pointer-events-none absolute top-1/3 -right-24 h-80 w-80 rounded-full bg-brand/20 blur-3xl animate-float-slow" />
+
+        <div className="rifah-container relative z-10 grid gap-8 py-8 md:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-20">
           <div className="max-w-2xl">
-            <Pill tone="brand" className="bg-brand text-brand-foreground">
-              RIFAH Chamber of Commerce & Industry
-            </Pill>
-            <h1 className="mt-3 text-[28px] font-bold leading-[1.15] tracking-tight sm:text-4xl lg:text-[52px]">
+            <div className="animate-fade-in-up [animation-delay:100ms]">
+              <Pill tone="brand" className="bg-brand text-brand-foreground shadow-sm">
+                RIFAH Chamber of Commerce & Industry
+              </Pill>
+            </div>
+            <h1 className="mt-3 text-[28px] font-bold leading-[1.15] tracking-tight sm:text-4xl lg:text-[52px] animate-fade-in-up [animation-delay:200ms]">
               Connect. Discover. Grow.
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-navy-foreground/75 md:text-base">
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-navy-foreground/75 md:text-base animate-fade-in-up [animation-delay:300ms]">
               RIFAH Connect is the chamber's digital business network — find verified suppliers and service
               providers, publish your own business catalogue, and turn enquiries into qualified leads.
             </p>
-            <div className="mt-5">
+            <div className="mt-5 animate-fade-in-up [animation-delay:400ms]">
               <HeroSearch />
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button asChild size="lg">
+            <div className="mt-4 flex flex-wrap gap-2 animate-fade-in-up [animation-delay:500ms]">
+              <Button asChild size="lg" className="shadow-lg transition-transform duration-200 hover:scale-105 active:scale-95">
                 <Link href="/discover">
                   Discover businesses <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="brand">
+              <Button asChild size="lg" variant="brand" className="shadow-lg shadow-brand/25 transition-transform duration-200 hover:scale-105 active:scale-95">
                 <Link href="/register-business">Join RIFAH</Link>
               </Button>
             </div>
-            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-navy-foreground/70">
-              <li className="inline-flex items-center gap-1.5">
-                <ShieldCheck className="h-4 w-4" /> Chamber-verified businesses
+            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-navy-foreground/70 animate-fade-in-up [animation-delay:600ms]">
+              <li className="inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-white cursor-default group">
+                <ShieldCheck className="h-4 w-4 text-emerald-400 transition-transform duration-300 group-hover:scale-125" /> Chamber-verified businesses
               </li>
-              <li className="inline-flex items-center gap-1.5">
-                <Target className="h-4 w-4" /> Routed lead generation
+              <li className="inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-white cursor-default group">
+                <Target className="h-4 w-4 text-sky-400 transition-transform duration-300 group-hover:scale-125" /> Routed lead generation
               </li>
-              <li className="inline-flex items-center gap-1.5">
-                <Handshake className="h-4 w-4" /> Chapters across regions
+              <li className="inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-white cursor-default group">
+                <Handshake className="h-4 w-4 text-amber-400 transition-transform duration-300 group-hover:scale-125" /> Chapters across regions
               </li>
             </ul>
           </div>
 
-          <div className="hidden lg:block">
-            <div className="rounded-3xl border border-navy-foreground/15 bg-navy-foreground/5 p-5 backdrop-blur">
-              <p className="text-xs font-semibold uppercase tracking-wider text-navy-foreground/60">
+          <div className="hidden lg:block animate-fade-in-up [animation-delay:350ms]">
+            <div className="rounded-3xl border border-navy-foreground/15 bg-navy-foreground/5 p-5 backdrop-blur-md shadow-2xl transition-all duration-300 hover:border-navy-foreground/25">
+              <p className="text-xs font-semibold uppercase tracking-wider text-navy-foreground/60 flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
                 How a requirement moves through RIFAH Connect
               </p>
               <ol className="mt-4 space-y-3">
@@ -156,12 +163,15 @@ function HomePage() {
                   { icon: Target, t: "Submits a structured enquiry", d: "Routed to matching member businesses." },
                   { icon: MessageSquare, t: "Businesses respond and negotiate", d: "In-platform messaging keeps a record." },
                 ].map((s) => (
-                  <li key={s.t} className="flex gap-3 rounded-xl bg-navy-foreground/5 p-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+                  <li
+                    key={s.t}
+                    className="group flex gap-3 rounded-xl bg-navy-foreground/5 p-3 transition-all duration-300 hover:translate-x-2 hover:bg-navy-foreground/10 hover:shadow-md cursor-default"
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
                       <s.icon className="h-4.5 w-4.5" />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold">{s.t}</p>
+                      <p className="text-sm font-semibold transition-colors duration-200 group-hover:text-white">{s.t}</p>
                       <p className="text-xs text-navy-foreground/65">{s.d}</p>
                     </div>
                   </li>
@@ -184,12 +194,12 @@ function HomePage() {
             <Link
               key={c.label}
               href={`/discover?industry=${encodeURIComponent(c.label)}`}
-              className="flex min-h-[92px] flex-col justify-between rounded-2xl border border-border bg-surface p-3.5 transition-colors hover:border-primary/40 hover:bg-primary-soft/40"
+              className="group flex min-h-[96px] flex-col justify-between rounded-2xl border border-border bg-surface p-3.5 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:bg-primary-soft/25 hover:shadow-lg hover:shadow-primary/10 cursor-pointer"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary-soft text-primary">
-                <c.icon className="h-4.5 w-4.5" />
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary-soft text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white group-hover:shadow-md">
+                <c.icon className="h-4.5 w-4.5 transition-transform duration-300" />
               </span>
-              <span className="mt-2 text-sm font-semibold leading-snug">{c.label}</span>
+              <span className="mt-2 text-sm font-semibold leading-snug transition-colors duration-200 group-hover:text-primary">{c.label}</span>
             </Link>
           ))}
         </div>
@@ -204,7 +214,7 @@ function HomePage() {
         />
         <div className="mt-4 -mx-4 flex snap-x gap-3 overflow-x-auto px-4 no-scrollbar md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 xl:grid-cols-4">
           {featured.slice(0, 4).map((b) => (
-            <div key={b._id || b.slug} className="w-[80vw] shrink-0 snap-start sm:w-[60vw] md:w-auto">
+            <div key={b._id || b.slug} className="w-[80vw] shrink-0 snap-start sm:w-[60vw] md:w-auto transition-all duration-300 hover:-translate-y-1.5">
               <PremiumBusinessCard business={b} />
             </div>
           ))}
@@ -223,7 +233,10 @@ function HomePage() {
             const biz = item.business;
             const itemImg = item.images && item.images.length > 0 ? resolveMediaUrl(item.images[0]) : null;
             return (
-              <article key={item._id || item.slug} className="flex flex-col rounded-2xl border border-border bg-surface p-4">
+              <article
+                key={item._id || item.slug}
+                className="group flex flex-col rounded-2xl border border-border bg-surface p-4 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40"
+              >
                 {itemImg ? (
                   <div className="mb-3 h-28 w-full overflow-hidden rounded-xl bg-muted">
                     <img
@@ -233,23 +246,23 @@ function HomePage() {
                       onError={(ev) => {
                         ev.currentTarget.parentElement.style.display = "none";
                       }}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
                 ) : (
-                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-primary">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-primary transition-transform duration-300 group-hover:scale-110">
                     <Package className="h-4.5 w-4.5" />
                   </span>
                 )}
                 <div className="mt-3 flex items-center gap-2">
                   <Pill tone={item.type === "Product" ? "primary" : "neutral"}>{item.type}</Pill>
                 </div>
-                <h3 className="mt-2 text-sm font-semibold leading-snug">{item.name}</h3>
+                <h3 className="mt-2 text-sm font-semibold leading-snug transition-colors duration-200 group-hover:text-primary">{item.name}</h3>
                 <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
                 <p className="mt-2 text-xs font-medium text-muted-foreground">
                   {biz?.name} · {item.city}
                 </p>
-                <Button asChild size="sm" variant="outline" className="mt-4">
+                <Button asChild size="sm" variant="outline" className="mt-4 transition-all duration-200 group-hover:border-primary group-hover:bg-primary group-hover:text-white shadow-sm">
                   <Link href={`/enquiry/new?category=${encodeURIComponent(item.category || "")}`}>
                     Enquire
                   </Link>
@@ -269,8 +282,11 @@ function HomePage() {
         />
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {upcoming.map((e) => (
-            <article key={e._id || e.slug} className="overflow-hidden rounded-2xl border border-border bg-surface">
-              <div className="relative h-24 overflow-hidden bg-muted">
+            <article
+              key={e._id || e.slug}
+              className="group overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40"
+            >
+              <div className="relative h-28 overflow-hidden bg-muted">
                 <img
                   src={e.coverImage ? resolveMediaUrl(e.coverImage) : eventImage}
                   alt={`${e.title} — RIFAH event`}
@@ -280,10 +296,10 @@ function HomePage() {
                   onError={(ev) => {
                     ev.currentTarget.src = eventImage;
                   }}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-x-0 bottom-0 flex items-end p-4">
-                  <Pill tone="navy" className="bg-surface text-navy">
+                  <Pill tone="navy" className="bg-surface text-navy shadow-sm transition-transform duration-300 group-hover:scale-105">
                     {e.mode}
                   </Pill>
                 </div>
@@ -292,11 +308,11 @@ function HomePage() {
                 <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
                   <CalendarDays className="h-3.5 w-3.5" /> {e.date} · {e.time}
                 </p>
-                <h3 className="mt-1.5 text-sm font-semibold leading-snug">{e.title}</h3>
+                <h3 className="mt-1.5 text-sm font-semibold leading-snug transition-colors duration-200 group-hover:text-primary">{e.title}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {e.venue}{e.city ? ` · ${e.city}` : ""}
                 </p>
-                <Button asChild size="sm" variant="outline" className="mt-3 w-full">
+                <Button asChild size="sm" variant="outline" className="mt-3 w-full transition-all duration-200 group-hover:border-primary group-hover:bg-primary group-hover:text-white shadow-sm">
                   <Link href={`/events/${e._id || e.slug}`}>
                     View event
                   </Link>
@@ -320,8 +336,8 @@ function HomePage() {
               key={p.id}
               className={
                 p.id === "premium"
-                  ? "rounded-2xl border-2 border-brand bg-surface p-5"
-                  : "rounded-2xl border border-border bg-surface p-5"
+                  ? "group rounded-2xl border-2 border-brand bg-surface p-5 shadow-lg shadow-brand/10 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-brand/20 relative"
+                  : "group rounded-2xl border border-border bg-surface p-5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-primary/40"
               }
             >
               {p.id === "premium" && <Pill tone="brand">Most chosen</Pill>}
@@ -333,7 +349,7 @@ function HomePage() {
                   <li key={i}>• {feat}</li>
                 ))}
               </ul>
-              <Button asChild variant={p.id === "premium" ? "brand" : "outline"} className="mt-4 w-full">
+              <Button asChild variant={p.id === "premium" ? "brand" : "outline"} className="mt-4 w-full transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98] shadow-sm">
                 <Link href={`/membership/checkout?plan=${p.id}`}>
                   Choose plan
                 </Link>

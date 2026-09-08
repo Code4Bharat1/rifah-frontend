@@ -21,8 +21,12 @@ import {
 } from "@shared/components/ui/select";
 import { eventApi } from "@shared/lib/api-services";
 
+import { useAuth } from "@shared/providers/auth-provider";
+
 export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
 
@@ -88,7 +92,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       } else {
         const created = await eventApi.create(payload);
         eventId = created?.data?._id || created?._id;
-        toast.success(publish ? "Event published successfully" : "Draft saved successfully");
+        toast.success(publish ? (isSuperAdmin ? "Event published successfully" : "Event submitted for approval") : "Draft saved successfully");
       }
 
       if (formData.cover && eventId) {
@@ -262,7 +266,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 disabled={loading || savingDraft}
                 className="w-48 bg-primary"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publish & Broadcast"}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isSuperAdmin ? "Publish & Broadcast" : "Submit for Approval")}
               </Button>
             </div>
           </div>

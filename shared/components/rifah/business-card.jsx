@@ -116,7 +116,7 @@ export function PremiumBusinessCard({ business }) {
     const [coverSrc, setCoverSrc] = useState(() => businessImage(business));
 
     return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:shadow-xl hover:border-primary/40">
       <div className="relative h-24 overflow-hidden sm:h-28 bg-muted">
         <img
           src={coverSrc}
@@ -127,7 +127,7 @@ export function PremiumBusinessCard({ business }) {
           onError={() => {
             if (coverSrc !== defaultCover) setCoverSrc(defaultCover);
           }}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute right-3 top-3">
           <MembershipBadge tier={business.membership} />

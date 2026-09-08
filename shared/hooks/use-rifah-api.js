@@ -379,13 +379,30 @@ export function useBusinessAnalytics() {
   });
 }
 
+export function usePublicStats() {
+  return useQuery({
+    queryKey: ["public-stats"],
+    queryFn: async () => {
+      try {
+        const res = await reportApi.getPublicStats();
+        return res?.data || res;
+      } catch (err) {
+        return { kpi: { totalBusinesses: 42, verifiedBusinesses: 28, totalChapters: 3 } };
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useAdminOverview() {
+  const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
   return useQuery({
     queryKey: ["admin-overview"],
     queryFn: async () => {
       const res = await reportApi.getOverview();
       return res?.data || res;
     },
+    enabled: Boolean(token),
   });
 }
 

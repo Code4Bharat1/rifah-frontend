@@ -24,8 +24,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useEvents } from "@shared/hooks/use-rifah-api";
 import { eventApi } from "@shared/lib/api-services";
+import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminEvents() {
+  const { user } = useAuth();
+  const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
   const { data: eventsData, refetch } = useEvents();
   const events = Array.isArray(eventsData) ? eventsData : [];
 
@@ -34,12 +37,15 @@ function AdminEvents() {
   const totalCount = events.length;
   const inPersonCount = events.filter((e) => e.mode === "In-person").length;
   const onlineCount = events.filter((e) => e.mode === "Online").length;
+  const pendingCount = events.filter((e) => e.status === "Pending Approval").length;
 
   let displayEvents = events;
   if (filterMode === "In-person") {
     displayEvents = events.filter((e) => e.mode === "In-person");
   } else if (filterMode === "Online") {
     displayEvents = events.filter((e) => e.mode === "Online");
+  } else if (filterMode === "Pending") {
+    displayEvents = events.filter((e) => e.status === "Pending Approval");
   }
 
 
@@ -87,9 +93,9 @@ function AdminEvents() {
           <button type="button" onClick={() => setFilterMode("Online")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Online" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
             <StatCard label="Online / Webinar" value={String(onlineCount)} />
           </button>
-          <div className="text-left opacity-75">
-            <StatCard label="Program Desk" value="Active" tone="warning" />
-          </div>
+          <button type="button" onClick={() => setFilterMode("Pending")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Pending" ? "ring-2 ring-warning ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Pending Approval" value={String(pendingCount)} tone="warning" />
+          </button>
         </div>
 
         <Panel title="All events">
@@ -103,7 +109,7 @@ function AdminEvents() {
                   <div className="flex flex-col gap-1">
                     <span className="font-semibold">{r.title}</span>
                     <div>
-                      <Pill tone={r.status === "Draft" ? "neutral" : "success"}>
+                      <Pill tone={r.status === "Pending Approval" ? "warning" : r.status === "Draft" ? "neutral" : "success"}>
                         {r.status || "Upcoming"}
                       </Pill>
                     </div>
@@ -130,6 +136,19 @@ function AdminEvents() {
                         <Link href={`/events/${r.slug || r._id}`}>View Event Page</Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
+                      {isSuperAdmin && r.status === "Pending Approval" && (
+                        <DropdownMenuItem onClick={async () => {
+                          try {
+                            await eventApi.update(r._id, { status: "Upcoming" });
+                            toast.success("Event Approved & Published!");
+                            refetch();
+                          } catch(e) {
+                            toast.error("Failed to approve event");
+                          }
+                        }} className="font-medium text-emerald-600 focus:bg-emerald-50 focus:text-emerald-700">
+                          Approve & Publish Event
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={async () => {
                         try {
                           await eventApi.update(r._id, { mode: r.mode === "In-person" ? "Online" : "In-person" });

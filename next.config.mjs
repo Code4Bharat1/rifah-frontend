@@ -35,6 +35,30 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/aboutRIFAH',
+        destination: '/about',
+        permanent: false,
+      },
+      {
+        source: '/about-rifah',
+        destination: '/about',
+        permanent: false,
+      },
+      {
+        source: '/aboutrifah',
+        destination: '/about',
+        permanent: false,
+      },
+      {
+        source: '/about-us',
+        destination: '/about',
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

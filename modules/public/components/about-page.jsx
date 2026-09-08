@@ -6,7 +6,7 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Pill } from "@shared/components/rifah/badges";
 import { Panel, SectionHeader, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
-import { useChapters, useAdminOverview } from "@shared/hooks/use-rifah-api";
+import { useChapters, usePublicStats } from "@shared/hooks/use-rifah-api";
 
 const pillars = [
   {
@@ -33,10 +33,10 @@ const pillars = [
 
 function AboutPage() {
   const { data: chaptersData } = useChapters();
-  const { data: overviewData } = useAdminOverview();
+  const { data: statsData } = usePublicStats();
 
   const chapters = chaptersData || [];
-  const kpi = overviewData?.kpi || {};
+  const kpi = statsData?.kpi || {};
 
   const totalUnits = chapters.reduce((sum, c) => sum + (c.units?.length || 0), 0);
 
@@ -53,11 +53,14 @@ function AboutPage() {
             businesses. RIFAH Connect is the chamber's digital platform for discovery, membership, enquiries and
             events.
           </p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            <Button asChild variant="brand">
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button asChild variant="brand" className="font-semibold shadow-md">
               <Link href="/register-business">Join RIFAH</Link>
             </Button>
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              className="border border-white/20 bg-white text-navy font-semibold hover:bg-slate-100 hover:text-navy shadow-sm transition-colors"
+            >
               <Link href="/contact">Contact the secretariat</Link>
             </Button>
           </div>
