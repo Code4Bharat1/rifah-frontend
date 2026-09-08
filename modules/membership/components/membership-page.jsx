@@ -1,6 +1,7 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
-import { Check, Minus, Star } from "lucide-react";
+import { Check, Minus, Star, Building2, Globe } from "lucide-react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader } from "@shared/components/rifah/ui-bits";
@@ -49,56 +50,102 @@ function Cell({ value }) {
 
 function MembershipPage() {
   const { data: plansData } = useMembershipPlans();
+  const [currency, setCurrency] = useState("INR");
   const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
+
+  const isIntl = currency === "USD";
 
   return (
     <PublicLayout>
       <div className="rifah-container py-6 sm:py-10">
-        <SectionHeader
-          title="Membership plans"
-          description="Membership determines directory visibility, catalogue capacity and how early your business sees matched buyer enquiries."
-        />
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <SectionHeader
+            title="Membership plans"
+            description="Membership determines directory visibility, catalogue capacity and how early your business sees matched buyer enquiries."
+          />
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {plans.map((plan) => (
-            <article
-              key={plan.id}
+          {/* Region / Currency Switcher */}
+          <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-muted/50 p-1 self-start sm:self-auto shrink-0 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setCurrency("INR")}
               className={cn(
-                "flex flex-col rounded-2xl border bg-surface p-5",
-                plan.id === "premium" ? "border-primary shadow-elevated ring-1 ring-primary/20" : "border-border"
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                !isIntl
+                  ? "bg-white dark:bg-slate-900 text-primary shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {plan.id === "premium" && (
-                <span className="mb-3 inline-flex w-fit items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
-                  <Star className="h-3 w-3" /> Most chosen
-                </span>
+              <Building2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>₹ INR (National)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrency("USD")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                isIntl
+                  ? "bg-white dark:bg-slate-900 text-primary shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
               )}
-              <h2 className="text-base font-bold tracking-tight">{plan.name}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{plan.summary || `Annual ${plan.name} chamber membership`}</p>
-              <p className="mt-4 text-2xl font-bold tracking-tight">
-                ₹ {plan.price?.toLocaleString("en-IN")}
-                <span className="ml-1 text-xs font-medium text-muted-foreground">/ year</span>
-              </p>
-              <ul className="mt-4 flex-1 space-y-2">
-                {plan.features?.map((f, i) => (
-                  <li key={i} className="flex gap-2 text-sm">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                    <span className="text-muted-foreground">{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button
-                asChild
-                className="mt-5"
-                variant={plan.id === "premium" ? "default" : "outline"}
-                size="lg"
+            >
+              <Globe className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              <span>$ USD (International)</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {plans.map((plan) => {
+            const displayPrice = isIntl
+              ? (plan.priceUsd ?? (plan.price === 0 ? 0 : Math.round(plan.price / 80)))
+              : plan.price;
+            const formattedPrice = displayPrice === 0
+              ? (isIntl ? "$ 0" : "₹ 0")
+              : isIntl
+              ? `$ ${displayPrice.toLocaleString("en-US")}`
+              : `₹ ${displayPrice.toLocaleString("en-IN")}`;
+
+            return (
+              <article
+                key={plan.id}
+                className={cn(
+                  "flex flex-col rounded-2xl border bg-surface p-5",
+                  plan.id === "premium" ? "border-primary shadow-elevated ring-1 ring-primary/20" : "border-border"
+                )}
               >
-                <Link href={`/membership/checkout?plan=${plan.id}`}>
-                  {plan.id === "free" ? "Start free listing" : `Choose ${plan.name}`}
-                </Link>
-              </Button>
-            </article>
-          ))}
+                {plan.id === "premium" && (
+                  <span className="mb-3 inline-flex w-fit items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
+                    <Star className="h-3 w-3" /> Most chosen
+                  </span>
+                )}
+                <h2 className="text-base font-bold tracking-tight">{plan.name}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{plan.summary || `Annual ${plan.name} chamber membership`}</p>
+                <p className="mt-4 text-2xl font-bold tracking-tight">
+                  {formattedPrice}
+                  <span className="ml-1 text-xs font-medium text-muted-foreground">/ year</span>
+                </p>
+                <ul className="mt-4 flex-1 space-y-2">
+                  {plan.features?.map((f, i) => (
+                    <li key={i} className="flex gap-2 text-sm">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                      <span className="text-muted-foreground">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  asChild
+                  className="mt-5"
+                  variant={plan.id === "premium" ? "default" : "outline"}
+                  size="lg"
+                >
+                  <Link href={`/membership/checkout?plan=${plan.id}&currency=${currency}`}>
+                    {plan.id === "free" ? "Start free listing" : `Choose ${plan.name}`}
+                  </Link>
+                </Button>
+              </article>
+            );
+          })}
         </div>
 
         <div className="mt-10">

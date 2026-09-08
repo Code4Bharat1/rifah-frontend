@@ -146,6 +146,7 @@ export const paymentApi = {
   getAllPayments: (params = {}) => apiClient(`/payments/admin/all${toQueryString(params)}`),
   createOrder: (data) => apiClient("/payments/order", { method: "POST", body: JSON.stringify(data) }),
   verifyPayment: (data) => apiClient("/payments/verify", { method: "POST", body: JSON.stringify(data) }),
+  verifyByAdmin: (id) => apiClient(`/payments/${id}/verify-by-admin`, { method: "POST" }),
   refund: (id) => apiClient(`/payments/${id}/refund`, { method: "POST" }),
 };
 
