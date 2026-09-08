@@ -120,79 +120,91 @@ function MyEnquiries() {
       </div>
 
       <Dialog open={!!selectedEnquiry} onOpenChange={(o) => !o && setSelectedEnquiry(null)}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>{selectedEnquiry?.title}</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[95vw] max-w-[620px] max-h-[88vh] sm:max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl sm:rounded-2xl border-border bg-background shadow-2xl">
+          <DialogHeader className="p-5 sm:p-6 pb-3 border-b border-border/70 shrink-0 text-left">
+            <DialogTitle className="text-lg sm:text-xl font-bold pr-6 line-clamp-2">{selectedEnquiry?.title}</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
               {selectedEnquiry?.category} · Posted {selectedEnquiry && new Date(selectedEnquiry.createdAt).toLocaleDateString()}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 space-y-5">
             <div>
-              <h4 className="text-sm font-semibold mb-1">Description</h4>
-              <p className="text-sm text-muted-foreground">{selectedEnquiry?.description || "No description provided."}</p>
+              <h4 className="text-xs sm:text-sm font-semibold mb-1 text-foreground">Description</h4>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {selectedEnquiry?.description || "No description provided."}
+              </p>
             </div>
-            <div className="grid grid-cols-2 gap-4 rounded-lg bg-muted/50 p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-xl bg-muted/40 p-3.5 sm:p-4 border border-border/60">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Target Location</p>
-                <p className="text-sm font-semibold">{selectedEnquiry?.city || selectedEnquiry?.location || "Not specified"}</p>
+                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground">Target Location</p>
+                <p className="text-xs sm:text-sm font-semibold text-foreground mt-0.5">{selectedEnquiry?.city || selectedEnquiry?.location || "Not specified"}</p>
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Quantity</p>
-                <p className="text-sm font-semibold">{selectedEnquiry?.quantity || "On request"}</p>
+                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground">Quantity</p>
+                <p className="text-xs sm:text-sm font-semibold text-foreground mt-0.5">{selectedEnquiry?.quantity || "On request"}</p>
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Budget</p>
-                <p className="text-sm font-semibold">{selectedEnquiry?.budget || "To be discussed"}</p>
+                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground">Budget</p>
+                <p className="text-xs sm:text-sm font-semibold text-foreground mt-0.5">{selectedEnquiry?.budget || "To be discussed"}</p>
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Required By</p>
-                <p className="text-sm font-semibold">{selectedEnquiry?.requiredBy ? new Date(selectedEnquiry.requiredBy).toLocaleDateString() : "Immediate"}</p>
+                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground">Required By</p>
+                <p className="text-xs sm:text-sm font-semibold text-foreground mt-0.5">{selectedEnquiry?.requiredBy ? new Date(selectedEnquiry.requiredBy).toLocaleDateString() : "Immediate"}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-3.5">
                <div>
-                 <p className="text-xs font-medium text-muted-foreground mb-1">Current Status</p>
+                 <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mb-1">Current Status</p>
                  <StatusBadge status={selectedEnquiry?.status} />
                </div>
-               <div>
-                 <p className="text-xs font-medium text-muted-foreground mb-1">Responses Received</p>
-                 <p className="text-lg font-bold">{selectedEnquiry?.responsesCount || selectedEnquiry?.responses?.length || 0}</p>
+               <div className="text-right">
+                 <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mb-0.5">Responses Received</p>
+                 <p className="text-base sm:text-lg font-bold text-foreground">{selectedEnquiry?.responsesCount || selectedEnquiry?.responses?.length || 0}</p>
                </div>
             </div>
 
             {/* Quotations Section */}
             {selectedEnquiry && (selectedEnquiry.responsesCount > 0 || (responses && responses.length > 0)) && (
-              <div className="mt-6 border-t border-border pt-4">
-                <h4 className="text-sm font-semibold mb-3">Quotations & Responses</h4>
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs sm:text-sm font-semibold text-foreground">Quotations & Responses</h4>
+                  <span className="text-[11px] text-muted-foreground">
+                    {responses?.length || 0} {responses?.length === 1 ? "quote" : "quotes"}
+                  </span>
+                </div>
                 {loadingResponses ? (
-                  <p className="text-sm text-muted-foreground">Loading responses...</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Loading responses...</p>
                 ) : responses && responses.length > 0 ? (
                   <div className="space-y-3">
                     {responses.map((resp) => (
-                      <div key={resp._id} className="rounded-lg border border-border p-3.5 bg-surface">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-sm">{resp.business?.name || "Business"}</p>
+                      <div key={resp._id} className="rounded-xl border border-border p-3.5 sm:p-4 bg-surface hover:border-border/80 transition-colors shadow-xs">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm text-foreground truncate">{resp.business?.name || "Business"}</p>
                             {resp.quotation?.amount && (
-                              <p className="text-sm mt-1">
-                                <span className="text-muted-foreground">Amount:</span> <span className="font-medium">{resp.quotation.amount}</span>
+                              <p className="text-xs sm:text-sm mt-1 text-foreground">
+                                <span className="text-muted-foreground">Amount:</span> <span className="font-bold text-primary">₹ {resp.quotation.amount}</span>
                               </p>
                             )}
                             {resp.quotation?.deliveryTime && (
-                              <p className="text-sm">
-                                <span className="text-muted-foreground">Delivery Time:</span> {resp.quotation.deliveryTime}
+                              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                                <span>Delivery Time:</span> <span className="font-medium text-foreground">{resp.quotation.deliveryTime}</span>
                               </p>
                             )}
                             {resp.quotation?.notes && (
-                              <p className="text-sm mt-1 text-muted-foreground line-clamp-2">
+                              <p className="text-xs sm:text-sm mt-1.5 text-muted-foreground line-clamp-3 bg-muted/30 p-2 rounded-lg">
                                 {resp.quotation.notes}
                               </p>
                             )}
                           </div>
                           {resp.business?.owner && (
-                            <Button size="sm" variant="outline" className="shrink-0" onClick={() => router.push(`/me/messages?userId=${resp.business?.owner}&name=${encodeURIComponent(resp.business?.name)}`)}>
-                              <MessageSquare className="h-4 w-4 mr-2" /> Message
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="shrink-0 w-full sm:w-auto mt-1 sm:mt-0 font-medium" 
+                              onClick={() => router.push(`/me/messages?userId=${resp.business?.owner}&name=${encodeURIComponent(resp.business?.name)}`)}
+                            >
+                              <MessageSquare className="h-3.5 w-3.5 mr-1.5" /> Message
                             </Button>
                           )}
                         </div>
@@ -200,7 +212,7 @@ function MyEnquiries() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No quotations submitted yet.</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">No quotations submitted yet.</p>
                 )}
               </div>
             )}

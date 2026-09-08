@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
@@ -18,16 +18,28 @@ import {
 } from "@shared/components/ui/dialog";
 import { useAuth } from "@shared/providers/auth-provider";
 import { userApi, authApi } from "@shared/lib/api-services";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 import {
   CheckCircle2,
   Loader2,
   KeyRound,
   Lock,
+  Camera,
+  Pencil,
+  AlertTriangle,
 } from "lucide-react";
 
 function ProfilePage() {
   const router = useRouter();
   const { user, refreshProfile, refreshUser, logout } = useAuth();
+
+  // View vs Edit Mode State
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Avatar Upload State
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const fileInputRef = useRef(null);
 
   // Profile Form State
   const [formData, setFormData] = useState({
@@ -65,6 +77,42 @@ function ProfilePage() {
     }
   }, [user]);
 
+  const handleAvatarClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Please select a valid image file (JPG, PNG, WebP).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("Image size must be under 5 MB.");
+      return;
+    }
+
+    setAvatarError("");
+    setAvatarLoading(true);
+    try {
+      await userApi.uploadAvatar(file);
+      if (typeof refreshProfile === "function") await refreshProfile();
+      else if (typeof refreshUser === "function") await refreshUser();
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      setAvatarError(err.message || "Failed to upload profile photo.");
+    } finally {
+      setAvatarLoading(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
   const handleCancel = () => {
     if (user) {
       setFormData({
@@ -76,6 +124,7 @@ function ProfilePage() {
         taxId: user.taxId || "",
       });
     }
+    setIsEditing(false);
   };
 
   const handleSubmit = async (e) => {
@@ -95,6 +144,7 @@ function ProfilePage() {
       await userApi.updateProfile(payload);
       if (typeof refreshProfile === "function") await refreshProfile();
       else if (typeof refreshUser === "function") await refreshUser();
+      setIsEditing(false);
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (err) {
@@ -144,89 +194,204 @@ function ProfilePage() {
   return (
     <AppShell role="customer" title="Profile & settings" subtitle="Buyer account details">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <Panel title="Account details">
+        <Panel 
+          title="Account details"
+          action={
+            !isEditing ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="gap-1.5 font-medium hover:border-primary/50 hover:bg-primary/5"
+              >
+                <Pencil className="h-3.5 w-3.5 text-primary" /> Edit Profile
+              </Button>
+            ) : null
+          }
+        >
           {savedSuccess && (
             <div className="mb-4 flex items-center gap-2 rounded-xl bg-success-soft p-3 text-xs font-semibold text-success">
               <CheckCircle2 className="h-4 w-4" /> Profile saved successfully.
             </div>
           )}
-          <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit}>
-            <div className="grid gap-1.5">
-              <Label htmlFor="name">Full name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="h-11"
-                placeholder="Full name"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                disabled
-                value={formData.email}
-                className="h-11 bg-muted"
-                placeholder="Email address"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="h-11"
-                placeholder="Phone number"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="org">Organisation</Label>
-              <Input
-                id="org"
-                value={formData.organization}
-                onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-                className="h-11"
-                placeholder="Organisation"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="h-11"
-                placeholder="City"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="taxId">GST / Tax ID</Label>
-              <Input
-                id="taxId"
-                value={formData.taxId}
-                onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
-                className="h-11"
-                placeholder="e.g. 27AAAAA0000A1Z5"
-              />
-            </div>
-            <Separator className="sm:col-span-2" />
-            <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
-              <Button type="submit" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                  </>
+
+          {/* Profile Photo Avatar Section */}
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 pb-6 mb-6 border-b border-border/80">
+            <div className="relative group">
+              <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-full border-2 border-primary/20 p-0.5 overflow-hidden shadow-sm bg-muted/40">
+                {user?.avatar ? (
+                  <img
+                    src={resolveMediaUrl(user.avatar)}
+                    alt={user?.name || "User Avatar"}
+                    className="h-full w-full rounded-full object-cover"
+                  />
                 ) : (
-                  "Save changes"
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-primary to-navy text-xl sm:text-2xl font-bold text-white uppercase">
+                    {user?.name?.slice(0, 2) || "CU"}
+                  </div>
                 )}
-              </Button>
-              <Button type="button" variant="outline" onClick={handleCancel}>
-                Cancel
-              </Button>
+                {avatarLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-[1px]">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              {/* Camera Upload Button */}
+              <button
+                type="button"
+                onClick={handleAvatarClick}
+                disabled={avatarLoading}
+                className="absolute bottom-0 right-0 grid h-8 w-8 place-items-center rounded-full bg-primary text-white shadow-md hover:bg-primary/90 transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                title="Upload profile photo"
+                aria-label="Upload profile photo"
+              >
+                <Camera className="h-4 w-4" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
             </div>
-          </form>
+
+            <div className="flex-1 text-center sm:text-left min-w-0 pt-1">
+              <h3 className="text-lg sm:text-xl font-bold text-foreground truncate">
+                {user?.name || "Buyer Account"}
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                {user?.organization ? `${user.organization} · ` : ""}{user?.email}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Click the camera icon to upload or update your profile picture (JPG, PNG, WebP max 5MB).
+              </p>
+              {avatarError && (
+                <p className="text-xs font-semibold text-destructive mt-1.5 flex items-center gap-1 justify-center sm:justify-start">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {avatarError}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* View Mode (Read-only cards) */}
+          {!isEditing ? (
+            <div className="space-y-4">
+              <div className="grid gap-3.5 sm:grid-cols-2">
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5">
+                  <span className="text-xs font-medium text-muted-foreground block">Full Name</span>
+                  <span className="text-sm font-semibold text-foreground mt-0.5 block">{formData.name || "—"}</span>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5">
+                  <span className="text-xs font-medium text-muted-foreground block">Email Address</span>
+                  <span className="text-sm font-semibold text-foreground mt-0.5 flex items-center gap-1.5 truncate">
+                    {formData.email || "—"}
+                    <span className="inline-flex items-center text-[10px] font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                      Verified
+                    </span>
+                  </span>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5">
+                  <span className="text-xs font-medium text-muted-foreground block">Phone Number</span>
+                  <span className="text-sm font-semibold text-foreground mt-0.5 block">{formData.phone || "Not provided"}</span>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5">
+                  <span className="text-xs font-medium text-muted-foreground block">Organisation / Enterprise</span>
+                  <span className="text-sm font-semibold text-foreground mt-0.5 block">{formData.organization || "Not specified"}</span>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5">
+                  <span className="text-xs font-medium text-muted-foreground block">City</span>
+                  <span className="text-sm font-semibold text-foreground mt-0.5 block">{formData.city || "Not specified"}</span>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5">
+                  <span className="text-xs font-medium text-muted-foreground block">GST / Tax ID</span>
+                  <span className="text-sm font-semibold text-foreground mt-0.5 font-mono block">{formData.taxId || "Not provided"}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Edit Mode (Interactive form) */
+            <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit}>
+              <div className="grid gap-1.5">
+                <Label htmlFor="name">Full name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="h-11"
+                  placeholder="Full name"
+                  required
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  disabled
+                  value={formData.email}
+                  className="h-11 bg-muted cursor-not-allowed"
+                  placeholder="Email address"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="h-11"
+                  placeholder="Phone number"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="org">Organisation</Label>
+                <Input
+                  id="org"
+                  value={formData.organization}
+                  onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                  className="h-11"
+                  placeholder="Organisation"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  className="h-11"
+                  placeholder="City"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="taxId">GST / Tax ID</Label>
+                <Input
+                  id="taxId"
+                  value={formData.taxId}
+                  onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                  className="h-11 uppercase"
+                  placeholder="e.g. 27AAAAA0000A1Z5"
+                />
+              </div>
+              <Separator className="sm:col-span-2" />
+              <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+                <Button type="submit" disabled={saving} className="font-semibold min-w-32">
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    "Save changes"
+                  )}
+                </Button>
+                <Button type="button" variant="outline" onClick={handleCancel}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
         </Panel>
 
         <div className="space-y-4">
