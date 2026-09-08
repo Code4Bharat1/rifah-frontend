@@ -17,13 +17,12 @@ import {
   SelectValue,
 } from "@shared/components/ui/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@shared/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@shared/components/ui/dialog";
 import { useMyBusiness, useBusinessCatalogue } from "@shared/hooks/use-rifah-api";
 import { catalogueApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
@@ -196,136 +195,166 @@ function BizCatalogue() {
       title="My catalogue"
       subtitle={`${items.length} published products & services`}
       actions={
-        <Sheet open={openAdd} onOpenChange={setOpenAdd}>
-          <SheetTrigger asChild>
-            <Button size="sm" className="rounded-xl px-2.5 sm:px-3 text-xs">
-              <Plus className="h-3.5 w-3.5 sm:mr-1" />
-              <span className="hidden sm:inline">Add item</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-            <SheetHeader>
-              <SheetTitle className="text-left">Add catalogue item</SheetTitle>
-              <SheetDescription className="text-left">
-                Publish a product or service to the chamber directory.
-              </SheetDescription>
-            </SheetHeader>
-            <form className="mt-4 grid gap-4 px-4 pb-8" onSubmit={handleAddItem}>
-              <div className="grid gap-1.5">
-                <Label htmlFor="item-name">Item Name *</Label>
-                <Input
-                  id="item-name"
-                  required
-                  value={newItem.name}
-                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                  placeholder="e.g. CNC machined components"
-                  className="h-11"
-                />
-              </div>
+        <>
+          <Button
+            size="sm"
+            onClick={() => setOpenAdd(true)}
+            className="rounded-xl px-2.5 sm:px-3 text-xs cursor-pointer shadow-xs"
+          >
+            <Plus className="h-3.5 w-3.5 sm:mr-1" />
+            <span className="hidden sm:inline">Add item</span>
+            <span className="sm:hidden">Add</span>
+          </Button>
 
-              {/* Item Image Upload */}
-              <div className="grid gap-1.5">
-                <Label>Item Images</Label>
-                {addPreviews.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-1">
-                    {addPreviews.map((url, idx) => (
-                      <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 group">
-                        <img src={url} alt={`Preview ${idx}`} className="h-full w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveAddFile(idx)}
-                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100/80 transition-colors">
-                  <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                    <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
-                    <p className="text-xs font-medium text-slate-600">Click to upload item images</p>
-                    <p className="text-[10px] text-slate-400">PNG, JPG, WEBP up to 5MB</p>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleAddFileChange}
+          <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+            <DialogContent className="w-[94vw] max-w-xl max-h-[90vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden rounded-3xl p-6 sm:p-7 bg-white border border-slate-200/80 shadow-2xl font-sans">
+              <DialogHeader className="space-y-1 text-left pr-6">
+                <DialogTitle className="text-left text-xl font-bold text-[#0f172a] leading-tight font-sans">
+                  Add catalogue item
+                </DialogTitle>
+                <DialogDescription className="text-left text-xs font-semibold text-[#8a99ad] font-sans">
+                  Publish a product or service to the chamber directory.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form className="mt-4 grid gap-4 font-sans" onSubmit={handleAddItem}>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="item-name" className="text-xs font-bold text-slate-700">Item Name *</Label>
+                  <Input
+                    id="item-name"
+                    required
+                    value={newItem.name}
+                    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                    placeholder="e.g. CNC machined components"
+                    className="h-11 rounded-xl"
                   />
-                </label>
-              </div>
+                </div>
 
-              <div className="grid gap-1.5">
-                <Label htmlFor="item-type">Type</Label>
-                <Select
-                  value={newItem.type}
-                  onValueChange={(val) => setNewItem({ ...newItem, type: val })}
-                >
-                  <SelectTrigger id="item-type" className="h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Product">Product</SelectItem>
-                    <SelectItem value="Service">Service</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="item-cat">Category</Label>
-                <Input
-                  id="item-cat"
-                  value={newItem.category}
-                  onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                  placeholder="Manufacturing / Precision Engineering"
-                  className="h-11"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="item-moq">Minimum Order Quantity (MOQ)</Label>
-                <Input
-                  id="item-moq"
-                  value={newItem.moq}
-                  onChange={(e) => setNewItem({ ...newItem, moq: e.target.value })}
-                  placeholder="e.g. 500 units"
-                  className="h-11"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="item-price">Indicative Price</Label>
-                <Input
-                  id="item-price"
-                  value={newItem.price}
-                  onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
-                  placeholder="e.g. ₹ 450 per unit / On Request"
-                  className="h-11"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="item-desc">Description</Label>
-                <Textarea
-                  id="item-desc"
-                  rows={4}
-                  value={newItem.description}
-                  onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                  placeholder="What you supply and technical specifications."
-                />
-              </div>
-              <Button type="submit" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                  </>
-                ) : (
-                  "Publish to catalogue"
-                )}
-              </Button>
-            </form>
-          </SheetContent>
-        </Sheet>
+                {/* Item Image Upload */}
+                <div className="grid gap-1.5">
+                  <Label className="text-xs font-bold text-slate-700">Item Images</Label>
+                  {addPreviews.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-1">
+                      {addPreviews.map((url, idx) => (
+                        <div key={idx} className="relative h-16 w-16 rounded-xl overflow-hidden border border-slate-200 group shadow-2xs">
+                          <img src={url} alt={`Preview ${idx}`} className="h-full w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAddFile(idx)}
+                            className="absolute top-1 right-1 h-5 w-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100/80 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                      <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
+                      <p className="text-xs font-medium text-slate-600">Click to upload item images</p>
+                      <p className="text-[10px] text-slate-400">PNG, JPG, WEBP up to 5MB</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleAddFileChange}
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="item-type" className="text-xs font-bold text-slate-700">Type</Label>
+                    <Select
+                      value={newItem.type}
+                      onValueChange={(val) => setNewItem({ ...newItem, type: val })}
+                    >
+                      <SelectTrigger id="item-type" className="h-11 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Product">Product</SelectItem>
+                        <SelectItem value="Service">Service</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="item-cat" className="text-xs font-bold text-slate-700">Category</Label>
+                    <Input
+                      id="item-cat"
+                      value={newItem.category}
+                      onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                      placeholder="Manufacturing / Precision Engineering"
+                      className="h-11 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="item-moq" className="text-xs font-bold text-slate-700">Minimum Order Quantity (MOQ)</Label>
+                    <Input
+                      id="item-moq"
+                      value={newItem.moq}
+                      onChange={(e) => setNewItem({ ...newItem, moq: e.target.value })}
+                      placeholder="e.g. 500 units"
+                      className="h-11 rounded-xl"
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="item-price" className="text-xs font-bold text-slate-700">Indicative Price</Label>
+                    <Input
+                      id="item-price"
+                      value={newItem.price}
+                      onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
+                      placeholder="e.g. ₹ 450 per unit / On Request"
+                      className="h-11 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-1.5">
+                  <Label htmlFor="item-desc" className="text-xs font-bold text-slate-700">Description</Label>
+                  <Textarea
+                    id="item-desc"
+                    rows={4}
+                    value={newItem.description}
+                    onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                    placeholder="What you supply and technical specifications."
+                    className="rounded-xl resize-none text-xs"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setOpenAdd(false)}
+                    className="rounded-xl px-4 h-11 text-xs font-semibold cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="rounded-xl px-6 h-11 text-xs font-bold bg-[#0088d1] hover:bg-[#0077b6] text-white cursor-pointer shadow-xs"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                      </>
+                    ) : (
+                      "Publish to catalogue"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </>
       }
     >
       {items.length === 0 ? (
@@ -418,30 +447,33 @@ function BizCatalogue() {
         </div>
       )}
 
-      {/* Edit Form Sheet */}
-      <Sheet open={openEditForm} onOpenChange={setOpenEditForm}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="text-left">Edit catalogue item</SheetTitle>
-            <SheetDescription className="text-left">
+      {/* Edit Form Dialog Box matching Leads Dialog */}
+      <Dialog open={openEditForm} onOpenChange={setOpenEditForm}>
+        <DialogContent className="w-[94vw] max-w-xl max-h-[90vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden rounded-3xl p-6 sm:p-7 bg-white border border-slate-200/80 shadow-2xl font-sans">
+          <DialogHeader className="space-y-1 text-left pr-6">
+            <DialogTitle className="text-left text-xl font-bold text-[#0f172a] leading-tight font-sans">
+              Edit catalogue item
+            </DialogTitle>
+            <DialogDescription className="text-left text-xs font-semibold text-[#8a99ad] font-sans">
               Update product or service information.
-            </SheetDescription>
-          </SheetHeader>
-          <form className="mt-4 grid gap-4 px-4 pb-8" onSubmit={handleSaveEdit}>
+            </DialogDescription>
+          </DialogHeader>
+
+          <form className="mt-4 grid gap-4 font-sans" onSubmit={handleSaveEdit}>
             <div className="grid gap-1.5">
-              <Label htmlFor="edit-name">Item Name *</Label>
+              <Label htmlFor="edit-name" className="text-xs font-bold text-slate-700">Item Name *</Label>
               <Input
                 id="edit-name"
                 required
                 value={editFormData.name}
                 onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                className="h-11"
+                className="h-11 rounded-xl"
               />
             </div>
 
             {/* Edit Item Image Upload & Management */}
             <div className="grid gap-1.5">
-              <Label>Item Images</Label>
+              <Label className="text-xs font-bold text-slate-700">Item Images</Label>
 
               {/* Current Images */}
               {editExistingImages.length > 0 && (
@@ -449,12 +481,12 @@ function BizCatalogue() {
                   <p className="text-xs text-slate-500 mb-1.5">Current Images:</p>
                   <div className="flex flex-wrap gap-2">
                     {editExistingImages.map((imgUrl, idx) => (
-                      <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 group">
+                      <div key={idx} className="relative h-16 w-16 rounded-xl overflow-hidden border border-slate-200 group shadow-2xs">
                         <img src={resolveMediaUrl(imgUrl)} alt={`Existing ${idx}`} className="h-full w-full object-cover" />
                         <button
                           type="button"
                           onClick={() => handleRemoveExistingImage(idx)}
-                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -470,12 +502,12 @@ function BizCatalogue() {
                   <p className="text-xs text-slate-500 mb-1.5">New Uploads:</p>
                   <div className="flex flex-wrap gap-2">
                     {editPreviews.map((url, idx) => (
-                      <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 group">
+                      <div key={idx} className="relative h-16 w-16 rounded-xl overflow-hidden border border-slate-200 group shadow-2xs">
                         <img src={url} alt={`New upload preview ${idx}`} className="h-full w-full object-cover" />
                         <button
                           type="button"
                           onClick={() => handleRemoveEditFile(idx)}
-                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -485,7 +517,7 @@ function BizCatalogue() {
                 </div>
               )}
 
-              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100/80 transition-colors">
+              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100/80 transition-colors">
                 <div className="flex flex-col items-center justify-center pt-2 pb-2">
                   <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
                   <p className="text-xs font-medium text-slate-600">Click to upload new images</p>
@@ -501,69 +533,91 @@ function BizCatalogue() {
               </label>
             </div>
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit-type">Type</Label>
-              <Select
-                value={editFormData.type}
-                onValueChange={(val) => setEditFormData({ ...editFormData, type: val })}
-              >
-                <SelectTrigger id="edit-type" className="h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Product">Product</SelectItem>
-                  <SelectItem value="Service">Service</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-type" className="text-xs font-bold text-slate-700">Type</Label>
+                <Select
+                  value={editFormData.type}
+                  onValueChange={(val) => setEditFormData({ ...editFormData, type: val })}
+                >
+                  <SelectTrigger id="edit-type" className="h-11 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Product">Product</SelectItem>
+                    <SelectItem value="Service">Service</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-cat" className="text-xs font-bold text-slate-700">Category</Label>
+                <Input
+                  id="edit-cat"
+                  value={editFormData.category}
+                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                  className="h-11 rounded-xl"
+                />
+              </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit-cat">Category</Label>
-              <Input
-                id="edit-cat"
-                value={editFormData.category}
-                onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
-                className="h-11"
-              />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-moq" className="text-xs font-bold text-slate-700">Minimum Order Quantity (MOQ)</Label>
+                <Input
+                  id="edit-moq"
+                  value={editFormData.moq}
+                  onChange={(e) => setEditFormData({ ...editFormData, moq: e.target.value })}
+                  className="h-11 rounded-xl"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-price" className="text-xs font-bold text-slate-700">Indicative Price</Label>
+                <Input
+                  id="edit-price"
+                  value={editFormData.price}
+                  onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
+                  className="h-11 rounded-xl"
+                />
+              </div>
             </div>
+
             <div className="grid gap-1.5">
-              <Label htmlFor="edit-moq">Minimum Order Quantity (MOQ)</Label>
-              <Input
-                id="edit-moq"
-                value={editFormData.moq}
-                onChange={(e) => setEditFormData({ ...editFormData, moq: e.target.value })}
-                className="h-11"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit-price">Indicative Price</Label>
-              <Input
-                id="edit-price"
-                value={editFormData.price}
-                onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
-                className="h-11"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit-desc">Description</Label>
+              <Label htmlFor="edit-desc" className="text-xs font-bold text-slate-700">Description</Label>
               <Textarea
                 id="edit-desc"
                 rows={4}
                 value={editFormData.description}
                 onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                className="rounded-xl resize-none text-xs"
               />
             </div>
-            <Button type="submit" disabled={savingEdit}>
-              {savingEdit ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...
-                </>
-              ) : (
-                "Save changes"
-              )}
-            </Button>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenEditForm(false)}
+                className="rounded-xl px-4 h-11 text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={savingEdit}
+                className="rounded-xl px-6 h-11 text-xs font-bold bg-[#0088d1] hover:bg-[#0077b6] text-white cursor-pointer shadow-xs"
+              >
+                {savingEdit ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...
+                  </>
+                ) : (
+                  "Save changes"
+                )}
+              </Button>
+            </div>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

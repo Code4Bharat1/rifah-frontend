@@ -58,7 +58,6 @@ function BizAnalytics() {
     <AppShell
       role="business"
       title="Analytics"
-      subtitle={`Last 6 months of activity (${defaultLast6Months[0]} – ${defaultLast6Months[5]} ${currentDate.getFullYear()})`}
     >
       <div className="space-y-4 font-sans">
         {/* Top 4 Stat Cards - 100% Real Database Metrics */}

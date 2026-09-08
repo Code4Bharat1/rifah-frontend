@@ -71,6 +71,25 @@ function resolveCustomerName(r) {
   return "Raj Sharma";
 }
 
+function formatRelativeTime(dateInput) {
+  if (!dateInput) return "Just now";
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return "Recently";
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 0 || diffInSeconds < 60) return "Just now";
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} ${diffInMinutes === 1 ? "minute ago" : "minutes ago"}`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} ${diffInHours === 1 ? "hour ago" : "hours ago"}`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return "Yesterday";
+  if (diffInDays < 7) return `${diffInDays} days ago`;
+  if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} ${Math.floor(diffInDays / 7) === 1 ? "week ago" : "weeks ago"}`;
+  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
 function LeadsPage() {
   const [stage, setStage] = useState("All");
   const [openLead, setOpenLead] = useState(null);
@@ -471,14 +490,28 @@ function LeadsPage() {
                   <div className="flex justify-between items-center py-0.5 border-t border-slate-100">
                     <span className="text-xs font-medium text-[#8a99ad]">Budget</span>
                     <span className="text-xs font-bold text-[#0f172a]">
-                      {openLead.enquiry?.budget || openLead.budget || "Placeholder budget"}
+                      {openLead.enquiry?.budget
+                        ? (!isNaN(Number(openLead.enquiry.budget))
+                            ? `₹ ${Number(openLead.enquiry.budget).toLocaleString("en-IN")}`
+                            : openLead.enquiry.budget)
+                        : openLead.budget
+                        ? (!isNaN(Number(openLead.budget))
+                            ? `₹ ${Number(openLead.budget).toLocaleString("en-IN")}`
+                            : openLead.budget)
+                        : "Negotiable"}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center py-0.5 border-t border-slate-100">
                     <span className="text-xs font-medium text-[#8a99ad]">Required by</span>
                     <span className="text-xs font-bold text-[#0f172a]">
-                      {openLead.deadline || "30 Sep 2026"}
+                      {(() => {
+                        const rawDate = openLead.enquiry?.targetDate || openLead.enquiry?.deadline || openLead.deadline;
+                        if (rawDate && !isNaN(new Date(rawDate).getTime())) {
+                          return new Date(rawDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+                        }
+                        return "Immediate / Flexible";
+                      })()}
                     </span>
                   </div>
 
@@ -490,14 +523,16 @@ function LeadsPage() {
                   </div>
                 </div>
 
-                {/* Timeline Status matching Target Image 100% */}
+                {/* Timeline Status with Real Database Timestamps */}
                 <div className="space-y-3.5 pt-3 font-sans">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2.5">
                       <span className="h-2 w-2 rounded-full bg-[#10b981] shrink-0" />
                       <span className="font-bold text-[#0f172a]">Enquiry submitted</span>
                     </div>
-                    <span className="text-[#8a99ad] font-normal">{openLead.timeAgo || "2 hours ago"}</span>
+                    <span className="text-[#8a99ad] font-normal">
+                      {formatRelativeTime(openLead.enquiry?.createdAt || openLead.createdAt)}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between text-xs">
@@ -505,7 +540,9 @@ function LeadsPage() {
                       <span className="h-2 w-2 rounded-full bg-[#10b981] shrink-0" />
                       <span className="font-bold text-[#0f172a]">Routed to matching businesses</span>
                     </div>
-                    <span className="text-[#8a99ad] font-normal">{openLead.timeAgo || "2 hours ago"}</span>
+                    <span className="text-[#8a99ad] font-normal">
+                      {formatRelativeTime(openLead.routedAt || openLead.createdAt || openLead.enquiry?.createdAt)}
+                    </span>
                   </div>
 
                   {/* Step 3: Business Response - Dynamic */}

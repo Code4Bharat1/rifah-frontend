@@ -154,14 +154,15 @@ function BusinessProfile() {
   const rawReviews = reviewsData?.reviews || reviewsData?.data?.reviews || reviewsData?.data || reviewsData || [];
   const reviews = Array.isArray(rawReviews) ? rawReviews : [];
   const totalReviews = reviews.length;
+  const hasReviews = totalReviews > 0;
 
-  const avgRating = totalReviews > 0
-    ? (reviews.reduce((sum, r) => sum + (r.rating || 5), 0) / totalReviews).toFixed(1)
-    : (business.rating || 5.0).toFixed(1);
+  const avgRating = hasReviews
+    ? (reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / totalReviews).toFixed(1)
+    : (Number(business.rating) > 0 && Number(business.reviewsCount) > 0 ? Number(business.rating).toFixed(1) : "0.0");
 
   const ratingBreakdown = [5, 4, 3, 2, 1].map((stars) => {
-    const count = reviews.filter((r) => Math.round(r.rating || 5) === stars).length;
-    const pct = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : (stars === 5 ? 100 : 0);
+    const count = reviews.filter((r) => Math.round(Number(r.rating) || 0) === stars).length;
+    const pct = hasReviews ? Math.round((count / totalReviews) * 100) : 0;
     return { stars, pct, count };
   });
 
@@ -254,7 +255,7 @@ function BusinessProfile() {
                   { icon: Building2, label: "Industry", value: business.industry },
                   { icon: MapPin, label: "Location", value: `${business.city}, ${business.state}` },
                   { icon: Users, label: "Team size", value: business.employees || "10–50" },
-                  { icon: Star, label: "Rating", value: `${avgRating} (${totalReviews})` },
+                  { icon: Star, label: "Rating", value: hasReviews ? `${avgRating} (${totalReviews})` : "No ratings yet" },
                 ].map((s) => (
                   <div key={s.label} className="min-w-0">
                     <dt className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -488,20 +489,20 @@ function BusinessProfile() {
                 <Panel title="Reviews & Ratings" description="Verified chamber member experiences and buyer feedback">
                   <div className="grid gap-5 sm:grid-cols-[180px_minmax(0,1fr)]">
                     <div className="text-center sm:text-left">
-                      <p className="text-4xl font-bold tracking-tight text-foreground">{avgRating}</p>
+                      <p className="text-4xl font-bold tracking-tight text-foreground">{hasReviews ? avgRating : "0.0"}</p>
                       <div className="mt-1 flex justify-center gap-0.5 sm:justify-start">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Star
                             key={i}
                             className={cn(
                               "h-4 w-4",
-                              i < Math.round(Number(avgRating)) ? "fill-warning text-warning" : "text-muted"
+                              hasReviews && i < Math.round(Number(avgRating)) ? "fill-warning text-warning" : "text-muted"
                             )}
                           />
                         ))}
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {totalReviews} {totalReviews === 1 ? "review" : "reviews"}
+                        {hasReviews ? `${totalReviews} ${totalReviews === 1 ? "review" : "reviews"}` : "0 reviews"}
                       </p>
                     </div>
                     <div className="space-y-1.5">

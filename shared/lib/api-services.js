@@ -196,6 +196,7 @@ export const reviewApi = {
 };
 
 export const reportApi = {
+  getPublicStats: () => apiClient("/reports/public/stats"),
   getOverview: () => apiClient("/reports/admin/overview"),
   getBusinessAnalytics: () => apiClient("/reports/business/me"),
   downloadAdminCsv: () => downloadFile("/reports/admin/export/csv", "admin_reports.csv"),
