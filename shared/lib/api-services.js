@@ -89,7 +89,7 @@ export const chapterApi = {
 
 export const verificationApi = {
   getByBusinessId: (businessId) => apiClient(`/verification/business/${businessId}`),
-  getQueue: () => apiClient("/verification/queue"),
+  getQueue: (params = {}) => apiClient(`/verification/queue${toQueryString(params)}`),
   submit: (data) => apiClient("/verification/submit", { method: "POST", body: JSON.stringify(data) }),
   uploadDocument: (file) => {
     const formData = new FormData();

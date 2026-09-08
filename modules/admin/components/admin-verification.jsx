@@ -9,14 +9,25 @@ import { Panel, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
-import { useVerificationQueue } from "@shared/hooks/use-rifah-api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { useVerificationQueue, useChapters } from "@shared/hooks/use-rifah-api";
 import { verificationApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { toast } from "sonner";
+import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminVerification() {
-  const { data: queueData, error, isLoading, refetch } = useVerificationQueue();
+  const { user } = useAuth();
+  const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
+  const [chapterFilter, setChapterFilter] = useState("all");
+
+  const { data: queueData, error, isLoading, refetch } = useVerificationQueue({
+    chapter: chapterFilter,
+  });
   const queue = queueData || [];
+  
+  const { data: chaptersData } = useChapters();
+  const chapters = Array.isArray(chaptersData) ? chaptersData : [];
   
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [verifiedDocs, setVerifiedDocs] = useState([]);
@@ -62,8 +73,13 @@ function AdminVerification() {
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{item.business?.name || "Business Applicant"}</p>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {item.business?.industry} · {item.business?.city} · {item.business?.chapter}
+            {item.business?.industry} · {item.business?.city} · <span className="font-medium text-foreground">{item.business?.chapter}</span>
           </p>
+          {item.status === "verified" && item.reviewedBy && (
+            <p className="mt-1 text-xs text-emerald-600 bg-emerald-50 inline-block px-2 py-0.5 rounded-full border border-emerald-100">
+              Verified by {item.reviewedBy.name} ({item.reviewedBy.chapter?.replace(/\s*[Cc]hapter\s*/g, '') || "Admin"})
+            </p>
+          )}
         </div>
         <VerificationBadge status={item.status} compact />
       </div>
@@ -110,6 +126,27 @@ function AdminVerification() {
   return (
     <AppShell role="admin" title="Verification queue" subtitle="Secretariat business vetting & compliance desk">
       <div className="space-y-4">
+        
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          {isSuperAdmin ? (
+            <Select value={chapterFilter} onValueChange={setChapterFilter}>
+              <SelectTrigger className="sm:max-w-[200px]">
+                <SelectValue placeholder="Filter by chapter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Chapters</SelectItem>
+                {chapters.map((ch) => (
+                  <SelectItem key={ch._id || ch.name} value={ch.name}>{ch.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="flex h-10 items-center justify-between rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-primary font-medium sm:max-w-[200px] truncate">
+              {user?.chapter ? `${user.chapter.replace(/\s*[Cc]hapter\s*/g, '')}'s Queue` : "Your Queue"}
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Awaiting review" value={String(pending.length)} icon={ShieldCheck} tone="warning" />
           <StatCard label="Needs correction" value={String(review.length)} icon={FileCheck2} />
