@@ -1,6 +1,6 @@
 "use client";
 import { FileCheck2, ShieldCheck, Download, ExternalLink, FileText } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, VerificationBadge } from "@shared/components/rifah/badges";
@@ -15,6 +15,7 @@ import { verificationApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
+import { cn } from "@shared/lib/utils";
 
 function AdminVerification() {
   const { user } = useAuth();
@@ -31,6 +32,38 @@ function AdminVerification() {
   
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [verifiedDocs, setVerifiedDocs] = useState([]);
+  const [secureDocUrl, setSecureDocUrl] = useState(null);
+  const [activeTab, setActiveTab] = useState("pending");
+
+  useEffect(() => {
+    let objectUrl = null;
+    if (selectedDoc?.fileUrl) {
+      const fetchBlob = async () => {
+        try {
+          const token = localStorage.getItem("rifah_access_token");
+          const filename = selectedDoc.fileUrl.split('/').pop();
+          const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+          const res = await fetch(`${API_BASE.replace(/\/$/, '')}/verification/documents/${filename}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error("Unauthorized");
+          const blob = await res.blob();
+          objectUrl = URL.createObjectURL(blob);
+          setSecureDocUrl(objectUrl);
+        } catch (e) {
+          toast.error("Failed to load secure document. You may not have permission.");
+          setSecureDocUrl(null);
+        }
+      };
+      fetchBlob();
+    } else {
+      setSecureDocUrl(null);
+    }
+    
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedDoc]);
 
   if (error && error.status === 401) {
     return (
@@ -46,7 +79,7 @@ function AdminVerification() {
   }
 
   const pending = queue.filter((b) => b.status === "pending" || b.status === "under_review");
-  const review = queue.filter((b) => b.status === "correction" || b.status === "rejected");
+  const review = queue.filter((b) => b.status === "correction" || b.status === "correction_requested" || b.status === "rejected");
   const done = queue.filter((b) => b.status === "approved" || b.status === "verified");
 
   const handleDecision = async (id, decision) => {
@@ -148,22 +181,32 @@ function AdminVerification() {
           )}
         </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Awaiting review" value={String(pending.length)} icon={ShieldCheck} tone="warning" />
-          <StatCard label="Needs correction" value={String(review.length)} icon={FileCheck2} />
-          <StatCard label="Approved / Verified" value={String(done.length)} tone="success" />
-          <StatCard label="Queue total" value={String(queue.length)} />
+          <div onClick={() => setActiveTab("pending")} className={cn("cursor-pointer transition-transform active:scale-95 rounded-2xl", activeTab === "pending" ? "ring-2 ring-primary ring-offset-1 bg-primary/5" : "")}>
+            <StatCard label="Awaiting review" value={String(pending.length)} icon={ShieldCheck} tone="warning" />
+          </div>
+          <div onClick={() => setActiveTab("docs")} className={cn("cursor-pointer transition-transform active:scale-95 rounded-2xl", activeTab === "docs" ? "ring-2 ring-primary ring-offset-1 bg-primary/5" : "")}>
+            <StatCard label="Needs correction" value={String(review.length)} icon={FileCheck2} />
+          </div>
+          <div onClick={() => setActiveTab("done")} className={cn("cursor-pointer transition-transform active:scale-95 rounded-2xl", activeTab === "done" ? "ring-2 ring-primary ring-offset-1 bg-primary/5" : "")}>
+            <StatCard label="Approved / Verified" value={String(done.length)} tone="success" />
+          </div>
+          <div onClick={() => setActiveTab("all")} className={cn("cursor-pointer transition-transform active:scale-95 rounded-2xl", activeTab === "all" ? "ring-2 ring-primary ring-offset-1 bg-primary/5" : "")}>
+            <StatCard label="Queue total" value={String(queue.length)} />
+          </div>
         </div>
 
-        <Tabs defaultValue="pending">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="pending">Awaiting review ({pending.length})</TabsTrigger>
             <TabsTrigger value="docs">Corrections & Rejections ({review.length})</TabsTrigger>
             <TabsTrigger value="done">Verified ({done.length})</TabsTrigger>
+            <TabsTrigger value="all">All ({queue.length})</TabsTrigger>
           </TabsList>
           {[
             ["pending", pending],
             ["docs", review],
             ["done", done],
+            ["all", queue],
           ].map(([key, rows]) => (
             <TabsContent key={key} value={key} className="mt-3">
               {rows.length === 0 ? (
@@ -185,17 +228,17 @@ function AdminVerification() {
           </DialogHeader>
           
           <div className="flex-1 overflow-hidden p-3 flex flex-col items-center justify-center bg-slate-100">
-            {selectedDoc?.fileUrl && (
+            {secureDocUrl ? (
               selectedDoc.fileUrl.toLowerCase().endsWith(".pdf") || selectedDoc.name?.toLowerCase().endsWith(".pdf") ? (
                 <div className="w-full h-full flex flex-col relative">
                   <iframe
-                    src={resolveMediaUrl(selectedDoc.fileUrl)}
+                    src={secureDocUrl}
                     title={selectedDoc.name || "PDF Document"}
                     className="w-full flex-1 border rounded-lg bg-white shadow-sm"
                   />
                   <div className="absolute top-3 right-3 flex gap-2">
                     <a
-                      href={resolveMediaUrl(selectedDoc.fileUrl)}
+                      href={secureDocUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-white/95 hover:bg-white border shadow-sm text-foreground backdrop-blur transition-colors"
@@ -206,19 +249,24 @@ function AdminVerification() {
                 </div>
               ) : (
                 <img 
-                  src={resolveMediaUrl(selectedDoc.fileUrl)} 
+                  src={secureDocUrl} 
                   alt={selectedDoc.name || "Document"} 
                   className="max-w-full max-h-full object-contain shadow-sm border bg-white rounded-lg"
                 />
               )
-            )}
+            ) : selectedDoc?.fileUrl ? (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
+                <FileText className="h-8 w-8" />
+                <p className="text-sm">Loading secure document...</p>
+              </div>
+            ) : null}
           </div>
 
           <div className="p-4 border-t bg-background flex items-center justify-between">
-            {selectedDoc?.fileUrl ? (
+            {secureDocUrl ? (
               <div className="flex items-center gap-3">
                 <a
-                  href={resolveMediaUrl(selectedDoc.fileUrl)}
+                  href={secureDocUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
@@ -227,7 +275,7 @@ function AdminVerification() {
                 </a>
                 <span className="text-muted-foreground text-xs">•</span>
                 <a
-                  href={resolveMediaUrl(selectedDoc.fileUrl)}
+                  href={secureDocUrl}
                   download={selectedDoc.name || "document.pdf"}
                   className="text-xs font-semibold text-muted-foreground hover:underline inline-flex items-center gap-1"
                 >
