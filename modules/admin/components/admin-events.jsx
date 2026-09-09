@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, Loader2, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 import { EventRegistrationsModal } from "./event-registrations-modal";
 
 function AdminEvents() {
+  const router = useRouter();
   const { user } = useAuth();
   const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
   const { data: eventsData, refetch } = useEvents();
@@ -119,6 +121,7 @@ function AdminEvents() {
         <Panel title={filterMode === "today" ? "Today's Events" : filterMode === "upcoming" ? "Upcoming Events" : filterMode === "past" ? "Past Events" : "All Events"}>
           <ResponsiveTable
             rows={displayEvents}
+            onRowClick={(r) => router.push(`/admin/events/${r._id}`)}
             columns={[
               { 
                 key: "title", 
@@ -127,7 +130,7 @@ function AdminEvents() {
                   const isToday = r.date === today;
                   return (
                     <div className="flex flex-col gap-1">
-                      <Link href={`/admin/events/${r._id}`} className="font-semibold hover:text-primary hover:underline">{r.title}</Link>
+                      <span className="font-semibold">{r.title}</span>
                       <div className="flex gap-1.5">
                         <Pill tone={r.status === "Pending Approval" ? "warning" : r.status === "Draft" ? "neutral" : "success"}>
                           {r.status || "Upcoming"}
@@ -155,34 +158,36 @@ function AdminEvents() {
                 key: "act",
                 header: "",
                 cell: (r) => (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Manage Event</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/events/${r._id}`}>View Event Page</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setRegistrationsModal({ open: true, eventId: r._id, eventTitle: r.title })}>
-                        View Registrations
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {isSuperAdmin && r.status === "Pending Approval" && (
-                        <DropdownMenuItem onClick={async () => {
-                          try {
-                            await eventApi.update(r._id, { status: "Upcoming" });
-                            toast.success("Event Approved & Published!");
-                            refetch();
-                          } catch(e) {
-                            toast.error("Failed to approve event");
-                          }
-                        }} className="font-medium text-emerald-600 focus:bg-emerald-50 focus:text-emerald-700">
-                          Approve & Publish Event
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Manage Event</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/events/${r._id}`}>View Event Page</Link>
                         </DropdownMenuItem>
-                      )}
+                        <DropdownMenuItem onClick={() => setRegistrationsModal({ open: true, eventId: r._id, eventTitle: r.title })}>
+                          View Registrations
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {isSuperAdmin && r.status === "Pending Approval" && (
+                          <DropdownMenuItem onClick={async () => {
+                            try {
+                              await eventApi.update(r._id, { status: "Upcoming" });
+                              toast.success("Event Approved & Published!");
+                              refetch();
+                            } catch(e) {
+                              toast.error("Failed to approve event");
+                            }
+                          }} className="font-medium text-emerald-600 focus:bg-emerald-50 focus:text-emerald-700">
+                            Approve & Publish Event
+                          </DropdownMenuItem>
+                        )}
+
                       <DropdownMenuItem onClick={async () => {
                         try {
                           await eventApi.update(r._id, { mode: r.mode === "In-person" ? "Online" : "In-person" });
@@ -206,8 +211,9 @@ function AdminEvents() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                ),
-              },
+                </div>
+              ),
+            },
             ]}
             mobile={(r) => (
               <div className="rounded-xl border border-border p-3.5">

@@ -30,11 +30,41 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
 
+  // Helper to parse "10:00 AM - 01:00 PM" into { start: "10:00", end: "13:00" }
+  const parseTimeString = (timeStr) => {
+    if (!timeStr) return { startTime: "10:00", endTime: "13:00" };
+    try {
+      const parts = timeStr.split("-").map(s => s.trim());
+      if (parts.length !== 2) return { startTime: "10:00", endTime: "13:00" };
+      
+      const to24Hour = (timeStr12h) => {
+        const [time, modifier] = timeStr12h.split(" ");
+        if (!time || !modifier) return "10:00";
+        let [hours, minutes] = time.split(":");
+        if (hours === "12") {
+          hours = "00";
+        }
+        if (modifier.toUpperCase() === "PM") {
+          hours = parseInt(hours, 10) + 12;
+        }
+        return `${hours.toString().padStart(2, "0")}:${minutes}`;
+      };
+
+      return {
+        startTime: to24Hour(parts[0]),
+        endTime: to24Hour(parts[1])
+      };
+    } catch (e) {
+      return { startTime: "10:00", endTime: "13:00" };
+    }
+  };
+
   const initialFormState = {
     title: "",
     description: "",
     date: "",
-    time: "10:00 AM - 01:00 PM",
+    startTime: "10:00",
+    endTime: "13:00",
     mode: "In-person",
     location: "Chamber Conference Hall",
     city: "Mumbai",
@@ -48,12 +78,15 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
 
   useEffect(() => {
     if (initialData) {
+      const parsedTime = parseTimeString(initialData.time);
       setFormData({
         ...initialFormState,
         ...initialData,
         location: initialData.venue || initialData.location || "",
         date: initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : "",
-        cover: null, // Keep cover null to allow new upload, existing cover URL is ignored here
+        startTime: parsedTime.startTime,
+        endTime: parsedTime.endTime,
+        cover: null, // Keep cover null to allow new upload
       });
     }
   }, [initialData]);
@@ -86,6 +119,18 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     });
   };
 
+  const formatTimeStr = (start, end) => {
+    const to12h = (time24h) => {
+      if (!time24h) return "10:00 AM";
+      let [h, m] = time24h.split(":");
+      let hours = parseInt(h, 10);
+      const ampm = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12 || 12;
+      return `${hours.toString().padStart(2, "0")}:${m} ${ampm}`;
+    };
+    return `${to12h(start)} - ${to12h(end)}`;
+  };
+
   const handleSave = async (publish = false) => {
     if (!formData.title || !formData.date) {
       toast.error("Title and Date are required");
@@ -98,9 +143,12 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     try {
       const payload = { 
         ...formData, 
+        time: formatTimeStr(formData.startTime, formData.endTime),
         venue: formData.location,
         status: publish ? "Upcoming" : "Draft"
       };
+      delete payload.startTime;
+      delete payload.endTime;
       delete payload.cover;
 
       let eventId = isEditMode ? initialData._id : null;
@@ -158,7 +206,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="date">Date <span className="text-destructive">*</span></Label>
                 <Input
@@ -170,11 +218,23 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="time">Time</Label>
+                <Label htmlFor="startTime">Start Time <span className="text-destructive">*</span></Label>
                 <Input
-                  id="time"
-                  value={formData.time}
-                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  id="startTime"
+                  type="time"
+                  required
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endTime">End Time <span className="text-destructive">*</span></Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  required
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                 />
               </div>
             </div>
