@@ -27,7 +27,7 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Switch } from "@shared/components/ui/switch";
 import { useSettings } from "@shared/hooks/use-rifah-api";
-import { settingsApi } from "@shared/lib/api-services";
+import { settingsApi, authApi } from "@shared/lib/api-services";
 
 const modules = [
   { label: "Businesses", to: "/admin/businesses", icon: Building2 },
@@ -86,6 +86,25 @@ export function AdminSettings() {
     maxCatalogueItems: 50,
     maxImagesPerItem: 5,
   });
+
+  const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!passwords.currentPassword || !passwords.newPassword) return toast.error("Please fill both password fields.");
+    if (passwords.newPassword.length < 6) return toast.error("New password must be at least 6 characters.");
+    
+    setSavingPassword(true);
+    try {
+      await authApi.changePassword({ oldPassword: passwords.currentPassword, newPassword: passwords.newPassword });
+      toast.success("Password changed successfully!");
+      setPasswords({ currentPassword: "", newPassword: "" });
+    } catch (e) {
+      toast.error(e.message || "Failed to change password.");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   useEffect(() => {
     if (globalSettings) {
@@ -308,6 +327,37 @@ export function AdminSettings() {
             </div>
             <div className="col-span-full pt-2">
               <Button onClick={handleSaveLimits}>Save Limits</Button>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel title="Security & Authentication">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 max-w-3xl">
+            <div className="space-y-1.5">
+              <Label>Current password</Label>
+              <Input 
+                type="password" 
+                placeholder="Enter current password"
+                value={passwords.currentPassword} 
+                onChange={(e) => setPasswords({...passwords, currentPassword: e.target.value})}
+                className="h-11" 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>New password</Label>
+              <Input 
+                type="password" 
+                placeholder="Enter new password"
+                value={passwords.newPassword} 
+                onChange={(e) => setPasswords({...passwords, newPassword: e.target.value})}
+                className="h-11" 
+              />
+              <p className="text-xs text-muted-foreground">Minimum 6 characters required</p>
+            </div>
+            <div className="col-span-full pt-2">
+              <Button onClick={handleChangePassword} disabled={savingPassword}>
+                {savingPassword ? "Updating..." : "Update Password"}
+              </Button>
             </div>
           </div>
         </Panel>
