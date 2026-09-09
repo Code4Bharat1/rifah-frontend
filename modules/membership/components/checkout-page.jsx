@@ -264,6 +264,304 @@ function Checkout() {
     }
   };
 
+  const handlePrintTaxInvoice = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const currSymbol = isIntl ? "$" : "₹";
+    const currSuffix = isIntl ? " USD" : "";
+    const locale = isIntl ? "en-US" : "en-IN";
+    const formattedAmt = `${currSymbol} ${(Number(checkoutAmount) || 0).toLocaleString(locale)}${currSuffix}`;
+    const dateFormatted = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    const logoUrl = `${window.location.origin}/rifah-logo.png`;
+    const invNumber = invoiceId || `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+    const payerName = legalName || business?.name || currentUser?.name || "Registered Member";
+    const payerEmail = billingEmail || business?.email || currentUser?.email || "";
+    const payerGst = gstNumber || business?.gstin || "N/A";
+    const payerAddress = [billingAddress, billingCity, billingState, postalCode].filter(Boolean).join(", ") || (business?.city ? `${business.city}, India` : "India");
+
+    const invoiceHtml = `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <title>Tax Invoice - ${invNumber}</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm 12mm;
+            }
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            body {
+              background-color: #f8fafc;
+              color: #0f172a;
+              padding: 16px;
+            }
+            .print-toolbar {
+              max-width: 680px;
+              margin: 0 auto 12px auto;
+              display: flex;
+              justify-content: flex-end;
+              gap: 10px;
+            }
+            .print-btn {
+              background: #0088d1;
+              color: #fff;
+              border: none;
+              padding: 7px 16px;
+              font-size: 13px;
+              font-weight: 700;
+              border-radius: 6px;
+              cursor: pointer;
+            }
+            .invoice-card {
+              max-width: 680px;
+              margin: 0 auto;
+              background: #fff;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            }
+            .brand-stripe {
+              height: 5px;
+              background: linear-gradient(90deg, #c90000, #0088d1, #0b1f33);
+            }
+            .invoice-body {
+              padding: 22px 26px;
+            }
+            .header-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              border-bottom: 1.5px solid #e2e8f0;
+              padding-bottom: 14px;
+              margin-bottom: 14px;
+            }
+            .logo-img {
+              height: 36px;
+            }
+            .chamber-sub {
+              font-size: 10px;
+              color: #64748b;
+              margin-top: 2px;
+              font-weight: 500;
+            }
+            .invoice-title {
+              font-size: 17px;
+              font-weight: 800;
+              color: #0b1f33;
+              letter-spacing: 0.5px;
+            }
+            .invoice-number {
+              font-size: 13px;
+              font-weight: 700;
+              color: #0088d1;
+              margin-top: 2px;
+              font-family: monospace;
+            }
+            .paid-badge {
+              display: inline-block;
+              background: #ecfdf5;
+              color: #059669;
+              border: 1px solid #a7f3d0;
+              font-size: 10px;
+              font-weight: 800;
+              padding: 2px 7px;
+              border-radius: 9999px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              margin-top: 4px;
+            }
+            .grid-two {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 12px;
+              margin-bottom: 14px;
+            }
+            .info-card {
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              padding: 10px 12px;
+            }
+            .info-card-header {
+              font-size: 9px;
+              font-weight: 800;
+              text-transform: uppercase;
+              color: #0088d1;
+              letter-spacing: 0.5px;
+              margin-bottom: 4px;
+            }
+            .table-container {
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              overflow: hidden;
+              margin-bottom: 14px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            thead tr {
+              background: #0b1f33;
+              color: #fff;
+            }
+            th {
+              font-size: 10px;
+              font-weight: 700;
+              text-transform: uppercase;
+              padding: 8px 10px;
+              text-align: left;
+              letter-spacing: 0.5px;
+            }
+            td {
+              padding: 10px;
+              font-size: 11px;
+              border-bottom: 1px solid #f1f5f9;
+            }
+            .total-box {
+              display: flex;
+              justify-content: flex-end;
+              margin-bottom: 14px;
+            }
+            .total-line {
+              width: 200px;
+              display: flex;
+              justify-content: space-between;
+              font-size: 13px;
+              font-weight: 800;
+              border-top: 2px solid #0b1f33;
+              padding-top: 5px;
+            }
+            .footer-section {
+              text-align: center;
+              font-size: 9.5px;
+              color: #64748b;
+              border-top: 1px dashed #e2e8f0;
+              padding-top: 10px;
+              line-height: 1.4;
+            }
+            .auth-seal {
+              margin-top: 3px;
+              font-weight: 700;
+              color: #0088d1;
+            }
+            @media print {
+              body {
+                background: #fff;
+                padding: 0;
+              }
+              .print-toolbar {
+                display: none !important;
+              }
+              .invoice-card {
+                box-shadow: none;
+                border: 1px solid #cbd5e1;
+                max-width: 100%;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-toolbar">
+            <button class="print-btn" onclick="window.print()">Print / Save as PDF (1 Page)</button>
+          </div>
+          <div class="invoice-card">
+            <div class="brand-stripe"></div>
+            <div class="invoice-body">
+              <div class="header-row">
+                <div>
+                  <img src="${logoUrl}" class="logo-img" alt="RIFAH Chamber" onerror="this.style.display='none'" />
+                  <div style="font-size: 13px; font-weight: 800; color: #0b1f33;">RIFAH CONNECT</div>
+                  <div class="chamber-sub">Chamber of Commerce & Industry · Business Network</div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="invoice-title">TAX INVOICE / RECEIPT</div>
+                  <div class="invoice-number"># ${invNumber}</div>
+                  <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Date: ${dateFormatted}</div>
+                  <div class="paid-badge">● PAID & CONFIRMED</div>
+                </div>
+              </div>
+
+              <div class="grid-two">
+                <div class="info-card">
+                  <div class="info-card-header">BILLED TO (MEMBER)</div>
+                  <div style="font-weight: 800; font-size: 12px; color: #0f172a;">${payerName}</div>
+                  <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Email: ${payerEmail}</div>
+                  ${payerGst !== "N/A" ? `<div style="font-size: 10.5px; color: #475569; margin-top: 2px;">GSTIN: <strong>${payerGst}</strong></div>` : ""}
+                  <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${payerAddress}</div>
+                </div>
+
+                <div class="info-card">
+                  <div class="info-card-header">PAYMENT & CHAMBER DETAILS</div>
+                  <div style="font-size: 10.5px; color: #0f172a;">Issuer: <strong>RIFAH Chamber Central Secretariat</strong></div>
+                  <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Payment Mode: <strong>Razorpay Online (Txn Verified)</strong></div>
+                  <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Subscription Term: <strong>1 Year (Annual Active)</strong></div>
+                  <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">Support: secretariat@rifah.org</div>
+                </div>
+              </div>
+
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Plan / Service Description</th>
+                      <th style="text-align: center; width: 60px;">Term</th>
+                      <th style="text-align: right; width: 110px;">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <strong style="color: #0b1f33; font-size: 12px;">${active.name} Membership Tier Subscription</strong>
+                        <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">
+                          Includes directory placement, verified credentials, enquiry routing & B2B trading privileges.
+                        </div>
+                      </td>
+                      <td style="text-align: center; font-size: 10.5px;">1 Year</td>
+                      <td style="text-align: right; font-weight: 800; font-size: 12px; color: #0f172a;">${formattedAmt}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="total-box">
+                <div class="total-line">
+                  <span>Total Amount Paid:</span>
+                  <span style="color: #0088d1;">${formattedAmt}</span>
+                </div>
+              </div>
+
+              <div class="footer-section">
+                <p>This is a computer-generated tax invoice receipt for membership services on RIFAH Connect.</p>
+                <div class="auth-seal">RIFAH CHAMBER OF COMMERCE & INDUSTRY · DIGITAL ACCREDITATION DESK</div>
+              </div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() { window.print(); }, 250);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(invoiceHtml);
+    printWindow.document.close();
+  };
+
   return (
     <PublicLayout>
       <div className="rifah-container py-6 sm:py-10">
@@ -629,17 +927,17 @@ function Checkout() {
                       </span>
                     </div>
 
-                    <div className="pt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.print()}
-                        className="w-full text-xs flex items-center justify-center gap-1.5 border-dashed"
-                      >
-                        <Printer className="h-3.5 w-3.5" /> Print Tax Receipt
-                      </Button>
-                    </div>
+                      <div className="pt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handlePrintTaxInvoice}
+                          className="w-full text-xs flex items-center justify-center gap-1.5 border-dashed hover:bg-sky-50 dark:hover:bg-sky-950/30 hover:border-sky-300"
+                        >
+                          <Printer className="h-3.5 w-3.5 text-sky-600" /> Print Tax Receipt (1 Page PDF)
+                        </Button>
+                      </div>
 
                     <p className="text-[11px] text-muted-foreground text-center pt-1">
                       Confirmation receipt sent to {billingEmail || business?.email || "registered email"}.

@@ -212,8 +212,8 @@ function BusinessProfile() {
 
   return (
     <PublicLayout>
-      {/* Cover + identity */}
-      <div className="h-28 overflow-hidden sm:h-40 lg:h-52 relative">
+      {/* Cover + identity Banner */}
+      <div className="h-44 sm:h-56 lg:h-64 overflow-hidden relative bg-gradient-to-r from-slate-950 via-[#004B7A] to-[#0088D1]">
         {hasCover ? (
           <img
             src={coverUrl}
@@ -223,83 +223,102 @@ function BusinessProfile() {
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="h-full w-full bg-gradient-to-r from-slate-900 via-primary/90 to-slate-800 flex items-center justify-end px-8 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
-            <Building2 className="h-28 w-28 text-white/10 -mr-4 -mb-4" />
+          <div className="h-full w-full flex items-center justify-end px-8 sm:px-12 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <Building2 className="h-40 w-40 text-white/10 -mr-6 -mb-6 transform -rotate-12" />
           </div>
         )}
       </div>
-      <div className="rifah-container">
-        <div className="-mt-10 grid gap-4 sm:-mt-12 lg:grid-cols-[minmax(0,1fr)_320px]">
+
+      <div className="rifah-container relative -mt-16 sm:-mt-20 z-10">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div>
-            <div className="rounded-2xl border border-border bg-surface p-4 sm:p-6">
-              <div className="flex items-start gap-3 sm:gap-4">
-                {hasLogo ? (
-                  <img
-                    src={logoUrl}
-                    alt={`${business.name} logo`}
-                    loading="lazy"
-                    width={1024}
-                    height={640}
-                    className="h-16 w-16 shrink-0 rounded-2xl border-4 border-surface object-cover sm:h-20 sm:w-20 bg-white"
-                  />
-                ) : (
-                  <div className="flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-surface bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-black text-xl sm:text-2xl shadow-md">
-                    {initial}
+            {/* Main Business Profile Card */}
+            <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-7 shadow-xl shadow-slate-900/5">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
+                  {/* Logo or Initial Monogram */}
+                  <div className="relative -mt-12 sm:-mt-16 shrink-0">
+                    {hasLogo ? (
+                      <img
+                        src={logoUrl}
+                        alt={`${business.name} logo`}
+                        loading="lazy"
+                        width={1024}
+                        height={640}
+                        className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl sm:rounded-3xl border-4 border-white dark:border-slate-900 object-cover bg-white shadow-xl"
+                      />
+                    ) : (
+                      <div className="flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-2xl sm:rounded-3xl border-4 border-white dark:border-slate-900 bg-gradient-to-br from-primary via-primary/90 to-blue-700 text-white font-black text-3xl sm:text-4xl shadow-xl select-none">
+                        {initial}
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-lg font-bold leading-tight tracking-tight sm:text-2xl lg:text-3xl">
-                    {business.name}
-                  </h1>
-                  <p className="mt-1 text-sm text-muted-foreground">{business.tagline}</p>
-                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                    <VerificationBadge status={business.verification} />
-                    <MembershipBadge tier={business.membership} />
-                    <Pill>{business.chapter}</Pill>
+
+                  {/* Business Name, Tagline & Badges */}
+                  <div className="min-w-0 pt-1 sm:pt-0">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+                      {business.name}
+                    </h1>
+                    {business.tagline && (
+                      <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium line-clamp-2">
+                        {business.tagline}
+                      </p>
+                    )}
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <VerificationBadge status={business.verification} />
+                      <MembershipBadge tier={business.membership} />
+                      {business.chapter && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          {business.chapter}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                </div>
+
+                {/* Profile actions (Save & Share) */}
+                <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleToggleSave}
+                    aria-pressed={saved}
+                    className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs"
+                  >
+                    <Bookmark className={cn("h-4 w-4", saved && "fill-primary text-primary")} />
+                    {saved ? "Saved" : "Save"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShareOpen(true)}
+                    aria-label="Share business profile"
+                    title="Share business profile"
+                    className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs"
+                  >
+                    <Share2 className="h-4 w-4" /> Share
+                  </Button>
                 </div>
               </div>
 
-              <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-4">
+              {/* Key Highlights Grid */}
+              <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
-                  { icon: Building2, label: "Industry", value: business.industry },
-                  { icon: MapPin, label: "Location", value: `${business.city}, ${business.state}` },
+                  { icon: Building2, label: "Industry", value: business.industry || "General" },
+                  { icon: MapPin, label: "Location", value: `${business.city || ""}${business.state ? `, ${business.state}` : ""}`.trim() || "Not specified" },
                   { icon: Users, label: "Team size", value: business.employees || "10–50" },
                   { icon: Star, label: "Rating", value: hasReviews ? `${avgRating} (${totalReviews})` : "No ratings yet" },
                 ].map((s) => (
-                  <div key={s.label} className="min-w-0">
-                    <dt className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                      <s.icon className="h-3.5 w-3.5" /> {s.label}
+                  <div key={s.label} className="min-w-0 bg-slate-50 dark:bg-slate-800/40 p-3 sm:p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <dt className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      <s.icon className="h-3.5 w-3.5 text-primary" /> {s.label}
                     </dt>
-                    <dd className="mt-0.5 truncate text-sm font-semibold">{s.value}</dd>
+                    <dd className="mt-1 truncate text-xs sm:text-sm font-bold text-slate-900 dark:text-white">{s.value}</dd>
                   </div>
                 ))}
               </dl>
-
-              {/* Profile actions */}
-              <div className="mt-5 flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="default"
-                  onClick={handleToggleSave}
-                  aria-pressed={saved}
-                  className="gap-2"
-                >
-                  <Bookmark className={cn("h-4 w-4", saved && "fill-primary text-primary")} />
-                  {saved ? "Saved" : "Save"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="default"
-                  onClick={() => setShareOpen(true)}
-                  aria-label="Share business profile"
-                  title="Share business profile"
-                  className="gap-2"
-                >
-                  <Share2 className="h-4 w-4" /> Share
-                </Button>
-              </div>
             </div>
 
             {/* Profile sections */}
