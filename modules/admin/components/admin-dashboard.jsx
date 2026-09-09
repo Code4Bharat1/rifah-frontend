@@ -31,10 +31,10 @@ function AdminHome() {
 
   const kpi = overviewData?.kpi || {};
   const queue = queueData || [];
-  const enquiries = enquiriesData?.data || [];
+  const enquiries = enquiriesData || [];
   const chapters = chaptersData || [];
-  const auditLogs = auditData?.data || [];
-  const payments = paymentsData?.data || [];
+  const auditLogs = auditData || [];
+  const payments = paymentsData || [];
   
   const membershipGrowth = overviewData?.membershipGrowth || [];
   const chaptersDist = overviewData?.chaptersDistribution || [];
