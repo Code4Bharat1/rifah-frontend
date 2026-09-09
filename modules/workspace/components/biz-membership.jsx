@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Check, Crown, Download, AlertTriangle, Clock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -275,48 +275,83 @@ function BizMembership() {
     }
   };
 
-  // Smart upgrade tier calculation
-  const upgradeTarget = currentTier === "free"
-    ? { id: "basic", name: "Basic", price: "₹ 4,999", desc: "For growing businesses seeking verified credentials & buyer inquiries." }
-    : currentTier === "basic"
-    ? { id: "premium", name: "Premium", price: "₹ 12,999", desc: "Featured placement, unlimited leads & priority RFQ routing." }
-    : { id: "enterprise", name: "Enterprise", price: "₹ 29,999", desc: "For large organisations and multi-unit groups." };
+  // Dynamic available plans computed from DB / API
+  const allAvailablePlans = useMemo(() => {
+    const rawPlans = plansData && typeof plansData === "object" ? plansData : {};
+    const keys = Object.keys(rawPlans);
 
-  const allAvailablePlans = [
-    {
-      id: "free",
-      name: "Free",
-      price: "₹ 0",
-      period: "/ year",
-      desc: "Get started on RIFAH Connect with basic directory presence.",
-      features: ["Directory listing", "Basic search", "5 leads / mo", "Standard profile"],
-    },
-    {
-      id: "basic",
-      name: "Basic",
-      price: "₹ 4,999",
-      period: "/ year",
-      desc: "For growing businesses looking to build credibility & leads.",
-      features: ["Verified Business Badge", "15 leads / mo", "Catalogue (up to 5 items)", "Direct buyer messaging"],
-    },
-    {
-      id: "premium",
-      name: "Premium",
-      price: "₹ 12,999",
-      period: "/ year",
-      highlight: true,
-      desc: "Featured placement, priority leads and VIP event invitations.",
-      features: ["Featured on Directory", "Unlimited leads", "Catalogue (up to 25 items)", "Priority RFQ quoting", "2 Chamber event passes"],
-    },
-    {
-      id: "enterprise",
-      name: "Enterprise",
-      price: "₹ 29,999",
-      period: "/ year",
-      desc: "For corporate groups, leaders and multi-chapter operations.",
-      features: ["All Premium benefits", "Multi-chapter directory", "Secretariat trade advisory", "Custom expo pavilion", "Unlimited catalogue"],
-    },
-  ];
+    if (keys.length > 0) {
+      return keys.map((key) => {
+        const p = rawPlans[key] || {};
+        const pId = (p.id || p.planId || key).toLowerCase();
+        const priceNum = Number(p.price) || 0;
+        return {
+          id: pId,
+          name: p.name || key.charAt(0).toUpperCase() + key.slice(1),
+          price: priceNum === 0 ? "₹ 0" : `₹ ${priceNum.toLocaleString("en-IN")}`,
+          rawPrice: priceNum,
+          period: "/ year",
+          highlight: pId === "premium",
+          desc: p.summary || p.desc || (priceNum === 0 ? "Get started on RIFAH Connect with basic directory presence." : "Active chamber membership plan."),
+          features: Array.isArray(p.features) && p.features.length > 0 ? p.features : ["Directory listing", "Verified badge", "Leads access"],
+        };
+      });
+    }
+
+    return [
+      {
+        id: "free",
+        name: "Free",
+        price: "₹ 0",
+        rawPrice: 0,
+        period: "/ year",
+        desc: "Get started on RIFAH Connect with basic directory presence.",
+        features: ["Directory listing", "Basic search", "5 leads / mo", "Standard profile"],
+      },
+      {
+        id: "basic",
+        name: "Basic",
+        price: "₹ 4,999",
+        rawPrice: 4999,
+        period: "/ year",
+        desc: "For growing businesses looking to build credibility & leads.",
+        features: ["Verified Business Badge", "15 leads / mo", "Catalogue (up to 5 items)", "Direct buyer messaging"],
+      },
+      {
+        id: "premium",
+        name: "Premium",
+        price: "₹ 12,999",
+        rawPrice: 12999,
+        period: "/ year",
+        highlight: true,
+        desc: "Featured placement, priority leads and VIP event invitations.",
+        features: ["Featured on Directory", "Unlimited leads", "Catalogue (up to 25 items)", "Priority RFQ quoting", "2 Chamber event passes"],
+      },
+      {
+        id: "enterprise",
+        name: "Enterprise",
+        price: "₹ 29,999",
+        rawPrice: 29999,
+        period: "/ year",
+        desc: "For corporate groups, leaders and multi-chapter operations.",
+        features: ["All Premium benefits", "Multi-chapter directory", "Secretariat trade advisory", "Custom expo pavilion", "Unlimited catalogue"],
+      },
+    ];
+  }, [plansData]);
+
+  // Smart dynamic upgrade tier calculation
+  const upgradeTarget = useMemo(() => {
+    if (currentTier === "free") {
+      const basic = allAvailablePlans.find((p) => p.id === "basic") || allAvailablePlans[1] || allAvailablePlans[0];
+      return { id: basic?.id || "basic", name: basic?.name || "Basic", price: basic?.price || "₹ 4,999", desc: basic?.desc || "For growing businesses seeking verified credentials & buyer inquiries." };
+    }
+    if (currentTier === "basic") {
+      const prem = allAvailablePlans.find((p) => p.id === "premium") || allAvailablePlans[2] || allAvailablePlans[1];
+      return { id: prem?.id || "premium", name: prem?.name || "Premium", price: prem?.price || "₹ 12,999", desc: prem?.desc || "Featured placement, unlimited leads & priority RFQ routing." };
+    }
+    const ent = allAvailablePlans.find((p) => p.id === "enterprise") || allAvailablePlans[allAvailablePlans.length - 1];
+    return { id: ent?.id || "enterprise", name: ent?.name || "Enterprise", price: ent?.price || "₹ 29,999", desc: ent?.desc || "For large organisations and multi-unit groups." };
+  }, [currentTier, allAvailablePlans]);
 
   return (
     <AppShell role="business" title="My membership" subtitle="Plan, benefits and invoices">

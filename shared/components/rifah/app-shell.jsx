@@ -210,10 +210,9 @@ export function AppShell({
   const { data: notificationsData } = useNotifications();
   const { data: conversationsData } = useConversations();
   const { data: businessData, isLoading: isBizLoading } = useMyBusiness();
-  const hasUploadedDocs = Array.isArray(businessData?.documents) && businessData.documents.length > 0;
+  const vStatus = (businessData?.verification || businessData?.verificationStatus || "").toLowerCase();
   const isBizVerified = role !== "business" || (
-    (businessData?.isVerified === true || (businessData?.verification || "").toLowerCase() === "verified" || (businessData?.verificationStatus || "").toLowerCase() === "approved")
-    && hasUploadedDocs
+    businessData?.isVerified === true || vStatus === "verified" || vStatus === "approved"
   );
   const isGatedPage = role === "business" && !isBizLoading && businessData && !isBizVerified && !isAccessibleUnverifiedPath(path);
 

@@ -69,10 +69,10 @@ function AboutPage() {
 
       <div className="rifah-container py-6 sm:py-10">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Member businesses" value={String(kpi.totalBusinesses || 42)} icon={Building2} />
-          <StatCard label="Regional chapters" value={String(chapters.length || 3)} icon={MapPin} />
-          <StatCard label="Specialised units" value={String(totalUnits || 8)} icon={Users} />
-          <StatCard label="Verified Members" value={String(kpi.verifiedBusinesses || 28)} icon={CalendarDays} />
+          <StatCard label="Member businesses" value={String(kpi.totalBusinesses ?? 0)} icon={Building2} />
+          <StatCard label="Regional chapters" value={String(chapters.length ?? 0)} icon={MapPin} />
+          <StatCard label="Specialised units" value={String(totalUnits ?? 0)} icon={Users} />
+          <StatCard label="Verified Members" value={String(kpi.verifiedBusinesses ?? 0)} icon={CalendarDays} />
         </div>
 
         <div className="mt-8">

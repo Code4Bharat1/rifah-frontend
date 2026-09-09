@@ -42,6 +42,7 @@ const mobileTabs = [
 
 export function PublicHeader() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
   const t = useTranslations("Navbar");
 
@@ -58,15 +59,23 @@ export function PublicHeader() {
         <RifahLogo />
 
         <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Main">
-          {primaryNav.map((item) => (
-            <Link
-              key={item.to}
-              href={item.to }
-              className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              {t(`nav.${item.tKey}`)}
-            </Link>
-          ))}
+          {primaryNav.map((item) => {
+            const isActive = pathname === item.to || (item.to !== "/" && pathname?.startsWith(`${item.to}/`));
+            return (
+              <Link
+                key={item.to}
+                href={item.to}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-muted text-foreground font-semibold"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                {t(`nav.${item.tKey}`)}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -110,7 +119,9 @@ export function PublicHeader() {
 
 function MobileMenu() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
+  const t = useTranslations("Navbar");
 
   const handleLogout = () => {
     logout();
@@ -133,15 +144,23 @@ function MobileMenu() {
           </SheetTitle>
         </SheetHeader>
         <div className="grid gap-1 p-3">
-          {primaryNav.map((item) => (
-            <Link
-              key={item.to}
-              href={item.to }
-              className="flex min-h-11 items-center rounded-lg px-3 text-sm font-medium hover:bg-muted"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {primaryNav.map((item) => {
+            const isActive = pathname === item.to || (item.to !== "/" && pathname?.startsWith(`${item.to}/`));
+            return (
+              <Link
+                key={item.to}
+                href={item.to}
+                className={cn(
+                  "flex min-h-11 items-center rounded-lg px-3 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-muted text-foreground font-semibold"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                {t(`nav.${item.tKey}`)}
+              </Link>
+            );
+          })}
           {isAuthenticated ? (
             <div className="mt-2 border-t border-border pt-3">
               {user && (

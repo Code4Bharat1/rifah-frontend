@@ -1,5 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { authApi, userApi } from "../lib/api-services";
 
 const AuthContext = createContext(null);
@@ -7,6 +8,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const fetchCurrentUser = async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
@@ -53,6 +55,10 @@ export function AuthProvider({ children }) {
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
     }
+    try {
+      queryClient.clear();
+      await queryClient.invalidateQueries();
+    } catch (e) {}
     return { 
       ...loggedInUser, 
       requirePasswordReset: loggedInUser?.forcePasswordChange || payload.requirePasswordReset,
@@ -141,6 +147,9 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("rifah_refresh_token");
     localStorage.removeItem("rifah_user");
     setUser(null);
+    try {
+      queryClient.clear();
+    } catch (e) {}
   };
 
   const refreshProfile = async () => {
@@ -177,6 +186,10 @@ export function AuthProvider({ children }) {
             localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
             setUser(loggedInUser);
           }
+          try {
+            queryClient.clear();
+            await queryClient.invalidateQueries();
+          } catch (e) {}
           return loggedInUser;
         }
       }}

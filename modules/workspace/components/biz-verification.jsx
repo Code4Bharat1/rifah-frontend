@@ -274,6 +274,125 @@ function BizVerification() {
   const lastUpdate = formatLastUpdate(verificationData?.updatedAt, business?.updatedAt);
   const historyList = Array.isArray(business?.verificationHistory) ? business.verificationHistory : [];
 
+  // Deduplicate and consolidate timeline into clean logical milestones (Payment -> Documents -> Secretariat Approval)
+  const processedTimeline = (() => {
+    const raw = Array.isArray(historyList) ? [...historyList] : [];
+    const filtered = [];
+    let seenSubmitted = false;
+    let seenPayment = false;
+    let seenApproved = false;
+
+    // 1. Process payment entry if present
+    raw.forEach((h) => {
+      const act = String(h.action || h.status || "").toLowerCase();
+      if (act.includes("payment")) {
+        if (!seenPayment) {
+          filtered.push({
+            type: "payment",
+            title: "Payment Completed",
+            date: h.createdAt,
+            description: h.reason || "Membership payment confirmed. Application queued for secretariat review.",
+            status: "completed",
+          });
+          seenPayment = true;
+        }
+      }
+    });
+
+    // If paid membership but no explicit payment log, synthesize milestone
+    if (!seenPayment && business?.membership && business.membership.toLowerCase() !== "free") {
+      filtered.push({
+        type: "payment",
+        title: "Payment Completed",
+        date: business.createdAt,
+        description: `${business.membership} Membership subscription active.`,
+        status: "completed",
+      });
+      seenPayment = true;
+    }
+
+    // 2. Process documents submission milestone (consolidating all multi-file uploads into 1 clean step)
+    raw.forEach((h) => {
+      const act = String(h.action || h.status || "").toLowerCase();
+      if (act.includes("submit") || act.includes("document")) {
+        if (!seenSubmitted) {
+          filtered.push({
+            type: "documents",
+            title: "Documents Submitted",
+            date: h.createdAt,
+            description: "Official compliance and business registration paperwork attached & submitted for review.",
+            status: "completed",
+          });
+          seenSubmitted = true;
+        }
+      }
+    });
+
+    if (!seenSubmitted && (hasUploadedDocs || uploadedCount > 0)) {
+      filtered.push({
+        type: "documents",
+        title: "Documents Submitted",
+        date: business?.updatedAt || business?.createdAt,
+        description: `${uploadedCount || "Required"} business documents attached for secretariat vetting.`,
+        status: "completed",
+      });
+      seenSubmitted = true;
+    }
+
+    // 3. Process approval / decision milestone
+    raw.forEach((h) => {
+      const act = String(h.action || h.status || "").toLowerCase();
+      if (act.includes("approve") || act.includes("verified")) {
+        if (!seenApproved) {
+          filtered.push({
+            type: "approved",
+            title: "Verified & Approved",
+            date: h.createdAt,
+            description: h.reason || "Approved by Chamber Secretariat. Business profile is live & verified on directory.",
+            status: "approved",
+          });
+          seenApproved = true;
+        }
+      } else if (act.includes("correction") || act.includes("change")) {
+        filtered.push({
+          type: "changes",
+          title: "Correction Requested",
+          date: h.createdAt,
+          description: h.reason || "Secretariat requested document re-upload or details update.",
+          status: "warning",
+        });
+      } else if (act.includes("reject")) {
+        filtered.push({
+          type: "rejected",
+          title: "Application Rejected",
+          date: h.createdAt,
+          description: h.reason || "Application rejected by secretariat.",
+          status: "rejected",
+        });
+      }
+    });
+
+    if (!seenApproved && isVerified) {
+      filtered.push({
+        type: "approved",
+        title: "Verified & Approved",
+        date: business?.updatedAt || new Date(),
+        description: "Approved by Chamber Secretariat. Business is live with verified badge.",
+        status: "approved",
+      });
+    } else if (!seenApproved && isUnderReview) {
+      filtered.push({
+        type: "under_review",
+        title: "Under Secretariat Review",
+        date: new Date(),
+        description: "Document review in progress by chamber secretariat officer.",
+        status: "pending",
+      });
+    }
+
+    return filtered;
+  })();
+
   return (
     <AppShell role="business" title="Verification" subtitle="RIFAH Chamber Secretariat Vetting & Compliance Status">
       <div className="space-y-4">
@@ -558,30 +677,77 @@ function BizVerification() {
           <div className="space-y-4">
             {/* Audit History Timeline */}
             <Panel title="Verification Audit Timeline">
-              {historyList.length === 0 ? (
+              {processedTimeline.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-3">
                   No activity logged yet. Status updates will appear here in chronological order.
                 </p>
               ) : (
-                <div className="relative border-l-2 border-primary/20 ml-2 space-y-4 pl-3 py-1">
-                  {historyList.map((h, i) => (
-                    <div key={i} className="relative text-xs">
-                      <span className="absolute -left-[19px] top-1 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" />
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-foreground capitalize">
-                          {(h.action || h.status || "Update").replace(/_/g, " ")}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {h.createdAt ? new Date(h.createdAt).toLocaleDateString("en-GB") : "—"}
-                        </span>
+                <div className="space-y-4 py-1">
+                  {processedTimeline.map((item, idx) => {
+                    const isLast = idx === processedTimeline.length - 1;
+                    const isApproved = item.status === "approved";
+                    const isCompleted = item.status === "completed";
+
+                    return (
+                      <div key={idx} className="relative flex items-start gap-3 text-xs">
+                        {/* Connecting line */}
+                        {!isLast && (
+                          <div className="absolute left-3.5 top-7 bottom-0 w-0.5 -ml-[1px] bg-slate-200 dark:bg-slate-800" />
+                        )}
+
+                        {/* Status Icon / Animated Pulse */}
+                        <div className="relative z-10 shrink-0">
+                          {isApproved ? (
+                            <div className="relative flex h-7 w-7 items-center justify-center">
+                              <span className="absolute h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                              <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md shadow-emerald-500/40">
+                                <ShieldCheck className="h-4 w-4" />
+                              </span>
+                            </div>
+                          ) : isCompleted ? (
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                              <CheckCircle2 className="h-4 w-4" />
+                            </div>
+                          ) : item.status === "pending" ? (
+                            <div className="relative flex h-7 w-7 items-center justify-center">
+                              <span className="absolute h-full w-full rounded-full bg-blue-400 opacity-60 animate-pulse" />
+                              <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-white">
+                                <Clock className="h-3.5 w-3.5" />
+                              </span>
+                            </div>
+                          ) : item.status === "warning" ? (
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-amber-200">
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            </div>
+                          ) : (
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400 border border-red-200">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Content Box */}
+                        <div className="min-w-0 flex-1 pt-0.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={cn(
+                              "font-bold uppercase tracking-wider text-[11px]",
+                              isApproved ? "text-emerald-600 dark:text-emerald-400 font-extrabold" : "text-slate-900 dark:text-white"
+                            )}>
+                              {item.title}
+                            </span>
+                            <span className="text-[10px] font-medium text-slate-400 shrink-0">
+                              {item.date ? new Date(item.date).toLocaleDateString("en-GB") : "Recent"}
+                            </span>
+                          </div>
+                          {item.description && (
+                            <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-xl border border-slate-100 dark:border-slate-800 leading-relaxed">
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {h.reason && (
-                        <p className="mt-1 text-[11px] text-muted-foreground bg-muted/50 p-2 rounded-md">
-                          {h.reason}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </Panel>

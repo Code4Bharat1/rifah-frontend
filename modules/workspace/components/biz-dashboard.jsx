@@ -257,22 +257,6 @@ function BusinessHome() {
             );
           }
 
-          if (isVer) {
-            return (
-              <div className="flex items-center justify-between rounded-xl border border-emerald-200/80 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20 px-3.5 py-2 text-xs text-emerald-900 dark:text-emerald-300">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>
-                    <strong>Verified Chamber Member</strong> — Your profile is active and publicly listed in the directory.
-                  </span>
-                </div>
-                <Link href={`/business/${bizSlugOrId}`} className="font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 shrink-0">
-                  <span>View Live</span> <ArrowUpRight className="h-3 w-3" />
-                </Link>
-              </div>
-            );
-          }
-
           return null;
         })()}
 
