@@ -37,6 +37,7 @@ function AdminLeads() {
   const [selectedBusinessIds, setSelectedBusinessIds] = useState([]);
   const [isRouting, setIsRouting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [routingSearch, setRoutingSearch] = useState("");
 
   // Fetch businesses for routing (in a real app, you'd filter by category or allow search)
   const { data: businessesData } = useBusinesses();
@@ -52,7 +53,17 @@ function AdminLeads() {
 
   const displayBusinesses = businesses
     .filter(b => isSuperAdmin || b.chapter === user?.chapter)
+    .filter(b => {
+      if (!routingSearch) return true;
+      const term = routingSearch.toLowerCase();
+      return b.name?.toLowerCase().includes(term) || b.industry?.toLowerCase().includes(term) || b.categories?.some(c => c.toLowerCase().includes(term));
+    })
     .sort((a, b) => {
+      // Prioritize matching category
+      const aMatchesCategory = selectedLead?.category && (a.industry === selectedLead.category || a.categories?.includes(selectedLead.category)) ? 1 : 0;
+      const bMatchesCategory = selectedLead?.category && (b.industry === selectedLead.category || b.categories?.includes(selectedLead.category)) ? 1 : 0;
+      if (aMatchesCategory !== bMatchesCategory) return bMatchesCategory - aMatchesCategory;
+
       // Premium/Enterprise members first
       const aPremium = ["Premium", "Enterprise", "premium", "enterprise"].includes(a.membership) ? 1 : 0;
       const bPremium = ["Premium", "Enterprise", "premium", "enterprise"].includes(b.membership) ? 1 : 0;
@@ -100,6 +111,7 @@ function AdminLeads() {
   const handleOpenLead = (lead) => {
     setSelectedLead(lead);
     setSelectedBusinessIds([]);
+    setRoutingSearch("");
   };
 
   return (
@@ -286,6 +298,14 @@ function AdminLeads() {
               <div className="p-4 border-b border-border bg-muted/50">
                 <h4 className="font-semibold text-sm">Select Members for Routing</h4>
                 <p className="text-xs text-muted-foreground mt-0.5">Check the verified businesses you want to forward this RFQ to.</p>
+                <div className="mt-3">
+                  <Input
+                    placeholder="Search businesses or industry..."
+                    value={routingSearch}
+                    onChange={(e) => setRoutingSearch(e.target.value)}
+                    className="h-8 text-xs bg-surface"
+                  />
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-3">
@@ -311,6 +331,9 @@ function AdminLeads() {
                           <p className="text-sm font-semibold text-foreground">{b.name}</p>
                           {["Premium", "Enterprise", "premium", "enterprise"].includes(b.membership) && (
                             <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Priority</span>
+                          )}
+                          {selectedLead?.category && (b.industry === selectedLead.category || b.categories?.includes(selectedLead.category)) && (
+                            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">Category Match</span>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 truncate">{b.industry} · {b.city}</p>
