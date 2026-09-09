@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Image as ImageIcon } from "lucide-react";
+import { Loader2, ArrowLeft, Image as ImageIcon, X } from "lucide-react";
 import Link from "next/link";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -39,7 +39,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     location: "Chamber Conference Hall",
     city: "Mumbai",
     chapter: "Mumbai Chapter",
-    targetAudience: [],
+    targetAudience: ["All"],
+    targetChapters: ["All"],
     cover: null,
   };
 
@@ -60,10 +61,28 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const toggleAudience = (audience) => {
     setFormData((prev) => {
       const current = prev.targetAudience || [];
-      if (current.includes(audience)) {
-        return { ...prev, targetAudience: current.filter((a) => a !== audience) };
+      if (audience === "All") {
+        return { ...prev, targetAudience: current.includes("All") ? [] : ["All"] };
       }
-      return { ...prev, targetAudience: [...current, audience] };
+      const withoutAll = current.filter(a => a !== "All");
+      if (withoutAll.includes(audience)) {
+        return { ...prev, targetAudience: withoutAll.filter((a) => a !== audience) };
+      }
+      return { ...prev, targetAudience: [...withoutAll, audience] };
+    });
+  };
+
+  const toggleChapter = (chapter) => {
+    setFormData((prev) => {
+      const current = prev.targetChapters || [];
+      if (chapter === "All") {
+        return { ...prev, targetChapters: current.includes("All") ? [] : ["All"] };
+      }
+      const withoutAll = current.filter(a => a !== "All");
+      if (withoutAll.includes(chapter)) {
+        return { ...prev, targetChapters: withoutAll.filter((a) => a !== chapter) };
+      }
+      return { ...prev, targetChapters: [...withoutAll, chapter] };
     });
   };
 
@@ -207,20 +226,48 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
             <div className="space-y-2 pt-2 border-t">
               <Label htmlFor="cover">Cover Image (Optional)</Label>
               <div className="flex items-center gap-4">
-                <div className="h-20 w-32 bg-muted rounded-md border border-dashed flex items-center justify-center text-muted-foreground">
-                  <ImageIcon className="h-6 w-6" />
+                {formData.cover ? (
+                  <div className="relative h-24 w-40 rounded-lg overflow-hidden border border-border shadow-sm group">
+                    <img
+                      src={URL.createObjectURL(formData.cover)}
+                      alt="Cover preview"
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, cover: null });
+                        const fileInput = document.getElementById('cover');
+                        if (fileInput) fileInput.value = '';
+                      }}
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/70 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-md"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-2 py-0.5 truncate">
+                      {formData.cover.name}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-24 w-40 bg-muted rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground gap-1">
+                    <ImageIcon className="h-6 w-6" />
+                    <span className="text-[10px]">No image selected</span>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2">
+                  <Input
+                    id="cover"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setFormData({ ...formData, cover: e.target.files[0] });
+                      }
+                    }}
+                    className="max-w-xs"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Recommended: 1200×630px, max 5MB</p>
                 </div>
-                <Input
-                  id="cover"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setFormData({ ...formData, cover: e.target.files[0] });
-                    }
-                  }}
-                  className="max-w-xs"
-                />
               </div>
             </div>
           </div>
@@ -236,8 +283,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   (No notifications are sent if you save as a draft).
                 </p>
               </div>
-              <div className="flex gap-6 mt-4">
-                {["Consumers", "Businesses", "Chapter Admins"].map((aud) => (
+              <div className="flex flex-wrap gap-6 mt-4">
+                {["All", "Consumers", "Businesses", "Chapter Admins"].map((aud) => (
                   <div key={aud} className="flex items-center space-x-2">
                     <Checkbox 
                       id={`aud-${aud}`} 
@@ -246,6 +293,29 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     />
                     <label htmlFor={`aud-${aud}`} className="text-sm font-medium leading-none cursor-pointer">
                       {aud}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-6 border-t">
+              <div>
+                <Label className="text-base">Target Chapters</Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Select which chapters this event should be visible to.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-6 mt-4">
+                {["All", "Mumbai Chapter", "Pune Chapter", "Delhi Chapter", "Bangalore Chapter"].map((chap) => (
+                  <div key={chap} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`chap-${chap.replace(/\s+/g, '-')}`} 
+                      checked={(formData.targetChapters || []).includes(chap)}
+                      onCheckedChange={() => toggleChapter(chap)}
+                    />
+                    <label htmlFor={`chap-${chap.replace(/\s+/g, '-')}`} className="text-sm font-medium leading-none cursor-pointer">
+                      {chap}
                     </label>
                   </div>
                 ))}

@@ -33,7 +33,7 @@ function EventDetail() {
   const isUserRegistered = Boolean(
     registered ||
     (user?._id && Array.isArray(event?.registeredUsers) && event.registeredUsers.some(
-      (u) => String(u?._id || u) === String(user._id)
+      (u) => String(u?.user?._id || u?.user || u?._id || u) === String(user._id)
     ))
   );
 
@@ -172,6 +172,16 @@ function EventDetail() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+            {["super_admin", "secretariat", "chapter_admin"].includes(user?.role) ? (
+              <Panel title="Admin View">
+                <div className="space-y-3 text-center">
+                  <p className="text-sm text-muted-foreground">You are viewing this event as an admin.</p>
+                  <Button asChild className="w-full" variant="outline">
+                    <Link href={`/admin/events/${event._id}`}>Open in Admin Panel</Link>
+                  </Button>
+                </div>
+              </Panel>
+            ) : (
             <Panel title="Registration">
               {isUserRegistered ? (
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
@@ -206,6 +216,7 @@ function EventDetail() {
                 </div>
               )}
             </Panel>
+            )}
 
             {others.length > 0 && (
               <Panel title="Other upcoming events">

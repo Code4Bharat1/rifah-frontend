@@ -192,6 +192,12 @@ export const eventApi = {
   create: (data) => apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/events/${id}`, { method: "DELETE" }),
+  getRegistrations: (id) => apiClient(`/events/${id}/registrations`),
+  uploadCover: (id, file) => {
+    const formData = new FormData();
+    formData.append("cover", file);
+    return apiClient(`/events/${id}/cover`, { method: "POST", body: formData });
+  },
 };
 
 export const reviewApi = {

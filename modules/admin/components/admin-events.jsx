@@ -25,6 +25,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { useEvents } from "@shared/hooks/use-rifah-api";
 import { eventApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
+import { EventRegistrationsModal } from "./event-registrations-modal";
 
 function AdminEvents() {
   const { user } = useAuth();
@@ -34,13 +35,25 @@ function AdminEvents() {
 
   const [filterMode, setFilterMode] = useState("all");
 
+  const today = new Date().toISOString().split("T")[0];
+
+  const upcomingEvents = events.filter(e => e.date >= today);
+  const pastEvents = events.filter(e => e.date < today);
+  const todayEvents = events.filter(e => e.date === today);
+
   const totalCount = events.length;
   const inPersonCount = events.filter((e) => e.mode === "In-person").length;
   const onlineCount = events.filter((e) => e.mode === "Online").length;
   const pendingCount = events.filter((e) => e.status === "Pending Approval").length;
 
   let displayEvents = events;
-  if (filterMode === "In-person") {
+  if (filterMode === "upcoming") {
+    displayEvents = upcomingEvents;
+  } else if (filterMode === "past") {
+    displayEvents = pastEvents;
+  } else if (filterMode === "today") {
+    displayEvents = todayEvents;
+  } else if (filterMode === "In-person") {
     displayEvents = events.filter((e) => e.mode === "In-person");
   } else if (filterMode === "Online") {
     displayEvents = events.filter((e) => e.mode === "Online");
@@ -52,6 +65,8 @@ function AdminEvents() {
   const [deleteId, setDeleteId] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [registrationsModal, setRegistrationsModal] = useState({ open: false, eventId: null, eventTitle: "" });
 
   const handleDeleteConfirm = async () => {
     if (!deleteId) return;
@@ -83,43 +98,59 @@ function AdminEvents() {
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <button type="button" onClick={() => setFilterMode("all")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Total events" value={String(totalCount)} icon={CalendarDays} tone="primary" />
+            <StatCard label="All Events" value={String(totalCount)} icon={CalendarDays} tone="primary" />
           </button>
-          <button type="button" onClick={() => setFilterMode("In-person")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "In-person" ? "ring-2 ring-success ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="In-person" value={String(inPersonCount)} tone="success" />
+          <button type="button" onClick={() => setFilterMode("today")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "today" ? "ring-2 ring-success ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Today" value={String(todayEvents.length)} tone="success" />
           </button>
-          <button type="button" onClick={() => setFilterMode("Online")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Online" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Online / Webinar" value={String(onlineCount)} />
+          <button type="button" onClick={() => setFilterMode("upcoming")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "upcoming" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Upcoming" value={String(upcomingEvents.length)} />
+          </button>
+          <button type="button" onClick={() => setFilterMode("past")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "past" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Past Events" value={String(pastEvents.length)} />
           </button>
           <button type="button" onClick={() => setFilterMode("Pending")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Pending" ? "ring-2 ring-warning ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
             <StatCard label="Pending Approval" value={String(pendingCount)} tone="warning" />
           </button>
         </div>
 
-        <Panel title="All events">
+        <Panel title={filterMode === "today" ? "Today's Events" : filterMode === "upcoming" ? "Upcoming Events" : filterMode === "past" ? "Past Events" : "All Events"}>
           <ResponsiveTable
             rows={displayEvents}
             columns={[
               { 
                 key: "title", 
                 header: "Event", 
-                cell: (r) => (
-                  <div className="flex flex-col gap-1">
-                    <span className="font-semibold">{r.title}</span>
-                    <div>
-                      <Pill tone={r.status === "Pending Approval" ? "warning" : r.status === "Draft" ? "neutral" : "success"}>
-                        {r.status || "Upcoming"}
-                      </Pill>
+                cell: (r) => {
+                  const isToday = r.date === today;
+                  return (
+                    <div className="flex flex-col gap-1">
+                      <Link href={`/admin/events/${r._id}`} className="font-semibold hover:text-primary hover:underline">{r.title}</Link>
+                      <div className="flex gap-1.5">
+                        <Pill tone={r.status === "Pending Approval" ? "warning" : r.status === "Draft" ? "neutral" : "success"}>
+                          {r.status || "Upcoming"}
+                        </Pill>
+                        {isToday && <Pill tone="success">Today</Pill>}
+                        {r.date < today && <Pill tone="neutral">Past</Pill>}
+                      </div>
                     </div>
-                  </div>
-                )
+                  );
+                }
               },
-              { key: "date", header: "Date", cell: (r) => `${new Date(r.date).toLocaleDateString()} · ${r.time}` },
+              { key: "date", header: "Date", cell: (r) => {
+                  const isToday = r.date === today;
+                  return (
+                    <span className={isToday ? "font-bold text-emerald-600" : ""}>
+                      {new Date(r.date).toLocaleDateString()} · {r.time}
+                    </span>
+                  );
+                }
+              },
               { key: "mode", header: "Mode", cell: (r) => r.mode },
               { key: "city", header: "Location", cell: (r) => r.city || "Online" },
-              { key: "att", header: "Attendees", cell: (r) => r.attendees?.length || 0 },
+              { key: "att", header: "Registered", cell: (r) => <span className="font-semibold">{r.registeredCount || 0}</span> },
               {
                 key: "act",
                 header: "",
@@ -133,7 +164,10 @@ function AdminEvents() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Manage Event</DropdownMenuLabel>
                       <DropdownMenuItem asChild>
-                        <Link href={`/events/${r.slug || r._id}`}>View Event Page</Link>
+                        <Link href={`/admin/events/${r._id}`}>View Event Page</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setRegistrationsModal({ open: true, eventId: r._id, eventTitle: r.title })}>
+                        View Registrations
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       {isSuperAdmin && r.status === "Pending Approval" && (
@@ -216,6 +250,13 @@ function AdminEvents() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EventRegistrationsModal
+        eventId={registrationsModal.eventId}
+        eventTitle={registrationsModal.eventTitle}
+        open={registrationsModal.open}
+        onOpenChange={(open) => setRegistrationsModal(prev => ({ ...prev, open }))}
+      />
     </AppShell>
   );
 }
