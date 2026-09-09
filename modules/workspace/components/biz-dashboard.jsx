@@ -71,7 +71,7 @@ function BusinessHome() {
 
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) / reviews.length).toFixed(1)
-    : (business?.rating ? Number(business.rating).toFixed(1) : "0.0");
+    : (business?.reviewsCount && business?.reviewsCount > 0 && business?.rating ? Number(business.rating).toFixed(1) : "0.0");
 
   // Profile Completeness list dynamically computed from real business profile
   const completenessList = [
@@ -156,6 +156,126 @@ function BusinessHome() {
       }
     >
       <div className="space-y-4">
+        {/* Dynamic Verification Status Banners */}
+        {(() => {
+          const hasUploadedDocs = Array.isArray(business?.documents) && business.documents.length > 0;
+          const vStatus = (business?.verification || business?.verificationStatus || "unverified").toLowerCase();
+          const isVer = (business?.isVerified === true || vStatus === "verified" || vStatus === "approved") && hasUploadedDocs;
+          const isReview = !isVer && hasUploadedDocs && (vStatus === "under_review" || vStatus === "pending" || business?.status === "Pending Verification");
+          const isChanges = !isVer && (vStatus === "changes_required" || vStatus === "correction" || vStatus === "correction_requested");
+          const isRej = !isVer && vStatus === "rejected";
+
+          if (isChanges) {
+            return (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-blue-300 bg-blue-50/90 dark:border-blue-800 dark:bg-blue-950/40 p-4 text-blue-950 dark:text-blue-200 shadow-2xs animate-in fade-in duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-bold text-blue-950 dark:text-white">
+                        Action Required: Secretariat Requested Changes
+                      </h4>
+                      <span className="rounded-full bg-blue-200/70 dark:bg-blue-900 px-2 py-0.5 text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase">
+                        Needs Resubmission
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-blue-900/80 dark:text-blue-300/80">
+                      {business?.verificationReviewReason
+                        ? `"${business.verificationReviewReason}"`
+                        : "The RIFAH Secretariat reviewed your documents and requested additional or clearer information before approving."}
+                    </p>
+                  </div>
+                </div>
+                <Button asChild size="sm" className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-1.5 shadow-xs">
+                  <Link href="/biz/verification">
+                    <span>Review & Resubmit</span>
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            );
+          }
+
+          if (isReview) {
+            return (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50/90 dark:border-amber-800 dark:bg-amber-950/40 p-4 text-amber-950 dark:text-amber-200 shadow-2xs animate-in fade-in duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-bold text-amber-950 dark:text-white">
+                        Application Under Secretariat Review
+                      </h4>
+                      <span className="rounded-full bg-amber-200/70 dark:bg-amber-900 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase">
+                        Queued
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80">
+                      Your business profile and payment have been received. The Chamber Secretariat is verifying your details. Your profile will be published live once approved.
+                    </p>
+                  </div>
+                </div>
+                <Button asChild size="sm" variant="outline" className="shrink-0 border-amber-400 text-amber-900 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/50 font-semibold gap-1.5">
+                  <Link href="/biz/verification">
+                    <span>View Timeline</span>
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            );
+          }
+
+          if (isRej) {
+            return (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-rose-300 bg-rose-50/90 dark:border-rose-800 dark:bg-rose-950/40 p-4 text-rose-950 dark:text-rose-200 shadow-2xs animate-in fade-in duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400">
+                    <ShieldCheck className="h-5 w-5 text-rose-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-rose-950 dark:text-white">
+                      Verification Application Rejected
+                    </h4>
+                    <p className="mt-1 text-xs text-rose-900/80 dark:text-rose-300/80">
+                      {business?.verificationReviewReason
+                        ? `Reason: ${business.verificationReviewReason}`
+                        : "Your application could not be verified by the secretariat. Please contact chamber support or update your documents."}
+                    </p>
+                  </div>
+                </div>
+                <Button asChild size="sm" variant="outline" className="shrink-0 border-rose-400 text-rose-900 hover:bg-rose-100 dark:border-rose-700 dark:text-rose-200 font-semibold gap-1.5">
+                  <Link href="/biz/verification">
+                    <span>Details & Appeal</span>
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            );
+          }
+
+          if (isVer) {
+            return (
+              <div className="flex items-center justify-between rounded-xl border border-emerald-200/80 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20 px-3.5 py-2 text-xs text-emerald-900 dark:text-emerald-300">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>
+                    <strong>Verified Chamber Member</strong> — Your profile is active and publicly listed in the directory.
+                  </span>
+                </div>
+                <Link href={`/business/${bizSlugOrId}`} className="font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 shrink-0">
+                  <span>View Live</span> <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
+
         {/* Top 4 Stat Cards dynamically bound to live backend data */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
           <StatCard
@@ -469,72 +589,79 @@ function BusinessHome() {
 
             {/* Box 4: Reviews */}
             <Panel title="Reviews" action={<MoreLink href={bizSlugOrId ? `/business/${bizSlugOrId}` : "/biz/profile"} label="View all →" />}>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl font-bold text-slate-900 tabular-nums">
-                    {avgRating}
-                  </span>
-                  <div>
-                    <div className="flex items-center gap-0.5 text-amber-400">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-3.5 w-3.5 ${
-                            star <= Math.round(Number(avgRating))
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-slate-200 fill-slate-100"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <p className="mt-0.5 text-[11px] font-medium text-slate-400">
-                      {reviews.length} published {reviews.length === 1 ? "review" : "reviews"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               {reviews.length === 0 ? (
-                <div className="py-4 text-center">
-                  <p className="text-xs text-slate-400 font-medium">No reviews published yet</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Customer feedback and ratings will appear here.</p>
+                <div className="py-5 px-3 text-center">
+                  <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <Star className="h-4 w-4 stroke-[1.5]" />
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700">No reviews published yet</p>
+                  <p className="mt-1 text-[11px] text-slate-400 leading-relaxed">
+                    Customer feedback and ratings will appear here as buyers interact with your business.
+                  </p>
                 </div>
               ) : (
-                <div className="mt-3 space-y-2.5">
-                  {reviews.slice(0, 3).map((rev, idx) => {
-                    const authorName = safeText(rev.author?.name || rev.authorName, "Verified Customer");
-                    const revRating = Number(rev.rating) || 5;
-                    const revText = safeText(rev.body || rev.comment, "Great service and business.");
-                    const revDate = rev.createdAt ? new Date(rev.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "";
-
-                    return (
-                      <div key={rev._id || idx} className="rounded-xl bg-slate-50/80 p-3 border border-slate-100">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-100 text-[10px] font-bold text-amber-800 uppercase">
-                              {authorName.slice(0, 1)}
-                            </span>
-                            <span className="text-xs font-bold text-slate-900 truncate">{authorName}</span>
-                          </div>
-                          <div className="flex items-center gap-0.5 text-amber-400">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star
-                                key={s}
-                                className={`h-2.5 w-2.5 ${s <= revRating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
-                              />
-                            ))}
-                          </div>
+                <>
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl font-bold text-slate-900 tabular-nums">
+                        {avgRating}
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-0.5 text-amber-400">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-3.5 w-3.5 ${
+                                star <= Math.round(Number(avgRating))
+                                  ? "fill-amber-400 text-amber-400"
+                                  : "text-slate-200 fill-slate-100"
+                              }`}
+                            />
+                          ))}
                         </div>
-                        <p className="mt-1.5 text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                          "{revText}"
+                        <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+                          {reviews.length} published {reviews.length === 1 ? "review" : "reviews"}
                         </p>
-                        {revDate && (
-                          <p className="mt-1 text-[10px] text-slate-400 text-right">{revDate}</p>
-                        )}
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-2.5">
+                    {reviews.slice(0, 3).map((rev, idx) => {
+                      const authorName = safeText(rev.author?.name || rev.authorName, "Verified Customer");
+                      const revRating = Number(rev.rating) || 5;
+                      const revText = safeText(rev.body || rev.comment, "Great service and business.");
+                      const revDate = rev.createdAt ? new Date(rev.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "";
+
+                      return (
+                        <div key={rev._id || idx} className="rounded-xl bg-slate-50/80 p-3 border border-slate-100">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-100 text-[10px] font-bold text-amber-800 uppercase">
+                                {authorName.slice(0, 1)}
+                              </span>
+                              <span className="text-xs font-bold text-slate-900 truncate">{authorName}</span>
+                            </div>
+                            <div className="flex items-center gap-0.5 text-amber-400">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`h-2.5 w-2.5 ${s <= revRating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="mt-1.5 text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                            "{revText}"
+                          </p>
+                          {revDate && (
+                            <p className="mt-1 text-[10px] text-slate-400 text-right">{revDate}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </Panel>
 

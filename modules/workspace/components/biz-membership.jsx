@@ -20,62 +20,50 @@ import {
 } from "@shared/components/ui/dialog";
 import { useMyBusiness, useMembershipPlans, useMyPayments, useMyMembership } from "@shared/hooks/use-rifah-api";
 
-function handleDownloadPDF(payment) {
+function handleDownloadInvoicePDF(payment) {
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
     toast.error("Pop-up blocked. Please allow pop-ups to generate PDF.");
     return;
   }
 
-  const logoUrl = `${window.location.origin}/rifah-logo.png`;
+  const isUsd = (payment.currency || "").toUpperCase() === "USD" || (payment.description && payment.description.includes("(USD)"));
+  const currSymbol = isUsd ? "$" : "₹";
+  const currSuffix = isUsd ? " USD" : "";
+  const locale = isUsd ? "en-US" : "en-IN";
+  const formattedAmt = `${currSymbol} ${(Number(payment.amount) || 0).toLocaleString(locale)}${currSuffix}`;
 
+  const logoUrl = `${window.location.origin}/rifah-logo.png`;
   const invoiceHtml = `
     <!DOCTYPE html>
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
         <title>Invoice - ${payment.invoiceNumber || "INV"}</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #f8fafc;
-            color: #0b1f33;
-            padding: 30px 20px;
-            -webkit-font-smoothing: antialiased;
-          }
-          .print-toolbar { max-width: 800px; margin: 0 auto 20px auto; display: flex; justify-content: flex-end; }
-          .print-btn {
-            background: linear-gradient(135deg, #0088d1 0%, #0b1f33 100%);
-            color: #ffffff; border: none; padding: 10px 24px; font-size: 14px; font-weight: 700;
-            border-radius: 50px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
-          }
-          .invoice-card {
-            max-width: 800px; margin: 0 auto; background: #ffffff; border-radius: 16px;
-            border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 30px -5px rgba(11, 31, 51, 0.08);
-          }
-          .brand-stripe { height: 6px; background: linear-gradient(90deg, #c90000 0%, #0088d1 50%, #0b1f33 100%); }
-          .invoice-body { padding: 40px; }
-          .header-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #f1f5f9; padding-bottom: 28px; margin-bottom: 32px; }
-          .logo-img { height: 48px; width: auto; object-fit: contain; }
-          .invoice-title { font-size: 24px; font-weight: 800; color: #0b1f33; text-transform: uppercase; }
-          .invoice-number { font-size: 14px; font-weight: 700; color: #0088d1; margin-top: 4px; }
-          .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
-          .info-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
-          .info-card-header { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #0088d1; margin-bottom: 12px; }
-          .table-container { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+          * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+          body { background-color: #f8fafc; color: #0b1f33; padding: 30px 20px; }
+          .print-toolbar { max-width: 750px; margin: 0 auto 20px auto; display: flex; justify-content: flex-end; }
+          .print-btn { background: #0088d1; color: #fff; border: none; padding: 8px 20px; font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer; }
+          .invoice-card { max-width: 750px; margin: 0 auto; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+          .brand-stripe { height: 6px; background: linear-gradient(90deg, #c90000, #0088d1, #0b1f33); }
+          .invoice-body { padding: 36px; }
+          .header-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #f1f5f9; padding-bottom: 24px; margin-bottom: 24px; }
+          .logo-img { height: 42px; }
+          .invoice-title { font-size: 20px; font-weight: 800; color: #0b1f33; }
+          .invoice-number { font-size: 14px; font-weight: 700; color: #0088d1; margin-top: 2px; }
+          .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+          .info-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+          .info-card-header { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #0088d1; margin-bottom: 8px; }
+          .table-container { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
           table { width: 100%; border-collapse: collapse; }
-          thead tr { background: #0b1f33; color: #ffffff; }
-          th { font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 14px 20px; text-align: left; }
-          td { padding: 18px 20px; font-size: 14px; color: #334155; border-bottom: 1px solid #f1f5f9; }
-          .total-box { width: 280px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-left: auto; }
-          .total-line { display: flex; justify-content: space-between; font-size: 13px; color: #64748b; margin-bottom: 8px; }
-          .total-line.grand { font-size: 18px; font-weight: 800; color: #0b1f33; border-top: 2px solid #e2e8f0; padding-top: 10px; margin-bottom: 0; }
-          .footer-section { margin-top: 40px; padding-top: 24px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8; }
-          @media print { body { background: #ffffff; padding: 0; } .print-toolbar { display: none !important; } .invoice-card { box-shadow: none; border: none; } }
+          thead tr { background: #0b1f33; color: #fff; }
+          th { font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 10px 16px; text-align: left; }
+          td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+          .total-box { display: flex; justify-content: flex-end; margin-bottom: 24px; }
+          .total-line { width: 220px; display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; border-top: 2px solid #e2e8f0; padding-top: 8px; }
+          .footer-section { text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 16px; }
+          @media print { body { background: #fff; padding: 0; } .print-toolbar { display: none !important; } .invoice-card { box-shadow: none; border: none; } }
         </style>
       </head>
       <body>
@@ -93,7 +81,7 @@ function handleDownloadPDF(payment) {
               <div style="text-align: right;">
                 <div class="invoice-title">OFFICIAL INVOICE</div>
                 <div class="invoice-number"># ${payment.invoiceNumber || "INV-0000"}</div>
-                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Issued: ${new Date(payment.paidAt || payment.createdAt || Date.now()).toLocaleDateString("en-IN")}</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Issued: ${new Date(payment.paidAt || payment.createdAt || Date.now()).toLocaleDateString(locale)}</div>
               </div>
             </div>
             <div class="grid-two">
@@ -118,13 +106,13 @@ function handleDownloadPDF(payment) {
                   <tr>
                     <td><strong>${payment.description || payment.purpose || payment.itemType || "Membership Subscription"}</strong></td>
                     <td style="text-align: center;">1</td>
-                    <td style="text-align: right; font-weight: 700;">₹ ${(payment.amount || 0).toLocaleString("en-IN")}</td>
+                    <td style="text-align: right; font-weight: 700;">${formattedAmt}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div class="total-box">
-              <div class="total-line grand"><span>Total Paid:</span><span style="color:#0088d1;">₹ ${(payment.amount || 0).toLocaleString("en-IN")}</span></div>
+              <div class="total-line grand"><span>Total Paid:</span><span style="color:#0088d1;">${formattedAmt}</span></div>
             </div>
             <div class="footer-section">
               <p>Thank you for being a valued member of RIFAH Connect.</p>
@@ -146,15 +134,20 @@ function handleDownloadAllInvoices(payments) {
     return;
   }
 
-  const headers = ["Invoice Number", "Item / Purpose", "Date", "Method", "Amount (INR)", "Status"];
-  const rows = payments.map((p) => [
-    `"${p.invoiceNumber || ""}"`,
-    `"${(p.description || p.purpose || p.itemType || "Membership Subscription").replace(/"/g, '""')}"`,
-    `"${new Date(p.paidAt || p.createdAt || Date.now()).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}"`,
-    `"${p.method || "Online"}"`,
-    `"${p.amount || 0}"`,
-    `"${p.status || "Paid"}"`,
-  ]);
+  const headers = ["Invoice Number", "Item / Purpose", "Date", "Method", "Currency", "Amount", "Status"];
+  const rows = payments.map((p) => {
+    const isUsd = (p.currency || "").toUpperCase() === "USD" || (p.description && p.description.includes("(USD)"));
+    const curr = isUsd ? "USD" : (p.currency || "INR");
+    return [
+      `"${p.invoiceNumber || ""}"`,
+      `"${(p.description || p.purpose || p.itemType || "Membership Subscription").replace(/"/g, '""')}"`,
+      `"${new Date(p.paidAt || p.createdAt || Date.now()).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}"`,
+      `"${p.method || "Online"}"`,
+      `"${curr}"`,
+      `"${p.amount || 0}"`,
+      `"${p.status || "Paid"}"`,
+    ];
+  });
 
   const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });

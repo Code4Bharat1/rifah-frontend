@@ -106,13 +106,19 @@ function BizCatalogue() {
     try {
       const res = await catalogueApi.create({
         ...newItem,
+        category: newItem.category?.trim() || "General",
         businessId: business?._id,
       });
       const createdItem = res?.data || res;
       const itemId = createdItem?._id || createdItem?.id;
 
       if (addFiles.length > 0 && itemId) {
-        await catalogueApi.uploadImages(itemId, addFiles);
+        try {
+          await catalogueApi.uploadImages(itemId, addFiles);
+        } catch (imgErr) {
+          console.error("Image upload warning:", imgErr);
+          toast.warning("Catalogue item created, but images could not be uploaded.");
+        }
       }
 
       setOpenAdd(false);
@@ -158,11 +164,17 @@ function BizCatalogue() {
     try {
       await catalogueApi.update(editingItem._id, {
         ...editFormData,
+        category: editFormData.category?.trim() || "General",
         images: editExistingImages,
       });
 
       if (editFiles.length > 0) {
-        await catalogueApi.uploadImages(editingItem._id, editFiles);
+        try {
+          await catalogueApi.uploadImages(editingItem._id, editFiles);
+        } catch (imgErr) {
+          console.error("Image upload warning:", imgErr);
+          toast.warning("Item updated, but new images failed to upload.");
+        }
       }
 
       setOpenEditForm(false);
@@ -382,6 +394,10 @@ function BizCatalogue() {
                     <img
                       src={resolveMediaUrl(item.images[0])}
                       alt={item.name}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.style.display = "none";
+                      }}
                       className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
                     />
                     {item.images.length > 1 && (

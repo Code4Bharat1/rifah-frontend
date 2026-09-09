@@ -20,6 +20,7 @@ import {
   Copy,
   Check,
   Smartphone,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -201,36 +202,52 @@ function BusinessProfile() {
     }
   };
 
-  const isValidImage = (url) => typeof url === "string" && (url.startsWith("/uploads/") || url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("/images/"));
+  const isValidImage = (url) => typeof url === "string" && (url.startsWith("/uploads/") || url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:"));
 
-  const coverUrl = isValidImage(business.coverImage) ? resolveMediaUrl(business.coverImage) : resolveMediaUrl(businessImage(business));
-  const logoUrl = isValidImage(business.logo) ? resolveMediaUrl(business.logo) : resolveMediaUrl(businessImage(business));
+  const hasCover = isValidImage(business.coverImage);
+  const hasLogo = isValidImage(business.logo);
+  const coverUrl = hasCover ? resolveMediaUrl(business.coverImage) : null;
+  const logoUrl = hasLogo ? resolveMediaUrl(business.logo) : null;
+  const initial = (business.name || "B").charAt(0).toUpperCase();
 
   return (
     <PublicLayout>
       {/* Cover + identity */}
-      <div className="h-28 overflow-hidden sm:h-40 lg:h-52">
-        <img
-          src={coverUrl}
-          alt={`${business.name} facility`}
-          width={1024}
-          height={640}
-          className="h-full w-full object-cover"
-        />
+      <div className="h-28 overflow-hidden sm:h-40 lg:h-52 relative">
+        {hasCover ? (
+          <img
+            src={coverUrl}
+            alt={`${business.name} cover banner`}
+            width={1024}
+            height={640}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-r from-slate-900 via-primary/90 to-slate-800 flex items-center justify-end px-8 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+            <Building2 className="h-28 w-28 text-white/10 -mr-4 -mb-4" />
+          </div>
+        )}
       </div>
       <div className="rifah-container">
         <div className="-mt-10 grid gap-4 sm:-mt-12 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div>
             <div className="rounded-2xl border border-border bg-surface p-4 sm:p-6">
               <div className="flex items-start gap-3 sm:gap-4">
-                <img
-                  src={logoUrl}
-                  alt={`${business.name} logo`}
-                  loading="lazy"
-                  width={1024}
-                  height={640}
-                  className="h-16 w-16 shrink-0 rounded-2xl border-4 border-surface object-cover sm:h-20 sm:w-20"
-                />
+                {hasLogo ? (
+                  <img
+                    src={logoUrl}
+                    alt={`${business.name} logo`}
+                    loading="lazy"
+                    width={1024}
+                    height={640}
+                    className="h-16 w-16 shrink-0 rounded-2xl border-4 border-surface object-cover sm:h-20 sm:w-20 bg-white"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-surface bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-black text-xl sm:text-2xl shadow-md">
+                    {initial}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <h1 className="text-lg font-bold leading-tight tracking-tight sm:text-2xl lg:text-3xl">
                     {business.name}
@@ -387,22 +404,26 @@ function BusinessProfile() {
 
               <TabsContent value="gallery" className="mt-4">
                 <Panel title="Gallery" description="Facility and product imagery">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {(business.gallery && business.gallery.length > 0
-                      ? business.gallery.map((g) => resolveMediaUrl(g))
-                      : businessGallery(business)
-                    ).map((src, i) => (
-                      <img
-                        key={`${src}-${i}`}
-                        src={src}
-                        alt={`${business.name} gallery image ${i + 1}`}
-                        loading="lazy"
-                        width={1024}
-                        height={640}
-                        className="aspect-[4/3] w-full rounded-xl border border-border object-cover"
-                      />
-                    ))}
-                  </div>
+                  {business.gallery && business.gallery.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {business.gallery.map((g, i) => (
+                        <img
+                          key={`${g}-${i}`}
+                          src={resolveMediaUrl(g)}
+                          alt={`${business.name} gallery image ${i + 1}`}
+                          loading="lazy"
+                          width={1024}
+                          height={640}
+                          className="aspect-[4/3] w-full rounded-xl border border-border object-cover"
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center text-sm text-muted-foreground border border-dashed rounded-xl flex flex-col items-center justify-center gap-2">
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                      <p>No gallery images uploaded yet.</p>
+                    </div>
+                  )}
                 </Panel>
               </TabsContent>
 

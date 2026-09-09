@@ -127,6 +127,10 @@ function CataloguePage() {
                         <img
                           src={resolveMediaUrl(item.images[0])}
                           alt={item.name}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.style.display = "none";
+                          }}
                           className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
                         />
                       </div>

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe, FileText, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -18,11 +18,18 @@ import {
   SelectGroup,
   SelectLabel
 } from "@shared/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@shared/components/ui/dialog";
 import { Textarea } from "@shared/components/ui/textarea";
 import { cities, industries } from "@shared/lib/mock-data";
 import { useChapters, useMembershipPlans, useCategories } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
-import { authApi, paymentApi, businessApi } from "@shared/lib/api-services";
+import { authApi, paymentApi, businessApi, verificationApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
 
 const steps = ["Business", "Contact", "Account", "Membership"];
@@ -59,12 +66,21 @@ function RegisterBusiness() {
   const [submitted, setSubmitted] = useState(false);
   const [paidSuccess, setPaidSuccess] = useState(false);
 
-  // GST Verification States (Step 1)
+  // Region Selection Modal Popup State
+  const [showRegionModal, setShowRegionModal] = useState(true);
+
+  // GST Verification States (Step 0 for National)
   const [gstVerifying, setGstVerifying] = useState(false);
   const [gstVerified, setGstVerified] = useState(false);
   const [gstData, setGstData] = useState(null);
   const [gstSuccessMsg, setGstSuccessMsg] = useState("");
   const [gstErrorMsg, setGstErrorMsg] = useState("");
+
+  // International Business Certificate Upload States (Step 0 for International)
+  const [certFile, setCertFile] = useState(null);
+  const [certDocType, setCertDocType] = useState("Certificate of Incorporation");
+  const [certDocNumber, setCertDocNumber] = useState("");
+  const [certPreview, setCertPreview] = useState(null);
 
   // OTP Verification States (Forgot Password theme)
   const [otpSent, setOtpSent] = useState(false);
@@ -93,7 +109,8 @@ function RegisterBusiness() {
     address: "",
     city: "",
     pincode: "",
-    chapter: "Mumbai Chapter",
+    chapter: "",
+    region: "national",
   });
 
   const formatTimer = (seconds) => {
@@ -354,11 +371,34 @@ function RegisterBusiness() {
         chapter: formData.chapter,
         membership: tier,
         about: formData.about,
-        taxId: (formData.taxId || "").trim().toUpperCase(),
+        taxId: isInternational ? (certDocNumber || "") : (formData.taxId || "").trim().toUpperCase(),
         region: formData.region || "national",
         currency,
         verifiedToken,
       });
+
+      // Step 1.5: If International and certificate file was selected, upload and attach document to verification
+      if (isInternational && certFile) {
+        try {
+          const docRes = await verificationApi.uploadDocument(certFile);
+          const uploadedUrl = docRes?.data?.fileUrl || docRes?.fileUrl;
+          if (uploadedUrl) {
+            await verificationApi.submit({
+              documents: [
+                {
+                  type: certDocType || "Certificate of Incorporation",
+                  name: certFile.name,
+                  number: certDocNumber || "",
+                  fileUrl: uploadedUrl,
+                  status: "pending",
+                },
+              ],
+            });
+          }
+        } catch (uploadErr) {
+          console.warn("Certificate post-registration upload notice:", uploadErr);
+        }
+      }
 
       // If Free Plan, finish directly
       if (!isPaid) {
@@ -502,6 +542,105 @@ function RegisterBusiness() {
 
   return (
     <PublicLayout>
+      {/* INITIAL JURISDICTION SELECTION MODAL POPUP */}
+      <Dialog open={showRegionModal} onOpenChange={setShowRegionModal}>
+        <DialogContent className="w-[94vw] max-w-xl p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl font-sans">
+          <DialogHeader className="space-y-1.5 text-left">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold w-fit">
+              <Sparkles className="h-3.5 w-3.5" /> Select Business Jurisdiction
+            </div>
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+              Where is your business registered?
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              Select your business jurisdiction to customize the verification and onboarding requirements.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-4">
+            {/* OPTION 1: NATIONAL (INDIA) */}
+            <button
+              type="button"
+              onClick={() => {
+                setFormData((prev) => ({ ...prev, region: "national" }));
+                setShowRegionModal(false);
+                setError("");
+              }}
+              className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border-2 border-slate-200 dark:border-slate-800 hover:border-emerald-500 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                    <Building2 className="h-6 w-6" />
+                  </div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                    INR (₹)
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
+                  National (India)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                  For businesses registered & operating within India with 15-digit GSTIN number.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                    ✓ GSTIN Verification
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                    ✓ Instant Auto-fill
+                  </span>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-emerald-600">
+                <span>Select National</span>
+                <span>→</span>
+              </div>
+            </button>
+
+            {/* OPTION 2: INTERNATIONAL */}
+            <button
+              type="button"
+              onClick={() => {
+                setFormData((prev) => ({ ...prev, region: "international" }));
+                setShowRegionModal(false);
+                setError("");
+              }}
+              className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-950/20 text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                    <Globe className="h-6 w-6" />
+                  </div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
+                    USD ($)
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                  International
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                  For overseas enterprises worldwide. No GST required — upload your Business Certificate.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
+                    ✓ Certificate Upload
+                  </span>
+                  <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
+                    ✓ Global Network
+                  </span>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-blue-600">
+                <span>Select International</span>
+                <span>→</span>
+              </div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="rifah-container py-6 sm:py-10">
         <div className="mx-auto max-w-2xl">
           <SectionHeader
@@ -527,16 +666,12 @@ function RegisterBusiness() {
 
               // Validation for Step 0 (Business details)
               if (step === 0) {
-                const gst = (formData.taxId || "").trim().toUpperCase();
-                if (!gst) {
-                  setError(
-                    formData.region === "international"
-                      ? "GSTIN / Tax Identification Number is mandatory. Please enter your number and click Verify."
-                      : "GSTIN / GST Number is mandatory for Indian entities. Please enter your 15-character GST number and click Verify."
-                  );
-                  return;
-                }
                 if (formData.region === "national") {
+                  const gst = (formData.taxId || "").trim().toUpperCase();
+                  if (!gst) {
+                    setError("GSTIN / GST Number is mandatory for Indian entities. Please enter your 15-character GST number and click Verify.");
+                    return;
+                  }
                   if (gst.length !== 15) {
                     setError("Please enter a complete 15-character GST Number (GSTIN).");
                     return;
@@ -546,13 +681,38 @@ function RegisterBusiness() {
                     setError("Invalid GSTIN format. Example format: 27AAAAA0000A1Z5 (15 characters).");
                     return;
                   }
-                }
-                if (!gstVerified) {
-                  setError("Please click 'Verify GSTIN' to verify your tax identifier before proceeding.");
-                  return;
+                  if (!gstVerified) {
+                    setError("Please click 'Verify GSTIN' to verify your tax identifier before proceeding.");
+                    return;
+                  }
+                } else if (formData.region === "international") {
+                  if (!certFile) {
+                    setError("Official Business Certificate (Trade License / Incorporation Certificate) is required for International entities. Please upload your document.");
+                    return;
+                  }
                 }
                 if (!formData.businessName || formData.businessName.trim().length < 2) {
-                  setError("Business name is required. You can auto-fetch it from GST records or enter it manually.");
+                  setError("Business name is required (at least 2 characters).");
+                  return;
+                }
+              }
+
+              // Strict Validation for Step 1 (Contact & Location)
+              if (step === 1) {
+                if (!formData.contactPerson || formData.contactPerson.trim().length < 2) {
+                  setError("Authorised contact person name is mandatory. Please enter the contact person's name.");
+                  return;
+                }
+                if (!formData.phone || formData.phone.trim().length < 7) {
+                  setError("Mobile / Phone number is mandatory. Please enter a valid mobile number before proceeding.");
+                  return;
+                }
+                if (!formData.city || formData.city.trim().length < 2) {
+                  setError("City is mandatory. Please enter your business city.");
+                  return;
+                }
+                if (!formData.chapter || !formData.chapter.trim()) {
+                  setError("RIFAH Chapter is mandatory. Please select a chapter before proceeding.");
                   return;
                 }
               }
@@ -587,11 +747,20 @@ function RegisterBusiness() {
             {step === 0 && (
               <Panel title="Business details">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {/* Region / Jurisdiction Selector */}
+                  {/* Jurisdiction Selector Toggle Bar */}
                   <div className="space-y-2 sm:col-span-2">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      Business Jurisdiction & Currency *
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        Business Jurisdiction & Currency *
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => setShowRegionModal(true)}
+                        className="text-xs text-primary font-semibold hover:underline cursor-pointer"
+                      >
+                        Change Registration Type
+                      </button>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
@@ -600,7 +769,7 @@ function RegisterBusiness() {
                           setError("");
                         }}
                         className={cn(
-                          "flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all",
+                          "flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all cursor-pointer",
                           formData.region === "national"
                             ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs"
                             : "border-border hover:bg-muted/40"
@@ -617,7 +786,7 @@ function RegisterBusiness() {
                             )}
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                            Indian entity · GSTIN · INR (₹)
+                            GSTIN · PAN · INR (₹)
                           </p>
                         </div>
                       </button>
@@ -629,7 +798,7 @@ function RegisterBusiness() {
                           setError("");
                         }}
                         className={cn(
-                          "flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all",
+                          "flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all cursor-pointer",
                           formData.region === "international"
                             ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs"
                             : "border-border hover:bg-muted/40"
@@ -646,125 +815,220 @@ function RegisterBusiness() {
                             )}
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                            Global entity · Tax ID · USD ($)
+                            Certificate Upload · USD ($)
                           </p>
                         </div>
                       </button>
                     </div>
                   </div>
 
-                  {/* Two-Stage GSTIN / Tax ID Verification & Auto-Fetch Section (For National & International) */}
-                  <div className="space-y-2 sm:col-span-2 rounded-xl border border-border/80 bg-muted/20 p-3.5 animate-in fade-in duration-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="bgst" className="font-semibold text-sm">
-                          {formData.region === "international" ? "GST Number" : "GST Number"}{" "}
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <span
-                          className={cn(
-                            "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase",
-                            formData.region === "international"
-                              ? "bg-blue-500/10 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
-                              : "bg-primary/10 text-primary"
-                          )}
-                        >
-                          {formData.region === "international" ? "International (USD)" : "Mandatory (India)"}
+                  {/* NATIONAL ONLY: 15-digit GSTIN Verification Box */}
+                  {formData.region === "national" && (
+                    <div className="space-y-2 sm:col-span-2 rounded-2xl border border-emerald-200/80 bg-emerald-50/30 dark:bg-emerald-950/20 dark:border-emerald-900/50 p-4 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="bgst" className="font-bold text-sm text-slate-900 dark:text-white">
+                            GSTIN / GST Number <span className="text-destructive">*</span>
+                          </Label>
+                          <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
+                            Mandatory (India)
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-mono text-muted-foreground font-semibold">
+                          {(formData.taxId || "").length}/15
                         </span>
                       </div>
-                      <span className="text-[11px] font-mono text-muted-foreground">
-                        {(formData.taxId || "").length}{formData.region === "national" ? "/15" : ""}
-                      </span>
-                    </div>
 
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                      <div className="relative flex-1">
-                        <Input
-                          id="bgst"
-                          required
-                          maxLength={formData.region === "international" ? 25 : 15}
-                          value={formData.taxId}
-                          onChange={(e) => {
-                            const val = (formData.region === "international"
-                              ? e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "")
-                              : e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")
-                            );
-                            setFormData((prev) => ({ ...prev, taxId: val }));
-                            setGstVerified(false);
-                            setGstData(null);
-                            setGstSuccessMsg("");
-                            setGstErrorMsg("");
-                            setError("");
-                            if (val.length === 15 && formData.region === "national") {
-                              handleVerifyGst(val);
-                            }
-                          }}
-                          placeholder={
-                            formData.region === "international"
-                              ? "e.g. 27AAACT2727Q1ZW or Tax Reg No."
-                              : "e.g. 27AAACT2727Q1ZW"
-                          }
-                          className="font-mono uppercase tracking-wider text-sm h-10 pr-8"
-                        />
-                        {gstVerified && (
-                          <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <div className="relative flex-1">
+                          <Input
+                            id="bgst"
+                            required
+                            maxLength={15}
+                            value={formData.taxId}
+                            onChange={(e) => {
+                              const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                              setFormData((prev) => ({ ...prev, taxId: val }));
+                              setGstVerified(false);
+                              setGstData(null);
+                              setGstSuccessMsg("");
+                              setGstErrorMsg("");
+                              setError("");
+                              if (val.length === 15) {
+                                handleVerifyGst(val);
+                              }
+                            }}
+                            placeholder="e.g. 27AAACT2727Q1ZW"
+                            className="font-mono uppercase tracking-wider text-sm h-11 pr-8 bg-white dark:bg-slate-900"
+                          />
+                          {gstVerified && (
+                            <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
+                          )}
+                        </div>
+
+                        {gstVerified ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 font-semibold shrink-0 gap-1.5 h-11 px-4"
+                          >
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                            Verified
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            onClick={() => handleVerifyGst()}
+                            disabled={gstVerifying || !(formData.taxId || "").trim()}
+                            className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 h-11 px-5 shadow-sm transition-all"
+                          >
+                            {gstVerifying ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Verifying...
+                              </>
+                            ) : (
+                              <>
+                                <ShieldCheck className="h-4 w-4" />
+                                Verify GSTIN
+                              </>
+                            )}
+                          </Button>
                         )}
                       </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Enter official 15-character Goods and Services Tax Identification Number (GSTIN) to auto-fetch business details.
+                      </p>
 
-                      {gstVerified ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 font-semibold shrink-0 gap-1.5 h-10"
-                        >
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                          Verified
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          onClick={() => handleVerifyGst()}
-                          disabled={gstVerifying || !(formData.taxId || "").trim()}
-                          className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 h-10 shadow-sm transition-all"
-                        >
-                          {gstVerifying ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Verifying...
-                            </>
-                          ) : (
-                            <>
-                              <ShieldCheck className="h-4 w-4" />
-                              {formData.region === "international" ? "Verify GST / Tax ID" : "Verify GSTIN"}
-                            </>
-                          )}
-                        </Button>
+                      {/* Error message */}
+                      {gstErrorMsg && (
+                        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive animate-in fade-in-50">
+                          <AlertCircle className="h-4 w-4 shrink-0" />
+                          <span>{gstErrorMsg}</span>
+                        </div>
+                      )}
+
+                      {/* Verified Status Note */}
+                      {gstVerified && (
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 animate-in fade-in-50">
+                          <Check className="h-3.5 w-3.5 shrink-0" />
+                          <span>
+                            {gstSuccessMsg || "GST Number Verified — details automatically filled into form fields."}
+                          </span>
+                        </p>
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      {formData.region === "international"
-                        ? "Enter 15-character GSTIN or international tax registration number to auto-fetch & verify entity."
-                        : "Enter official 15-character Goods and Services Tax Identification Number (GSTIN) to auto-fetch details."}
-                    </p>
+                  )}
 
-                    {/* Error message */}
-                    {gstErrorMsg && (
-                      <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive animate-in fade-in-50">
-                        <AlertCircle className="h-4 w-4 shrink-0" />
-                        <span>{gstErrorMsg}</span>
+                  {/* INTERNATIONAL ONLY: Business Certificate Upload Section (NO GST/TAX FIELD) */}
+                  {formData.region === "international" && (
+                    <div className="space-y-3 sm:col-span-2 rounded-2xl border border-blue-200/80 bg-blue-50/30 dark:bg-blue-950/20 dark:border-blue-900/50 p-4 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Label className="font-bold text-sm text-slate-900 dark:text-white">
+                            Official Business Certificate / License <span className="text-destructive">*</span>
+                          </Label>
+                          <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300">
+                            International (USD)
+                          </span>
+                        </div>
                       </div>
-                    )}
-
-                    {/* Verified Status Note */}
-                    {gstVerified && (
-                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 animate-in fade-in-50">
-                        <Check className="h-3.5 w-3.5 shrink-0" />
-                        <span>
-                          {gstSuccessMsg || "GST / Tax Number Verified — details automatically filled into form fields."}
-                        </span>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Upload your official Trade License, Certificate of Incorporation, Commercial Register, or Chamber Certificate.
                       </p>
-                    )}
-                  </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            Document Type
+                          </Label>
+                          <Select
+                            value={certDocType}
+                            onValueChange={setCertDocType}
+                          >
+                            <SelectTrigger className="h-11 rounded-xl bg-white dark:bg-slate-900">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Certificate of Incorporation">Certificate of Incorporation / Registration</SelectItem>
+                              <SelectItem value="Trade License">Trade License / Commercial License</SelectItem>
+                              <SelectItem value="Commercial Register">Commercial Register Extract (CR)</SelectItem>
+                              <SelectItem value="Chamber Certificate">Chamber of Commerce Certificate</SelectItem>
+                              <SelectItem value="Tax Residency Certificate">Tax Residency / VAT Certificate</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="cert-num" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            License / Registration No. (Optional)
+                          </Label>
+                          <Input
+                            id="cert-num"
+                            value={certDocNumber}
+                            onChange={(e) => setCertDocNumber(e.target.value)}
+                            placeholder="e.g. CR-8839210 / LIC-994"
+                            className="h-11 rounded-xl bg-white dark:bg-slate-900 font-mono uppercase"
+                          />
+                        </div>
+                      </div>
+
+                      {/* File Upload Box */}
+                      <div className="pt-2">
+                        {certFile ? (
+                          <div className="flex items-center justify-between p-3.5 rounded-xl border border-blue-200 bg-white dark:bg-slate-900 shadow-2xs">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                  {certFile.name}
+                                </p>
+                                <p className="text-[11px] text-slate-400">
+                                  {(certFile.size / (1024 * 1024)).toFixed(2)} MB · {certDocType}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCertFile(null);
+                                setCertPreview(null);
+                              }}
+                              className="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-blue-200 dark:border-blue-900/60 rounded-2xl cursor-pointer bg-white/70 dark:bg-slate-900/60 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition-colors">
+                            <div className="flex flex-col items-center justify-center pt-2 pb-2 text-center px-4">
+                              <Upload className="h-6 w-6 text-blue-500 mb-1" />
+                              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Click to upload Business Certificate / Trade License *
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                PDF, PNG, JPG up to 15MB
+                              </p>
+                            </div>
+                            <input
+                              type="file"
+                              accept=".pdf,image/png,image/jpeg,image/webp"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setCertFile(file);
+                                  setError("");
+                                }
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="bname">Business name *</Label>
@@ -885,15 +1149,19 @@ function RegisterBusiness() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="bphone">Phone *</Label>
+                    <Label htmlFor="bphone">Mobile / Phone Number *</Label>
                     <Input
                       id="bphone"
                       type="tel"
                       required
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="Mobile number"
+                      onChange={(e) => {
+                        setFormData({ ...formData, phone: e.target.value });
+                        setError("");
+                      }}
+                      placeholder="Mobile number (Mandatory)"
                     />
+                    <p className="text-[10px] text-muted-foreground">Direct mobile contact is mandatory for lead notifications.</p>
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="baddress">Address</Label>
@@ -910,29 +1178,34 @@ function RegisterBusiness() {
                       id="bcity"
                       required
                       value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      placeholder="e.g. Mumbai, Bhopal, Bhubaneswar"
+                      onChange={(e) => {
+                        setFormData({ ...formData, city: e.target.value });
+                        setError("");
+                      }}
+                      placeholder="e.g. Mumbai, Bhopal, Dubai, London"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bpincode">Pincode / Postal code</Label>
                     <Input
                       id="bpincode"
-                      maxLength={6}
                       inputMode="numeric"
                       value={formData.pincode}
-                      onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, "") })}
-                      placeholder="6-digit pincode"
+                      onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                      placeholder="Postal / Zip code"
                     />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="bchapter">RIFAH chapter</Label>
+                    <Label htmlFor="bchapter">RIFAH Chapter *</Label>
                     <Select
                       value={formData.chapter}
-                      onValueChange={(v) => setFormData({ ...formData, chapter: v })}
+                      onValueChange={(v) => {
+                        setFormData({ ...formData, chapter: v });
+                        setError("");
+                      }}
                     >
-                      <SelectTrigger id="bchapter">
-                        <SelectValue placeholder="Select chapter" />
+                      <SelectTrigger id="bchapter" className="h-11">
+                        <SelectValue placeholder="Select mandatory chapter" />
                       </SelectTrigger>
                       <SelectContent>
                         {chapters.map((c) => (
@@ -942,6 +1215,7 @@ function RegisterBusiness() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <p className="text-[10px] text-muted-foreground">Select the nearest RIFAH chamber chapter for regional membership governance.</p>
                   </div>
                 </div>
               </Panel>

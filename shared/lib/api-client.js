@@ -18,29 +18,39 @@ const SERVER_BASE_URL = getBackendServerBase();
 export function resolveMediaUrl(path) {
   if (!path || typeof path !== "string") return "";
 
+  // Normalize backslashes (for Windows server paths or mixed paths)
+  const cleanStr = path.replace(/\\/g, "/");
+
   // 1. Data URLs, blobs, or local frontend public assets
-  if (path.startsWith("data:") || path.startsWith("blob:") || path.startsWith("/images/")) {
-    return path;
+  if (cleanStr.startsWith("data:") || cleanStr.startsWith("blob:") || cleanStr.startsWith("/images/")) {
+    return cleanStr;
   }
 
   // 2. Cloudinary CDN URLs (permanent global HTTPS)
-  if (path.startsWith("https://res.cloudinary.com") || path.startsWith("http://res.cloudinary.com")) {
-    return path;
+  if (cleanStr.startsWith("https://res.cloudinary.com") || cleanStr.startsWith("http://res.cloudinary.com")) {
+    return cleanStr;
   }
 
-  // 3. If path contains /uploads/ (from local dev or any server domain), map cleanly to current active backend SERVER_BASE_URL
-  if (path.includes("/uploads/")) {
-    const relativePart = path.slice(path.indexOf("/uploads/"));
+  // 3. If path contains uploads/ (from local dev or any server domain), map cleanly to current active backend SERVER_BASE_URL
+  if (cleanStr.includes("/uploads/") || cleanStr.includes("uploads/")) {
+    const idx = cleanStr.indexOf("uploads/");
+    const relativePart = `/${cleanStr.slice(idx)}`;
     return `${SERVER_BASE_URL}${relativePart}`;
   }
 
   // 4. Any other external remote URL (e.g. Google avatar, external CDN)
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
+  if (cleanStr.startsWith("http://") || cleanStr.startsWith("https://")) {
+    // If it points to localhost while in production, map to active backend
+    if (cleanStr.includes("localhost:5000") && !SERVER_BASE_URL.includes("localhost")) {
+      const idx = cleanStr.indexOf("localhost:5000");
+      const relativePart = cleanStr.slice(idx + "localhost:5000".length);
+      return `${SERVER_BASE_URL}${relativePart.startsWith("/") ? relativePart : `/${relativePart}`}`;
+    }
+    return cleanStr;
   }
 
   // 5. Relative paths
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const cleanPath = cleanStr.startsWith("/") ? cleanStr : `/${cleanStr}`;
   return `${SERVER_BASE_URL}${cleanPath}`;
 }
 

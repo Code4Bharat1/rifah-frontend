@@ -22,15 +22,20 @@ function handleExportCSV(payments) {
     return;
   }
 
-  const headers = ["Invoice Number", "Purpose", "Date", "Amount (INR)", "Status", "Transaction ID"];
-  const rows = payments.map((p) => [
-    `"${p.invoiceNumber || ""}"`,
-    `"${(p.description || p.purpose || p.itemType || "Membership Subscription").replace(/"/g, '""')}"`,
-    `"${new Date(p.paidAt || p.createdAt || Date.now()).toLocaleDateString()}"`,
-    `"${p.amount || 0}"`,
-    `"${p.status || "Paid"}"`,
-    `"${p.transactionId || ""}"`,
-  ]);
+  const headers = ["Invoice Number", "Purpose", "Date", "Currency", "Amount", "Status", "Transaction ID"];
+  const rows = payments.map((p) => {
+    const isUsd = (p.currency || "").toUpperCase() === "USD" || (p.description && p.description.includes("(USD)"));
+    const curr = isUsd ? "USD" : (p.currency || "INR");
+    return [
+      `"${p.invoiceNumber || ""}"`,
+      `"${(p.description || p.purpose || p.itemType || "Membership Subscription").replace(/"/g, '""')}"`,
+      `"${new Date(p.paidAt || p.createdAt || Date.now()).toLocaleDateString()}"`,
+      `"${curr}"`,
+      `"${p.amount || 0}"`,
+      `"${p.status || "Paid"}"`,
+      `"${p.transactionId || ""}"`,
+    ];
+  });
 
   const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -61,6 +66,12 @@ function handleDownloadPDF(payment) {
     toast.error("Pop-up blocked. Please allow pop-ups to generate PDF.");
     return;
   }
+
+  const isUsd = (payment.currency || "").toUpperCase() === "USD" || (payment.description && payment.description.includes("(USD)"));
+  const currSymbol = isUsd ? "$" : "₹";
+  const currSuffix = isUsd ? " USD" : "";
+  const locale = isUsd ? "en-US" : "en-IN";
+  const formattedAmount = `${currSymbol} ${(Number(payment.amount) || 0).toLocaleString(locale)}${currSuffix}`;
 
   const logoUrl = `${window.location.origin}/rifah-logo.png`;
 
@@ -374,7 +385,7 @@ function handleDownloadPDF(payment) {
               <div class="invoice-tag">
                 <div class="invoice-title">OFFICIAL INVOICE</div>
                 <div class="invoice-number"># ${escapeHtml(payment.invoiceNumber || "INV-0000")}</div>
-                <div class="invoice-date">Issued: ${new Date(payment.paidAt || payment.createdAt || Date.now()).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                <div class="invoice-date">Issued: ${new Date(payment.paidAt || payment.createdAt || Date.now()).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}</div>
               </div>
             </div>
 
@@ -418,7 +429,7 @@ function handleDownloadPDF(payment) {
                       <div class="item-sub">RIFAH Connect Member Services & Tier Access</div>
                     </td>
                     <td style="text-align: center; font-weight: 600;">1</td>
-                    <td style="text-align: right; font-weight: 700; color: #0b1f33;">₹ ${(Number(payment.amount) || 0).toLocaleString("en-IN")}</td>
+                    <td style="text-align: right; font-weight: 700; color: #0b1f33;">${formattedAmount}</td>
                   </tr>
                 </tbody>
               </table>
@@ -434,7 +445,7 @@ function handleDownloadPDF(payment) {
               <div class="total-box">
                 <div class="total-line">
                   <span>Subtotal:</span>
-                  <span>₹ ${(payment.amount || 0).toLocaleString("en-IN")}</span>
+                  <span>${formattedAmount}</span>
                 </div>
                 <div class="total-line">
                   <span>Taxes / Fees:</span>
@@ -442,7 +453,7 @@ function handleDownloadPDF(payment) {
                 </div>
                 <div class="total-line grand">
                   <span>Total Paid:</span>
-                  <span>₹ ${(payment.amount || 0).toLocaleString("en-IN")}</span>
+                  <span>${formattedAmount}</span>
                 </div>
               </div>
             </div>
@@ -575,7 +586,14 @@ function BizPayments() {
                 { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{r.invoiceNumber}</span> },
                 { key: "purpose", header: "Purpose", cell: (r) => r.description || r.purpose || r.itemType || "Membership Subscription" },
                 { key: "date", header: "Date", cell: (r) => new Date(r.paidAt || r.createdAt).toLocaleDateString() },
-                { key: "amount", header: "Amount", cell: (r) => `₹ ${r.amount?.toLocaleString("en-IN")}` },
+                {
+                  key: "amount",
+                  header: "Amount",
+                  cell: (r) => {
+                    const isUsd = (r.currency || "").toUpperCase() === "USD" || (r.description && r.description.includes("(USD)"));
+                    return `${isUsd ? "$" : "₹"} ${Number(r.amount || 0).toLocaleString(isUsd ? "en-US" : "en-IN")}${isUsd ? " USD" : ""}`;
+                  },
+                },
                 { key: "status", header: "Status", cell: (r) => <Pill tone={tone(r.status)}>{r.status}</Pill> },
                 {
                   key: "action",
@@ -594,30 +612,37 @@ function BizPayments() {
                   ),
                 },
               ]}
-              mobile={(r) => (
-                <div className="rounded-xl border border-border p-3.5">
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{r.invoiceNumber}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {r.description || r.purpose || r.itemType || "Membership Subscription"} · {new Date(r.paidAt || r.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Pill tone={tone(r.status)}>{r.status}</Pill>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Download Invoice PDF"
-                        onClick={() => handleDownloadPDF(r)}
-                        className="h-8 w-8 text-muted-foreground hover:text-primary"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
+              mobile={(r) => {
+                const isUsd = (r.currency || "").toUpperCase() === "USD" || (r.description && r.description.includes("(USD)"));
+                const formattedAmt = `${isUsd ? "$" : "₹"} ${Number(r.amount || 0).toLocaleString(isUsd ? "en-US" : "en-IN")}${isUsd ? " USD" : ""}`;
+                return (
+                  <div className="rounded-xl border border-border p-3.5">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-semibold">{r.invoiceNumber}</p>
+                          <span className="text-xs font-bold text-slate-800">{formattedAmt}</span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {r.description || r.purpose || r.itemType || "Membership Subscription"} · {new Date(r.paidAt || r.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Pill tone={tone(r.status)}>{r.status}</Pill>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Download Invoice PDF"
+                          onClick={() => handleDownloadPDF(r)}
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              }}
             />
           )}
         </Panel>

@@ -85,8 +85,18 @@ function BizAnalytics() {
           />
           <StatCard
             label="Average rating"
-            value={Number(stats.averageRating || business?.rating || 0).toFixed(1)}
-            hint={`${stats.reviewsCount ?? reviews.length ?? 0} reviews`}
+            value={
+              (Number(stats.reviewsCount ?? reviews.length ?? 0) > 0 && Number(stats.averageRating) > 0)
+                ? Number(stats.averageRating).toFixed(1)
+                : (Number(stats.reviewsCount ?? reviews.length ?? 0) > 0 && business?.rating)
+                ? Number(business.rating).toFixed(1)
+                : "0.0"
+            }
+            hint={
+              Number(stats.reviewsCount ?? reviews.length ?? 0) > 0
+                ? `${stats.reviewsCount ?? reviews.length} review${(stats.reviewsCount ?? reviews.length) > 1 ? "s" : ""}`
+                : "0 reviews"
+            }
             icon={Star}
             tone="warning"
           />

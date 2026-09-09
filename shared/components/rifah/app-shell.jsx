@@ -40,15 +40,19 @@ import { Button } from "@shared/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
 import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useNotifications, useConversations } from "@shared/hooks/use-rifah-api";
-
-
-
-
-
-
-
-
+import { useNotifications, useConversations, useMyBusiness } from "@shared/hooks/use-rifah-api";
+import {
+  Lock,
+  Clock,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  ArrowRight,
+  Shield,
+  FileCheck2,
+} from "lucide-react";
+import { VerificationBadge } from "@shared/components/rifah/badges";
 
 const navs = {
   customer: {
@@ -121,6 +125,25 @@ const roleSwitcher = [
   { role: "admin", label: "Admin", to: "/admin" },
 ];
 
+function isAccessibleUnverifiedPath(p) {
+  if (!p) return false;
+  const clean = p.replace(/\/$/, "");
+  return (
+    clean === "/biz/verification" ||
+    clean.startsWith("/biz/verification/") ||
+    clean === "/biz/membership" ||
+    clean.startsWith("/biz/membership/") ||
+    clean === "/biz/payments" ||
+    clean.startsWith("/biz/payments/") ||
+    clean === "/biz/notifications" ||
+    clean.startsWith("/biz/notifications/") ||
+    clean === "/biz/profile" ||
+    clean.startsWith("/biz/profile/") ||
+    clean === "/biz/business" ||
+    clean.startsWith("/biz/business/")
+  );
+}
+
 function useDynamicNav(role) {
   const { user } = useAuth();
   const getPath = (path) => {
@@ -137,24 +160,28 @@ function useCurrentPath() {
   return usePathname();
 }
 
-function SidebarLink({ item, active, badge }) {
+function SidebarLink({ item, active, badge, isLocked }) {
   return (
     <Link
       href={item.to}
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         active && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary",
+        isLocked && "opacity-75"
       )}
     >
       <div className="flex items-center gap-3 min-w-0">
         <item.icon className="h-[18px] w-[18px] shrink-0" />
         <span className="truncate">{item.label}</span>
       </div>
-      {Boolean(badge && badge > 0) && (
-        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white shadow-xs">
-          {badge > 99 ? "99+" : badge}
-        </span>
-      )}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {isLocked && <Lock className="h-3 w-3 text-sidebar-foreground/50" />}
+        {Boolean(badge && badge > 0) && (
+          <span className="grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white shadow-xs">
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
+      </div>
     </Link>
   );
 }
@@ -182,6 +209,13 @@ export function AppShell({
 
   const { data: notificationsData } = useNotifications();
   const { data: conversationsData } = useConversations();
+  const { data: businessData, isLoading: isBizLoading } = useMyBusiness();
+  const hasUploadedDocs = Array.isArray(businessData?.documents) && businessData.documents.length > 0;
+  const isBizVerified = role !== "business" || (
+    (businessData?.isVerified === true || (businessData?.verification || "").toLowerCase() === "verified" || (businessData?.verificationStatus || "").toLowerCase() === "approved")
+    && hasUploadedDocs
+  );
+  const isGatedPage = role === "business" && !isBizLoading && businessData && !isBizVerified && !isAccessibleUnverifiedPath(path);
 
   const unreadNotifs = notificationsData?.unreadCount ?? (
     Array.isArray(notificationsData)
@@ -203,15 +237,11 @@ export function AppShell({
       finalSubtitle = "Regional branch dashboard";
     }
   }
+
   const isActive = (to) => {
     if (path === to) return true;
-
-    // Root workspace routes should only match exactly
     const rootRoutes = ["/biz", "/admin", "/me", "/discover"];
-
-    // Check if `to` is a dynamic root route (e.g., /mumbai-chapter/admin)
     if (rootRoutes.includes(to) || to.endsWith("/admin")) return false;
-
     return to !== "/" && path.startsWith(to + "/");
   };
 
@@ -242,12 +272,14 @@ export function AppShell({
             let badge = null;
             if (item.label === "Messages") badge = unreadMsgs;
             if (item.label === "Notifications") badge = unreadNotifs;
+            const isItemLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(item.to);
             return (
               <SidebarLink
                 key={item.to + item.label}
                 item={item}
                 active={isActive(item.to)}
                 badge={badge}
+                isLocked={isItemLocked}
               />
             );
           })}
@@ -300,7 +332,7 @@ export function AppShell({
               </Button>
             ) : (
               <div className="lg:hidden">
-                <MoreSheet role={role} />
+                <MoreSheet role={role} isBizVerified={isBizVerified} />
               </div>
             )}
             <div className="min-w-0 flex-1">
@@ -329,7 +361,7 @@ export function AppShell({
               </Button>
               <Button asChild variant="ghost" size="icon" className="relative inline-flex">
                 <Link
-                  href={getPath(role === "business" ? "/biz/messages" : "/me/messages")}
+                  href={getPath(role === "business" ? (isBizVerified ? "/biz/messages" : "/biz/verification") : "/me/messages")}
                   aria-label="Messages"
                 >
                   <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -350,17 +382,201 @@ export function AppShell({
         </header>
 
         <main className="px-3 pb-24 pt-3 sm:px-4 sm:pb-24 sm:pt-4 md:px-6 md:pb-10 md:pt-6 xl:px-10">
-          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+          <div className="mx-auto w-full max-w-[1440px]">
+            {isGatedPage ? (
+              <UnderApprovalAccessGate business={businessData} path={path} />
+            ) : (
+              children
+            )}
+          </div>
         </main>
       </div>
 
       {/* Mobile Bottom Navigation Bar */}
-      <BottomNav role={role} />
+      <BottomNav role={role} isBizVerified={isBizVerified} />
     </div>
   );
 }
 
-function MoreSheet({ role }) {
+function UnderApprovalAccessGate({ business, path }) {
+  const vStatus = (business?.verification || business?.verificationStatus || "under_review").toLowerCase();
+  const isChangesReq = vStatus === "changes_required" || vStatus === "correction" || vStatus === "correction_requested";
+  const isRejected = vStatus === "rejected";
+  const isUnderReview = !isChangesReq && !isRejected;
+
+  const accessibleModules = [
+    {
+      title: "Verification & Document Upload",
+      description: "Upload and replace official business documents (GST, PAN, Trade License) and track review status.",
+      to: "/biz/verification",
+      icon: ShieldCheck,
+      badge: isChangesReq ? "Action Required" : "Accessible",
+      actionText: "Open Verification Desk →",
+    },
+    {
+      title: "Business Profile & Details",
+      description: "Review and update your enterprise profile, address, business type, founded year, and contact details.",
+      to: "/biz/profile",
+      icon: Building2,
+      badge: "Accessible",
+      actionText: "Edit Business Profile →",
+    },
+    {
+      title: "Membership & Payments",
+      description: "Check your subscription plan tier, payment invoice receipt, and tier privileges.",
+      to: "/biz/membership",
+      icon: Star,
+      badge: business?.membership ? `${business.membership} Tier` : "Accessible",
+      actionText: "Manage Membership →",
+    },
+    {
+      title: "Secretariat Notifications",
+      description: "Receive real-time notifications, status updates, and Secretariat review announcements.",
+      to: "/biz/notifications",
+      icon: Bell,
+      badge: "Accessible",
+      actionText: "View Notifications →",
+    },
+  ];
+
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto py-4 animate-in fade-in duration-300">
+      {/* Primary Alert Banner */}
+      <div
+        className={cn(
+          "rounded-3xl border p-6 sm:p-8 shadow-xs relative overflow-hidden",
+          isChangesReq && "border-blue-300 bg-blue-50/90 dark:border-blue-800 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100",
+          isRejected && "border-rose-300 bg-rose-50/90 dark:border-rose-800 dark:bg-rose-950/40 text-rose-950 dark:text-rose-100",
+          isUnderReview && "border-amber-300 bg-amber-50/90 dark:border-amber-800 dark:bg-amber-950/40 text-amber-950 dark:text-amber-100"
+        )}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
+          <div
+            className={cn(
+              "grid h-14 w-14 shrink-0 place-items-center rounded-2xl shadow-xs",
+              isChangesReq && "bg-blue-600 text-white",
+              isRejected && "bg-rose-600 text-white",
+              isUnderReview && "bg-amber-500 text-white"
+            )}
+          >
+            {isChangesReq ? <RotateCcw className="h-7 w-7" /> : isRejected ? <XCircle className="h-7 w-7" /> : <Clock className="h-7 w-7" />}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                  isChangesReq && "bg-blue-200 text-blue-900 dark:bg-blue-900 dark:text-blue-200",
+                  isRejected && "bg-rose-200 text-rose-900 dark:bg-rose-900 dark:text-rose-200",
+                  isUnderReview && "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200"
+                )}
+              >
+                {isChangesReq ? "CHANGES REQUESTED" : isRejected ? "VERIFICATION UNSUCCESSFUL" : "UNDER SECRETARIAT APPROVAL"}
+              </span>
+              <span className="text-xs text-muted-foreground">•</span>
+              <span className="text-xs font-semibold text-foreground/80">{business?.name || "Business Enterprise"}</span>
+            </div>
+
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
+              {isChangesReq
+                ? "Action Required: Secretariat Requested Changes"
+                : isRejected
+                ? "Application Not Approved"
+                : "Workspace Access Restricted — Under Secretariat Approval"}
+            </h2>
+
+            <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              {isChangesReq
+                ? "The RIFAH Chamber Secretariat has reviewed your business application and requested specific changes or additional paperwork before granting verification approval."
+                : isRejected
+                ? "Your verification request could not be approved by the secretariat at this time. Please see details below or contact support."
+                : "Your business profile is currently in the RIFAH Secretariat Verification queue. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
+            </p>
+
+            {business?.verificationReviewReason && (
+              <div className="mt-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 p-4 border border-border/80 text-xs">
+                <span className="block font-bold text-foreground text-[11px] uppercase tracking-wider mb-1 text-primary">
+                  Secretariat Review Notes:
+                </span>
+                <p className="text-foreground/90 font-medium leading-relaxed">
+                  {business.verificationReviewReason}
+                </p>
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2.5">
+              <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs gap-2">
+                <Link href="/biz/verification">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Go to Verification & Documents</span>
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="font-semibold gap-2">
+                <Link href="/biz/profile">
+                  <Building2 className="h-4 w-4" />
+                  <span>Edit Business Profile</span>
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Accessible Pages Grid */}
+      <div>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h3 className="text-sm font-bold text-foreground">
+            Accessible Pages During Approval Stage
+          </h3>
+          <span className="text-xs text-muted-foreground font-medium">4 Pages Accessible</span>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {accessibleModules.map((mod) => (
+            <Link
+              key={mod.to}
+              href={mod.to}
+              className="group rounded-2xl border border-border/80 bg-card p-4 hover:border-primary/50 hover:shadow-xs transition-all flex flex-col justify-between gap-3"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <mod.icon className="h-4 w-4" />
+                    </div>
+                    <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                      {mod.title}
+                    </h4>
+                  </div>
+                  <span className="rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold">
+                    {mod.badge}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {mod.description}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 text-xs font-semibold text-primary pt-2 border-t border-border/40">
+                <span>{mod.actionText}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Locked Workspace Modules Notice */}
+      <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-4 text-xs text-muted-foreground flex items-center gap-3">
+        <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
+        <p className="leading-relaxed">
+          <strong>Locked Modules:</strong> Buyer Leads, Open Enquiries, Catalogue Items, Analytics Reports, and Direct Messaging are locked while under review to maintain Chamber buyer safety standards. They will unlock automatically upon Secretariat verification.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MoreSheet({ role, isBizVerified = true }) {
   const { getPath } = useDynamicNav(role);
   const nav = navs[role];
   const items = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more].map(i => ({ ...i, to: getPath(i.to) }));
@@ -381,16 +597,25 @@ function MoreSheet({ role }) {
           <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {nav.title}
           </p>
-          {items.map((i) => (
-            <Link
-              key={i.to + i.label}
-              href={i.to}
-              className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted"
-            >
-              <i.icon className="h-[18px] w-[18px] text-primary" />
-              {i.label}
-            </Link>
-          ))}
+          {items.map((i) => {
+            const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
+            return (
+              <Link
+                key={i.to + i.label}
+                href={i.to}
+                className={cn(
+                  "flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted",
+                  isLocked && "opacity-75"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <i.icon className="h-[18px] w-[18px] text-primary" />
+                  <span>{i.label}</span>
+                </div>
+                {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+              </Link>
+            );
+          })}
           <div className="mt-2 border-t border-border pt-3">
             <Link href="/" className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted">
               Public website
@@ -403,7 +628,7 @@ function MoreSheet({ role }) {
   );
 }
 
-export function BottomNav({ role }) {
+export function BottomNav({ role, isBizVerified = true }) {
   const path = useCurrentPath();
   const { getPath } = useDynamicNav(role);
   const nav = navs[role];
@@ -418,16 +643,23 @@ export function BottomNav({ role }) {
       <ul className="grid grid-cols-5">
         {primary.map((item) => {
           const active = path === item.to;
+          const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(item.to);
           return (
             <li key={item.label}>
               <Link
                 href={item.to}
                 className={cn(
-                  "flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium text-muted-foreground",
+                  "flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium text-muted-foreground relative",
                   active && "text-primary",
+                  isLocked && "opacity-70"
                 )}
               >
-                <item.icon className={cn("h-5 w-5", active && "text-primary")} />
+                <div className="relative">
+                  <item.icon className={cn("h-5 w-5", active && "text-primary")} />
+                  {isLocked && (
+                    <Lock className="h-2.5 w-2.5 absolute -top-1 -right-1 text-muted-foreground" />
+                  )}
+                </div>
                 <span className="truncate">{item.label}</span>
               </Link>
             </li>

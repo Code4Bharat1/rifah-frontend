@@ -4,26 +4,36 @@ import { useState } from "react";
 
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { Button } from "@shared/components/ui/button";
-import { businessImage, businessLogo } from "@shared/lib/media";
+import { businessImage, businessLogo, resolveMediaUrl } from "@shared/lib/media";
 
 import { cn } from "@shared/lib/utils";
 
 function Monogram({ business, className }) {
-  const defaultImg = "/images/biz/manufacturing.jpg";
-  const [imgSrc, setImgSrc] = useState(() => businessLogo(business));
+  const logo = business?.logo ? resolveMediaUrl(business.logo) : "";
+  const initial = (business?.name || "B").charAt(0).toUpperCase();
+
+  if (logo) {
+    return (
+      <img
+        src={logo}
+        alt={`${business?.name || "Business"}`}
+        loading="lazy"
+        width={64}
+        height={64}
+        className={cn("shrink-0 rounded-xl border border-border object-cover bg-surface", className)}
+      />
+    );
+  }
 
   return (
-    <img
-      src={imgSrc}
-      alt={`${business?.name || "Business"} — ${business?.industry || ""}`}
-      loading="lazy"
-      width={1024}
-      height={640}
-      onError={() => {
-        if (imgSrc !== defaultImg) setImgSrc(defaultImg);
-      }}
-      className={cn("shrink-0 rounded-xl border border-border object-cover bg-surface", className)}
-    />
+    <div
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-xl border border-border bg-gradient-to-br from-primary/90 to-primary/60 text-primary-foreground font-bold shadow-xs select-none",
+        className
+      )}
+    >
+      {initial}
+    </div>
   );
 }
 
@@ -107,23 +117,25 @@ export function PremiumBusinessCard({ business }) {
     ...(business.categories || []),
   ];
 
-    const defaultCover = "/images/biz/manufacturing.jpg";
-    const [coverSrc, setCoverSrc] = useState(() => businessImage(business));
+  const coverUrl = business?.coverImage ? resolveMediaUrl(business.coverImage) : "";
 
-    return (
+  return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:shadow-xl hover:border-primary/40">
-      <div className="relative h-24 overflow-hidden sm:h-28 bg-muted">
-        <img
-          src={coverSrc}
-          alt={`${business.name} facility`}
-          loading="lazy"
-          width={1024}
-          height={640}
-          onError={() => {
-            if (coverSrc !== defaultCover) setCoverSrc(defaultCover);
-          }}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+      <div className="relative h-24 overflow-hidden sm:h-28 bg-gradient-to-r from-slate-900 via-primary/80 to-slate-800">
+        {coverUrl ? (
+          <img
+            src={coverUrl}
+            alt={`${business.name} cover`}
+            loading="lazy"
+            width={1024}
+            height={640}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="h-full w-full flex items-center justify-end px-4 opacity-15">
+            <Bookmark className="h-14 w-14 text-white" />
+          </div>
+        )}
         <div className="absolute right-3 top-3">
           <MembershipBadge tier={business.membership} />
         </div>
