@@ -2,8 +2,22 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Image as ImageIcon, X } from "lucide-react";
+import { Loader2, ArrowLeft, Image as ImageIcon, X, Check, ChevronsUpDown } from "lucide-react";
 import Link from "next/link";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@shared/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@shared/components/ui/popover";
+import { cn } from "@shared/lib/utils";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
@@ -22,6 +36,60 @@ import {
 import { eventApi } from "@shared/lib/api-services";
 
 import { useAuth } from "@shared/providers/auth-provider";
+
+function MultiSelectDropdown({ options, selected, toggleOption, placeholder = "Select..." }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full max-w-md justify-between h-auto min-h-[40px] px-3 py-2 font-normal"
+        >
+          <div className="flex flex-wrap gap-1 text-left">
+            {(!selected || selected.length === 0) ? (
+              <span className="text-muted-foreground">{placeholder}</span>
+            ) : (
+              selected.map(item => (
+                <div key={item} className="bg-primary/10 text-primary text-xs rounded-full px-2.5 py-0.5 font-medium border border-primary/20">
+                  {item}
+                </div>
+              ))
+            )}
+          </div>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] sm:w-[400px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={`Search...`} />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
+                <CommandItem
+                  key={option}
+                  value={option}
+                  onSelect={() => toggleOption(option)}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      (selected || []).includes(option) ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {option}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const router = useRouter();
@@ -72,6 +140,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     targetAudience: ["All"],
     targetChapters: ["All"],
     cover: null,
+    scheduledDate: "",
+    scheduledTime: "08:00",
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -79,6 +149,15 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   useEffect(() => {
     if (initialData) {
       const parsedTime = parseTimeString(initialData.time);
+      
+      let initialSchDate = "";
+      let initialSchTime = "08:00";
+      if (initialData.scheduledAt) {
+        const d = new Date(initialData.scheduledAt);
+        initialSchDate = d.toISOString().split("T")[0];
+        initialSchTime = `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+      }
+
       setFormData({
         ...initialFormState,
         ...initialData,
@@ -86,6 +165,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         date: initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : "",
         startTime: parsedTime.startTime,
         endTime: parsedTime.endTime,
+        scheduledDate: initialSchDate,
+        scheduledTime: initialSchTime,
         cover: null, // Keep cover null to allow new upload
       });
     }
@@ -131,35 +212,48 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     return `${to12h(start)} - ${to12h(end)}`;
   };
 
-  const handleSave = async (publish = false) => {
+  const handleSave = async (targetStatus) => {
     if (!formData.title || !formData.date) {
       toast.error("Title and Date are required");
       return;
     }
     
-    if (publish) setLoading(true);
+    if (targetStatus === "Scheduled" && (!formData.scheduledDate || !formData.scheduledTime)) {
+      toast.error("Scheduled Date and Time are required");
+      return;
+    }
+
+    if (targetStatus === "Upcoming") setLoading(true);
     else setSavingDraft(true);
 
     try {
+      let scheduledAt = null;
+      if (targetStatus === "Scheduled") {
+        scheduledAt = new Date(`${formData.scheduledDate}T${formData.scheduledTime}:00`);
+      }
+
       const payload = { 
         ...formData, 
         time: formatTimeStr(formData.startTime, formData.endTime),
         venue: formData.location,
-        status: publish ? "Upcoming" : "Draft"
+        status: targetStatus,
+        scheduledAt,
       };
       delete payload.startTime;
       delete payload.endTime;
+      delete payload.scheduledDate;
+      delete payload.scheduledTime;
       delete payload.cover;
 
       let eventId = isEditMode ? initialData._id : null;
 
       if (isEditMode) {
         await eventApi.update(eventId, payload);
-        toast.success(publish ? "Event published successfully" : "Draft updated successfully");
+        toast.success(`Event ${targetStatus.toLowerCase()} successfully`);
       } else {
         const created = await eventApi.create(payload);
         eventId = created?.data?._id || created?._id;
-        toast.success(publish ? (isSuperAdmin ? "Event published successfully" : "Event submitted for approval") : "Draft saved successfully");
+        toast.success(`Event ${targetStatus.toLowerCase()} successfully`);
       }
 
       if (formData.cover && eventId) {
@@ -344,18 +438,12 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-6 mt-4">
-                {["All", "Consumers", "Businesses", "Chapter Admins"].map((aud) => (
-                  <div key={aud} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`aud-${aud}`} 
-                      checked={(formData.targetAudience || []).includes(aud)}
-                      onCheckedChange={() => toggleAudience(aud)}
-                    />
-                    <label htmlFor={`aud-${aud}`} className="text-sm font-medium leading-none cursor-pointer">
-                      {aud}
-                    </label>
-                  </div>
-                ))}
+                <MultiSelectDropdown 
+                  options={["All", "Consumers", "Businesses", "Chapter Admins"]} 
+                  selected={formData.targetAudience || []} 
+                  toggleOption={toggleAudience} 
+                  placeholder="Select Target Audience..." 
+                />
               </div>
             </div>
 
@@ -367,37 +455,62 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-6 mt-4">
-                {["All", "Mumbai Chapter", "Pune Chapter", "Delhi Chapter", "Bangalore Chapter"].map((chap) => (
-                  <div key={chap} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`chap-${chap.replace(/\s+/g, '-')}`} 
-                      checked={(formData.targetChapters || []).includes(chap)}
-                      onCheckedChange={() => toggleChapter(chap)}
-                    />
-                    <label htmlFor={`chap-${chap.replace(/\s+/g, '-')}`} className="text-sm font-medium leading-none cursor-pointer">
-                      {chap}
-                    </label>
-                  </div>
-                ))}
+                <MultiSelectDropdown 
+                  options={["All", "Mumbai Chapter", "Pune Chapter", "Delhi Chapter", "Bangalore Chapter"]} 
+                  selected={formData.targetChapters || []} 
+                  toggleOption={toggleChapter} 
+                  placeholder="Select Target Chapters..." 
+                />
               </div>
             </div>
 
-            <div className="pt-6 border-t flex justify-end gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => handleSave(false)} 
-                disabled={loading || savingDraft}
-                className="w-32"
-              >
-                {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save as Draft"}
-              </Button>
-              <Button 
-                onClick={() => handleSave(true)} 
-                disabled={loading || savingDraft}
-                className="w-48 bg-primary"
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isSuperAdmin ? "Publish & Broadcast" : "Submit for Approval")}
-              </Button>
+            <div className="space-y-4 pt-6 border-t bg-muted/30 -mx-6 px-6 pb-6 rounded-b-xl">
+              <div>
+                <Label className="text-base">Schedule Publication</Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Instead of publishing immediately, you can schedule this event to be automatically published at a later date and time.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="scheduledDate">Scheduled Date</Label>
+                  <Input
+                    id="scheduledDate"
+                    type="date"
+                    value={formData.scheduledDate}
+                    onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
+                    className="w-40"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="scheduledTime">Scheduled Time</Label>
+                  <Input
+                    id="scheduledTime"
+                    type="time"
+                    value={formData.scheduledTime}
+                    onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
+                    className="w-32"
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleSave("Scheduled")} 
+                  disabled={loading || savingDraft}
+                  className="w-40 border-primary text-primary hover:bg-primary/5"
+                >
+                  {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : "Schedule Event"}
+                </Button>
+              </div>
+
+              <div className="pt-6 mt-2 border-t flex justify-end gap-3">
+                <Button 
+                  onClick={() => handleSave("Upcoming")} 
+                  disabled={loading || savingDraft}
+                  className="w-48 bg-primary"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isSuperAdmin ? "Publish Now & Broadcast" : "Submit for Approval")}
+                </Button>
+              </div>
             </div>
           </div>
         </Panel>
