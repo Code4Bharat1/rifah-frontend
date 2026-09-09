@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bookmark, ChevronRight, MapPin, Send, Star } from "lucide-react";
+import { Bookmark, ChevronRight, MapPin, Star } from "lucide-react";
 import { useState } from "react";
 
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
@@ -87,15 +87,10 @@ export function BusinessCard({ business }) {
         </div>
       )}
 
-      <div className="mt-auto flex gap-2 pt-4">
-        <Button asChild size="sm" className="flex-1">
-          <Link href={`/enquiry/new?business=${encodeURIComponent(bizId)}`}>
-            <Send className="h-4 w-4" /> Send enquiry
-          </Link>
-        </Button>
-        <Button asChild size="sm" variant="outline">
+      <div className="mt-auto pt-4">
+        <Button asChild size="sm" className="w-full">
           <Link href={`/business/${bizId}`}>
-            View
+            View Profile
           </Link>
         </Button>
       </div>
@@ -161,15 +156,10 @@ export function PremiumBusinessCard({ business }) {
             ))}
           </div>
         )}
-        <div className="mt-auto flex gap-2 pt-4">
-          <Button asChild size="sm" className="flex-1">
-            <Link href={`/enquiry/new?business=${encodeURIComponent(bizId)}`}>
-              Send enquiry
-            </Link>
-          </Button>
-          <Button asChild size="sm" variant="outline">
+        <div className="mt-auto pt-4">
+          <Button asChild size="sm" className="w-full">
             <Link href={`/business/${bizId}`}>
-              Profile
+              View Profile
             </Link>
           </Button>
         </div>

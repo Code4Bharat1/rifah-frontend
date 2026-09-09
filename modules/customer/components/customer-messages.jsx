@@ -404,33 +404,21 @@ function MessagesPage() {
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Auto-select or draft conversation when targetUserId is provided via URL
-  useEffect(() => {
+  // Auto-select conversation based on state or URL targetUserId
+  const selectedOtherUser = useMemo(() => {
+    if (activeOtherUser) return activeOtherUser;
     if (targetUserId) {
-      const existing = conversations.find(
+      const found = conversations.find(
         (c) => String(c.otherUser?._id) === String(targetUserId)
       );
-      if (existing) {
-        if (activeOtherUser !== existing.otherUser) {
-          setActiveOtherUser(existing.otherUser);
-          setOpenOnMobile(true);
-        }
-      } else if (String(activeOtherUser?._id) !== String(targetUserId)) {
-        setActiveOtherUser({
-          _id: targetUserId,
-          name: targetName ? decodeURIComponent(targetName) : "Business Member",
-          businessName: targetName ? decodeURIComponent(targetName) : "",
-        });
-        setOpenOnMobile(true);
-      }
-    } else if (!activeOtherUser && conversations.length > 0) {
-      setActiveOtherUser(conversations[0]?.otherUser);
+      if (found?.otherUser) return found.otherUser;
     }
-  }, [targetUserId, targetName, conversations, activeOtherUser]);
+    return conversations[0]?.otherUser || null;
+  }, [activeOtherUser, targetUserId, conversations]);
 
-  const selectedUserId = activeOtherUser?._id;
+  const selectedUserId = selectedOtherUser?._id;
   const { data: messagesData, refetch: refetchMessages } = useMessages(selectedUserId);
-  const messages = messagesData || [];
+  const messages = useMemo(() => messagesData || [], [messagesData]);
 
   // Auto-scroll when messages update
   useEffect(() => {
@@ -530,18 +518,7 @@ function MessagesPage() {
     }
   };
 
-  // Prepend draft conversation if chatting with a new vendor not yet in inbox
-  const displayConversations = [...conversations];
-  if (
-    activeOtherUser &&
-    !conversations.some((c) => String(c.otherUser?._id) === String(activeOtherUser._id))
-  ) {
-    displayConversations.unshift({
-      otherUser: activeOtherUser,
-      lastMessage: { body: "Draft new message..." },
-      isNewDraft: true,
-    });
-  }
+  const displayConversations = conversations;
 
   return (
     <AppShell role="customer" title="Messages" subtitle="Conversations with member businesses">
@@ -554,11 +531,11 @@ function MessagesPage() {
         >
           {displayConversations.length === 0 ? (
             <div className="p-6 text-center">
-              <p className="text-xs text-muted-foreground">
-                No conversations yet. Message businesses directly from their profile pages.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                No conversations yet. When the Chamber administration routes your requirements to verified businesses, quotations and messaging will appear here.
               </p>
-              <Button asChild size="sm" variant="outline" className="mt-3">
-                <Link href="/discover">Discover businesses</Link>
+              <Button asChild size="sm" variant="outline" className="mt-4">
+                <Link href="/me/enquiries/new">Post a Requirement</Link>
               </Button>
             </div>
           ) : (
@@ -612,8 +589,8 @@ function MessagesPage() {
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{activeOtherUser?.name || "Select a conversation"}</p>
-              <p className="truncate text-xs text-muted-foreground">{activeOtherUser?.businessName || activeOtherUser?.email || ""}</p>
+              <p className="truncate text-sm font-semibold">{selectedOtherUser?.name || "Select a conversation"}</p>
+              <p className="truncate text-xs text-muted-foreground">{selectedOtherUser?.businessName || selectedOtherUser?.email || ""}</p>
             </div>
           </header>
 
@@ -625,15 +602,15 @@ function MessagesPage() {
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-foreground">No conversation selected</h3>
                 <p className="mt-1.5 max-w-sm text-xs text-muted-foreground">
-                  Explore verified businesses in the directory and click "Message" to connect directly.
+                  Select an active conversation to review messages, discussion notes, and official quotations.
                 </p>
-                <Button asChild size="sm" className="mt-4">
-                  <Link href="/discover">Discover businesses</Link>
+                <Button asChild size="sm" variant="outline" className="mt-4">
+                  <Link href="/me/enquiries">View My Enquiries</Link>
                 </Button>
               </div>
             ) : messages.length === 0 ? (
               <div className="my-auto text-center text-xs text-muted-foreground">
-                Start a conversation with <span className="font-semibold text-foreground">{activeOtherUser?.name}</span> by typing your message below.
+                Start a conversation with <span className="font-semibold text-foreground">{selectedOtherUser?.name}</span> by typing your message below.
               </div>
             ) : (
               messages.map((m) => {

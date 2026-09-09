@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@shared/components/ui/radio-group";
 import { useMembershipPlans, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { membershipApi, paymentApi, businessApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@shared/lib/utils";
 
 const steps = ["Plan", "Billing", "Payment", "Confirmation"];
@@ -38,6 +39,7 @@ function Checkout() {
   const searchParams = useSearchParams();
   const planParam = searchParams?.get("plan") || "premium";
 
+  const queryClient = useQueryClient();
   const { user: currentUser, refreshProfile } = useAuth();
   const { data: business } = useMyBusiness();
   const { data: plansData } = useMembershipPlans();
@@ -57,6 +59,7 @@ function Checkout() {
   const [gstNumber, setGstNumber] = useState("");
   const [billingAddress, setBillingAddress] = useState("");
   const [billingCity, setBillingCity] = useState("");
+  const [billingState, setBillingState] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [gstLoading, setGstLoading] = useState(false);
   const [gstSuccess, setGstSuccess] = useState("");
@@ -84,10 +87,12 @@ function Checkout() {
       if (business.taxId && !gstNumber) setGstNumber(business.taxId);
       if (business.address && !billingAddress) setBillingAddress(business.address);
       if (business.city && !billingCity) setBillingCity(business.city);
+      if (business.state && !billingState) setBillingState(business.state);
     } else if (currentUser) {
       if (currentUser.organization && !legalName) setLegalName(currentUser.organization);
       if (currentUser.email && !billingEmail) setBillingEmail(currentUser.email);
       if (currentUser.city && !billingCity) setBillingCity(currentUser.city);
+      if (currentUser.state && !billingState) setBillingState(currentUser.state);
     }
   }, [business, currentUser]);
 
@@ -105,6 +110,7 @@ function Checkout() {
         if (fetchedName) setLegalName(fetchedName);
         if (data.address) setBillingAddress(data.address);
         if (data.city) setBillingCity(data.city);
+        if (data.state) setBillingState(data.state);
         if (data.pincode) setPostalCode(data.pincode);
         setGstSuccess("Verified");
       }
@@ -184,6 +190,7 @@ function Checkout() {
               taxId: gstNumber || business?.taxId || "",
               billingAddress,
               city: billingCity,
+              state: billingState,
               postalCode,
             });
 
@@ -206,6 +213,14 @@ function Checkout() {
                 console.warn("[Checkout] Profile refresh warning:", e.message);
               }
             }
+
+            // Invalidate React Query cache so /biz/profile instantly fetches the real business
+            queryClient.invalidateQueries({ queryKey: ["my-business"] });
+            if (resultData?.business) {
+              queryClient.setQueryData(["my-business"], resultData.business);
+            }
+            queryClient.invalidateQueries({ queryKey: ["businesses"] });
+            queryClient.invalidateQueries({ queryKey: ["user"] });
 
             const invoiceNum = resultData?.payment?.invoiceNumber || orderData.invoiceNumber || `INV-${Date.now().toString().slice(-4)}`;
             setInvoiceId(invoiceNum);
@@ -405,6 +420,15 @@ function Checkout() {
                       />
                     </div>
                     <div className="space-y-1.5">
+                      <Label htmlFor="bstate">State</Label>
+                      <Input
+                        id="bstate"
+                        value={billingState}
+                        onChange={(e) => setBillingState(e.target.value)}
+                        placeholder="State"
+                      />
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
                       <Label htmlFor="bpin">Postal code</Label>
                       <Input
                         id="bpin"

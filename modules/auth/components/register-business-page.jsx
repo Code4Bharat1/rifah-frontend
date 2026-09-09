@@ -46,7 +46,7 @@ function RegisterBusiness() {
 
   const chapters = chaptersData || [];
   const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
-  
+
   const { data: categoriesData } = useCategories();
   const categories = Array.isArray(categoriesData) ? categoriesData : [];
   const mainCategories = categories.filter(c => !c.parent);
@@ -371,7 +371,7 @@ function RegisterBusiness() {
       try {
         const myBizRes = await businessApi.getMyBusiness();
         bizId = myBizRes?.data?._id || myBizRes?._id;
-      } catch (err) {}
+      } catch (err) { }
 
       // Step 3: Create Razorpay Order with currency
       const orderRes = await paymentApi.createOrder({
@@ -990,8 +990,8 @@ function RegisterBusiness() {
                           emailVerified
                             ? "border-emerald-500 bg-emerald-50/50 text-emerald-950 font-medium pr-28"
                             : !otpSent
-                            ? "pr-32"
-                            : ""
+                              ? "pr-32"
+                              : ""
                         )}
                       />
                       {emailVerified ? (
@@ -1072,11 +1072,10 @@ function RegisterBusiness() {
                                   handleOtpDigitChange(idx, pasteData);
                                 }
                               }}
-                              className={`h-16 w-11 sm:w-14 rounded-2xl border text-center text-2xl font-bold transition-all outline-none bg-white ${
-                                digit
+                              className={`h-16 w-11 sm:w-14 rounded-2xl border text-center text-2xl font-bold transition-all outline-none bg-white ${digit
                                   ? "border-slate-300 text-slate-900 shadow-sm"
                                   : "border-slate-200 text-slate-900"
-                              } focus:border-[#0060df] focus:ring-4 focus:ring-blue-100/70`}
+                                } focus:border-[#0060df] focus:ring-4 focus:ring-blue-100/70`}
                             />
                           ))}
                         </div>
@@ -1218,8 +1217,8 @@ function RegisterBusiness() {
                     const formattedPrice = displayAmt === 0
                       ? (isIntl ? "$ 0" : "₹ 0")
                       : isIntl
-                      ? `$ ${displayAmt.toLocaleString("en-US")} USD`
-                      : `₹ ${displayAmt.toLocaleString("en-IN")}`;
+                        ? `$ ${displayAmt.toLocaleString("en-US")} USD`
+                        : `₹ ${displayAmt.toLocaleString("en-IN")}`;
 
                     return (
                       <button

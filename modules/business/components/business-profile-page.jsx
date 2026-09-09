@@ -12,7 +12,6 @@ import {
   MessageSquare,
   Package,
   Phone,
-  Send,
   Share2,
   Star,
   Users,
@@ -83,11 +82,6 @@ function BusinessProfile() {
   const { user } = useAuth();
   const ownerId = business?.owner?._id || business?.owner;
   const isMyOwnBusiness = Boolean(user?._id && ownerId && String(user._id) === String(ownerId));
-  const messageUrl = ownerId
-    ? (user?.role === "business"
-        ? `/biz/messages?userId=${ownerId}&name=${encodeURIComponent(business?.name || "")}`
-        : `/me/messages?userId=${ownerId}&name=${encodeURIComponent(business?.name || "")}`)
-    : "/me/messages";
 
   const [saved, setSaved] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -266,41 +260,28 @@ function BusinessProfile() {
                 ))}
               </dl>
 
-              {/* Primary action */}
-              <div className="mt-5 grid gap-2 sm:flex sm:items-center">
-                <Button asChild size="lg" className="sm:min-w-48">
-                  <Link href={`/enquiry/new?business=${business._id || business.slug}`}>
-                    <Send className="h-4 w-4" /> Send enquiry
-                  </Link>
+              {/* Profile actions */}
+              <div className="mt-5 flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={handleToggleSave}
+                  aria-pressed={saved}
+                  className="gap-2"
+                >
+                  <Bookmark className={cn("h-4 w-4", saved && "fill-primary text-primary")} />
+                  {saved ? "Saved" : "Save"}
                 </Button>
-                {!isMyOwnBusiness && (
-                  <Button asChild size="lg" variant="secondary" className="gap-2">
-                    <Link href={messageUrl}>
-                      <MessageSquare className="h-4 w-4" /> Message
-                    </Link>
-                  </Button>
-                )}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={handleToggleSave}
-                    aria-pressed={saved}
-                    className="flex-1 sm:flex-none"
-                  >
-                    <Bookmark className={cn("h-4 w-4", saved && "fill-primary text-primary")} />
-                    {saved ? "Saved" : "Save"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShareOpen(true)}
-                    aria-label="Share business profile"
-                    title="Share business profile"
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => setShareOpen(true)}
+                  aria-label="Share business profile"
+                  title="Share business profile"
+                  className="gap-2"
+                >
+                  <Share2 className="h-4 w-4" /> Share
+                </Button>
               </div>
             </div>
 
@@ -365,11 +346,6 @@ function BusinessProfile() {
                           <p className="mt-2 text-sm font-semibold">{p.name}</p>
                           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
                           <p className="mt-2 text-xs font-medium text-foreground">{p.price || "On Request"}</p>
-                          <Button asChild size="sm" variant="outline" className="mt-3">
-                            <Link href={`/enquiry/new?category=${encodeURIComponent(p.category)}`}>
-                              Enquire
-                            </Link>
-                          </Button>
                         </li>
                       ))}
                     </ul>
@@ -402,11 +378,6 @@ function BusinessProfile() {
                           )}
                           <p className="mt-2 text-sm font-semibold">{s.name}</p>
                           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{s.description}</p>
-                          <Button asChild size="sm" variant="outline" className="mt-3">
-                            <Link href={`/enquiry/new?category=${encodeURIComponent(s.category)}`}>
-                              Enquire
-                            </Link>
-                          </Button>
                         </li>
                       ))}
                     </ul>
@@ -663,26 +634,6 @@ function BusinessProfile() {
                   <span className="font-medium">{business.founded || "2020"}</span>
                 </li>
               </ul>
-            </Panel>
-            <Panel title="Response profile">
-              <ul className="space-y-2.5 text-sm">
-                <li className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Typical response</span>
-                  <span className="font-medium">Within 1 working day</span>
-                </li>
-              </ul>
-              <Button asChild className="mt-4 w-full">
-                <Link href={`/enquiry/new?business=${business._id || business.slug}`}>
-                  Send enquiry
-                </Link>
-              </Button>
-              {!isMyOwnBusiness && (
-                <Button asChild variant="outline" className="mt-2 w-full gap-2">
-                  <Link href={messageUrl}>
-                    <MessageSquare className="h-4 w-4" /> Message directly
-                  </Link>
-                </Button>
-              )}
             </Panel>
           </aside>
         </div>

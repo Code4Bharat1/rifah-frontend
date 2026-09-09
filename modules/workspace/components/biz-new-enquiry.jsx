@@ -34,6 +34,29 @@ import {
 } from "@shared/hooks/use-rifah-api";
 import { enquiryApi } from "@shared/lib/api-services";
 
+const B2B_CATEGORIES = [
+  "Industrial Machinery & Tools",
+  "IT & Software Services",
+  "Building, Construction & Real Estate",
+  "Textiles, Garments & Apparel",
+  "Healthcare & Pharmaceuticals",
+  "Food Products & Agro Commodities",
+  "Logistics, Freight & Supply Chain",
+  "Electrical, Electronics & Solar",
+  "Chemicals, Plastics & Packaging",
+  "Financial, Legal & Advisory Services",
+  "Automotive, Parts & Spares",
+  "Wholesale & Retail Merchandise",
+  "Education, EdTech & Corporate Training",
+  "Printing, Paper & Publishing",
+  "Facility Management, Security & Cleaning",
+  "Manufacturing & Engineering",
+  "Agriculture & Farming",
+  "Renewable Energy & Environment",
+  "Hospitality & Tourism",
+  "Import & Export Services",
+];
+
 export function BizNewEnquiry() {
   const router = useRouter();
 
@@ -69,10 +92,13 @@ export function BizNewEnquiry() {
   const chapters = Array.isArray(chaptersData)
     ? chaptersData
     : chaptersData?.chapters || [];
-  const categories = Array.isArray(categoriesData)
+  const rawCategories = Array.isArray(categoriesData)
     ? categoriesData
     : categoriesData?.categories || [];
-  
+  const categories = rawCategories.length > 0
+    ? rawCategories
+    : B2B_CATEGORIES.map((c) => ({ name: c, _id: c }));
+
   // Filter out current business so user doesn't target themselves
   const allBusinesses = Array.isArray(businessesData)
     ? businessesData
@@ -229,11 +255,10 @@ export function BizNewEnquiry() {
               <button
                 type="button"
                 onClick={() => setTargetType("all")}
-                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
-                  targetType === "all"
+                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "all"
                     ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                     : "border-border hover:border-muted-foreground/30"
-                }`}
+                  }`}
               >
                 <div className="flex w-full items-center justify-between">
                   <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -253,11 +278,10 @@ export function BizNewEnquiry() {
               <button
                 type="button"
                 onClick={() => setTargetType("chamber")}
-                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
-                  targetType === "chamber"
+                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "chamber"
                     ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                     : "border-border hover:border-muted-foreground/30"
-                }`}
+                  }`}
               >
                 <div className="flex w-full items-center justify-between">
                   <div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -277,11 +301,10 @@ export function BizNewEnquiry() {
               <button
                 type="button"
                 onClick={() => setTargetType("business")}
-                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
-                  targetType === "business"
+                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "business"
                     ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                     : "border-border hover:border-muted-foreground/30"
-                }`}
+                  }`}
               >
                 <div className="flex w-full items-center justify-between">
                   <div className="grid h-9 w-9 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">

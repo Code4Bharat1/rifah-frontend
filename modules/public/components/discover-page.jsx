@@ -41,8 +41,8 @@ function DiscoverPage() {
   const chaptersList = Array.isArray(chaptersData?.chapters)
     ? chaptersData.chapters
     : Array.isArray(chaptersData)
-    ? chaptersData
-    : [];
+      ? chaptersData
+      : [];
 
   const { data: categoriesData } = useCategories();
   const categories = Array.isArray(categoriesData) ? categoriesData : [];

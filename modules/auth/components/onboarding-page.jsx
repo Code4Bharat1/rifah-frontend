@@ -319,11 +319,10 @@ export function OnboardingPage() {
                   setRole("business_owner");
                   setError("");
                 }}
-                className={`flex flex-col text-left p-4 rounded-xl border transition-all ${
-                  role === "business_owner"
+                className={`flex flex-col text-left p-4 rounded-xl border transition-all ${role === "business_owner"
                     ? "border-primary bg-primary-soft/40 shadow-xs ring-2 ring-primary/20"
                     : "border-border bg-surface hover:border-primary/40 hover:bg-muted/30"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between w-full">
                   <span className="grid h-10 w-10 place-items-center rounded-lg bg-primary-soft text-primary">
@@ -343,11 +342,10 @@ export function OnboardingPage() {
                   setRole("customer");
                   setError("");
                 }}
-                className={`flex flex-col text-left p-4 rounded-xl border transition-all ${
-                  role === "customer"
+                className={`flex flex-col text-left p-4 rounded-xl border transition-all ${role === "customer"
                     ? "border-primary bg-primary-soft/40 shadow-xs ring-2 ring-primary/20"
                     : "border-border bg-surface hover:border-primary/40 hover:bg-muted/30"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between w-full">
                   <span className="grid h-10 w-10 place-items-center rounded-lg bg-primary-soft text-primary">

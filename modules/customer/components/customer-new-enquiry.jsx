@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Building2,
   CheckCircle2,
   Globe,
   Loader2,
@@ -27,7 +26,6 @@ import {
   SelectValue,
 } from "@shared/components/ui/select";
 import {
-  useBusinesses,
   useCategories,
   useChapters,
 } from "@shared/hooks/use-rifah-api";
@@ -36,10 +34,9 @@ import { enquiryApi } from "@shared/lib/api-services";
 export function CustomerNewEnquiry() {
   const router = useRouter();
 
-  // Targeting options
-  const [targetType, setTargetType] = useState("all"); // 'all' | 'chamber' | 'business'
+  // Sourcing scope options
+  const [targetType, setTargetType] = useState("all"); // 'all' | 'chamber'
   const [selectedChapter, setSelectedChapter] = useState("");
-  const [selectedBusiness, setSelectedBusiness] = useState("");
 
   // Requirement form data
   const [formData, setFormData] = useState({
@@ -59,10 +56,6 @@ export function CustomerNewEnquiry() {
   // Queries for dynamic dropdowns
   const { data: chaptersData, isLoading: loadingChapters } = useChapters();
   const { data: categoriesData } = useCategories();
-  const { data: businessesData, isLoading: loadingBusinesses } = useBusinesses({
-    status: "Live",
-    limit: 100,
-  });
 
   const chapters = Array.isArray(chaptersData)
     ? chaptersData
@@ -70,9 +63,6 @@ export function CustomerNewEnquiry() {
   const categories = Array.isArray(categoriesData)
     ? categoriesData
     : categoriesData?.categories || [];
-  const businesses = Array.isArray(businessesData)
-    ? businessesData
-    : businessesData?.businesses || [];
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -113,11 +103,6 @@ export function CustomerNewEnquiry() {
       return;
     }
 
-    if (targetType === "business" && !selectedBusiness) {
-      setError("Please select a target business.");
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -129,9 +114,8 @@ export function CustomerNewEnquiry() {
         location: formData.location.trim(),
         requiredBy: formData.requiredBy,
         description: formData.description.trim(),
-        targetType,
+        targetType: targetType === "chamber" ? "chamber" : "all",
         ...(targetType === "chamber" ? { chapter: selectedChapter } : {}),
-        ...(targetType === "business" ? { targetBusiness: selectedBusiness } : {}),
       };
 
       const res = await enquiryApi.create(payload);
@@ -156,12 +140,10 @@ export function CustomerNewEnquiry() {
           <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
             <CheckCircle2 className="h-9 w-9" />
           </span>
-          <h2 className="mt-4 text-2xl font-bold tracking-tight">Requirement Posted!</h2>
+          <h2 className="mt-4 text-2xl font-bold tracking-tight">Requirement Submitted!</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your enquiry <span className="font-semibold text-foreground">{createdRef}</span> has been successfully recorded
-            {targetType === "all" && " and broadcast directly to verified businesses in the RIFAH Chamber network."}
-            {targetType === "chamber" && ` and routed directly to verified businesses in ${selectedChapter}.`}
-            {targetType === "business" && " and sent directly to the selected vendor."}
+            Your enquiry <span className="font-semibold text-foreground">{createdRef}</span> has been successfully recorded and submitted to the RIFAH Chamber administration.
+            Our team will review your requirement and route it to matching verified businesses, who will review your specifications and submit quotations.
           </p>
 
           <div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -181,7 +163,6 @@ export function CustomerNewEnquiry() {
                   location: "",
                   description: "",
                 });
-                setSelectedBusiness("");
               }}
             >
               Post Another Requirement
@@ -196,7 +177,7 @@ export function CustomerNewEnquiry() {
     <AppShell
       role="customer"
       title="Post Requirement"
-      subtitle="Broadcast your sourcing need to RIFAH members or request quotes directly"
+      subtitle="Submit your sourcing requirement to the RIFAH Chamber network for admin review and verified business routing"
       actions={
         <Button variant="outline" size="sm" asChild>
           <Link href="/me/enquiries" className="flex items-center gap-1.5">
@@ -213,22 +194,21 @@ export function CustomerNewEnquiry() {
           </div>
         )}
 
-        {/* SECTION 1: Target Audience Selection */}
+        {/* SECTION 1: Target Sourcing Scope */}
         <Panel
-          title="1. Target Audience & Distribution"
-          subtitle="Choose how your requirement should be routed directly across the network"
+          title="1. Sourcing Scope & Coverage"
+          subtitle="Select regional preferences for your requirement (Admin will route to matching businesses)"
         >
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {/* Option 1: All Businesses */}
               <button
                 type="button"
                 onClick={() => setTargetType("all")}
-                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
-                  targetType === "all"
+                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "all"
                     ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                     : "border-border hover:border-muted-foreground/30"
-                }`}
+                  }`}
               >
                 <div className="flex w-full items-center justify-between">
                   <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -238,9 +218,9 @@ export function CustomerNewEnquiry() {
                     Pan-Chamber
                   </span>
                 </div>
-                <h4 className="mt-3 text-sm font-semibold text-foreground">All Businesses</h4>
+                <h4 className="mt-3 text-sm font-semibold text-foreground">All Verified Businesses</h4>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Broadcast directly across the entire RIFAH Chamber network in India.
+                  Allow the Chamber admin to route this to verified businesses across all active chapters in India.
                 </p>
               </button>
 
@@ -248,47 +228,22 @@ export function CustomerNewEnquiry() {
               <button
                 type="button"
                 onClick={() => setTargetType("chamber")}
-                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
-                  targetType === "chamber"
+                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "chamber"
                     ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                     : "border-border hover:border-muted-foreground/30"
-                }`}
+                  }`}
               >
                 <div className="flex w-full items-center justify-between">
                   <div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                     <MapPin className="h-5 w-5" />
                   </div>
                   <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
-                    City Chapter
+                    Regional Chapter
                   </span>
                 </div>
-                <h4 className="mt-3 text-sm font-semibold text-foreground">Chamber Specific</h4>
+                <h4 className="mt-3 text-sm font-semibold text-foreground">Specific City Chapter</h4>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Target verified businesses in a specific chapter/city.
-                </p>
-              </button>
-
-              {/* Option 3: Specific Business */}
-              <button
-                type="button"
-                onClick={() => setTargetType("business")}
-                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
-                  targetType === "business"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                    : "border-border hover:border-muted-foreground/30"
-                }`}
-              >
-                <div className="flex w-full items-center justify-between">
-                  <div className="grid h-9 w-9 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                    <Building2 className="h-5 w-5" />
-                  </div>
-                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                    Direct
-                  </span>
-                </div>
-                <h4 className="mt-3 text-sm font-semibold text-foreground">Specific Business</h4>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Send directly to one selected member vendor.
+                  Focus admin routing on verified member businesses within a specific city/chapter.
                 </p>
               </button>
             </div>
@@ -297,10 +252,10 @@ export function CustomerNewEnquiry() {
             {targetType === "chamber" && (
               <div className="rounded-xl border border-border bg-surface-raised p-4">
                 <Label htmlFor="chamber-select" className="text-sm font-semibold">
-                  Select Target Chapter / Chamber *
+                  Select Preferred Chapter / City *
                 </Label>
                 <p className="mb-2 text-xs text-muted-foreground">
-                  All verified businesses in this chapter will receive your requirement.
+                  Admin will match and route your requirement to businesses in this chapter.
                 </p>
                 <Select
                   value={selectedChapter}
@@ -314,34 +269,6 @@ export function CustomerNewEnquiry() {
                     {chapters.map((ch) => (
                       <SelectItem key={ch._id || ch.name} value={ch.name}>
                         {ch.name} {ch.city ? `(${ch.city})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Conditional Dropdown: Specific Business */}
-            {targetType === "business" && (
-              <div className="rounded-xl border border-border bg-surface-raised p-4">
-                <Label htmlFor="business-select" className="text-sm font-semibold">
-                  Select Target Business *
-                </Label>
-                <p className="mb-2 text-xs text-muted-foreground">
-                  Choose the registered vendor to send this direct enquiry to.
-                </p>
-                <Select
-                  value={selectedBusiness}
-                  onValueChange={setSelectedBusiness}
-                  disabled={loadingBusinesses}
-                >
-                  <SelectTrigger id="business-select" className="w-full">
-                    <SelectValue placeholder={loadingBusinesses ? "Loading businesses..." : "Search and select a business..."} />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {businesses.map((biz) => (
-                      <SelectItem key={biz._id} value={biz._id}>
-                        {biz.name} {biz.chapter ? `· ${biz.chapter}` : ""} {biz.category ? `(${biz.category})` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>

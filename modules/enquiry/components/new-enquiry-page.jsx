@@ -1,10 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Info, Send, Loader2, AlertCircle } from "lucide-react";
+import { CheckCircle2, Send, Loader2, AlertCircle } from "lucide-react";
 import { useState } from "react";
 
-import { VerificationBadge } from "@shared/components/rifah/badges";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
@@ -22,7 +21,7 @@ import {
 } from "@shared/components/ui/select";
 import { Textarea } from "@shared/components/ui/textarea";
 import { cities, industries } from "@shared/lib/mock-data";
-import { useBusinessDetail, useCategories } from "@shared/hooks/use-rifah-api";
+import { useCategories } from "@shared/hooks/use-rifah-api";
 import { enquiryApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 
@@ -31,14 +30,12 @@ const steps = ["Requirement", "Details", "Contact", "Review"];
 function NewEnquiry() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const businessParam = searchParams?.get("business") || "";
   const categoryParam = searchParams?.get("category") || "";
 
   const { user } = useAuth();
-  const { data: targetBusiness } = useBusinessDetail(businessParam !== "custom" ? businessParam : "");
   const { data: categoriesData } = useCategories();
   const categories = Array.isArray(categoriesData) ? categoriesData : [];
-  
+
   const mainCategories = categories.filter(c => !c.parent);
   const subCategories = categories.filter(c => c.parent);
 
@@ -76,7 +73,6 @@ function NewEnquiry() {
         buyerName: formData.buyerName || user?.name || "Buyer",
         buyerEmail: formData.buyerEmail || user?.email || "buyer@example.com",
         buyerPhone: formData.buyerPhone,
-        targetBusiness: targetBusiness?._id || undefined,
       });
       setCreatedEnquiry(res?.data);
     } catch (err) {
@@ -96,7 +92,7 @@ function NewEnquiry() {
             </span>
             <h1 className="mt-4 text-xl font-bold tracking-tight">Enquiry submitted</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Your sourcing requirement has been recorded in the chamber network. Matched verified members will review and quote.
+              Your sourcing requirement has been recorded in the RIFAH Chamber network. Administration will review and route it to verified member businesses to provide quotations.
             </p>
             <div className="mt-6 grid gap-2">
               <Button asChild>
@@ -118,23 +114,8 @@ function NewEnquiry() {
         <div className="mx-auto max-w-2xl">
           <SectionHeader
             title="Post a sourcing enquiry"
-            description="RIFAH matches your requirement to member businesses by category, capability and region."
+            description="RIFAH administration reviews and routes your requirement to verified member businesses by category, capability and region."
           />
-
-          {targetBusiness && (
-            <div className="mt-4 flex items-start gap-3 rounded-2xl border border-primary/30 bg-primary-soft p-4">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <div className="min-w-0 text-sm">
-                <p className="font-semibold">Directed to {targetBusiness.name}</p>
-                <p className="mt-0.5 text-muted-foreground">
-                  {targetBusiness.industry} · {targetBusiness.city}
-                </p>
-                <div className="mt-1.5">
-                  <VerificationBadge status={targetBusiness.verification} compact />
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="mt-5">
             <Steps steps={steps} current={step} />
@@ -330,7 +311,7 @@ function NewEnquiry() {
                     ["Quantity", formData.quantity],
                     ["Budget", formData.budget || "Not specified"],
                     ["Delivery location", formData.city],
-                    ["Directed to", targetBusiness ? targetBusiness.name : "All matching members"],
+                    ["Routing Scope", "RIFAH Chamber Network (Admin Routed)"],
                   ].map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between gap-3 py-2.5">
                       <dt className="text-muted-foreground">{k}</dt>

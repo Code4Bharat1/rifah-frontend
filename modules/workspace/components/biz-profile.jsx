@@ -23,14 +23,44 @@ import {
 import { useMyBusiness, useCategories } from "@shared/hooks/use-rifah-api";
 import { businessApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
+import { useQueryClient } from "@tanstack/react-query";
+
+const B2B_INDUSTRIES = [
+  "Industrial Machinery & Tools",
+  "IT & Software Services",
+  "Building, Construction & Real Estate",
+  "Textiles, Garments & Apparel",
+  "Healthcare & Pharmaceuticals",
+  "Food Products & Agro Commodities",
+  "Logistics, Freight & Supply Chain",
+  "Electrical, Electronics & Solar",
+  "Chemicals, Plastics & Packaging",
+  "Financial, Legal & Advisory Services",
+  "Automotive, Parts & Spares",
+  "Wholesale & Retail Merchandise",
+  "Education, EdTech & Corporate Training",
+  "Printing, Paper & Publishing",
+  "Facility Management, Security & Cleaning",
+  "Manufacturing & Engineering",
+  "Agriculture & Farming",
+  "Renewable Energy & Environment",
+  "Hospitality & Tourism",
+  "Import & Export Services",
+];
 
 function BizProfile() {
+  const queryClient = useQueryClient();
   const { data: business, refetch } = useMyBusiness();
   const { data: categoriesData } = useCategories();
-  
-  const categories = Array.isArray(categoriesData) ? categoriesData : [];
-  const mainCategories = categories.filter(c => !c.parent);
-  const subCategories = categories.filter(c => c.parent);
+
+  const rawCategories = Array.isArray(categoriesData)
+    ? categoriesData
+    : categoriesData?.categories || [];
+  const categories = rawCategories.length > 0
+    ? rawCategories
+    : B2B_INDUSTRIES.map((c) => ({ name: c, _id: c, parent: "" }));
+  const mainCategories = categories.filter((c) => !c.parent);
+  const subCategories = categories.filter((c) => c.parent);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -58,7 +88,7 @@ function BizProfile() {
       setFormData({
         name: business.name || "",
         tagline: business.tagline || "",
-        industry: business.industry || "",
+        industry: business.industry || business.categories?.[0] || business.category || "",
         city: business.city || "",
         state: business.state || "",
         address: business.address || "",
@@ -76,17 +106,30 @@ function BizProfile() {
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = {
+        ...formData,
+        categories: formData.industry ? [formData.industry] : [],
+      };
+
       if (business?._id) {
-        await businessApi.update(business._id, formData);
+        await businessApi.update(business._id, payload);
       } else {
-        await businessApi.create({
-          ...formData,
-          industry: formData.industry || "General",
-          city: formData.city || "Mumbai",
-          state: formData.state || "Maharashtra",
-        });
+        try {
+          await businessApi.create(payload);
+        } catch (createErr) {
+          // If a business document already exists (e.g. from checkout auto-creation), fetch and update it
+          const freshRes = await businessApi.getMyBusiness();
+          const freshBiz = freshRes?.data || freshRes;
+          if (freshBiz?._id) {
+            await businessApi.update(freshBiz._id, payload);
+          } else {
+            throw createErr;
+          }
+        }
       }
       await refetch();
+      queryClient.invalidateQueries({ queryKey: ["my-business"] });
+      queryClient.invalidateQueries({ queryKey: ["businesses"] });
       setSaveSuccess(true);
       toast.success("Business profile saved successfully!");
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -257,24 +300,37 @@ function BizProfile() {
                   <SelectTrigger id="biz-industry" className="h-11">
                     <SelectValue placeholder="Select industry" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-60">
+                    {formData.industry &&
+                      !categories.some((c) => c.name === formData.industry) &&
+                      !B2B_INDUSTRIES.includes(formData.industry) && (
+                        <SelectItem value={formData.industry}>{formData.industry}</SelectItem>
+                      )}
                     {mainCategories.length > 0 ? (
                       <>
-                        {mainCategories.map(mc => {
-                          const subs = subCategories.filter(sc => sc.parent === mc.name);
-                          return (
+                        {mainCategories.map((mc) => {
+                          const subs = subCategories.filter((sc) => sc.parent === mc.name);
+                          return subs.length > 0 ? (
                             <SelectGroup key={mc.name}>
                               <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
                               <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
-                              {subs.map(sc => (
+                              {subs.map((sc) => (
                                 <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
                               ))}
                             </SelectGroup>
+                          ) : (
+                            <SelectItem key={mc._id || mc.name} value={mc.name}>
+                              {mc.name}
+                            </SelectItem>
                           );
                         })}
                       </>
                     ) : (
-                      <SelectItem value={formData.industry || "General"}>{formData.industry || "General"}</SelectItem>
+                      <>
+                        {B2B_INDUSTRIES.map((ind) => (
+                          <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                        ))}
+                      </>
                     )}
                   </SelectContent>
                 </Select>
@@ -285,6 +341,17 @@ function BizProfile() {
                   id="biz-city"
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="e.g. Ahmedabad, Delhi, Bangalore"
+                  className="h-11"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="biz-state">State</Label>
+                <Input
+                  id="biz-state"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  placeholder="e.g. Gujarat, Delhi, Karnataka"
                   className="h-11"
                 />
               </div>
