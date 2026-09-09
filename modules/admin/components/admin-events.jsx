@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Plus, Loader2, MoreHorizontal } from "lucide-react";
+import { CalendarDays, Plus, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, LayoutGrid, List } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -28,6 +28,80 @@ import { eventApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { EventRegistrationsModal } from "./event-registrations-modal";
 
+function CalendarView({ events, onEventClick }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+
+  const days = [];
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    days.push(null);
+  }
+  for (let i = 1; i <= daysInMonth; i++) {
+    days.push(new Date(year, month, i));
+  }
+
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+      <div className="flex items-center justify-between p-4 border-b">
+        <h3 className="font-semibold text-lg">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+        <div className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={prevMonth}><ChevronLeft className="h-4 w-4" /></Button>
+          <Button variant="outline" size="icon" onClick={nextMonth}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-7 border-b bg-muted/30">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+          <div key={d} className="p-3 text-center text-sm font-medium text-muted-foreground">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {days.map((date, i) => {
+          if (!date) return <div key={`empty-${i}`} className="min-h-[120px] border-b border-r bg-muted/5" />;
+          
+          const dateStr = date.toISOString().split("T")[0];
+          const dayEvents = events.filter(e => {
+            const eDate = e.status === "Scheduled" && e.scheduledAt ? new Date(e.scheduledAt).toISOString().split("T")[0] : e.date;
+            return eDate === dateStr;
+          });
+
+          return (
+            <div key={dateStr} className="min-h-[120px] p-2 border-b border-r bg-white hover:bg-muted/10 transition-colors">
+              <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${dateStr === new Date().toISOString().split("T")[0] ? 'bg-primary text-primary-foreground' : 'text-foreground'}`}>
+                {date.getDate()}
+              </span>
+              <div className="mt-2 space-y-1.5 max-h-[80px] overflow-y-auto">
+                {dayEvents.map(e => (
+                  <div 
+                    key={e._id} 
+                    onClick={() => onEventClick(e)}
+                    className="text-xs truncate px-2 py-1 rounded bg-primary/10 text-primary cursor-pointer hover:bg-primary/20"
+                    title={e.title}
+                  >
+                    {e.status === "Scheduled" && e.scheduledAt ? (
+                      <span className="font-semibold mr-1">{new Date(e.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    ) : (
+                      <span className="font-semibold mr-1">{e.time && e.time.split(' ')[0]}</span>
+                    )}
+                    {e.title}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AdminEvents() {
   const router = useRouter();
   const { user } = useAuth();
@@ -36,6 +110,7 @@ function AdminEvents() {
   const events = Array.isArray(eventsData) ? eventsData : [];
 
   const [filterMode, setFilterMode] = useState("all");
+  const [viewMode, setViewMode] = useState("table");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -47,6 +122,7 @@ function AdminEvents() {
   const inPersonCount = events.filter((e) => e.mode === "In-person").length;
   const onlineCount = events.filter((e) => e.mode === "Online").length;
   const pendingCount = events.filter((e) => e.status === "Pending Approval").length;
+  const scheduledCount = events.filter((e) => e.status === "Scheduled").length;
 
   let displayEvents = events;
   if (filterMode === "upcoming") {
@@ -61,8 +137,9 @@ function AdminEvents() {
     displayEvents = events.filter((e) => e.mode === "Online");
   } else if (filterMode === "Pending") {
     displayEvents = events.filter((e) => e.status === "Pending Approval");
+  } else if (filterMode === "Scheduled") {
+    displayEvents = events.filter((e) => e.status === "Scheduled");
   }
-
 
   const [deleteId, setDeleteId] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -100,7 +177,7 @@ function AdminEvents() {
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
           <button type="button" onClick={() => setFilterMode("all")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
             <StatCard label="All Events" value={String(totalCount)} icon={CalendarDays} tone="primary" />
           </button>
@@ -116,9 +193,28 @@ function AdminEvents() {
           <button type="button" onClick={() => setFilterMode("Pending")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Pending" ? "ring-2 ring-warning ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
             <StatCard label="Pending Approval" value={String(pendingCount)} tone="warning" />
           </button>
+          <button type="button" onClick={() => setFilterMode("Scheduled")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Scheduled" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Scheduled" value={String(scheduledCount)} tone="primary" />
+          </button>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xl font-semibold tracking-tight">
+            {filterMode === "today" ? "Today's Events" : filterMode === "upcoming" ? "Upcoming Events" : filterMode === "past" ? "Past Events" : filterMode === "Scheduled" ? "Scheduled Events" : "All Events"}
+          </h2>
+          <div className="bg-muted p-1 flex items-center gap-1 rounded-lg">
+            <button onClick={() => setViewMode("table")} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === "table" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              <List className="w-4 h-4 inline-block mr-1.5 align-text-bottom" /> Table
+            </button>
+            <button onClick={() => setViewMode("calendar")} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === "calendar" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              <CalendarDays className="w-4 h-4 inline-block mr-1.5 align-text-bottom" /> Calendar
+            </button>
+          </div>
         </div>
 
-        <Panel title={filterMode === "today" ? "Today's Events" : filterMode === "upcoming" ? "Upcoming Events" : filterMode === "past" ? "Past Events" : "All Events"}>
+        {viewMode === "calendar" ? (
+          <CalendarView events={displayEvents} onEventClick={(e) => router.push(`/admin/events/${e._id}`)} />
+        ) : (
+        <Panel>
           <ResponsiveTable
             rows={displayEvents}
             onRowClick={(r) => router.push(`/admin/events/${r._id}`)}
@@ -144,6 +240,19 @@ function AdminEvents() {
               },
               { key: "date", header: "Date", cell: (r) => {
                   const isToday = r.date === today;
+                  if (r.status === "Scheduled" && r.scheduledAt) {
+                    const d = new Date(r.scheduledAt);
+                    return (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium text-primary">
+                          Publishes: {d.toLocaleDateString()} · {d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Event: {new Date(r.date).toLocaleDateString()} · {r.time}
+                        </span>
+                      </div>
+                    );
+                  }
                   return (
                     <span className={isToday ? "font-bold text-emerald-600" : ""}>
                       {new Date(r.date).toLocaleDateString()} · {r.time}
@@ -235,6 +344,7 @@ function AdminEvents() {
             )}
           />
         </Panel>
+        )}
       </div>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
