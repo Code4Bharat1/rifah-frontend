@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import {
   Bell,
   Bookmark,
@@ -168,10 +169,16 @@ export function AppShell({
 }) {
   const path = useCurrentPath();
   const router = useRouter();
-  const { user, logout, switchRole } = useAuth();
+  const { user, logout, switchRole, loading } = useAuth();
   const nav = navs[role];
   const { getPath } = useDynamicNav(role);
   const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more].map(i => ({ ...i, to: getPath(i.to) }));
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push(`/login?redirect=${encodeURIComponent(path)}`);
+    }
+  }, [user, loading, path, router]);
 
   const { data: notificationsData } = useNotifications();
   const { data: conversationsData } = useConversations();

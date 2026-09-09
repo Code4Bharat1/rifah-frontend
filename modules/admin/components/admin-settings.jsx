@@ -63,9 +63,8 @@ const togglesTemplate = [
   { key: "autoRouteLeadsByCategory", title: "Auto-route leads by category", desc: "Match new enquiries to members automatically", defaultOn: true },
 ];
 
-function AdminSettings() {
-  const { data: globalSettings, refetch } = useSettings();
-  const settings = globalSettings || {};
+export function AdminSettings() {
+  const { data: globalSettings, refetch, isLoading } = useSettings();
   
   const [chamberDetails, setChamberDetails] = useState({
     organisationName: "RIFAH Chamber of Commerce & Industries",
@@ -115,7 +114,7 @@ function AdminSettings() {
       });
     }
   }, [globalSettings]);
-  
+
   const handleToggleClick = (key, value, title) => {
     setConfirmModal({ open: true, key, value, title });
   };
@@ -170,8 +169,14 @@ function AdminSettings() {
   return (
     <AppShell role="admin" title="Settings and modules" subtitle="Platform configuration for the secretariat">
       <div className="space-y-4">
+        {isLoading && !globalSettings && (
+          <div className="p-4 flex items-center justify-center bg-blue-50/50 rounded-lg text-sm text-blue-600 mb-4">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+            Loading settings from server...
+          </div>
+        )}
         <Panel title="All admin modules">
-          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {modules.map((m) => (
               <Button key={m.to} asChild variant="outline" className="h-auto justify-start gap-3 px-3.5 py-3">
                 <Link href={m.to}>

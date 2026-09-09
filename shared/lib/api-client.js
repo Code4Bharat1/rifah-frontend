@@ -131,8 +131,8 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
         (p) => currentPath === p || (p !== "/" && currentPath.startsWith(p))
       );
 
-      // Only redirect to /login if user had a previous session and is on a protected path (e.g. /biz, /admin, /me)
-      if (hadToken && !isPublicPath) {
+      // Redirect to /login if user is on a protected path (e.g. /biz, /admin, /me)
+      if (!isPublicPath) {
         window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
       }
     }

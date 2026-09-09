@@ -259,6 +259,6 @@ export const auditApi = {
 };
 
 export const settingsApi = {
-  get: () => apiClient("/settings"),
+  get: () => apiClient("/settings", { cache: "no-store" }),
   update: (data) => apiClient("/settings", { method: "PATCH", body: JSON.stringify(data) }),
 };
