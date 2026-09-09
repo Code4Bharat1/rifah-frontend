@@ -196,7 +196,6 @@ function AdminEnquiries() {
               { key: "buyer", header: "BUYER", cell: (r) => r.requesterName || r.buyerName || "Registered Buyer" },
               { key: "city", header: "LOCATION", cell: (r) => r.city || r.location },
               { key: "status", header: "STATUS", cell: (r) => <StatusBadge status={r.status} /> },
-              { key: "assignedTo", header: "ASSIGNED TO", cell: (r) => r.assignedTo ? <span className="text-sm font-medium">{r.assignedTo.name}</span> : <span className="text-xs text-muted-foreground italic">Unassigned</span> },
               { key: "responses", header: "RESPONSES", cell: (r) => r.responses?.length || 0 },
               {
                 key: "action",
@@ -213,20 +212,6 @@ function AdminEnquiries() {
                       <DropdownMenuItem onClick={() => setSelectedEnquiry(r)}>
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      
-                      {/* Submenu-like approach or direct map for assigning */}
-                      <DropdownMenuLabel>Assign To</DropdownMenuLabel>
-                      {adminUsers.length > 0 ? (
-                        adminUsers.slice(0, 5).map(u => (
-                          <DropdownMenuItem key={u._id} onClick={() => handleAssign(r._id, u._id)} disabled={r.assignedTo?._id === u._id}>
-                            {r.assignedTo?._id === u._id ? "✓ " : ""}Assign to {u.name}
-                          </DropdownMenuItem>
-                        ))
-                      ) : (
-                        <DropdownMenuItem disabled>No admins available</DropdownMenuItem>
-                      )}
-
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel>Update Status</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "New")} disabled={r.status === "New"}>
