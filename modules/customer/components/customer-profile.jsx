@@ -27,7 +27,9 @@ import {
   Camera,
   Pencil,
   AlertTriangle,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 function ProfilePage() {
   const router = useRouter();
@@ -110,6 +112,20 @@ function ProfilePage() {
     } finally {
       setAvatarLoading(false);
       if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleDeleteAvatar = async () => {
+    setAvatarLoading(true);
+    try {
+      await userApi.updateProfile({ avatar: "" });
+      if (typeof refreshProfile === "function") await refreshProfile();
+      else if (typeof refreshUser === "function") await refreshUser();
+      toast.success("Profile photo removed successfully.");
+    } catch (err) {
+      toast.error(err.message || "Failed to remove profile photo.");
+    } finally {
+      setAvatarLoading(false);
     }
   };
 
@@ -238,25 +254,39 @@ function ProfilePage() {
                 )}
               </div>
 
-              {/* Camera Upload Button */}
-              <button
-                type="button"
-                onClick={handleAvatarClick}
-                disabled={avatarLoading}
-                className="absolute bottom-0 right-0 grid h-8 w-8 place-items-center rounded-full bg-primary text-white shadow-md hover:bg-primary/90 transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                title="Upload profile photo"
-                aria-label="Upload profile photo"
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/jpg"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
-            </div>
+                {/* Delete Avatar Button (appears on hover) */}
+                {user?.avatar && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteAvatar}
+                    disabled={avatarLoading}
+                    className="absolute -top-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-red-600 text-white shadow-md hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-105 cursor-pointer ring-2 ring-white z-10"
+                    title="Remove profile photo"
+                    aria-label="Remove profile photo"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+
+                {/* Camera Upload Button */}
+                <button
+                  type="button"
+                  onClick={handleAvatarClick}
+                  disabled={avatarLoading}
+                  className="absolute bottom-0 right-0 grid h-8 w-8 place-items-center rounded-full bg-primary text-white shadow-md hover:bg-primary/90 transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 z-10 cursor-pointer"
+                  title="Upload profile photo"
+                  aria-label="Upload profile photo"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </div>
 
             <div className="flex-1 text-center sm:text-left min-w-0 pt-1">
               <h3 className="text-lg sm:text-xl font-bold text-foreground truncate">

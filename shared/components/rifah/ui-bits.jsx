@@ -19,6 +19,9 @@ export function StatCard({
     brand: "bg-brand-soft text-brand",
     success: "bg-success-soft text-success",
     warning: "bg-warning-soft text-warning-foreground",
+    danger: "bg-destructive/10 text-destructive",
+    info: "bg-primary-soft text-primary",
+    neutral: "bg-muted text-muted-foreground",
   };
   const destination = href ?? to;
   const body = (
@@ -31,7 +34,7 @@ export function StatCard({
           </span>
         )}
       </div>
-      <p className="mt-2 text-2xl font-bold tracking-tight tabular-nums">{value}</p>
+      <p className="mt-2 text-2xl font-bold tracking-tight tabular-nums text-foreground">{value}</p>
       {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   );

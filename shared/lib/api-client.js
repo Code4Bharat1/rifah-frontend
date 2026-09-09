@@ -1,32 +1,45 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
-const SERVER_BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
+
+// Automatically determine backend root server URL from API_BASE_URL or env
+function getBackendServerBase() {
+  if (API_BASE_URL && (API_BASE_URL.startsWith("http://") || API_BASE_URL.startsWith("https://"))) {
+    try {
+      const u = new URL(API_BASE_URL);
+      return `${u.protocol}//${u.host}`;
+    } catch (e) {
+      // fallback
+    }
+  }
+  return process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
+}
+
+const SERVER_BASE_URL = getBackendServerBase();
 
 export function resolveMediaUrl(path) {
   if (!path || typeof path !== "string") return "";
 
-  // 1. Data URLs or local public images
-  if (path.startsWith("data:") || path.startsWith("/images/")) {
+  // 1. Data URLs, blobs, or local frontend public assets
+  if (path.startsWith("data:") || path.startsWith("blob:") || path.startsWith("/images/")) {
     return path;
   }
 
-  // 2. Cloudinary or other external remote URLs (already fully qualified https://)
-  if (path.startsWith("https://res.cloudinary.com") || (path.startsWith("https://") && !path.includes("localhost"))) {
+  // 2. Cloudinary CDN URLs (permanent global HTTPS)
+  if (path.startsWith("https://res.cloudinary.com") || path.startsWith("http://res.cloudinary.com")) {
     return path;
   }
 
-  // 3. If path contains hardcoded localhost:5000 from local development/database seeds, replace with live SERVER_BASE_URL
-  if (path.includes("localhost:5000")) {
-    const cleaned = path.replace(/http:\/\/localhost:5000\/?/, "");
-    const cleanSub = cleaned.startsWith("/") ? cleaned : `/${cleaned}`;
-    return `${SERVER_BASE_URL}${cleanSub}`;
+  // 3. If path contains /uploads/ (from local dev or any server domain), map cleanly to current active backend SERVER_BASE_URL
+  if (path.includes("/uploads/")) {
+    const relativePart = path.slice(path.indexOf("/uploads/"));
+    return `${SERVER_BASE_URL}${relativePart}`;
   }
 
-  // 4. Any other remote URL
+  // 4. Any other external remote URL (e.g. Google avatar, external CDN)
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
 
-  // 5. Relative paths (like uploads/... or /uploads/...)
+  // 5. Relative paths
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${SERVER_BASE_URL}${cleanPath}`;
 }

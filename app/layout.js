@@ -40,7 +40,7 @@ export default async function RootLayout({ children }) {
         <NextIntlClientProvider messages={messages} locale={locale}>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
-        
+
         {/* Google Translate Global Script */}
         <div id="google_translate_element" style={{ display: 'none' }}></div>
         <Script id="google-translate-init" strategy="beforeInteractive">
@@ -50,9 +50,9 @@ export default async function RootLayout({ children }) {
             }
           `}
         </Script>
-        <Script 
-          src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" 
-          strategy="afterInteractive" 
+        <Script
+          src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+          strategy="afterInteractive"
         />
       </body>
     </html>
