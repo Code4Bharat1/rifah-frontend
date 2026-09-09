@@ -71,7 +71,7 @@ const quickDemoLogins = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, switchRole } = useAuth();
   const t = useTranslations("Login");
 
   const [email, setEmail] = useState("");
@@ -97,6 +97,12 @@ export default function LoginPage() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState("");
+
+  // Role Selection Modal State
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState([]);
+  const [pendingUser, setPendingUser] = useState(null);
+  const [roleSwitchLoading, setRoleSwitchLoading] = useState(false);
 
   // Countdown timer for Step 2 OTP entry
   useEffect(() => {
@@ -180,22 +186,53 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const user = await login({ email, password });
-      if (user.requirePasswordReset) {
-        router.push("/change-password");
-      } else if (user.role === "business_owner") {
-        router.push("/biz");
-      } else if (user.role === "chapter_admin") {
-        const slug = user.chapter.toLowerCase().replace(/\s+/g, '-');
-        router.push(`/${slug}/admin`);
-      } else if (user.role === "super_admin" || user.role === "secretariat") {
-        router.push("/admin");
-      } else {
-        router.push("/me");
+      
+      if (user.requiresRoleSelection && user.availableRoles?.length > 1) {
+        setPendingUser(user);
+        setAvailableRoles(user.availableRoles);
+        setShowRoleModal(true);
+        setLoading(false);
+        return;
       }
+
+      navigateUser(user);
     } catch (err) {
       setError(err.message || "Failed to sign in. Please verify your credentials.");
     } finally {
-      setLoading(false);
+      if (!showRoleModal) setLoading(false);
+    }
+  };
+
+  const navigateUser = (user) => {
+    if (user.requirePasswordReset) {
+      router.push("/change-password");
+    } else if (user.role === "business_owner") {
+      router.push("/biz");
+    } else if (user.role === "chapter_admin") {
+      const slug = user.chapter.toLowerCase().replace(/\s+/g, '-');
+      router.push(`/${slug}/admin`);
+    } else if (user.role === "super_admin" || user.role === "secretariat") {
+      router.push("/admin");
+    } else {
+      router.push("/me");
+    }
+  };
+
+  const handleRoleSelect = async (selectedRole) => {
+    setRoleSwitchLoading(true);
+    try {
+      if (selectedRole === pendingUser.role) {
+        // Already active
+        navigateUser(pendingUser);
+      } else {
+        // Need to switch
+        const updatedUser = await switchRole(selectedRole);
+        navigateUser(updatedUser);
+      }
+    } catch (err) {
+      setError("Failed to switch role");
+    } finally {
+      setRoleSwitchLoading(false);
     }
   };
 
@@ -658,6 +695,42 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Role Selection Modal */}
+      <Dialog open={showRoleModal} onOpenChange={setShowRoleModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose your workspace</DialogTitle>
+            <DialogDescription>
+              Your account has multiple roles. Please select which workspace you'd like to log into.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {availableRoles.map((role) => (
+              <Button
+                key={role}
+                variant="outline"
+                className="justify-start h-14 text-left px-4 hover:border-primary hover:bg-primary/5"
+                disabled={roleSwitchLoading}
+                onClick={() => handleRoleSelect(role)}
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <div className="bg-primary/10 p-2 rounded-full">
+                    {role === "chapter_admin" ? <ShieldCheck className="h-5 w-5 text-primary" /> : <Building2 className="h-5 w-5 text-primary" />}
+                  </div>
+                  <div>
+                    <div className="font-semibold">{role === "chapter_admin" ? "Chapter Admin" : "Business Owner / Customer"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {role === "chapter_admin" ? "Manage your chapter" : "Manage your business profile"}
+                    </div>
+                  </div>
+                  {roleSwitchLoading && pendingUser?.role === role && <Loader2 className="h-4 w-4 animate-spin ml-auto" />}
+                </div>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Forgot Password Dialog */}
       <Dialog open={isForgotOpen} onOpenChange={setIsForgotOpen}>

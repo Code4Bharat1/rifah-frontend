@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Eye, FileBadge2, ImagePlus, Loader2, CheckCircle2, Trash2 } from "lucide-react";
+import { Eye, FileBadge2, ImagePlus, Loader2, CheckCircle2, Trash2, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -109,6 +109,17 @@ function BizProfile() {
     }
   };
 
+  const handleDeleteLogo = async () => {
+    if (!business?._id) return;
+    try {
+      await businessApi.update(business._id, { logo: "" });
+      toast.success("Logo removed successfully");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to remove logo.");
+    }
+  };
+
   const handleCoverUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !business?._id) return;
@@ -122,6 +133,17 @@ function BizProfile() {
     } finally {
       setUploadingCover(false);
       e.target.value = "";
+    }
+  };
+
+  const handleDeleteCover = async () => {
+    if (!business?._id) return;
+    try {
+      await businessApi.update(business._id, { coverImage: "" });
+      toast.success("Cover banner removed successfully");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to remove cover banner.");
     }
   };
 
@@ -140,6 +162,19 @@ function BizProfile() {
     }
   };
 
+  const handleDeleteGalleryImage = async (indexToDelete) => {
+    if (!business?._id) return;
+    try {
+      const currentGallery = Array.isArray(business.gallery) ? business.gallery : [];
+      const updatedGallery = currentGallery.filter((_, idx) => idx !== indexToDelete);
+      await businessApi.update(business._id, { gallery: updatedGallery });
+      toast.success("Photo removed from gallery");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete gallery image.");
+    }
+  };
+
   const handleCertificateUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !business?._id) return;
@@ -153,6 +188,19 @@ function BizProfile() {
     } finally {
       setUploadingCert(false);
       e.target.value = "";
+    }
+  };
+
+  const handleDeleteCertificate = async (indexToDelete) => {
+    if (!business?._id) return;
+    try {
+      const currentCerts = Array.isArray(business.certifications) ? business.certifications : [];
+      const updatedCerts = currentCerts.filter((_, idx) => idx !== indexToDelete);
+      await businessApi.update(business._id, { certifications: updatedCerts });
+      toast.success("Certificate removed successfully");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete certificate.");
     }
   };
 
@@ -284,12 +332,24 @@ function BizProfile() {
           <Panel title="Photo Gallery" description="Facility, workshop and machinery imagery">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {(business?.gallery || []).map((src, i) => (
-                <img
-                  key={i}
-                  src={resolveMediaUrl(src)}
-                  alt="Gallery"
-                  className="aspect-[4/3] w-full rounded-xl border border-border object-cover"
-                />
+                <div key={i} className="group relative aspect-[4/3] w-full rounded-xl border border-border overflow-hidden bg-slate-100 shadow-2xs">
+                  <img
+                    src={resolveMediaUrl(src)}
+                    alt={`Gallery photo ${i + 1}`}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {/* Dark hover overlay */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+                  {/* Cancel / Delete Cross Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteGalleryImage(i)}
+                    className="absolute top-2 right-2 grid h-7 w-7 place-items-center rounded-full bg-red-600 text-white hover:bg-red-700 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-md cursor-pointer z-10"
+                    title="Remove photo"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               ))}
               <label className="grid aspect-[4/3] cursor-pointer place-items-center rounded-xl border border-dashed border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary">
                 {uploadingGallery ? (
@@ -315,29 +375,57 @@ function BizProfile() {
         <div className="space-y-4">
           <Panel title="Logo Image">
             {business?.logo ? (
-              <img
-                src={resolveMediaUrl(business.logo)}
-                alt="Logo"
-                className="h-20 w-20 rounded-2xl border border-border object-cover"
-              />
+              <div className="relative inline-block group rounded-2xl overflow-hidden border border-border">
+                <img
+                  src={resolveMediaUrl(business.logo)}
+                  alt="Logo"
+                  className="h-24 w-24 object-cover shadow-2xs"
+                />
+                {/* Dark hover overlay */}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+                {/* Cancel / Delete Cross Button */}
+                <button
+                  type="button"
+                  onClick={handleDeleteLogo}
+                  className="absolute top-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-red-600 text-white hover:bg-red-700 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-md cursor-pointer z-10"
+                  title="Remove logo"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             ) : (
               <p className="text-xs text-muted-foreground">No logo uploaded yet.</p>
             )}
-            <label className="mt-3 inline-block">
-              <Button asChild size="sm" variant="outline" className="cursor-pointer">
-                <span>Upload Logo</span>
-              </Button>
-              <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-            </label>
+            <div className="mt-3">
+              <label className="inline-block">
+                <Button asChild size="sm" variant="outline" className="cursor-pointer">
+                  <span>{business?.logo ? "Change Logo" : "Upload Logo"}</span>
+                </Button>
+                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              </label>
+            </div>
           </Panel>
 
           <Panel title="Cover / Banner Image" description="Background header banner for public profile">
             {business?.coverImage ? (
-              <img
-                src={resolveMediaUrl(business.coverImage)}
-                alt="Cover Banner"
-                className="aspect-[3/1] w-full rounded-xl border border-border object-cover mb-3"
-              />
+              <div className="relative group mb-3 rounded-xl overflow-hidden border border-border">
+                <img
+                  src={resolveMediaUrl(business.coverImage)}
+                  alt="Cover Banner"
+                  className="aspect-[3/1] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                />
+                {/* Dark hover overlay */}
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+                {/* Cancel / Delete Cross Button */}
+                <button
+                  type="button"
+                  onClick={handleDeleteCover}
+                  className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600 text-white text-xs font-semibold hover:bg-red-700 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-md cursor-pointer z-10"
+                  title="Remove cover banner"
+                >
+                  <X className="h-3.5 w-3.5" /> Remove banner
+                </button>
+              </div>
             ) : (
               <p className="text-xs text-muted-foreground mb-3">No cover banner uploaded yet.</p>
             )}
@@ -347,7 +435,7 @@ function BizProfile() {
                   {uploadingCover ? (
                     <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Uploading...</>
                   ) : (
-                    <><ImagePlus className="mr-2 h-3.5 w-3.5" />Upload Cover Banner</>
+                    <><ImagePlus className="mr-2 h-3.5 w-3.5" />{business?.coverImage ? "Change Cover Banner" : "Upload Cover Banner"}</>
                   )}
                 </span>
               </Button>
@@ -365,20 +453,32 @@ function BizProfile() {
                 return (
                   <div
                     key={i}
-                    className="flex items-center gap-2.5 rounded-xl border border-border px-3 py-2.5"
+                    className="group flex items-center justify-between gap-2.5 rounded-xl border border-border px-3 py-2.5 bg-card/60 hover:bg-slate-50 transition-colors"
                   >
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                      <FileBadge2 className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-xs font-medium">{decodeURIComponent(fileName)}</span>
-                    <a
-                      href={src.startsWith("http") ? src : `/api${src}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-xs font-medium text-primary hover:underline"
-                    >
-                      View
-                    </a>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                        <FileBadge2 className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 truncate text-xs font-medium">{decodeURIComponent(fileName)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href={resolveMediaUrl(src)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-primary hover:underline"
+                      >
+                        View
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCertificate(i)}
+                        className="grid h-6 w-6 place-items-center rounded-full text-slate-400 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+                        title="Delete certificate"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 );
               })}

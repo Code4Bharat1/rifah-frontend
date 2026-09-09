@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Check, Crown, Download } from "lucide-react";
+import { Check, Crown, Download, AlertTriangle, Clock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -177,6 +177,7 @@ function BizMembership() {
 
   const [autoRenew, setAutoRenew] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [billingForm, setBillingForm] = useState({
     legalName: "",
     gstNo: "",
@@ -213,26 +214,26 @@ function BizMembership() {
   const currentPlan = plans[currentTier] || {
     name: membershipData?.planName || (currentTier === "premium" ? "Premium" : currentTier === "enterprise" ? "Enterprise" : currentTier === "basic" ? "Basic" : "Free"),
     price: membershipData?.price || (currentTier === "premium" ? 12999 : currentTier === "enterprise" ? 29999 : currentTier === "basic" ? 4999 : 0),
-    summary: "Active chamber membership plan",
-    features: membershipData?.features || [],
+    summary: currentTier === "free" ? "Get started on RIFAH Connect" : "Active chamber membership plan",
+    features: membershipData?.features?.length > 0 ? membershipData.features : (currentTier === "enterprise" ? ["All Premium features", "Secretariat advisory", "Global chapter access", "Custom expo pavilion"] : currentTier === "premium" ? ["Featured listing", "Verified badge", "Unlimited leads", "Chamber event passes", "RFQ priority"] : currentTier === "basic" ? ["Directory listing", "Verified badge", "15 leads / mo", "Direct buyer messaging"] : ["Directory listing", "Basic search", "5 leads / mo"]),
   };
 
   const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || []);
 
   // Calculate Started and Renews dates dynamically
   const startDateRaw =
+    membershipData?.startDate ||
     membershipData?.startedAt ||
     membershipData?.createdAt ||
-    membershipData?.startDate ||
     business?.createdAt ||
     (payments.length > 0 ? payments[payments.length - 1].paidAt || payments[payments.length - 1].createdAt : null);
 
   const startDate = startDateRaw ? new Date(startDateRaw) : new Date();
 
   const renewDateRaw =
+    membershipData?.endDate ||
     membershipData?.expiresAt ||
-    membershipData?.renewalDate ||
-    membershipData?.endDate;
+    membershipData?.renewalDate;
 
   let renewDate;
   if (renewDateRaw) {
@@ -254,6 +255,14 @@ function BizMembership() {
     year: "numeric",
   });
 
+  // Calculate expiration status
+  const now = new Date();
+  const isExpired = membershipData?.isExpired || membershipData?.status === "Expired" || (renewDate && renewDate < now && currentTier !== "free");
+  const daysRemaining = typeof membershipData?.daysRemaining === "number"
+    ? membershipData.daysRemaining
+    : Math.max(0, Math.ceil((renewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  const isExpiringSoon = !isExpired && currentTier !== "free" && (membershipData?.isExpiringSoon || (daysRemaining <= 15 && daysRemaining > 0));
+
   const handleBillingSave = (e) => {
     e.preventDefault();
     try {
@@ -273,11 +282,106 @@ function BizMembership() {
     }
   };
 
+  // Smart upgrade tier calculation
+  const upgradeTarget = currentTier === "free"
+    ? { id: "basic", name: "Basic", price: "₹ 4,999", desc: "For growing businesses seeking verified credentials & buyer inquiries." }
+    : currentTier === "basic"
+    ? { id: "premium", name: "Premium", price: "₹ 12,999", desc: "Featured placement, unlimited leads & priority RFQ routing." }
+    : { id: "enterprise", name: "Enterprise", price: "₹ 29,999", desc: "For large organisations and multi-unit groups." };
+
+  const allAvailablePlans = [
+    {
+      id: "free",
+      name: "Free",
+      price: "₹ 0",
+      period: "/ year",
+      desc: "Get started on RIFAH Connect with basic directory presence.",
+      features: ["Directory listing", "Basic search", "5 leads / mo", "Standard profile"],
+    },
+    {
+      id: "basic",
+      name: "Basic",
+      price: "₹ 4,999",
+      period: "/ year",
+      desc: "For growing businesses looking to build credibility & leads.",
+      features: ["Verified Business Badge", "15 leads / mo", "Catalogue (up to 5 items)", "Direct buyer messaging"],
+    },
+    {
+      id: "premium",
+      name: "Premium",
+      price: "₹ 12,999",
+      period: "/ year",
+      highlight: true,
+      desc: "Featured placement, priority leads and VIP event invitations.",
+      features: ["Featured on Directory", "Unlimited leads", "Catalogue (up to 25 items)", "Priority RFQ quoting", "2 Chamber event passes"],
+    },
+    {
+      id: "enterprise",
+      name: "Enterprise",
+      price: "₹ 29,999",
+      period: "/ year",
+      desc: "For corporate groups, leaders and multi-chapter operations.",
+      features: ["All Premium benefits", "Multi-chapter directory", "Secretariat trade advisory", "Custom expo pavilion", "Unlimited catalogue"],
+    },
+  ];
+
   return (
     <AppShell role="business" title="My membership" subtitle="Plan, benefits and invoices">
+      {/* Expiry Alerts */}
+      {isExpired && (
+        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-rose-300 bg-rose-50/90 dark:border-rose-900/60 dark:bg-rose-950/30 p-4 text-rose-950 dark:text-rose-200">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-400">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold">Your {currentPlan.name} Plan has Expired</p>
+              <p className="text-xs text-rose-800 dark:text-rose-300">Renew your plan to restore full chamber access, verified credentials, and priority lead routing.</p>
+            </div>
+          </div>
+          <Button asChild size="sm" className="shrink-0 bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-sm">
+            <Link href={`/membership/checkout?plan=${currentTier !== "free" ? currentTier : "basic"}`}>
+              Renew Now
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {isExpiringSoon && (
+        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50/90 dark:border-amber-900/60 dark:bg-amber-950/30 p-4 text-amber-950 dark:text-amber-200">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold">Plan Expiring Soon ({daysRemaining} days left)</p>
+              <p className="text-xs text-amber-800 dark:text-amber-300">Your membership renews on {formattedRenews}. Keep auto-renew active or renew early.</p>
+            </div>
+          </div>
+          <Button asChild size="sm" className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm">
+            <Link href={`/membership/checkout?plan=${currentTier !== "free" ? currentTier : "basic"}`}>
+              Extend Plan
+            </Link>
+          </Button>
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-4">
-          <Panel title="Current plan">
+          <Panel
+            title="Current plan"
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUpgradeDialogOpen(true)}
+                className="rounded-xl border-sky-300 bg-sky-50/70 text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300 font-bold text-xs h-8 gap-1.5 shadow-2xs transition-all"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                Upgrade / Change plan
+              </Button>
+            }
+          >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
               <div className="min-w-0">
                 <p className="text-xl font-bold tracking-tight">{currentPlan.name}</p>
@@ -286,18 +390,29 @@ function BizMembership() {
               <MembershipBadge tier={currentPlan.name} />
             </div>
             <dl className="mt-4 border-t border-border pt-2">
-              <FieldRow label="Status" value={<Pill tone="success">Active</Pill>} />
+              <FieldRow
+                label="Status"
+                value={
+                  isExpired ? (
+                    <Pill tone="destructive">Expired</Pill>
+                  ) : isExpiringSoon ? (
+                    <Pill tone="warning">Expiring Soon ({daysRemaining}d left)</Pill>
+                  ) : (
+                    <Pill tone="success">Active</Pill>
+                  )
+                }
+              />
               <FieldRow label="Started" value={formattedStarted} />
               <FieldRow label="Renews" value={formattedRenews} />
               <FieldRow
                 label="Billing"
                 value={
                   <span className="font-medium text-foreground">
-                    Annual · auto-renew {autoRenew ? "on" : "off"}
+                    {membershipData?.billingCycle || "Annual"} · auto-renew {autoRenew ? "on" : "off"}
                   </span>
                 }
               />
-              <FieldRow label="Chapter" value={typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || "General Chapter")} />
+              <FieldRow label="Chapter" value={typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || "Chamber Mumbai")} />
             </dl>
             <ul className="mt-4 grid gap-2 border-t border-border pt-3 sm:grid-cols-2">
               {currentPlan.features?.map((f, i) => (
@@ -370,45 +485,84 @@ function BizMembership() {
         </div>
 
         <div className="space-y-4">
-          <Panel title="Upgrade">
+          <Panel title="Upgrade & Plans">
             <div className="rounded-2xl border border-sky-200/90 bg-sky-50/70 dark:border-sky-900/60 dark:bg-sky-950/25 p-5">
-              <p className="flex items-center gap-2 text-sm font-bold text-[#0088d1]">
-                <Crown className="h-4 w-4 text-[#0088d1]" /> Enterprise
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="flex items-center gap-2 text-sm font-bold text-[#0088d1]">
+                  <Crown className="h-4 w-4 text-[#0088d1]" /> {currentTier === "enterprise" ? "Enterprise" : upgradeTarget.name}
+                </p>
+                {currentTier === "enterprise" && (
+                  <span className="rounded-full bg-sky-200/80 px-2 py-0.5 text-[10px] font-bold text-sky-800 dark:bg-sky-900 dark:text-sky-200">
+                    Active
+                  </span>
+                )}
+              </div>
               <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-                For large organisations and multi-unit groups.
+                {currentTier === "enterprise"
+                  ? "You have full access to all chamber trade privileges, secretariat advisory & multi-chapter tools."
+                  : upgradeTarget.desc}
               </p>
               <ul className="mt-4 space-y-2.5 text-xs text-foreground">
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>Everything in Premium</span>
+                  <span>Verified chamber directory profile</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>Multiple business units</span>
+                  <span>Direct buyer B2B enquiry routing</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>Team accounts</span>
+                  <span>Full product & service catalogue</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>Custom lead rules</span>
+                  <span>Priority RFQ quoting privileges</span>
                 </li>
               </ul>
-              <Button
-                asChild
-                className="mt-6 w-full rounded-xl bg-[#0088d1] hover:bg-[#0077b6] text-white font-semibold py-2.5 shadow-sm text-sm h-10 transition-all"
-              >
-                <Link href="/membership/checkout?plan=enterprise">
-                  Upgrade plan
-                </Link>
-              </Button>
+              
+              <div className="mt-6 space-y-2">
+                {currentTier !== "enterprise" ? (
+                  <Button
+                    asChild
+                    className="w-full rounded-xl bg-[#0088d1] hover:bg-[#0077b6] text-white font-semibold py-2.5 shadow-sm text-sm h-10 transition-all"
+                  >
+                    <Link href={`/membership/checkout?plan=${upgradeTarget.id}`}>
+                      Upgrade to {upgradeTarget.name}
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    asChild
+                    className="w-full rounded-xl bg-[#0088d1] hover:bg-[#0077b6] text-white font-semibold py-2.5 shadow-sm text-sm h-10 transition-all"
+                  >
+                    <Link href="/membership/checkout?plan=enterprise">
+                      Extend / Renew Enterprise
+                    </Link>
+                  </Button>
+                )}
+
+                <Button
+                  variant="outline"
+                  onClick={() => setUpgradeDialogOpen(true)}
+                  className="w-full rounded-xl border-sky-300 text-sky-700 hover:bg-sky-100/60 dark:border-sky-800 dark:text-sky-300 text-xs font-bold h-9"
+                >
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Explore all membership plans
+                </Button>
+              </div>
             </div>
           </Panel>
 
           <Panel title="Manage">
             <div className="space-y-2.5">
+              <Button
+                variant="outline"
+                className="w-full justify-center text-sm font-semibold text-sky-700 border-sky-200 hover:bg-sky-50 dark:text-sky-300 dark:border-sky-900"
+                onClick={() => setUpgradeDialogOpen(true)}
+              >
+                <Sparkles className="mr-1.5 h-4 w-4 text-sky-600" />
+                Change or upgrade plan
+              </Button>
               <Button
                 variant="outline"
                 className="w-full justify-center text-sm font-medium"
@@ -434,6 +588,106 @@ function BizMembership() {
           </Panel>
         </div>
       </div>
+
+      {/* Plan Selection & Upgrade Dialog */}
+      <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#0088d1]" /> Choose a Membership Plan
+            </DialogTitle>
+            <DialogDescription>
+              Select an upgraded tier to unlock higher lead limits, featured directory placement, and exclusive chamber benefits.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 sm:grid-cols-2 mt-4">
+            {allAvailablePlans.map((plan) => {
+              const isCurrent = currentTier === plan.id;
+              return (
+                <div
+                  key={plan.id}
+                  className={`relative flex flex-col justify-between rounded-2xl border p-4.5 transition-all ${
+                    isCurrent
+                      ? "border-emerald-500/80 bg-emerald-50/40 dark:border-emerald-700 dark:bg-emerald-950/20 shadow-sm"
+                      : plan.highlight
+                      ? "border-[#0088d1] bg-sky-50/40 dark:border-sky-700 dark:bg-sky-950/20 shadow-md"
+                      : "border-border bg-card hover:border-slate-300 dark:hover:border-slate-700"
+                  }`}
+                >
+                  {isCurrent && (
+                    <span className="absolute -top-2.5 right-4 rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-2xs">
+                      Current Plan
+                    </span>
+                  )}
+                  {plan.highlight && !isCurrent && (
+                    <span className="absolute -top-2.5 right-4 rounded-full bg-[#0088d1] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-2xs">
+                      Most Popular
+                    </span>
+                  )}
+
+                  <div>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h4 className="text-base font-bold text-foreground">{plan.name}</h4>
+                      <div className="text-right">
+                        <span className="text-lg font-extrabold text-foreground">{plan.price}</span>
+                        <span className="text-xs text-muted-foreground">{plan.period}</span>
+                      </div>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                      {plan.desc}
+                    </p>
+
+                    <ul className="mt-3.5 space-y-2 border-t border-border/60 pt-3 text-xs text-foreground">
+                      {plan.features.map((feat, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-border/40">
+                    {isCurrent ? (
+                      <Button asChild size="sm" variant="outline" className="w-full font-bold border-emerald-400 text-emerald-700 dark:text-emerald-300">
+                        <Link href={`/membership/checkout?plan=${plan.id}`}>
+                          Renew {plan.name}
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button
+                        asChild
+                        size="sm"
+                        className={`w-full font-bold shadow-2xs ${
+                          plan.highlight
+                            ? "bg-[#0088d1] hover:bg-[#0077b6] text-white"
+                            : "bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900"
+                        }`}
+                      >
+                        <Link href={`/membership/checkout?plan=${plan.id}`}>
+                          Select {plan.name}
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <DialogFooter className="mt-4 sm:justify-between items-center">
+            <Button asChild variant="ghost" size="sm" className="text-xs text-muted-foreground">
+              <Link href="/membership">
+                View Full Pricing Breakdown →
+              </Link>
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setUpgradeDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">

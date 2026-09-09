@@ -53,7 +53,12 @@ export function AuthProvider({ children }) {
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
     }
-    return { ...loggedInUser, requirePasswordReset: loggedInUser?.forcePasswordChange || payload.requirePasswordReset };
+    return { 
+      ...loggedInUser, 
+      requirePasswordReset: loggedInUser?.forcePasswordChange || payload.requirePasswordReset,
+      requiresRoleSelection: payload.requiresRoleSelection,
+      availableRoles: payload.availableRoles 
+    };
   };
 
   const register = async (data) => {
@@ -158,6 +163,22 @@ export function AuthProvider({ children }) {
         refreshUser: refreshProfile,
         isAuthenticated: !!user,
         role: user?.role || "guest",
+        requiresRoleSelection: user?.requiresRoleSelection,
+        availableRoles: user?.availableRoles,
+        switchRole: async (targetRole) => {
+          const res = await authApi.switchRole(targetRole);
+          const payload = res.data || res;
+          const loggedInUser = payload.user;
+          const accessToken = payload.accessToken || payload.tokens?.accessToken;
+          const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
+          if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
+          if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+          if (loggedInUser) {
+            localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
+            setUser(loggedInUser);
+          }
+          return loggedInUser;
+        }
       }}
     >
       {children}

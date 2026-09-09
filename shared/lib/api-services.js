@@ -13,6 +13,7 @@ export const authApi = {
   register: (data) => apiClient("/auth/register", { method: "POST", body: JSON.stringify(data) }),
   registerBusiness: (data) => apiClient("/auth/register-business", { method: "POST", body: JSON.stringify(data) }),
   getMe: () => apiClient("/auth/me"),
+  switchRole: (targetRole) => apiClient("/auth/switch-role", { method: "POST", body: JSON.stringify({ targetRole }) }),
   refreshToken: (refreshToken) => apiClient("/auth/refresh-token", { method: "POST", body: JSON.stringify({ refreshToken }) }),
   changePassword: (data) => apiClient("/auth/change-password", { method: "PATCH", body: JSON.stringify(data) }),
   forgotPassword: (email) => apiClient("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
@@ -28,10 +29,10 @@ export const userApi = {
   getProfile: () => apiClient("/users/me"),
   updateProfile: (data) => apiClient("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
   uploadAvatar: (file) => {
-  const formData = new FormData();
-  formData.append("avatar", file);
-  return apiClient("/users/me/avatar", { method: "POST", body: formData });
-},
+    const formData = new FormData();
+    formData.append("avatar", file);
+    return apiClient("/users/me/avatar", { method: "POST", body: formData });
+  },
   toggleSaveBusiness: (businessId) => apiClient(`/users/me/saved/${businessId}`, { method: "POST" }),
   getSavedBusinesses: () => apiClient("/users/me"),
   getAdminUsers: (params = {}) => apiClient(`/users${toQueryString(params)}`),

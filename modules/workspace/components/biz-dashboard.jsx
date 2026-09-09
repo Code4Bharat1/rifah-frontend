@@ -298,19 +298,28 @@ function BusinessHome() {
             >
               <div className="pt-2 pb-4">
                 {/* Bar Chart Bars */}
-                <div className="flex items-end justify-between gap-1.5 sm:gap-3 h-44 px-1 sm:px-4 pt-6 pb-2 overflow-x-auto no-scrollbar">
+                <div className="flex items-end justify-between gap-2 sm:gap-4 min-h-[190px] px-1 sm:px-4 pt-4 pb-2">
                   {monthlyData.map((d) => {
-                    const heightPercent = Math.round((d.val / maxVal) * 100);
+                    const heightPercent = maxVal > 0 ? Math.max(Math.round((d.val / maxVal) * 100), d.val > 0 ? 8 : 0) : 0;
+                    const isCurrentMonth = d.month === dynamicMonths[dynamicMonths.length - 1];
                     return (
                       <div key={d.month} className="flex-1 flex flex-col items-center gap-2 group">
-                        <span className="text-[11px] font-bold text-slate-500">{d.val}</span>
-                        <div className="w-full max-w-[54px] bg-slate-100 rounded-t-lg h-32 flex items-end overflow-hidden">
+                        <span className={`text-xs font-bold tabular-nums transition-colors ${d.val > 0 ? "text-slate-800" : "text-slate-400"}`}>
+                          {d.val}
+                        </span>
+                        <div className="w-full max-w-[54px] bg-slate-100 rounded-t-xl h-32 flex items-end overflow-hidden p-0.5">
                           <div
                             style={{ height: `${heightPercent}%` }}
-                            className="w-full bg-sky-500 rounded-t-lg transition-all group-hover:bg-sky-600"
+                            className={`w-full rounded-t-lg transition-all duration-300 ${
+                              isCurrentMonth
+                                ? "bg-sky-500 group-hover:bg-sky-600 shadow-2xs"
+                                : "bg-sky-400/80 group-hover:bg-sky-500"
+                            }`}
                           />
                         </div>
-                        <span className="text-xs font-medium text-slate-400">{d.month}</span>
+                        <span className={`text-xs font-semibold ${isCurrentMonth ? "text-sky-600 font-bold" : "text-slate-500"}`}>
+                          {d.month}
+                        </span>
                       </div>
                     );
                   })}

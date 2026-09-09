@@ -33,6 +33,13 @@ function AdminPayments() {
 
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [filter, setFilter] = useState("all");
+
+  const filteredPayments = payments.filter((p) => {
+    if (filter === "completed") return p.status === "completed" || p.status === "Paid";
+    if (filter === "pending") return p.status === "pending" || p.status === "Pending";
+    return true;
+  });
 
   const handleDownloadReceipt = (r) => {
     if (!r) return;
@@ -96,15 +103,18 @@ function AdminPayments() {
               www.rifah.org · Official transaction record for tax & audit verification
             </div>
           </div>
-          <script>
-            window.onload = function() { window.print(); }
-          </script>
         </body>
       </html>
     `;
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(receiptContent);
-    printWindow.document.close();
+    const blob = new Blob([receiptContent], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Receipt-${r.invoiceNumber}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const totalRevenue = payments
@@ -119,26 +129,34 @@ function AdminPayments() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
-            label="Total Revenue"
-            value={`₹ ${totalRevenue.toLocaleString("en-IN")}`}
-            icon={Wallet}
-            tone="success"
-          />
-          <StatCard label="Transactions" value={String(payments.length)} tone="primary" />
-          <StatCard
-            label="Completed"
-            value={String(payments.filter((p) => p.status === "completed" || p.status === "Paid").length)}
-            tone="success"
-          />
-          <StatCard
-            label="Pending"
-            value={String(payments.filter((p) => p.status === "pending" || p.status === "Pending").length)}
-            tone="warning"
-          />
+          <div onClick={() => setFilter("all")} className={`cursor-pointer transition-all duration-200 ${filter === 'all' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard
+              label="Total Revenue"
+              value={`₹ ${totalRevenue.toLocaleString("en-IN")}`}
+              icon={Wallet}
+              tone="success"
+            />
+          </div>
+          <div onClick={() => setFilter("all")} className={`cursor-pointer transition-all duration-200 ${filter === 'all' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard label="Transactions" value={String(payments.length)} tone="primary" />
+          </div>
+          <div onClick={() => setFilter("completed")} className={`cursor-pointer transition-all duration-200 ${filter === 'completed' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard
+              label="Completed"
+              value={String(payments.filter((p) => p.status === "completed" || p.status === "Paid").length)}
+              tone="success"
+            />
+          </div>
+          <div onClick={() => setFilter("pending")} className={`cursor-pointer transition-all duration-200 ${filter === 'pending' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard
+              label="Pending"
+              value={String(payments.filter((p) => p.status === "pending" || p.status === "Pending").length)}
+              tone="warning"
+            />
+          </div>
         </div>
 
-        <Panel title="Transaction ledger">
+        <Panel title={filter === "all" ? "Transaction ledger" : filter === "completed" ? "Completed Transactions" : "Pending Transactions"}>
           {error ? (
             <EmptyState
               icon={Wallet}
@@ -148,7 +166,7 @@ function AdminPayments() {
           ) : (
             <ResponsiveTable
               isLoading={isLoading}
-              rows={payments}
+              rows={filteredPayments}
               empty={<EmptyState icon={Wallet} title="No transactions" description="Payments will appear here." />}
             columns={[
               { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{r.invoiceNumber || "N/A"}</span> },
