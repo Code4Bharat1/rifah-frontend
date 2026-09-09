@@ -29,16 +29,16 @@ function AdminHome() {
   const { data: auditData } = useAuditLogs();
   const { data: paymentsData } = useAllPayments();
 
-  const kpi = overviewData?.data?.kpi || {};
+  const kpi = overviewData?.kpi || {};
   const queue = queueData || [];
   const enquiries = enquiriesData?.data || [];
   const chapters = chaptersData || [];
   const auditLogs = auditData?.data || [];
   const payments = paymentsData?.data || [];
   
-  const membershipGrowth = overviewData?.data?.membershipGrowth || [];
-  const chaptersDist = overviewData?.data?.chaptersDistribution || [];
-  const mix = overviewData?.data?.membershipMix || { Basic: 0, Premium: 0, Enterprise: 0 };
+  const membershipGrowth = overviewData?.membershipGrowth || [];
+  const chaptersDist = overviewData?.chaptersDistribution || [];
+  const mix = overviewData?.membershipMix || { Basic: 0, Premium: 0, Enterprise: 0 };
   const totalMembers = Object.values(mix).reduce((a, b) => a + b, 0) || 1;
 
   const handleApprove = async (id) => {
@@ -116,17 +116,24 @@ function AdminHome() {
                 <p className="text-sm text-muted-foreground">Total members and new registrations</p>
              </div>
              <div className="h-[280px] w-full border-b border-border/40 pb-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={membershipGrowth} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#888888' }} dy={10} />
-                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                    <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={60}>
-                       {membershipGrowth.map((entry, index) => (
-                         <Cell key={`cell-${index}`} className="fill-primary" />
-                       ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                {membershipGrowth.every(d => d.total === 0) ? (
+                  <div className="flex flex-col h-full items-center justify-center text-muted-foreground">
+                    <Activity className="h-8 w-8 mb-2 opacity-20" />
+                    <p className="text-sm">No membership data yet.</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={membershipGrowth} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#888888' }} dy={10} />
+                      <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                      <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={60}>
+                         {membershipGrowth.map((entry, index) => (
+                           <Cell key={`cell-${index}`} className="fill-primary" />
+                         ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
              </div>
              <div className="mt-4 grid grid-cols-3 divide-x divide-border/40 text-center">
                 <div>
