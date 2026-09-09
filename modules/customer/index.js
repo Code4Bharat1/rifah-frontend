@@ -5,3 +5,4 @@ export { CustomerMessages } from "./components/customer-messages.jsx";
 export { CustomerNotifications } from "./components/customer-notifications.jsx";
 export { CustomerProfile } from "./components/customer-profile.jsx";
 export { CustomerSaved } from "./components/customer-saved.jsx";
+export { CustomerNewEnquiry } from "./components/customer-new-enquiry.jsx";

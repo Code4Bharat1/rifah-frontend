@@ -27,6 +27,11 @@ export const authApi = {
 export const userApi = {
   getProfile: () => apiClient("/users/me"),
   updateProfile: (data) => apiClient("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
+  uploadAvatar: (file) => {
+  const formData = new FormData();
+  formData.append("avatar", file);
+  return apiClient("/users/me/avatar", { method: "POST", body: formData });
+},
   toggleSaveBusiness: (businessId) => apiClient(`/users/me/saved/${businessId}`, { method: "POST" }),
   getSavedBusinesses: () => apiClient("/users/me"),
   getAdminUsers: (params = {}) => apiClient(`/users${toQueryString(params)}`),

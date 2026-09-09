@@ -389,7 +389,7 @@ function AttachmentItem({ url, isMe }) {
 function BizMessages() {
   const searchParams = useSearchParams();
   const targetUserId = searchParams
-    ? searchParams.get("userId") || searchParams.get("recipient") || searchParams.get("to") || searchParams.get("id")
+    ? searchParams.get("userId") || searchParams.get("vendor") || searchParams.get("recipient") || searchParams.get("to") || searchParams.get("id")
     : null;
   const targetName = searchParams ? searchParams.get("name") : null;
   const { user } = useAuth();

@@ -9,3 +9,5 @@ export { BizNotifications } from "./components/biz-notifications.jsx";
 export { BizPayments } from "./components/biz-payments.jsx";
 export { BizProfile } from "./components/biz-profile.jsx";
 export { BizVerification } from "./components/biz-verification.jsx";
+export { BizMyEnquiries } from "./components/biz-my-enquiries.jsx";
+export { BizNewEnquiry } from "./components/biz-new-enquiry.jsx";

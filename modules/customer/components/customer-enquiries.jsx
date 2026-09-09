@@ -87,9 +87,11 @@ function MyEnquiries() {
                 { key: "by", header: "Required by", cell: (r) => r.requiredBy ? new Date(r.requiredBy).toLocaleDateString() : "Immediate" },
                 { key: "resp", header: "Responses", cell: (r) => <span className="tabular-nums">{r.responsesCount || r.responses?.length || 0}</span> },
                 { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
-                { key: "action", header: "", cell: (r) => (
-                  <Button variant="outline" size="sm" onClick={() => setSelectedEnquiry(r)}>View</Button>
-                )}
+                {
+                  key: "action", header: "", cell: (r) => (
+                    <Button variant="outline" size="sm" onClick={() => setSelectedEnquiry(r)}>View</Button>
+                  )
+                }
               ]}
               mobile={(r) => (
                 <div className="rounded-xl border border-border p-3.5">
@@ -110,7 +112,7 @@ function MyEnquiries() {
                     </Pill>
                   </div>
                   <div className="mt-3 flex justify-end">
-                     <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectedEnquiry(r)}>View Details</Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectedEnquiry(r)}>View Details</Button>
                   </div>
                 </div>
               )}
@@ -153,14 +155,14 @@ function MyEnquiries() {
               </div>
             </div>
             <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-3.5">
-               <div>
-                 <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mb-1">Current Status</p>
-                 <StatusBadge status={selectedEnquiry?.status} />
-               </div>
-               <div className="text-right">
-                 <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mb-0.5">Responses Received</p>
-                 <p className="text-base sm:text-lg font-bold text-foreground">{selectedEnquiry?.responsesCount || selectedEnquiry?.responses?.length || 0}</p>
-               </div>
+              <div>
+                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mb-1">Current Status</p>
+                <StatusBadge status={selectedEnquiry?.status} />
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mb-0.5">Responses Received</p>
+                <p className="text-base sm:text-lg font-bold text-foreground">{selectedEnquiry?.responsesCount || selectedEnquiry?.responses?.length || 0}</p>
+              </div>
             </div>
 
             {/* Quotations Section */}
@@ -198,10 +200,10 @@ function MyEnquiries() {
                             )}
                           </div>
                           {resp.business?.owner && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="shrink-0 w-full sm:w-auto mt-1 sm:mt-0 font-medium" 
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="shrink-0 w-full sm:w-auto mt-1 sm:mt-0 font-medium"
                               onClick={() => router.push(`/me/messages?userId=${resp.business?.owner}&name=${encodeURIComponent(resp.business?.name)}`)}
                             >
                               <MessageSquare className="h-3.5 w-3.5 mr-1.5" /> Message
