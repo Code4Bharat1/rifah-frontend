@@ -40,6 +40,10 @@ function AdminMemberships() {
   const [businessInvoices, setBusinessInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
 
+  const [deletePlanId, setDeletePlanId] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleUpdateStatus = async (businessId, updates) => {
     try {
       await businessApi.updateStatus(businessId, updates);
@@ -119,14 +123,19 @@ function AdminMemberships() {
     }
   };
 
-  const handleDeletePlan = async (planId) => {
-    if (!confirm(`Are you sure you want to delete plan ${planId}?`)) return;
+  const handleDeletePlan = async () => {
+    if (!deletePlanId) return;
+    setIsDeleting(true);
     try {
-      await membershipApi.deletePlan(planId);
+      await membershipApi.deletePlan(deletePlanId);
       toast.success("Plan deleted successfully");
       refetchPlans(); // Live update instead of window.location.reload()
+      setIsDeleteDialogOpen(false);
     } catch (err) {
       toast.error(err.message || "Failed to delete plan");
+    } finally {
+      setIsDeleting(false);
+      setDeletePlanId(null);
     }
   };
 
@@ -186,7 +195,7 @@ function AdminMemberships() {
                         Edit Plan
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10" onClick={() => handleDeletePlan(key)}>
+                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10" onClick={() => { setDeletePlanId(key); setIsDeleteDialogOpen(true); }}>
                         Delete Plan
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -427,6 +436,25 @@ function AdminMemberships() {
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button onClick={handleSavePlan} disabled={isSaving}>
               {isSaving ? "Saving..." : "Save Plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Plan</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to completely delete this membership plan? Businesses on this plan may lose access to specific features.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-end gap-2 sm:space-x-0 mt-4">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeletePlan} disabled={isDeleting}>
+              Delete Permanently
             </Button>
           </DialogFooter>
         </DialogContent>
