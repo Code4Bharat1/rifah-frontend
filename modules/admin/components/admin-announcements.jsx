@@ -43,16 +43,17 @@ function AdminAnnouncements() {
     setIsCreating(true);
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!title.trim() || !message.trim()) return;
+  const handleSave = async (e, overrideStatus = null) => {
+    if (e) e.preventDefault();
+    if (!title || !message) return toast.error("Title and message are required.");
     setSaving(true);
+    const finalStatus = overrideStatus || status;
     try {
       if (editingId) {
-        await announcementApi.update(editingId, { title, message, status });
-        toast.success(`Announcement ${status === 'Published' ? 'published' : 'updated'} successfully`);
+        await announcementApi.update(editingId, { title, message, status: finalStatus });
+        toast.success(`Announcement ${finalStatus === 'Published' ? 'published' : 'updated'} successfully`);
       } else {
-        await announcementApi.create({ title, message, status, chapter: "dummy" }); 
+        await announcementApi.create({ title, message, status: finalStatus, chapter: "dummy" }); 
         // backend will auto-override chapter with req.user.chapter
         toast.success("Announcement created successfully");
       }
@@ -183,10 +184,10 @@ function AdminAnnouncements() {
               <Button type="button" variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
               {status === "Draft" && (
                 <>
-                  <Button type="button" variant="secondary" onClick={() => { setStatus("Draft"); handleSave(new Event("submit")); }} disabled={saving}>
+                  <Button type="button" variant="secondary" onClick={() => { setStatus("Draft"); handleSave(null, "Draft"); }} disabled={saving}>
                     Save as Draft
                   </Button>
-                  <Button type="button" onClick={() => { setStatus("Published"); handleSave(new Event("submit")); }} disabled={saving}>
+                  <Button type="button" onClick={() => { setStatus("Published"); handleSave(null, "Published"); }} disabled={saving}>
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publish & Broadcast"}
                   </Button>
                 </>

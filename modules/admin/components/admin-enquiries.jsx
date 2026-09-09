@@ -34,7 +34,9 @@ function AdminEnquiries() {
   const chapters = Array.isArray(chaptersData) ? chaptersData : [];
 
   const { data: adminUsersData } = useAdminUsers();
-  const adminUsers = Array.isArray(adminUsersData) ? adminUsersData : [];
+  const adminUsers = Array.isArray(adminUsersData) 
+    ? adminUsersData.filter(u => ["super_admin", "secretariat", "chapter_admin"].includes(u.role)) 
+    : [];
 
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
