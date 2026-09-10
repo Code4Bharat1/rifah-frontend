@@ -173,14 +173,25 @@ function BizVerification() {
   const handleFileUpload = async (type, file) => {
     if (!file || !business?._id) return;
 
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    if (!isPdf) {
-      toast.error("Please upload documents in PDF format only (.pdf).");
+    const fileName = (file.name || "").toLowerCase();
+    const fileType = (file.type || "").toLowerCase();
+    const isAllowed =
+      fileType === "application/pdf" ||
+      fileType.includes("pdf") ||
+      fileType.startsWith("image/") ||
+      fileName.endsWith(".pdf") ||
+      fileName.endsWith(".jpg") ||
+      fileName.endsWith(".jpeg") ||
+      fileName.endsWith(".png") ||
+      fileName.endsWith(".webp");
+
+    if (!isAllowed) {
+      toast.error("Please upload documents in PDF format (.pdf) or clear image scans (.jpg, .png, .webp).");
       return;
     }
 
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error("PDF file size must be less than 15 MB.");
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error("File size must be less than 25 MB.");
       return;
     }
 
@@ -665,7 +676,7 @@ function BizVerification() {
                           </Button>
                           <input
                             type="file"
-                            accept=".pdf,application/pdf"
+                            accept=".pdf,application/pdf,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                             onChange={(e) => handleFileUpload(template.type, e.target.files?.[0])}
                             className="hidden"
                             disabled={uploadingDoc === template.type}
@@ -900,13 +911,21 @@ function BizVerification() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 p-2 bg-slate-100 dark:bg-slate-900 overflow-hidden">
+          <div className="flex-1 p-2 bg-slate-100 dark:bg-slate-900 overflow-hidden flex items-center justify-center">
             {previewDoc?.fileUrl && (
-              <iframe
-                src={resolveMediaUrl(previewDoc.fileUrl)}
-                title={previewDoc.name || "PDF Document"}
-                className="w-full h-full border rounded-lg bg-white shadow-xs"
-              />
+              (previewDoc?.fileUrl?.toLowerCase().includes(".pdf") || previewDoc?.name?.toLowerCase().endsWith(".pdf")) ? (
+                <iframe
+                  src={resolveMediaUrl(previewDoc.fileUrl)}
+                  title={previewDoc.name || "PDF Document"}
+                  className="w-full h-full border rounded-lg bg-white shadow-xs"
+                />
+              ) : (
+                <img
+                  src={resolveMediaUrl(previewDoc.fileUrl)}
+                  alt={previewDoc.name || "Document scan"}
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-xs bg-white"
+                />
+              )
             )}
           </div>
 
