@@ -117,6 +117,32 @@ const navs = {
       { label: "Settings", to: "/admin/settings", icon: Settings },
     ],
   },
+  chapter_admin: {
+    title: "Chapter administration",
+    primary: [
+      { label: "Overview", to: "/chapter-admin", icon: Gauge },
+      { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
+      { label: "Verify", to: "/chapter-admin/verification", icon: ShieldCheck },
+      { label: "Leads", to: "/chapter-admin/leads", icon: Target },
+      { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
+    ],
+    more: [
+      { label: "Users", to: "/chapter-admin/users", icon: Users },
+      { label: "Memberships", to: "/chapter-admin/memberships", icon: Star },
+      { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
+      { label: "Reviews", to: "/chapter-admin/reviews", icon: MessageSquare },
+      { label: "Categories", to: "/chapter-admin/categories", icon: Folder },
+      { label: "My Chapter", to: "/chapter-admin/chapter", icon: MapPinned },
+      { label: "Units", to: "/chapter-admin/units", icon: Users },
+      { label: "Events", to: "/chapter-admin/events", icon: Ticket },
+      { label: "Payments", to: "/chapter-admin/payments", icon: CreditCard },
+      { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
+      { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
+      { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
+      { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
+      { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
+    ],
+  },
 };
 
 const roleSwitcher = [
@@ -124,6 +150,18 @@ const roleSwitcher = [
   { role: "business", label: "Business", to: "/biz" },
   { role: "admin", label: "Admin", to: "/admin" },
 ];
+
+function useResolvedNav(role) {
+  const { user } = useAuth();
+  return role === "admin" && user?.role === "chapter_admin" ? navs.chapter_admin : navs[role];
+}
+
+function toRoleAwarePath(path, role, user) {
+  if (role === "admin" && user?.role === "chapter_admin" && path.startsWith("/admin")) {
+    return path.replace(/^\/admin/, "/chapter-admin");
+  }
+  return path;
+}
 
 function isAccessibleUnverifiedPath(p) {
   if (!p) return false;
@@ -142,18 +180,6 @@ function isAccessibleUnverifiedPath(p) {
     clean === "/biz/business" ||
     clean.startsWith("/biz/business/")
   );
-}
-
-function useDynamicNav(role) {
-  const { user } = useAuth();
-  const getPath = (path) => {
-    if (role === "admin" && user?.role === "chapter_admin" && user?.chapter && path.startsWith("/admin")) {
-      const slug = user.chapter.toLowerCase().replace(/\s+/g, '-');
-      return path.replace("/admin", `/${slug}/admin`);
-    }
-    return path;
-  };
-  return { getPath };
 }
 
 function useCurrentPath() {
@@ -197,9 +223,8 @@ export function AppShell({
   const path = useCurrentPath();
   const router = useRouter();
   const { user, logout, switchRole, loading } = useAuth();
-  const nav = navs[role];
-  const { getPath } = useDynamicNav(role);
-  const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more].map(i => ({ ...i, to: getPath(i.to) }));
+  const nav = useResolvedNav(role);
+  const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
 
   useEffect(() => {
     if (!loading && !user) {
@@ -239,8 +264,8 @@ export function AppShell({
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/me", "/discover"];
-    if (rootRoutes.includes(to) || to.endsWith("/admin")) return false;
+    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/me", "/discover"];
+    if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };
 
@@ -299,7 +324,7 @@ export function AppShell({
             <button
               onClick={async () => {
                 await switchRole(user.previousRole);
-                if (user.previousRole === "chapter_admin") router.push(`/${user.chapter.toLowerCase().replace(/\s+/g, '-')}/admin`);
+                if (user.previousRole === "chapter_admin") router.push("/chapter-admin");
                 else if (user.previousRole === "business_owner") router.push("/biz");
                 else router.push("/me");
               }}
@@ -346,7 +371,7 @@ export function AppShell({
               </Button>
               <Button asChild variant="ghost" size="icon" className="relative">
                 <Link
-                  href={getPath(role === "admin" ? "/admin/notifications" : role === "business" ? "/biz/notifications" : "/me/notifications")}
+                  href={toRoleAwarePath(role === "admin" ? "/admin/notifications" : role === "business" ? "/biz/notifications" : "/me/notifications", role, user)}
                   aria-label="Notifications"
                 >
                   <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -360,7 +385,7 @@ export function AppShell({
               </Button>
               <Button asChild variant="ghost" size="icon" className="relative inline-flex">
                 <Link
-                  href={getPath(role === "business" ? (isBizVerified ? "/biz/messages" : "/biz/verification") : "/me/messages")}
+                  href={toRoleAwarePath(role === "business" ? (isBizVerified ? "/biz/messages" : "/biz/verification") : "/me/messages", role, user)}
                   aria-label="Messages"
                 >
                   <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -576,9 +601,8 @@ function UnderApprovalAccessGate({ business, path }) {
 }
 
 function MoreSheet({ role, isBizVerified = true }) {
-  const { getPath } = useDynamicNav(role);
-  const nav = navs[role];
-  const items = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more].map(i => ({ ...i, to: getPath(i.to) }));
+  const nav = useResolvedNav(role);
+  const items = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -629,10 +653,9 @@ function MoreSheet({ role, isBizVerified = true }) {
 
 export function BottomNav({ role, isBizVerified = true }) {
   const path = useCurrentPath();
-  const { getPath } = useDynamicNav(role);
-  const nav = navs[role];
+  const nav = useResolvedNav(role);
 
-  const primary = nav.primary.map(i => ({ ...i, to: getPath(i.to) }));
+  const primary = nav.primary;
 
   return (
     <nav

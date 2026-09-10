@@ -112,6 +112,7 @@ const statusTone = {
   High: "danger",
   Medium: "warning",
   Low: "neutral",
+  Escalated: "warning",
 };
 
 export function StatusBadge({ status }) {

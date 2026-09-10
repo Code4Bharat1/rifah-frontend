@@ -24,9 +24,13 @@ import {
 } from "@shared/components/ui/dialog";
 import { useChapterDetails } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
+import { useAuth } from "@shared/providers/auth-provider";
 
 export default function AdminChapterDetails({ chapterId }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const isChapterAdmin = user?.role === "chapter_admin";
+  const backHref = isChapterAdmin ? "/chapter-admin" : "/admin/chapters";
   const { data, isLoading, refetch } = useChapterDetails(chapterId);
 
   const [openAdminModal, setOpenAdminModal] = useState(false);
@@ -51,8 +55,8 @@ export default function AdminChapterDetails({ chapterId }) {
       <AppShell role="admin" title="Chapter Details">
         <div className="text-center py-20">
           <p className="text-muted-foreground">Chapter not found.</p>
-          <Button variant="link" onClick={() => router.push("/admin/chapters")}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Chapters
+          <Button variant="link" onClick={() => router.push(backHref)}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
           </Button>
         </div>
       </AppShell>
@@ -98,11 +102,13 @@ export default function AdminChapterDetails({ chapterId }) {
       title={chapter.name}
       subtitle={`Regional branch in ${chapter.city}, ${chapter.state}`}
       actions={
-        <Button variant="outline" asChild>
-          <Link href="/admin/chapters">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-          </Link>
-        </Button>
+        !isChapterAdmin && (
+          <Button variant="outline" asChild>
+            <Link href="/admin/chapters">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Link>
+          </Button>
+        )
       }
     >
       <div className="space-y-6">
@@ -121,13 +127,15 @@ export default function AdminChapterDetails({ chapterId }) {
             <Pill tone={chapter.status === "Active" ? "success" : "warning"}>
               {chapter.status}
             </Pill>
-            <Button 
-              size="sm" 
-              variant={chapter.status === "Active" ? "destructive" : "default"} 
-              onClick={() => setOpenStatusModal(true)}
-            >
-              {chapter.status === "Active" ? "Deactivate" : "Activate"}
-            </Button>
+            {!isChapterAdmin && (
+              <Button
+                size="sm"
+                variant={chapter.status === "Active" ? "destructive" : "default"}
+                onClick={() => setOpenStatusModal(true)}
+              >
+                {chapter.status === "Active" ? "Deactivate" : "Activate"}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -176,11 +184,21 @@ export default function AdminChapterDetails({ chapterId }) {
                   <p>This user has full access to manage businesses, units, and leads within this chapter.</p>
                 </div>
 
-                <div className="pt-2">
-                  <Button variant="outline" className="w-full" onClick={() => setOpenAdminModal(true)}>
-                    <UserCog className="mr-2 h-4 w-4" /> Change Administrator
-                  </Button>
-                </div>
+                {!isChapterAdmin && (
+                  <div className="pt-2">
+                    <Button variant="outline" className="w-full" onClick={() => setOpenAdminModal(true)}>
+                      <UserCog className="mr-2 h-4 w-4" /> Change Administrator
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : isChapterAdmin ? (
+              <div className="text-center py-8">
+                <UserCog className="h-10 w-10 text-muted-foreground opacity-20 mx-auto mb-3" />
+                <h3 className="font-semibold text-sm">No Administrator Assigned</h3>
+                <p className="text-xs text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
+                  Contact RIFAH Head Office to have an administrator assigned to this chapter.
+                </p>
               </div>
             ) : (
               <div className="text-center py-8">

@@ -44,8 +44,7 @@ export default function ChangePasswordPage() {
       
       // Redirect to correct dashboard based on role
       if (updatedUser?.role === "chapter_admin") {
-        const slug = updatedUser.chapter.toLowerCase().replace(/\s+/g, '-');
-        router.push(`/${slug}/admin`);
+        router.push("/chapter-admin");
       } else if (updatedUser?.role === "super_admin" || updatedUser?.role === "secretariat") {
         router.push("/admin");
       } else if (updatedUser?.role === "business_owner") {

@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Building2,
   Sparkles,
+  Lock,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 

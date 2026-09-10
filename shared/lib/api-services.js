@@ -128,6 +128,8 @@ export const enquiryApi = {
   getAllEnquiries: (params = {}) => apiClient(`/enquiries/admin/all${toQueryString(params)}`),
   getById: (id) => apiClient(`/enquiries/${id}`),
   updateStatus: (id, data) => apiClient(`/enquiries/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
+  escalate: (id, note) => apiClient(`/enquiries/${id}/escalate`, { method: "POST", body: JSON.stringify({ note }) }),
+  exportCsv: (params = {}) => apiClient(`/enquiries/admin/export/csv${toQueryString(params)}`),
 };
 
 export const leadApi = {
