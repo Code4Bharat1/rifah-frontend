@@ -218,7 +218,7 @@ function BizVerification() {
 
       await fetchVerification();
       await refetchBiz();
-      toast.success("PDF document uploaded successfully!");
+      toast.success("PDF document attached! Click 'Submit Application' below to send for review.");
     } catch (err) {
       console.error("Upload error:", err);
       toast.error(err.message || "Failed to upload document.");
@@ -232,18 +232,24 @@ function BizVerification() {
     setResubmitting(true);
     try {
       const existingDocs = Array.isArray(verificationData?.documents) ? verificationData.documents : [];
+      if (existingDocs.length === 0) {
+        toast.error("Please upload at least 1 document (PDF) before submitting.");
+        setResubmitting(false);
+        return;
+      }
+
       await verificationApi.submit({
         businessId: business._id,
         documents: existingDocs,
-        notes: resubmitNotes.trim() || "Owner resubmitted updated documents for review",
+        notes: resubmitNotes.trim() || "Owner submitted business verification package for Secretariat review",
       });
 
-      toast.success("Profile and documents resubmitted for Secretariat review!");
+      toast.success("Application submitted successfully! The RIFAH Secretariat will review your documents.");
       setResubmitNotes("");
       await fetchVerification();
       await refetchBiz();
     } catch (err) {
-      toast.error(err.message || "Failed to resubmit application.");
+      toast.error(err.message || "Failed to submit application.");
     } finally {
       setResubmitting(false);
     }
@@ -396,24 +402,24 @@ function BizVerification() {
   return (
     <AppShell role="business" title="Verification" subtitle="RIFAH Chamber Secretariat Vetting & Compliance Status">
       <div className="space-y-4">
-        {/* Top Status Callouts */}
+        {/* Top Status Callouts - Minimalist Executive Styling */}
         {isUnsubmitted && (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50/90 dark:border-amber-800 dark:bg-amber-950/40 p-4 text-amber-950 dark:text-amber-200 shadow-2xs">
+          <div className="rounded-xl border border-border bg-surface border-l-4 border-l-amber-500 p-4 shadow-xs">
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400">
-                <Upload className="h-5 w-5" />
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Upload className="h-4.5 w-4.5" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="text-sm font-bold text-amber-950 dark:text-white">
+                  <h4 className="text-sm font-semibold text-foreground">
                     Verification Incomplete — Documents Required
                   </h4>
-                  <span className="rounded-full bg-amber-200/80 dark:bg-amber-900 px-2 py-0.5 text-[10px] font-bold text-amber-900 dark:text-amber-200 uppercase">
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                     Documents Pending
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80">
-                  Business verification cannot be completed without official business paperwork. Please upload your registration documents (GST, PAN, Trade License / Incorporation Certificate) in PDF format below.
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Please upload your official business registration paperwork (GSTIN, Business PAN, or Trade License PDF) below to submit for Secretariat review.
                 </p>
               </div>
             </div>
@@ -421,25 +427,25 @@ function BizVerification() {
         )}
 
         {isChangesRequired && (
-          <div className="rounded-2xl border border-blue-300 bg-blue-50/90 dark:border-blue-800 dark:bg-blue-950/40 p-4 text-blue-950 dark:text-blue-200 shadow-2xs">
+          <div className="rounded-xl border border-border bg-surface border-l-4 border-l-sky-500 p-4 shadow-xs">
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
-                <RotateCcw className="h-5 w-5" />
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                <RotateCcw className="h-4.5 w-4.5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="text-sm font-bold text-blue-950 dark:text-white">
-                    Action Required: Changes Requested by Chamber Secretariat
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Action Required: Changes Requested by Secretariat
                   </h4>
-                  <span className="rounded-full bg-blue-200 dark:bg-blue-900 px-2 py-0.5 text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase">
-                    Needs Action
+                  <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300 uppercase tracking-wide">
+                    Action Required
                   </span>
                 </div>
-                <div className="mt-2 rounded-xl bg-white/80 dark:bg-slate-900/80 p-3 border border-blue-200 dark:border-blue-900/60 text-xs">
-                  <span className="block font-bold text-slate-800 dark:text-slate-200">
+                <div className="mt-2.5 rounded-lg bg-muted/60 p-3 text-xs">
+                  <span className="block font-semibold text-foreground text-[11px] uppercase tracking-wide text-muted-foreground">
                     Secretariat Instructions:
                   </span>
-                  <p className="mt-1 text-slate-700 dark:text-slate-300">
+                  <p className="mt-1 text-foreground font-medium">
                     {business?.verificationReviewReason || verificationData?.remarks || "Please replace the requested documents below and submit for re-evaluation."}
                   </p>
                 </div>
@@ -449,17 +455,22 @@ function BizVerification() {
         )}
 
         {isUnderReview && (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50/90 dark:border-amber-800 dark:bg-amber-950/40 p-4 text-amber-950 dark:text-amber-200 shadow-2xs">
+          <div className="rounded-xl border border-border bg-surface border-l-4 border-l-amber-500 p-4 shadow-xs">
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400">
-                <Clock className="h-5 w-5" />
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Clock className="h-4.5 w-4.5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-amber-950 dark:text-white">
-                  Application Under Secretariat Review
-                </h4>
-                <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80">
-                  Your business documents and payment are in the Secretariat Queue. Once approved, your business profile will be automatically published live on the public directory.
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Application Under Secretariat Review
+                  </h4>
+                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">
+                    In Review
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Your business documents are currently in the Secretariat Queue for review. Once verified, your business profile will carry the verified chamber badge.
                 </p>
               </div>
             </div>
@@ -467,17 +478,32 @@ function BizVerification() {
         )}
 
         {isRejected && (
-          <div className="rounded-2xl border border-rose-300 bg-rose-50/90 dark:border-rose-800 dark:bg-rose-950/40 p-4 text-rose-950 dark:text-rose-200 shadow-2xs">
-            <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-100 dark:bg-rose-900 text-rose-600 dark:text-rose-400">
-                <XCircle className="h-5 w-5" />
+          <div className="rounded-xl border border-border bg-surface border-l-4 border-l-rose-500 p-4 shadow-xs">
+            <div className="flex items-start gap-3.5">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                <XCircle className="h-4.5 w-4.5" />
               </div>
-              <div>
-                <h4 className="text-sm font-bold text-rose-950 dark:text-white">
-                  Verification Application Rejected
-                </h4>
-                <p className="mt-1 text-xs text-rose-900/80 dark:text-rose-300/80">
-                  {business?.verificationReviewReason || "Your application could not be verified by the secretariat. Please review the requirements or contact chamber support."}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Verification Application Not Approved
+                  </h4>
+                  <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:text-rose-300 uppercase tracking-wide">
+                    Rejected
+                  </span>
+                </div>
+
+                <div className="mt-2.5 rounded-lg bg-muted/60 p-3 text-xs">
+                  <span className="block font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Reason for Rejection / Feedback:
+                  </span>
+                  <p className="mt-1 font-medium text-foreground leading-relaxed">
+                    {business?.verificationReviewReason || business?.verificationRemarks || verificationData?.remarks || "The submitted documentation did not meet the compliance standards. Please review requirements and replace documents below."}
+                  </p>
+                </div>
+
+                <p className="mt-2 text-xs text-muted-foreground">
+                  You can upload corrected PDF documents below and click <strong>"Submit Application"</strong> to re-open your evaluation.
                 </p>
               </div>
             </div>
@@ -485,26 +511,26 @@ function BizVerification() {
         )}
 
         {isVerified && (
-          <div className="rounded-2xl border border-emerald-300 bg-emerald-50/90 dark:border-emerald-800 dark:bg-emerald-950/40 p-4 text-emerald-950 dark:text-emerald-200 shadow-2xs">
+          <div className="rounded-xl border border-border bg-surface border-l-4 border-l-emerald-500 p-4 shadow-xs">
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="h-5 w-5" />
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-4.5 w-4.5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <h4 className="text-sm font-bold text-emerald-950 dark:text-white">
+                  <h4 className="text-sm font-semibold text-foreground">
                     Verified Chamber Member — Live
                   </h4>
                   <Link
                     href={`/business/${business?.slug || business?._id}`}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                   >
                     <span>View Public Profile</span>
                     <ExternalLink className="h-3.5 w-3.5" />
                   </Link>
                 </div>
-                <p className="mt-1 text-xs text-emerald-900/80 dark:text-emerald-300/80">
-                  Congratulations! Your business has been thoroughly vetted and approved by the RIFAH Secretariat. Your profile is active and publicly visible.
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Congratulations! Your business has been approved by the RIFAH Secretariat. Your profile is active and publicly verified.
                 </p>
               </div>
             </div>
@@ -628,49 +654,82 @@ function BizVerification() {
                   );
                 })}
               </ul>
-            </Panel>
 
-            {/* Resubmission Suite Panel (Available when changes required or under review) */}
-            {(isChangesRequired || isUnderReview) && (
-              <Panel
-                title="Resubmit for Secretariat Review"
-                description="If you replaced documents or updated your details, notify the secretariat to re-evaluate"
-              >
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="resubmit-notes" className="text-xs font-semibold">
-                      Notes for Secretariat (Optional)
-                    </Label>
-                    <Textarea
-                      id="resubmit-notes"
-                      rows={3}
-                      value={resubmitNotes}
-                      onChange={(e) => setResubmitNotes(e.target.value)}
-                      placeholder="e.g. I have uploaded the updated GST Registration Certificate and correct Trade License as requested."
-                      className="text-xs"
-                    />
-                  </div>
+              {/* Mandatory Document Upload & Submission Action Guard */}
+              {!isVerified && (
+                <div className="mt-6 pt-5 border-t border-border/80">
+                  {uploadedCount === 0 ? (
+                    <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/70 dark:border-amber-900/60 dark:bg-amber-950/30 p-4 text-center">
+                      <div className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-full bg-amber-100 dark:bg-amber-900/80 text-amber-600 dark:text-amber-400">
+                        <Lock className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-sm font-bold text-amber-950 dark:text-white">
+                        Submission Locked — Document Required
+                      </h4>
+                      <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80 max-w-md mx-auto">
+                        Please upload at least <strong>1 compliance document</strong> (GST Certificate, Business PAN, or Trade License PDF) above to enable submission for Secretariat review.
+                      </p>
+                      <Button disabled className="mt-3.5 w-full max-w-sm opacity-50 cursor-not-allowed">
+                        <Lock className="h-4 w-4 mr-1.5" /> Submit for Approval (0 Documents)
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/60 dark:bg-emerald-950/30 p-4">
+                      <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-600 text-white">
+                            <CheckCircle2 className="h-4 w-4" />
+                          </span>
+                          <div>
+                            <h4 className="text-sm font-bold text-emerald-950 dark:text-white">
+                              {uploadedCount} Document{uploadedCount > 1 ? "s" : ""} Attached & Ready
+                            </h4>
+                            <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80">
+                              Your paperwork is attached. Click below to officially send your application to the RIFAH Secretariat for review.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
-                  <Button
-                    onClick={handleResubmit}
-                    disabled={resubmitting}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs gap-2"
-                  >
-                    {resubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Submitting for Review...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4" />
-                        <span>Resubmit for Secretariat Review</span>
-                      </>
-                    )}
-                  </Button>
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="submit-notes" className="text-xs font-semibold text-foreground">
+                            Notes for Secretariat (Optional)
+                          </Label>
+                          <Textarea
+                            id="submit-notes"
+                            rows={2}
+                            value={resubmitNotes}
+                            onChange={(e) => setResubmitNotes(e.target.value)}
+                            placeholder="e.g. Attached GSTIN certificate and PAN card for verification review."
+                            className="text-xs bg-white dark:bg-slate-900"
+                          />
+                        </div>
+
+                        <Button
+                          onClick={handleResubmit}
+                          disabled={resubmitting}
+                          size="lg"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md gap-2"
+                        >
+                          {resubmitting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Submitting Application to Secretariat...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4" />
+                              <span>Submit Application for Secretariat Approval ({uploadedCount} Docs)</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </Panel>
-            )}
+              )}
+            </Panel>
           </div>
 
           {/* Right Column: Audit Timeline & Chamber Guidelines */}

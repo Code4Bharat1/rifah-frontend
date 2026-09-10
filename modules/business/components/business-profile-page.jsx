@@ -202,24 +202,28 @@ function BusinessProfile() {
     }
   };
 
-  const isValidImage = (url) => typeof url === "string" && (url.startsWith("/uploads/") || url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:"));
+  const [coverError, setCoverError] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
-  const hasCover = isValidImage(business.coverImage);
-  const hasLogo = isValidImage(business.logo);
+  const isValidImage = (url) => typeof url === "string" && url.trim().length > 0 && !url.includes("undefined") && !url.includes("null");
+
+  const hasCover = isValidImage(business?.coverImage) && !coverError;
+  const hasLogo = isValidImage(business?.logo) && !logoError;
   const coverUrl = hasCover ? resolveMediaUrl(business.coverImage) : null;
   const logoUrl = hasLogo ? resolveMediaUrl(business.logo) : null;
-  const initial = (business.name || "B").charAt(0).toUpperCase();
+  const initial = (business?.name || "B").charAt(0).toUpperCase();
 
   return (
     <PublicLayout>
       {/* Cover + identity Banner */}
       <div className="h-44 sm:h-56 lg:h-64 overflow-hidden relative bg-gradient-to-r from-slate-950 via-[#004B7A] to-[#0088D1]">
-        {hasCover ? (
+        {hasCover && coverUrl ? (
           <img
             src={coverUrl}
             alt={`${business.name} cover banner`}
             width={1024}
             height={640}
+            onError={() => setCoverError(true)}
             className="h-full w-full object-cover"
           />
         ) : (
@@ -240,13 +244,14 @@ function BusinessProfile() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
                   {/* Logo or Initial Monogram */}
                   <div className="relative -mt-12 sm:-mt-16 shrink-0">
-                    {hasLogo ? (
+                    {hasLogo && logoUrl ? (
                       <img
                         src={logoUrl}
                         alt={`${business.name} logo`}
                         loading="lazy"
                         width={1024}
                         height={640}
+                        onError={() => setLogoError(true)}
                         className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl sm:rounded-3xl border-4 border-white dark:border-slate-900 object-cover bg-white shadow-xl"
                       />
                     ) : (

@@ -825,16 +825,34 @@ function Checkout() {
                     </div>
                   </div>
 
+                  {/* Next Step Action Alert */}
+                  <div className="mt-6 rounded-xl bg-sky-50 dark:bg-sky-950/40 p-4 border border-sky-200 dark:border-sky-900/60">
+                    <div className="flex items-start gap-3">
+                      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sky-600 text-white font-bold text-xs">
+                        1
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-sky-950 dark:text-sky-100">
+                          Next Step: Upload Compliance Documents for Verification
+                        </h4>
+                        <p className="mt-0.5 text-xs text-sky-900/80 dark:text-sky-300/80">
+                          To get your business approved and verified by the Chamber Secretariat, please upload your official registration documents (GST Certificate, PAN Card, or Trade License PDF).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Actions */}
                   <div className="mt-6 flex flex-col gap-2.5">
-                    <Button asChild size="lg" className="w-full shadow-sm">
-                      <Link href="/biz" className="flex items-center justify-center gap-2">
-                        Go to Business Dashboard <ArrowRight className="h-4 w-4" />
+                    <Button asChild size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md">
+                      <Link href="/biz/verification" className="flex items-center justify-center gap-2">
+                        <span>Upload Documents & Submit for Approval</span>
+                        <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>
                     <Button asChild variant="outline" size="lg" className="w-full">
-                      <Link href="/biz/membership" className="flex items-center justify-center gap-2">
-                        <FileText className="h-4 w-4" /> View Membership & Invoices
+                      <Link href="/biz" className="flex items-center justify-center gap-2">
+                        Go to Business Dashboard
                       </Link>
                     </Button>
                   </div>

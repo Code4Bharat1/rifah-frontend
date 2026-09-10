@@ -17,12 +17,12 @@ export function Pill({
 ) {
   const tones = {
     neutral: "bg-muted text-muted-foreground border-border",
-    primary: "bg-primary-soft text-accent-foreground border-primary/20",
-    brand: "bg-brand-soft text-brand border-brand/20",
-    success: "bg-success-soft text-success border-success/25",
-    warning: "bg-warning-soft text-warning-foreground border-warning/30",
-    danger: "bg-brand-soft text-destructive border-destructive/25",
-    navy: "bg-navy text-navy-foreground border-navy",
+    primary: "bg-primary-soft text-primary border-primary/25",
+    brand: "bg-brand-soft text-brand border-brand/25",
+    success: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+    warning: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
+    danger: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800",
+    navy: "bg-navy text-white border-navy",
   };
   return (
     <span

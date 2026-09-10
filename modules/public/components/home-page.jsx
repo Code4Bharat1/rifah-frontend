@@ -105,74 +105,76 @@ function HomePage() {
   return (
     <PublicLayout>
       {/* Hero */}
-      <section className="hero-navy text-navy-foreground relative overflow-hidden">
-        {/* Ambient Animated Glow Orbs */}
-        <div className="pointer-events-none absolute -top-24 -left-20 h-96 w-96 rounded-full bg-primary/20 blur-3xl animate-pulse-slow" />
-        <div className="pointer-events-none absolute top-1/3 -right-24 h-80 w-80 rounded-full bg-brand/20 blur-3xl animate-float-slow" />
+      <section className="relative overflow-hidden bg-navy py-12 md:py-16 lg:py-20 text-navy-foreground border-b border-navy-foreground/10">
+        {/* Subtle executive background grid */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px]" />
 
-        <div className="rifah-container relative z-10 grid gap-8 py-8 md:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-20">
+        <div className="rifah-container relative z-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div className="max-w-2xl">
-            <div className="animate-fade-in-up [animation-delay:100ms]">
-              <Pill tone="brand" className="bg-brand text-brand-foreground shadow-sm">
-                RIFAH Chamber of Commerce & Industry
-              </Pill>
-            </div>
-            <h1 className="mt-3 text-[28px] font-bold leading-[1.15] tracking-tight sm:text-4xl lg:text-[52px] animate-fade-in-up [animation-delay:200ms]">
+            <Pill tone="brand" className="border-brand/30 bg-brand/15 text-brand-foreground text-xs px-3 py-1 font-medium">
+              RIFAH Chamber of Commerce & Industry
+            </Pill>
+            
+            <h1 className="mt-4 text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-5xl">
               Connect. Discover. Grow.
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-navy-foreground/75 md:text-base animate-fade-in-up [animation-delay:300ms]">
-              RIFAH Connect is the chamber's digital business network — find verified suppliers and service
-              providers, publish your own business catalogue, and turn enquiries into qualified leads.
+            
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-300 md:text-base">
+              RIFAH Connect is the chamber's digital business network — discover verified suppliers and service
+              providers, publish your catalogue, and connect through structured trade enquiries.
             </p>
-            <div className="mt-5 animate-fade-in-up [animation-delay:400ms]">
+            
+            <div className="mt-6">
               <HeroSearch />
             </div>
-            <div className="mt-4 flex flex-wrap gap-2 animate-fade-in-up [animation-delay:500ms]">
-              <Button asChild size="lg" className="shadow-lg transition-transform duration-200 hover:scale-105 active:scale-95">
-                <Link href="/discover">
-                  Discover businesses <ArrowRight className="h-4 w-4" />
+            
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs">
+                <Link href="/discover" className="gap-2">
+                  Discover Businesses <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="brand" className="shadow-lg shadow-brand/25 transition-transform duration-200 hover:scale-105 active:scale-95">
+              <Button asChild size="lg" variant="outline" className="border-slate-700 bg-slate-900/60 text-white hover:bg-slate-800 hover:text-white font-semibold">
                 <Link href="/register-business">Join RIFAH</Link>
               </Button>
             </div>
-            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-navy-foreground/70 animate-fade-in-up [animation-delay:600ms]">
-              <li className="inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-white cursor-default group">
-                <ShieldCheck className="h-4 w-4 text-emerald-400 transition-transform duration-300 group-hover:scale-125" /> Chamber-verified businesses
+            
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-300">
+              <li className="inline-flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" /> Chamber-Verified Businesses
               </li>
-              <li className="inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-white cursor-default group">
-                <Target className="h-4 w-4 text-sky-400 transition-transform duration-300 group-hover:scale-125" /> Routed lead generation
+              <li className="inline-flex items-center gap-2">
+                <Target className="h-4 w-4 text-sky-400" /> Routed Trade Enquiries
               </li>
-              <li className="inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-white cursor-default group">
-                <Handshake className="h-4 w-4 text-amber-400 transition-transform duration-300 group-hover:scale-125" /> Chapters across regions
+              <li className="inline-flex items-center gap-2">
+                <Handshake className="h-4 w-4 text-amber-400" /> Pan-India Regional Chapters
               </li>
             </ul>
           </div>
 
-          <div className="hidden lg:block animate-fade-in-up [animation-delay:350ms]">
-            <div className="rounded-3xl border border-navy-foreground/15 bg-navy-foreground/5 p-5 backdrop-blur-md shadow-2xl transition-all duration-300 hover:border-navy-foreground/25">
-              <p className="text-xs font-semibold uppercase tracking-wider text-navy-foreground/60 flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                How a requirement moves through RIFAH Connect
+          <div className="hidden lg:block">
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 backdrop-blur-sm shadow-xl">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                How trade flows on RIFAH Connect
               </p>
               <ol className="mt-4 space-y-3">
                 {[
                   { icon: Search, t: "Buyer searches the directory", d: "Filter by industry, product, location and chapter." },
-                  { icon: Building2, t: "Opens a business profile", d: "Catalogue, certifications and membership level." },
-                  { icon: Target, t: "Submits a structured enquiry", d: "Routed to matching member businesses." },
-                  { icon: MessageSquare, t: "Businesses respond and negotiate", d: "In-platform messaging keeps a record." },
-                ].map((s) => (
+                  { icon: Building2, t: "Explores business profiles", d: "Verified catalogues, certifications and memberships." },
+                  { icon: Target, t: "Submits structured enquiry", d: "Enquiry automatically routed to verified suppliers." },
+                  { icon: MessageSquare, t: "Direct negotiation & deal closure", d: "In-platform messaging keeps a verified audit record." },
+                ].map((s, idx) => (
                   <li
                     key={s.t}
-                    className="group flex gap-3 rounded-xl bg-navy-foreground/5 p-3 transition-all duration-300 hover:translate-x-2 hover:bg-navy-foreground/10 hover:shadow-md cursor-default"
+                    className="flex gap-3.5 rounded-xl border border-slate-800/80 bg-slate-950/40 p-3.5 transition-colors hover:border-slate-700 hover:bg-slate-800/40"
                   >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                      <s.icon className="h-4.5 w-4.5" />
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-800 text-slate-200 text-xs font-semibold">
+                      {idx + 1}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold transition-colors duration-200 group-hover:text-white">{s.t}</p>
-                      <p className="text-xs text-navy-foreground/65">{s.d}</p>
+                      <p className="text-sm font-semibold text-slate-100">{s.t}</p>
+                      <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">{s.d}</p>
                     </div>
                   </li>
                 ))}
@@ -183,88 +185,92 @@ function HomePage() {
       </section>
 
       {/* Categories */}
-      <section className="rifah-container py-8 md:py-12">
+      <section className="rifah-container py-10 md:py-14">
         <SectionHeader
-          title="Browse by category"
-          description="Sector groupings maintained by the RIFAH secretariat."
-          action={<MoreLink href="/discover">All categories</MoreLink>}
+          title="Browse by Industry Category"
+          description="Key sectors represented across RIFAH Chamber members."
+          action={<MoreLink href="/discover">View all categories</MoreLink>}
         />
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {topCategories.map((c) => (
             <Link
               key={c.label}
               href={`/discover?industry=${encodeURIComponent(c.label)}`}
-              className="group flex min-h-[96px] flex-col justify-between rounded-2xl border border-border bg-surface p-3.5 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:bg-primary-soft/25 hover:shadow-lg hover:shadow-primary/10 cursor-pointer"
+              className="group flex min-h-[104px] flex-col justify-between rounded-2xl border border-border bg-surface p-4 transition-all hover:border-primary/40 hover:shadow-sm"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary-soft text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white group-hover:shadow-md">
-                <c.icon className="h-4.5 w-4.5 transition-transform duration-300" />
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <c.icon className="h-4.5 w-4.5" />
               </span>
-              <span className="mt-2 text-sm font-semibold leading-snug transition-colors duration-200 group-hover:text-primary">{c.label}</span>
+              <span className="mt-3 text-xs font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">{c.label}</span>
             </Link>
           ))}
         </div>
       </section>
 
       {/* Featured businesses */}
-      <section className="rifah-container py-2 md:py-6">
-        <SectionHeader
-          title="Featured businesses"
-          description="Premium and enterprise members with enhanced presentation."
-          action={<MoreLink href="/discover" />}
-        />
-        <div className="mt-4 -mx-4 flex snap-x gap-3 overflow-x-auto px-4 no-scrollbar md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 xl:grid-cols-4">
-          {featured.slice(0, 4).map((b) => (
-            <div key={b._id || b.slug} className="flex h-full w-[80vw] shrink-0 snap-start flex-col sm:w-[60vw] md:w-auto">
-              <PremiumBusinessCard business={b} />
-            </div>
-          ))}
+      <section className="border-t border-border bg-muted/20 py-10 md:py-14">
+        <div className="rifah-container">
+          <SectionHeader
+            title="Featured Member Enterprises"
+            description="Verified businesses with active commercial catalogues on RIFAH Connect."
+            action={<MoreLink href="/discover">Explore directory</MoreLink>}
+          />
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {featured.slice(0, 4).map((b) => (
+              <div key={b._id || b.slug} className="flex h-full flex-col">
+                <PremiumBusinessCard business={b} />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Products & services */}
-      <section className="rifah-container py-8 md:py-12">
+      <section className="rifah-container py-10 md:py-14">
         <SectionHeader
-          title="Discover products & services"
-          description="Catalogue entries published by member businesses."
-          action={<MoreLink href="/catalogue" />}
+          title="Featured Products & Services"
+          description="Verified offerings published directly by member businesses."
+          action={<MoreLink href="/catalogue">Browse catalogue</MoreLink>}
         />
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {catalogueList.slice(0, 4).map((item) => {
             const biz = item.business;
             const itemImg = item.images && item.images.length > 0 ? resolveMediaUrl(item.images[0]) : null;
             return (
               <article
                 key={item._id || item.slug}
-                className="group flex flex-col rounded-2xl border border-border bg-surface p-4 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40"
+                className="group flex flex-col justify-between rounded-2xl border border-border bg-surface p-4.5 transition-all hover:border-primary/40 hover:shadow-sm"
               >
-                {itemImg ? (
-                  <div className="mb-3 h-28 w-full overflow-hidden rounded-xl bg-muted">
-                    <img
-                      src={itemImg}
-                      alt={item.name}
-                      loading="lazy"
-                      onError={(ev) => {
-                        ev.currentTarget.parentElement.style.display = "none";
-                      }}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                <div>
+                  {itemImg ? (
+                    <div className="mb-3 h-32 w-full overflow-hidden rounded-xl bg-muted border border-border">
+                      <img
+                        src={itemImg}
+                        alt={item.name}
+                        loading="lazy"
+                        onError={(ev) => {
+                          ev.currentTarget.parentElement.style.display = "none";
+                        }}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </div>
+                  ) : (
+                    <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-primary mb-3">
+                      <Package className="h-4.5 w-4.5" />
+                    </span>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Pill tone={item.type === "Product" ? "primary" : "neutral"}>{item.type}</Pill>
                   </div>
-                ) : (
-                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-primary transition-transform duration-300 group-hover:scale-110">
-                    <Package className="h-4.5 w-4.5" />
-                  </span>
-                )}
-                <div className="mt-3 flex items-center gap-2">
-                  <Pill tone={item.type === "Product" ? "primary" : "neutral"}>{item.type}</Pill>
+                  <h3 className="mt-2.5 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">{item.name}</h3>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground leading-relaxed">{item.description}</p>
+                  <p className="mt-2 text-xs font-medium text-muted-foreground">
+                    {biz?.name} {item.city ? `· ${item.city}` : ""}
+                  </p>
                 </div>
-                <h3 className="mt-2 text-sm font-semibold leading-snug transition-colors duration-200 group-hover:text-primary">{item.name}</h3>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
-                <p className="mt-2 text-xs font-medium text-muted-foreground">
-                  {biz?.name} · {item.city}
-                </p>
-                <Button asChild size="sm" variant="outline" className="mt-4 transition-all duration-200 group-hover:border-primary group-hover:bg-primary group-hover:text-white shadow-sm">
+                <Button asChild size="sm" variant="outline" className="mt-4 w-full">
                   <Link href={`/enquiry/new?category=${encodeURIComponent(item.category || "")}`}>
-                    Enquire
+                    Send Enquiry
                   </Link>
                 </Button>
               </article>
@@ -274,88 +280,107 @@ function HomePage() {
       </section>
 
       {/* Events */}
-      <section className="rifah-container py-8 md:py-12">
-        <SectionHeader
-          title="Upcoming RIFAH events"
-          description="Chapter meets, clinics and forums open to members."
-          action={<MoreLink href="/events" />}
-        />
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {upcoming.map((e) => (
-            <article
-              key={e._id || e.slug}
-              className="group overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40"
-            >
-              <div className="relative h-28 overflow-hidden bg-muted">
-                <img
-                  src={e.coverImage ? resolveMediaUrl(e.coverImage) : eventImage}
-                  alt={`${e.title} — RIFAH event`}
-                  loading="lazy"
-                  width={1024}
-                  height={640}
-                  onError={(ev) => {
-                    ev.currentTarget.src = eventImage;
-                  }}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-x-0 bottom-0 flex items-end p-4">
-                  <Pill tone="navy" className="bg-surface text-navy shadow-sm transition-transform duration-300 group-hover:scale-105">
-                    {e.mode}
-                  </Pill>
+      <section className="border-t border-border bg-muted/20 py-10 md:py-14">
+        <div className="rifah-container">
+          <SectionHeader
+            title="Chamber Events & Clinics"
+            description="Upcoming chapter meetings, networking sessions, and business workshops."
+            action={<MoreLink href="/events">All events</MoreLink>}
+          />
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {upcoming.map((e) => (
+              <article
+                key={e._id || e.slug}
+                className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:border-primary/40 hover:shadow-sm"
+              >
+                <div>
+                  <div className="relative h-36 overflow-hidden bg-muted">
+                    <img
+                      src={e.coverImage ? resolveMediaUrl(e.coverImage) : eventImage}
+                      alt={`${e.title} — RIFAH event`}
+                      loading="lazy"
+                      width={1024}
+                      height={640}
+                      onError={(ev) => {
+                        ev.currentTarget.src = eventImage;
+                      }}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute left-3 top-3">
+                      <Pill tone="navy" className="bg-navy text-white text-[10px] font-semibold">
+                        {e.mode}
+                      </Pill>
+                    </div>
+                  </div>
+                  <div className="p-4.5">
+                    <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
+                      <CalendarDays className="h-3.5 w-3.5" /> {e.date} · {e.time}
+                    </p>
+                    <h3 className="mt-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">{e.title}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {e.venue}{e.city ? ` · ${e.city}` : ""}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="p-4">
-                <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-                  <CalendarDays className="h-3.5 w-3.5" /> {e.date} · {e.time}
-                </p>
-                <h3 className="mt-1.5 text-sm font-semibold leading-snug transition-colors duration-200 group-hover:text-primary">{e.title}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {e.venue}{e.city ? ` · ${e.city}` : ""}
-                </p>
-                <Button asChild size="sm" variant="outline" className="mt-3 w-full transition-all duration-200 group-hover:border-primary group-hover:bg-primary group-hover:text-white shadow-sm">
-                  <Link href={`/events/${e._id || e.slug}`}>
-                    View event
-                  </Link>
-                </Button>
-              </div>
-            </article>
-          ))}
+                <div className="p-4.5 pt-0">
+                  <Button asChild size="sm" variant="outline" className="w-full">
+                    <Link href={`/events/${e._id || e.slug}`}>
+                      View Event Details
+                    </Link>
+                  </Button>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Membership preview */}
-      <section className="rifah-container py-8 md:py-12">
+      <section className="rifah-container py-10 md:py-16">
         <SectionHeader
-          title="Membership that fits your business"
-          description="Free listings through to enterprise membership."
-          action={<MoreLink href="/membership">Compare plans</MoreLink>}
+          title="RIFAH Membership Plans"
+          description="Select the membership tier tailored to your enterprise's growth stage."
+          action={<MoreLink href="/membership">Compare all features</MoreLink>}
         />
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {plans.map((p) => (
-            <article
-              key={p.id}
-              className={
-                p.id === "premium"
-                  ? "group rounded-2xl border-2 border-brand bg-surface p-5 shadow-lg shadow-brand/10 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-brand/20 relative"
-                  : "group rounded-2xl border border-border bg-surface p-5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-primary/40"
-              }
-            >
-              {p.id === "premium" && <Pill tone="brand">Most chosen</Pill>}
-              <h3 className="mt-2 text-base font-semibold">{p.name}</h3>
-              <p className="mt-1 text-2xl font-bold tracking-tight">₹ {p.price?.toLocaleString("en-IN")}</p>
-              <p className="text-xs text-muted-foreground">Annual subscription</p>
-              <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                {p.features?.map((feat, i) => (
-                  <li key={i}>• {feat}</li>
-                ))}
-              </ul>
-              <Button asChild variant={p.id === "premium" ? "brand" : "outline"} className="mt-4 w-full transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98] shadow-sm">
-                <Link href={`/membership/checkout?plan=${p.id}`}>
-                  Choose plan
-                </Link>
-              </Button>
-            </article>
-          ))}
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {plans.map((p) => {
+            const isFeatured = p.id === "premium";
+            return (
+              <article
+                key={p.id}
+                className={cn(
+                  "flex flex-col justify-between rounded-2xl border p-5 transition-all hover:shadow-sm",
+                  isFeatured
+                    ? "border-primary bg-primary-soft/20 ring-1 ring-primary/30"
+                    : "border-border bg-surface"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-base font-bold text-foreground">{p.name}</h3>
+                    {isFeatured && <Pill tone="brand">Most Popular</Pill>}
+                  </div>
+                  <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
+                    ₹ {p.price?.toLocaleString("en-IN")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Annual subscription</p>
+                  <ul className="mt-4 space-y-1.5 text-xs text-muted-foreground">
+                    {p.features?.map((feat, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-primary font-bold">✓</span>
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <Button asChild variant={isFeatured ? "default" : "outline"} className="mt-6 w-full font-semibold">
+                  <Link href={`/membership/checkout?plan=${p.id}`}>
+                    Select {p.name}
+                  </Link>
+                </Button>
+              </article>
+            );
+          })}
         </div>
       </section>
     </PublicLayout>
