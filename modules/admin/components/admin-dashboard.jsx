@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 import Link from "next/link";
 import { Building2, CalendarDays, ShieldCheck, Users, Wallet, ArrowRight, Activity } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell, YAxis } from "recharts";
@@ -44,10 +45,11 @@ function AdminHome() {
   const handleApprove = async (id) => {
     try {
       await verificationApi.review(id, { status: "approved", remarks: "Approved by Secretariat" });
+      toast.success("Business verified successfully!");
       refetchQueue();
       refetchOverview();
     } catch (err) {
-      alert(err.message || "Failed to approve verification.");
+      toast.error(err.message || "Failed to approve verification.");
     }
   };
 
@@ -56,10 +58,11 @@ function AdminHome() {
     if (!reason) return;
     try {
       await verificationApi.review(id, { status: "rejected", remarks: reason });
+      toast.success("Business verification rejected.");
       refetchQueue();
       refetchOverview();
     } catch (err) {
-      alert(err.message || "Failed to reject verification.");
+      toast.error(err.message || "Failed to reject verification.");
     }
   };
 
@@ -225,14 +228,16 @@ function AdminHome() {
                         </div>
                         <VerificationBadge status={item.status} compact />
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Button size="sm" onClick={() => handleApprove(item._id)}>
-                          Approve
-                        </Button>
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleReject(item._id)}>
-                          Reject
-                        </Button>
-                      </div>
+                      {['pending', 'under_review'].includes(item.status?.toLowerCase()) && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button size="sm" onClick={() => handleApprove(item._id)}>
+                            Approve
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleReject(item._id)}>
+                            Reject
+                          </Button>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
