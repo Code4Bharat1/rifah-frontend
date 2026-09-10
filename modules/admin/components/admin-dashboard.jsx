@@ -30,11 +30,11 @@ function AdminHome() {
   const { data: paymentsData } = useAllPayments();
 
   const kpi = overviewData?.kpi || {};
-  const queue = queueData || [];
-  const enquiries = enquiriesData || [];
-  const chapters = chaptersData || [];
-  const auditLogs = auditData || [];
-  const payments = paymentsData || [];
+  const queue = Array.isArray(queueData) ? queueData : (queueData?.verifications || []);
+  const enquiries = Array.isArray(enquiriesData) ? enquiriesData : (enquiriesData?.enquiries || enquiriesData?.data || []);
+  const chapters = Array.isArray(chaptersData) ? chaptersData : (chaptersData?.chapters || []);
+  const auditLogs = Array.isArray(auditData) ? auditData : (auditData?.logs || auditData?.auditLogs || []);
+  const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || paymentsData?.data || []);
   
   const membershipGrowth = overviewData?.membershipGrowth || [];
   const chaptersDist = overviewData?.chaptersDistribution || [];

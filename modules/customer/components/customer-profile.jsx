@@ -41,6 +41,7 @@ function ProfilePage() {
   // Avatar Upload State
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
+  const [avatarErr, setAvatarErr] = useState(false);
   const fileInputRef = useRef(null);
 
   // Profile Form State
@@ -236,10 +237,11 @@ function ProfilePage() {
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 pb-6 mb-6 border-b border-border/80">
             <div className="relative group">
               <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-full border-2 border-primary/20 p-0.5 overflow-hidden shadow-sm bg-muted/40">
-                {user?.avatar ? (
+                {user?.avatar && !avatarErr ? (
                   <img
                     src={resolveMediaUrl(user.avatar)}
                     alt={user?.name || "User Avatar"}
+                    onError={() => setAvatarErr(true)}
                     className="h-full w-full rounded-full object-cover"
                   />
                 ) : (

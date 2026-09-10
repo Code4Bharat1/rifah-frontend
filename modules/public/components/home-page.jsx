@@ -27,6 +27,7 @@ import { MoreLink, SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { eventImage, resolveMediaUrl } from "@shared/lib/media";
+import { cn } from "@shared/lib/utils";
 import {
   useBusinesses,
   useCatalogue,

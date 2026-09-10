@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Building2,
   Sparkles,
+  Lock,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -218,7 +219,16 @@ function BizVerification() {
 
       await fetchVerification();
       await refetchBiz();
-      toast.success("PDF document attached! Click 'Submit Application' below to send for review.");
+
+      const finalDocs = updatedRecord?.documents || updatedDocs;
+      const missingAfterUpload = docTemplates.filter(
+        (template) => !finalDocs.some((d) => isMatchingDoc(d?.type, template.type))
+      );
+      if (missingAfterUpload.length > 0) {
+        toast.success(`Document attached! Please upload remaining ${missingAfterUpload.length} document${missingAfterUpload.length > 1 ? "s" : ""} to enable submission.`);
+      } else {
+        toast.success(`All ${docTemplates.length} documents attached! You can now submit your application below.`);
+      }
     } catch (err) {
       console.error("Upload error:", err);
       toast.error(err.message || "Failed to upload document.");
@@ -227,13 +237,27 @@ function BizVerification() {
     }
   };
 
+  const rawStatus = (verificationData?.status || business?.verification || business?.verificationStatus || "unverified").toLowerCase();
+  const uploadedDocs = Array.isArray(verificationData?.documents) ? verificationData.documents : (business?.documents || []);
+  const totalRequiredDocs = docTemplates.length;
+  const missingTemplates = docTemplates.filter(
+    (template) => !uploadedDocs.some((d) => isMatchingDoc(d?.type, template.type))
+  );
+  const uploadedTemplateCount = totalRequiredDocs - missingTemplates.length;
+  const isAllDocsUploaded = missingTemplates.length === 0;
+
   const handleResubmit = async () => {
     if (!business?._id) return;
+    if (!isAllDocsUploaded) {
+      toast.error(`Please upload all ${totalRequiredDocs} required documents before submitting for Secretariat review.`);
+      return;
+    }
+
     setResubmitting(true);
     try {
       const existingDocs = Array.isArray(verificationData?.documents) ? verificationData.documents : [];
-      if (existingDocs.length === 0) {
-        toast.error("Please upload at least 1 document (PDF) before submitting.");
+      if (existingDocs.length < totalRequiredDocs) {
+        toast.error(`All ${totalRequiredDocs} compliance documents must be attached before submitting.`);
         setResubmitting(false);
         return;
       }
@@ -241,7 +265,7 @@ function BizVerification() {
       await verificationApi.submit({
         businessId: business._id,
         documents: existingDocs,
-        notes: resubmitNotes.trim() || "Owner submitted business verification package for Secretariat review",
+        notes: resubmitNotes.trim() || "Owner submitted complete business verification package for Secretariat review",
       });
 
       toast.success("Application submitted successfully! The RIFAH Secretariat will review your documents.");
@@ -255,23 +279,21 @@ function BizVerification() {
     }
   };
 
-  const rawStatus = (verificationData?.status || business?.verification || business?.verificationStatus || "unverified").toLowerCase();
-  const uploadedDocs = Array.isArray(verificationData?.documents) ? verificationData.documents : (business?.documents || []);
   const uploadedCount = uploadedDocs.length;
   const hasUploadedDocs = uploadedCount > 0;
 
-  // Strict Rule: A business cannot be considered verified on the verification desk if no documents are uploaded
-  const isVerified = (business?.isVerified === true || rawStatus === "approved" || rawStatus === "verified") && hasUploadedDocs;
+  // Strict Rule: A business cannot be considered verified on the verification desk if all required documents are not uploaded
+  const isVerified = (business?.isVerified === true || rawStatus === "approved" || rawStatus === "verified") && isAllDocsUploaded;
   const isChangesRequired = !isVerified && (rawStatus === "changes_required" || rawStatus === "correction" || rawStatus === "correction_requested");
   const isRejected = !isVerified && rawStatus === "rejected";
-  const isUnderReview = !isVerified && !isChangesRequired && !isRejected && hasUploadedDocs && (rawStatus === "under_review" || rawStatus === "pending");
+  const isUnderReview = !isVerified && !isChangesRequired && !isRejected && isAllDocsUploaded && (rawStatus === "under_review" || rawStatus === "pending");
   const isUnsubmitted = !isVerified && !isChangesRequired && !isRejected && !isUnderReview;
 
   const stepIndex = isVerified
     ? 3
     : isUnderReview
     ? 2
-    : hasUploadedDocs
+    : isAllDocsUploaded
     ? 1
     : 0;
 
@@ -658,34 +680,62 @@ function BizVerification() {
               {/* Mandatory Document Upload & Submission Action Guard */}
               {!isVerified && (
                 <div className="mt-6 pt-5 border-t border-border/80">
-                  {uploadedCount === 0 ? (
-                    <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/70 dark:border-amber-900/60 dark:bg-amber-950/30 p-4 text-center">
-                      <div className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-full bg-amber-100 dark:bg-amber-900/80 text-amber-600 dark:text-amber-400">
+                  {!isAllDocsUploaded ? (
+                    <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/70 dark:border-amber-900/60 dark:bg-amber-950/30 p-5 text-center">
+                      <div className="mx-auto mb-2.5 grid h-11 w-11 place-items-center rounded-full bg-amber-100 dark:bg-amber-900/80 text-amber-600 dark:text-amber-400">
                         <Lock className="h-5 w-5" />
                       </div>
                       <h4 className="text-sm font-bold text-amber-950 dark:text-white">
-                        Submission Locked — Document Required
+                        Submission Locked — All {totalRequiredDocs} Documents Required
                       </h4>
-                      <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80 max-w-md mx-auto">
-                        Please upload at least <strong>1 compliance document</strong> (GST Certificate, Business PAN, or Trade License PDF) above to enable submission for Secretariat review.
+                      <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80 max-w-lg mx-auto leading-relaxed">
+                        You have uploaded <strong>{uploadedTemplateCount} of {totalRequiredDocs}</strong> required compliance documents. Please upload the remaining <strong>{missingTemplates.length} document{missingTemplates.length > 1 ? "s" : ""}</strong> above to enable submission for Secretariat review.
                       </p>
-                      <Button disabled className="mt-3.5 w-full max-w-sm opacity-50 cursor-not-allowed">
-                        <Lock className="h-4 w-4 mr-1.5" /> Submit for Approval (0 Documents)
+
+                      {/* Progress Bar & Missing Items Indicator */}
+                      <div className="mt-3.5 max-w-md mx-auto">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-amber-900 dark:text-amber-200 mb-1.5">
+                          <span>Compliance Upload Progress</span>
+                          <span>{uploadedTemplateCount} / {totalRequiredDocs} Uploaded</span>
+                        </div>
+                        <div className="h-2 w-full bg-amber-200/80 dark:bg-amber-900/60 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-amber-600 rounded-full transition-all duration-300"
+                            style={{ width: `${(uploadedTemplateCount / totalRequiredDocs) * 100}%` }}
+                          />
+                        </div>
+
+                        {missingTemplates.length > 0 && (
+                          <div className="mt-3 text-left bg-amber-100/70 dark:bg-amber-900/40 rounded-lg p-2.5 text-[11px] border border-amber-200 dark:border-amber-800">
+                            <span className="font-semibold text-amber-950 dark:text-amber-200 block mb-1">
+                              Remaining to Upload:
+                            </span>
+                            <ul className="list-disc list-inside space-y-0.5 text-amber-900/90 dark:text-amber-300/90">
+                              {missingTemplates.map((t) => (
+                                <li key={t.type}>{t.name}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button disabled className="mt-4 w-full max-w-sm opacity-60 cursor-not-allowed bg-amber-700 hover:bg-amber-700 text-white font-semibold">
+                        <Lock className="h-4 w-4 mr-1.5" /> Submit Locked ({uploadedTemplateCount}/{totalRequiredDocs} Uploaded)
                       </Button>
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/60 dark:bg-emerald-950/30 p-4">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/60 dark:bg-emerald-950/30 p-5">
                       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-600 text-white">
-                            <CheckCircle2 className="h-4 w-4" />
+                        <div className="flex items-center gap-2.5">
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-600 text-white">
+                            <CheckCircle2 className="h-5 w-5" />
                           </span>
                           <div>
                             <h4 className="text-sm font-bold text-emerald-950 dark:text-white">
-                              {uploadedCount} Document{uploadedCount > 1 ? "s" : ""} Attached & Ready
+                              All {totalRequiredDocs} Compliance Documents Attached & Ready!
                             </h4>
                             <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80">
-                              Your paperwork is attached. Click below to officially send your application to the RIFAH Secretariat for review.
+                              All required paperwork is attached. Click below to officially send your complete application package to the RIFAH Secretariat for review.
                             </p>
                           </div>
                         </div>
@@ -701,7 +751,7 @@ function BizVerification() {
                             rows={2}
                             value={resubmitNotes}
                             onChange={(e) => setResubmitNotes(e.target.value)}
-                            placeholder="e.g. Attached GSTIN certificate and PAN card for verification review."
+                            placeholder="e.g. Attached all 5 verified compliance documents for chamber accreditation review."
                             className="text-xs bg-white dark:bg-slate-900"
                           />
                         </div>
@@ -710,17 +760,17 @@ function BizVerification() {
                           onClick={handleResubmit}
                           disabled={resubmitting}
                           size="lg"
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md gap-2"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md gap-2 cursor-pointer"
                         >
                           {resubmitting ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Submitting Application to Secretariat...</span>
+                              <span>Submitting Complete Application...</span>
                             </>
                           ) : (
                             <>
                               <Send className="h-4 w-4" />
-                              <span>Submit Application for Secretariat Approval ({uploadedCount} Docs)</span>
+                              <span>Submit Complete Application for Secretariat Approval ({totalRequiredDocs}/{totalRequiredDocs} Docs)</span>
                             </>
                           )}
                         </Button>
