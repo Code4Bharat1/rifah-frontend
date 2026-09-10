@@ -156,6 +156,28 @@ export function AuthProvider({ children }) {
     await fetchCurrentUser();
   };
 
+  const toggleSaveBusiness = async (businessId) => {
+    if (!businessId) return null;
+    const res = await userApi.toggleSaveBusiness(businessId);
+    const payload = res?.data || res;
+    if (payload && Array.isArray(payload.savedBusinesses)) {
+      setUser((prev) => {
+        if (!prev) return prev;
+        const updated = { ...prev, savedBusinesses: payload.savedBusinesses };
+        try {
+          localStorage.setItem("rifah_user", JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+      try {
+        queryClient.invalidateQueries();
+      } catch (e) {}
+    } else {
+      await fetchCurrentUser();
+    }
+    return payload;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -168,6 +190,7 @@ export function AuthProvider({ children }) {
         registerBusiness,
         changePassword,
         logout,
+        toggleSaveBusiness,
         refreshProfile,
         refreshUser: refreshProfile,
         isAuthenticated: !!user,

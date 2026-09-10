@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
+import { resolveMediaUrl } from "@shared/lib/media";
 import {
   Bell,
   Bookmark,
@@ -212,6 +213,34 @@ function SidebarLink({ item, active, badge, isLocked }) {
   );
 }
 
+function UserSidebarAvatar({ user }) {
+  const [imgError, setImgError] = useState(false);
+  const rawAvatar = user?.avatar || user?.picture || user?.image;
+  const avatarUrl = rawAvatar ? resolveMediaUrl(rawAvatar) : "";
+
+  useEffect(() => {
+    setImgError(false);
+  }, [avatarUrl]);
+
+  if (avatarUrl && !imgError) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={user?.name || "Profile"}
+        referrerPolicy="no-referrer"
+        onError={() => setImgError(true)}
+        className="h-8 w-8 shrink-0 rounded-full object-cover border border-sidebar-border bg-muted shadow-xs"
+      />
+    );
+  }
+
+  return (
+    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+      {user?.name?.charAt(0)?.toUpperCase() || "U"}
+    </span>
+  );
+}
+
 export function AppShell({
   role,
   title,
@@ -310,15 +339,17 @@ export function AppShell({
         </nav>
         <div className="border-t border-sidebar-border p-3">
           {user && (
-            <div className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                {user.name?.charAt(0)?.toUpperCase() || "U"}
-              </span>
+            <Link
+              href={role === "customer" ? "/me/profile" : role === "business" ? "/biz/profile" : "/admin/profile"}
+              className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50 transition-colors cursor-pointer group"
+              title="View profile"
+            >
+              <UserSidebarAvatar user={user} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-semibold text-sidebar-foreground">{user.name}</span>
+                <span className="block truncate text-xs font-semibold text-sidebar-foreground group-hover:text-primary transition-colors">{user.name}</span>
                 <span className="block truncate text-[10px] text-sidebar-foreground/50">{user.email}</span>
               </span>
-            </div>
+            </Link>
           )}
           {user?.previousRole && (
             <button

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Eye, FileBadge2, ImagePlus, Loader2, CheckCircle2, Trash2, X } from "lucide-react";
+import { Eye, FileBadge2, ImagePlus, Loader2, CheckCircle2, Trash2, X, ShieldCheck, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ import {
   SelectLabel
 } from "@shared/components/ui/select";
 import { useMyBusiness, useCategories } from "@shared/hooks/use-rifah-api";
+import { useAuth } from "@shared/providers/auth-provider";
 import { businessApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -51,6 +52,7 @@ const B2B_INDUSTRIES = [
 function BizProfile() {
   const queryClient = useQueryClient();
   const { data: business, refetch } = useMyBusiness();
+  const { user } = useAuth();
   const { data: categoriesData } = useCategories();
 
   const rawCategories = Array.isArray(categoriesData)
@@ -99,8 +101,17 @@ function BizProfile() {
         founded: business.founded || "",
         employees: business.employees || "",
       });
+    } else if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: prev.name || user.organization || `${user.name}'s Enterprise`,
+        email: prev.email || user.email || "",
+        phone: prev.phone || user.phone || "",
+        city: prev.city || user.city || "",
+        state: prev.state || "",
+      }));
     }
-  }, [business]);
+  }, [business, user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -270,6 +281,14 @@ function BizProfile() {
                 <CheckCircle2 className="h-4 w-4" /> Profile updated successfully!
               </div>
             )}
+            {(!business?.state || !business?._id) && (
+              <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-3.5 text-xs text-foreground">
+                <p className="font-semibold text-primary">Action Required: Complete Your Business Details</p>
+                <p className="mt-0.5 text-muted-foreground">
+                  Please fill in your registered business address, city, and state below to submit your verification paperwork.
+                </p>
+              </div>
+            )}
             <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit}>
               <div className="grid gap-1.5 sm:col-span-2">
                 <Label htmlFor="biz-name">Business name *</Label>
@@ -382,7 +401,7 @@ function BizProfile() {
                   onChange={(e) => setFormData({ ...formData, about: e.target.value })}
                 />
               </div>
-              <div className="flex flex-wrap gap-2 sm:col-span-2">
+              <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
                 <Button type="submit" disabled={saving}>
                   {saving ? (
                     <>
@@ -391,6 +410,13 @@ function BizProfile() {
                   ) : (
                     "Save changes"
                   )}
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/biz/verification" className="flex items-center gap-1.5 font-medium">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                    <span>Upload Verification Documents</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </Button>
               </div>
             </form>
