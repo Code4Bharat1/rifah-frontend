@@ -214,7 +214,7 @@ function HomePage() {
         />
         <div className="mt-4 -mx-4 flex snap-x gap-3 overflow-x-auto px-4 no-scrollbar md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 xl:grid-cols-4">
           {featured.slice(0, 4).map((b) => (
-            <div key={b._id || b.slug} className="w-[80vw] shrink-0 snap-start sm:w-[60vw] md:w-auto transition-all duration-300 hover:-translate-y-1.5">
+            <div key={b._id || b.slug} className="flex h-full w-[80vw] shrink-0 snap-start flex-col sm:w-[60vw] md:w-auto">
               <PremiumBusinessCard business={b} />
             </div>
           ))}
