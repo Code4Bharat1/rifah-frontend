@@ -65,14 +65,6 @@ const nextConfig = {
         source: '/uploads/:path*',
         destination: `${backendServerUrl}/uploads/:path*`,
       },
-      {
-        source: '/:chapterSlug/admin',
-        destination: '/admin',
-      },
-      {
-        source: '/:chapterSlug/admin/:path*',
-        destination: '/admin/:path*',
-      },
     ];
   },
 };

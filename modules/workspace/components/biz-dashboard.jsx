@@ -156,6 +156,148 @@ function BusinessHome() {
       }
     >
       <div className="space-y-4">
+        {/* Dynamic Verification Status Banners */}
+        {(() => {
+          const hasUploadedDocs = Array.isArray(business?.documents) && business.documents.length > 0;
+          const vStatus = (business?.verification || business?.verificationStatus || "unverified").toLowerCase();
+          const isVer = (business?.isVerified === true || vStatus === "verified" || vStatus === "approved") && hasUploadedDocs;
+          const isReview = !isVer && hasUploadedDocs && (vStatus === "under_review" || vStatus === "pending" || business?.status === "Pending Verification");
+          const isChanges = !isVer && (vStatus === "changes_required" || vStatus === "correction" || vStatus === "correction_requested");
+          const isRej = !isVer && vStatus === "rejected";
+
+          if (isChanges) {
+            return (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-blue-300 bg-blue-50/90 dark:border-blue-800 dark:bg-blue-950/40 p-4 text-blue-950 dark:text-blue-200 shadow-2xs animate-in fade-in duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-bold text-blue-950 dark:text-white">
+                        Action Required: Secretariat Requested Changes
+                      </h4>
+                      <span className="rounded-full bg-blue-200/70 dark:bg-blue-900 px-2 py-0.5 text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase">
+                        Needs Resubmission
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-blue-900/80 dark:text-blue-300/80">
+                      {business?.verificationReviewReason
+                        ? `"${business.verificationReviewReason}"`
+                        : "The RIFAH Secretariat reviewed your documents and requested additional or clearer information before approving."}
+                    </p>
+                  </div>
+                </div>
+                <Button asChild size="sm" className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-1.5 shadow-xs">
+                  <Link href="/biz/verification">
+                    <span>Review & Resubmit</span>
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            );
+          }
+
+          if (isReview) {
+            return (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50/90 dark:border-amber-800 dark:bg-amber-950/40 p-4 text-amber-950 dark:text-amber-200 shadow-2xs animate-in fade-in duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-bold text-amber-950 dark:text-white">
+                        Application Under Secretariat Review
+                      </h4>
+                      <span className="rounded-full bg-amber-200/70 dark:bg-amber-900 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase">
+                        Queued
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80">
+                      Your business profile and payment have been received. The Chamber Secretariat is verifying your details. Your profile will be published live once approved.
+                    </p>
+                  </div>
+                </div>
+                <Button asChild size="sm" variant="outline" className="shrink-0 border-amber-400 text-amber-900 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/50 font-semibold gap-1.5">
+                  <Link href="/biz/verification">
+                    <span>View Timeline</span>
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            );
+          }
+
+          if (isRej) {
+            return (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-rose-300 bg-rose-50/90 dark:border-rose-800 dark:bg-rose-950/40 p-4 text-rose-950 dark:text-rose-200 shadow-2xs animate-in fade-in duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400">
+                    <ShieldCheck className="h-5 w-5 text-rose-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-rose-950 dark:text-white">
+                      Verification Application Rejected
+                    </h4>
+                    <p className="mt-1 text-xs text-rose-900/80 dark:text-rose-300/80">
+                      {business?.verificationReviewReason
+                        ? `Reason: ${business.verificationReviewReason}`
+                        : "Your application could not be verified by the secretariat. Please contact chamber support or update your documents."}
+                    </p>
+                  </div>
+                </div>
+                <Button asChild size="sm" variant="outline" className="shrink-0 border-rose-400 text-rose-900 hover:bg-rose-100 dark:border-rose-700 dark:text-rose-200 font-semibold gap-1.5">
+                  <Link href="/biz/verification">
+                    <span>Details & Appeal</span>
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            );
+          }
+
+          if (!hasUploadedDocs && !isVer && !isChanges && !isRej) {
+            return (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-sky-300 bg-sky-50/90 dark:border-sky-800 dark:bg-sky-950/40 p-4 text-sky-950 dark:text-sky-200 shadow-2xs animate-in fade-in duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-bold text-sky-950 dark:text-white">
+                        Welcome to RIFAH Chamber Workspace!
+                      </h4>
+                      <span className="rounded-full bg-sky-200/70 dark:bg-sky-900 px-2 py-0.5 text-[10px] font-bold text-sky-800 dark:text-sky-300 uppercase">
+                        Membership Active
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-sky-900/80 dark:text-sky-300/80">
+                      Your business profile has been activated. Customize your profile branding, then upload your verification paperwork to earn the verified chamber badge.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button asChild size="sm" variant="outline" className="border-sky-300 text-sky-900 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-200 font-semibold text-xs">
+                    <Link href="/biz/profile">
+                      <span>Complete Profile</span>
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" className="bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs gap-1.5 shadow-xs">
+                    <Link href="/biz/verification">
+                      <span>Upload Documents</span>
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
+
         {/* Top 4 Stat Cards dynamically bound to live backend data */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
           <StatCard

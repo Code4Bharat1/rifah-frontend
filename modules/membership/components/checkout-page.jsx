@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2, ArrowRight, FileText, Printer, Sparkles, Building2, Globe } from "lucide-react";
+import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2, ArrowRight, FileText, Printer, Sparkles, Building2, Globe, LayoutDashboard, ShieldCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -844,17 +844,26 @@ function Checkout() {
 
                   {/* Actions */}
                   <div className="mt-6 flex flex-col gap-2.5">
-                    <Button asChild size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md">
-                      <Link href="/biz/verification" className="flex items-center justify-center gap-2">
-                        <span>Upload Documents & Submit for Approval</span>
-                        <ArrowRight className="h-4 w-4" />
+                    <Button asChild size="lg" className="w-full shadow-sm">
+                      <Link href="/biz" className="flex items-center justify-center gap-2 font-semibold">
+                        <LayoutDashboard className="h-4 w-4" /> Go to Dashboard <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>
-                    <Button asChild variant="outline" size="lg" className="w-full">
-                      <Link href="/biz" className="flex items-center justify-center gap-2">
-                        Go to Business Dashboard
-                      </Link>
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button asChild variant="outline" size="sm" className="w-full">
+                        <Link href="/biz/profile" className="flex items-center justify-center gap-1.5">
+                          <Building2 className="h-3.5 w-3.5" /> Complete Profile
+                        </Link>
+                      </Button>
+                      <Button asChild variant="outline" size="sm" className="w-full">
+                        <Link href="/biz/verification" className="flex items-center justify-center gap-1.5">
+                          <ShieldCheck className="h-3.5 w-3.5" /> Upload Documents
+                        </Link>
+                      </Button>
+                    </div>
+                    <p className="text-center text-[11px] text-muted-foreground mt-1">
+                      Your business profile and tier are activated. You can explore your dashboard, customize your profile branding, and upload verification paperwork anytime.
+                    </p>
                   </div>
                 </div>
               )}

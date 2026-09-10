@@ -209,8 +209,7 @@ export default function LoginPage() {
     } else if (user.role === "business_owner") {
       router.push("/biz");
     } else if (user.role === "chapter_admin") {
-      const slug = user.chapter.toLowerCase().replace(/\s+/g, '-');
-      router.push(`/${slug}/admin`);
+      router.push("/chapter-admin");
     } else if (user.role === "super_admin" || user.role === "secretariat") {
       router.push("/admin");
     } else {

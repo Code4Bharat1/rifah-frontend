@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   FileText,
   Upload,
@@ -138,6 +139,7 @@ const formatLastUpdate = (dateVal, fallbackDate) => {
 };
 
 function BizVerification() {
+  const router = useRouter();
   const { data: business, refetch: refetchBiz } = useMyBusiness();
   const [verificationData, setVerificationData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -171,7 +173,13 @@ function BizVerification() {
   }, [business?._id]);
 
   const handleFileUpload = async (type, file) => {
-    if (!file || !business?._id) return;
+    if (!file) return;
+
+    if (!business?._id) {
+      toast.error("Please complete your business profile before uploading verification documents.");
+      router.push("/biz/profile");
+      return;
+    }
 
     const fileName = (file.name || "").toLowerCase();
     const fileType = (file.type || "").toLowerCase();
@@ -435,7 +443,33 @@ function BizVerification() {
   return (
     <AppShell role="business" title="Verification" subtitle="RIFAH Chamber Secretariat Vetting & Compliance Status">
       <div className="space-y-4">
-        {/* Top Status Callouts - Minimalist Executive Styling */}
+        {/* Profile Completion Prompt if Business Profile is missing or lacks State */}
+        {(!business?._id || !business?.state) && (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 text-foreground shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">
+                    Step 1: Complete Your Business Profile
+                  </h4>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Please provide your official business name, registered address, and state before submitting verification documents.
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="sm" className="font-semibold shrink-0 gap-1.5 shadow-xs">
+                <Link href="/biz/profile">
+                  <Building2 className="h-4 w-4" /> Complete Profile
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Top Status Callouts */}
         {isUnsubmitted && (
           <div className="rounded-xl border border-border bg-surface border-l-4 border-l-amber-500 p-4 shadow-xs">
             <div className="flex items-start gap-3">

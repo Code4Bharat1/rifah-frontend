@@ -42,7 +42,11 @@ function Monogram({ business, className }) {
 }
 
 /** Standard directory card — used in grids on tablet and desktop. */
-export function BusinessCard({ business }) {
+export function BusinessCard({
+  business,
+  allowUnsave = false,
+  onToggleSave,
+}) {
   const bizId = business.slug || business._id || business.id || "";
   const rating = (Number(business.rating) || 0).toFixed(1);
   const reviewsCount = business.reviewsCount ?? business.reviews ?? 0;
@@ -59,13 +63,30 @@ export function BusinessCard({ business }) {
       <div className="flex items-start gap-3.5">
         <Monogram business={business} className="h-12 w-12 text-sm" />
         <div className="min-w-0 flex-1">
-          <Link
-            href={`/business/${bizId}`}
-            className="block truncate text-[15px] font-semibold text-foreground transition-colors hover:text-primary"
-            title={business.name}
-          >
-            {business.name}
-          </Link>
+          <div className="flex items-start justify-between gap-2">
+            <Link
+              href={`/business/${bizId}`}
+              className="block truncate text-[15px] font-bold text-foreground transition-colors hover:text-primary min-w-0"
+              title={business.name}
+            >
+              {business.name}
+            </Link>
+            {allowUnsave && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (onToggleSave) onToggleSave(business);
+                }}
+                aria-label={`Remove ${business.name} from saved`}
+                title="Remove from saved"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer"
+              >
+                <Bookmark className="h-4 w-4 fill-current transition-transform active:scale-90" />
+              </button>
+            )}
+          </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">{locationText}</p>
         </div>
       </div>

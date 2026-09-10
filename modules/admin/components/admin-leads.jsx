@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Target, Download } from "lucide-react";
+import { Target, Download, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -51,8 +51,14 @@ function AdminLeads() {
     return true;
   });
 
+  const canRouteLead = (lead) => {
+    if (!lead) return false;
+    if (isSuperAdmin) return lead.status === "Escalated";
+    return Boolean(lead.chapterId) && String(lead.chapterId) === String(user?.chapterId) && lead.status !== "Escalated";
+  };
+
   const displayBusinesses = businesses
-    .filter(b => isSuperAdmin || b.chapter === user?.chapter)
+    .filter(b => isSuperAdmin || String(b.chapterId) === String(user?.chapterId))
     .filter(b => {
       if (!routingSearch) return true;
       const term = routingSearch.toLowerCase();
@@ -97,8 +103,8 @@ function AdminLeads() {
     if (!selectedLead) return;
     setIsRouting(true);
     try {
-      await enquiryApi.update(selectedLead._id, { status: "Escalated", resolutionNote: "Escalated to Super Admin by Chapter Admin" });
-      toast.success("Lead escalated to Super Admin successfully!");
+      await enquiryApi.escalate(selectedLead._id, "Escalated to Head Office by Chapter Admin");
+      toast.success("Lead escalated to Head Office successfully!");
       setSelectedLead(null);
       refetchEnquiries();
     } catch (error) {
@@ -224,8 +230,13 @@ function AdminLeads() {
               { key: "location", header: "Location", cell: (r) => r.city || r.location },
               { key: "quantity", header: "Quantity", cell: (r) => r.quantity || "On request" },
               { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
+              ...(isSuperAdmin ? [{ key: "chapter", header: "Chapter", cell: (r) => (
+                <span className="text-xs text-muted-foreground">{r.chapter || "Unassigned"}</span>
+              )}] : []),
               { key: "action", header: "", cell: (r) => (
-                <Button variant="outline" size="sm" onClick={() => handleOpenLead(r)}>Route</Button>
+                <Button variant="outline" size="sm" onClick={() => handleOpenLead(r)}>
+                  {canRouteLead(r) ? "Route" : "View"}
+                </Button>
               )}
             ]}
             mobile={(r) => (
@@ -241,7 +252,9 @@ function AdminLeads() {
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5">
                    <div></div>
-                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleOpenLead(r)}>Route Lead</Button>
+                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleOpenLead(r)}>
+                     {canRouteLead(r) ? "Route Lead" : "View Lead"}
+                   </Button>
                 </div>
               </div>
             )}
@@ -293,73 +306,100 @@ function AdminLeads() {
               </div>
             </div>
 
-            {/* Right: Select Businesses */}
+            {/* Right: Select Businesses (only rendered when the viewer is actually allowed to route this lead) */}
             <div className="flex flex-col h-[50vh] md:h-full overflow-hidden">
-              <div className="p-4 border-b border-border bg-muted/50">
-                <h4 className="font-semibold text-sm">Select Members for Routing</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">Check the verified businesses you want to forward this RFQ to.</p>
-                <div className="mt-3">
-                  <Input
-                    placeholder="Search businesses or industry..."
-                    value={routingSearch}
-                    onChange={(e) => setRoutingSearch(e.target.value)}
-                    className="h-8 text-xs bg-surface"
-                  />
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-3">
-                  {displayBusinesses.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-8">No matching businesses found in your chapter.</p>
-                  )}
-                  {displayBusinesses.map((b) => (
-                    <label key={b._id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-surface hover:bg-muted/50 cursor-pointer transition-colors">
-                      <input
-                        type="checkbox"
-                        className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        checked={selectedBusinessIds.includes(b._id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedBusinessIds([...selectedBusinessIds, b._id]);
-                          } else {
-                            setSelectedBusinessIds(selectedBusinessIds.filter(id => id !== b._id));
-                          }
-                        }}
+              {canRouteLead(selectedLead) ? (
+                <>
+                  <div className="p-4 border-b border-border bg-muted/50">
+                    <h4 className="font-semibold text-sm">Select Members for Routing</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Check the verified businesses you want to forward this RFQ to.</p>
+                    <div className="mt-3">
+                      <Input
+                        placeholder="Search businesses or industry..."
+                        value={routingSearch}
+                        onChange={(e) => setRoutingSearch(e.target.value)}
+                        className="h-8 text-xs bg-surface"
                       />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-foreground">{b.name}</p>
-                          {["Premium", "Enterprise", "premium", "enterprise"].includes(b.membership) && (
-                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Priority</span>
-                          )}
-                          {selectedLead?.category && (b.industry === selectedLead.category || b.categories?.includes(selectedLead.category)) && (
-                            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">Category Match</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{b.industry} · {b.city}</p>
-                      </div>
-                      {["verified", "Verified"].includes(b.verification) && (
-                        <div className="shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-600" title="Verified">
-                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                        </div>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <div className="space-y-3">
+                      {displayBusinesses.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-8">No matching businesses found in your chapter.</p>
                       )}
-                    </label>
-                  ))}
+                      {displayBusinesses.map((b) => (
+                        <label key={b._id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-surface hover:bg-muted/50 cursor-pointer transition-colors">
+                          <input
+                            type="checkbox"
+                            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            checked={selectedBusinessIds.includes(b._id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedBusinessIds([...selectedBusinessIds, b._id]);
+                              } else {
+                                setSelectedBusinessIds(selectedBusinessIds.filter(id => id !== b._id));
+                              }
+                            }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-foreground">{b.name}</p>
+                              {["Premium", "Enterprise", "premium", "enterprise"].includes(b.membership) && (
+                                <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Priority</span>
+                              )}
+                              {selectedLead?.category && (b.industry === selectedLead.category || b.categories?.includes(selectedLead.category)) && (
+                                <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">Category Match</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{b.industry} · {b.city}</p>
+                          </div>
+                          {["verified", "Verified"].includes(b.verification) && (
+                            <div className="shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-600" title="Verified">
+                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
+                            </div>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-4 border-t border-border bg-surface flex justify-between items-center gap-2">
+                    {!isSuperAdmin && (
+                      <Button variant="outline" onClick={handleEscalate} disabled={isRouting}>
+                        {isRouting ? "Escalating..." : "Escalate to Head Office"}
+                      </Button>
+                    )}
+                    <div className="flex items-center gap-3 ml-auto">
+                      <span className="text-sm font-medium">{selectedBusinessIds.length} selected</span>
+                      <Button onClick={handleRouteLead} disabled={selectedBusinessIds.length === 0 || isRouting}>
+                        {isRouting ? "Routing..." : "Route Lead"}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
+                  <div className="grid h-12 w-12 place-items-center rounded-full bg-amber-100 text-amber-600">
+                    <Lock className="h-6 w-6" />
+                  </div>
+                  {isSuperAdmin ? (
+                    <>
+                      <h4 className="font-semibold text-sm">Routing Locked</h4>
+                      <p className="text-xs text-muted-foreground max-w-xs">
+                        {selectedLead?.chapterId
+                          ? <>Only {selectedLead?.chapter || "the owning chapter"}&apos;s admin can route this lead — Head Office can only route it once that chapter admin escalates it.</>
+                          : <>No chapter admin owns this lead yet, so it can&apos;t be escalated. Assign it to the correct chapter before it can be routed.</>}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h4 className="font-semibold text-sm">No Longer Yours to Route</h4>
+                      <p className="text-xs text-muted-foreground max-w-xs">
+                        This lead has been escalated to Head Office. Only Head Office can route it from here.
+                      </p>
+                    </>
+                  )}
                 </div>
-              </div>
-              <div className="p-4 border-t border-border bg-surface flex justify-between items-center gap-2">
-                {!isSuperAdmin && (
-                  <Button variant="outline" onClick={handleEscalate} disabled={isRouting}>
-                    {isRouting ? "Escalating..." : "Escalate to Super Admin"}
-                  </Button>
-                )}
-                <div className="flex items-center gap-3 ml-auto">
-                  <span className="text-sm font-medium">{selectedBusinessIds.length} selected</span>
-                  <Button onClick={handleRouteLead} disabled={selectedBusinessIds.length === 0 || isRouting}>
-                    {isRouting ? "Routing..." : "Route Lead"}
-                  </Button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </DialogContent>
