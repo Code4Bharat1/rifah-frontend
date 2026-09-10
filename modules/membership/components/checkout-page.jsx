@@ -844,21 +844,9 @@ function Checkout() {
 
                   {/* Actions */}
                   <div className="mt-6 flex flex-col gap-2.5">
-<<<<<<< Updated upstream
-                    <Button asChild size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md">
-                      <Link href="/biz/verification" className="flex items-center justify-center gap-2">
-                        <span>Upload Documents & Submit for Approval</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button asChild variant="outline" size="lg" className="w-full">
-                      <Link href="/biz" className="flex items-center justify-center gap-2">
-                        Go to Business Dashboard
-=======
                     <Button asChild size="lg" className="w-full shadow-sm">
                       <Link href="/biz" className="flex items-center justify-center gap-2 font-semibold">
                         <LayoutDashboard className="h-4 w-4" /> Go to Dashboard <ArrowRight className="h-4 w-4" />
->>>>>>> Stashed changes
                       </Link>
                     </Button>
                     <div className="grid grid-cols-2 gap-2">

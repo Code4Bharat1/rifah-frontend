@@ -53,7 +53,7 @@ function AdminLeads() {
 
   const canRouteLead = (lead) => {
     if (!lead) return false;
-    if (isSuperAdmin) return !lead.chapterId || lead.status === "Escalated";
+    if (isSuperAdmin) return lead.status === "Escalated";
     return Boolean(lead.chapterId) && String(lead.chapterId) === String(user?.chapterId) && lead.status !== "Escalated";
   };
 
@@ -385,7 +385,9 @@ function AdminLeads() {
                     <>
                       <h4 className="font-semibold text-sm">Routing Locked</h4>
                       <p className="text-xs text-muted-foreground max-w-xs">
-                        This lead belongs to {selectedLead?.chapter || "a chapter"}. Only that chapter&apos;s admin can route it — Head Office can only route once it has been escalated.
+                        {selectedLead?.chapterId
+                          ? <>Only {selectedLead?.chapter || "the owning chapter"}&apos;s admin can route this lead — Head Office can only route it once that chapter admin escalates it.</>
+                          : <>No chapter admin owns this lead yet, so it can&apos;t be escalated. Assign it to the correct chapter before it can be routed.</>}
                       </p>
                     </>
                   ) : (
