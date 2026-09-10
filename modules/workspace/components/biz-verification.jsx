@@ -432,9 +432,6 @@ function BizVerification() {
   return (
     <AppShell role="business" title="Verification" subtitle="RIFAH Chamber Secretariat Vetting & Compliance Status">
       <div className="space-y-4">
-<<<<<<< Updated upstream
-        {/* Top Status Callouts - Minimalist Executive Styling */}
-=======
         {/* Profile Completion Prompt if Business Profile is missing or lacks State */}
         {(!business?._id || !business?.state) && (
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 text-foreground shadow-2xs">
@@ -462,7 +459,6 @@ function BizVerification() {
         )}
 
         {/* Top Status Callouts */}
->>>>>>> Stashed changes
         {isUnsubmitted && (
           <div className="rounded-xl border border-border bg-surface border-l-4 border-l-amber-500 p-4 shadow-xs">
             <div className="flex items-start gap-3">

@@ -63,15 +63,6 @@ export function BusinessCard({
       <div className="flex items-start gap-3.5">
         <Monogram business={business} className="h-12 w-12 text-sm" />
         <div className="min-w-0 flex-1">
-<<<<<<< Updated upstream
-          <Link
-            href={`/business/${bizId}`}
-            className="block truncate text-[15px] font-semibold text-foreground transition-colors hover:text-primary"
-            title={business.name}
-          >
-            {business.name}
-          </Link>
-=======
           <div className="flex items-start justify-between gap-2">
             <Link
               href={`/business/${bizId}`}
@@ -96,7 +87,6 @@ export function BusinessCard({
               </button>
             )}
           </div>
->>>>>>> Stashed changes
           <p className="mt-0.5 truncate text-xs text-muted-foreground">{locationText}</p>
         </div>
       </div>
