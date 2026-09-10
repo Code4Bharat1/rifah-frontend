@@ -55,7 +55,7 @@ function BusinessHome() {
 
   const rawLeads = Array.isArray(leadsData) ? leadsData : leadsData?.leads || [];
   const rawEnquiries = Array.isArray(enquiriesData) ? enquiriesData : enquiriesData?.enquiries || [];
-  const catalogue = catalogueItems || [];
+  const catalogue = Array.isArray(catalogueItems) ? catalogueItems : (catalogueItems?.items || catalogueItems?.data || []);
   const stats = analyticsData?.summary || analyticsData || {};
   const conversations = Array.isArray(convData) ? convData : (convData?.conversations || []);
   const rawNotifs = Array.isArray(notifData)

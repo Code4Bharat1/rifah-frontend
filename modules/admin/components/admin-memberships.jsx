@@ -62,7 +62,7 @@ function AdminMemberships() {
         name: plan.name,
         price: plan.price,
         summary: plan.summary || "",
-        features: plan.features ? plan.features.join("\\n") : ""
+        features: plan.features ? plan.features.join("\n") : ""
       });
     } else {
       setEditingPlanId(null);
@@ -76,20 +76,14 @@ function AdminMemberships() {
     setIsDetailOpen(true);
     setLoadingInvoices(true);
     try {
-      // If we had a specific admin payment fetching route for a single business:
-      // const res = await paymentApi.getAllPayments({ businessId: business._id });
-      // Since it might require special admin privileges, we'll try to fetch all or gracefully fallback.
-      // For now, we simulate fetching invoices if the API doesn't strictly support filtering yet, or use it.
       const res = await paymentApi.getAllPayments({ businessId: business._id });
       setBusinessInvoices(Array.isArray(res?.data) ? res.data : (res || []));
     } catch (err) {
-      // Intentionally avoiding console.error/warn to prevent Next.js 16 overlay interception
       if (err.status === 401 || err.message?.includes("Authentication")) {
         toast.error("Session expired or unauthorized to view invoices.");
       } else {
         toast.error("Failed to load invoices");
       }
-      setBusinessInvoices([]);
     } finally {
       setLoadingInvoices(false);
     }
@@ -100,11 +94,11 @@ function AdminMemberships() {
     setIsSaving(true);
     try {
       const payload = {
-        planId: formData.planId.toLowerCase().replace(/\\s+/g, "-"),
-        name: formData.name,
+        planId: formData.planId.toLowerCase().trim().replace(/\s+/g, "-"),
+        name: formData.name.trim(),
         price: Number(formData.price),
-        summary: formData.summary,
-        features: formData.features.split("\\n").map(f => f.trim()).filter(Boolean)
+        summary: formData.summary.trim(),
+        features: formData.features.split(/\r?\n/).map(f => f.trim()).filter(Boolean)
       };
 
       if (editingPlanId) {
