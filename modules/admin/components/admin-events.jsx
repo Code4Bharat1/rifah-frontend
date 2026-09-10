@@ -66,15 +66,27 @@ function CalendarView({ events, onEventClick }) {
         {days.map((date, i) => {
           if (!date) return <div key={`empty-${i}`} className="min-h-[120px] border-b border-r bg-muted/5" />;
           
-          const dateStr = date.toISOString().split("T")[0];
+          const yearNum = date.getFullYear();
+          const monthNum = String(date.getMonth() + 1).padStart(2, '0');
+          const dayNum = String(date.getDate()).padStart(2, '0');
+          const dateStr = `${yearNum}-${monthNum}-${dayNum}`;
+          
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
           const dayEvents = events.filter(e => {
-            const eDate = e.status === "Scheduled" && e.scheduledAt ? new Date(e.scheduledAt).toISOString().split("T")[0] : e.date;
+            let eDate = e.date;
+            if (e.status === "Scheduled" && e.scheduledAt) {
+               const schDate = new Date(e.scheduledAt);
+               eDate = `${schDate.getFullYear()}-${String(schDate.getMonth() + 1).padStart(2, '0')}-${String(schDate.getDate()).padStart(2, '0')}`;
+            }
+            if (eDate && eDate.includes("T")) eDate = eDate.split("T")[0];
             return eDate === dateStr;
           });
 
           return (
             <div key={dateStr} className="min-h-[120px] p-2 border-b border-r bg-white hover:bg-muted/10 transition-colors">
-              <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${dateStr === new Date().toISOString().split("T")[0] ? 'bg-primary text-primary-foreground' : 'text-foreground'}`}>
+              <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${dateStr === todayStr ? 'bg-primary text-primary-foreground' : 'text-foreground'}`}>
                 {date.getDate()}
               </span>
               <div className="mt-2 space-y-1.5 max-h-[80px] overflow-y-auto">
@@ -106,6 +118,7 @@ function AdminEvents() {
   const router = useRouter();
   const { user } = useAuth();
   const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
+  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : "/admin/events";
   const { data: eventsData, refetch } = useEvents();
   const events = Array.isArray(eventsData) ? eventsData : [];
 
@@ -170,7 +183,7 @@ function AdminEvents() {
       subtitle="Chamber programme calendar & conferences"
       actions={
         <Button asChild>
-          <Link href="/admin/events/create">
+          <Link href={`${basePath}/create`}>
             <Plus className="h-4 w-4 mr-2" /> Create event
           </Link>
         </Button>
@@ -212,12 +225,12 @@ function AdminEvents() {
         </div>
 
         {viewMode === "calendar" ? (
-          <CalendarView events={displayEvents} onEventClick={(e) => router.push(`/admin/events/${e._id}`)} />
+          <CalendarView events={displayEvents} onEventClick={(e) => router.push(`${basePath}/${e._id}`)} />
         ) : (
         <Panel>
           <ResponsiveTable
             rows={displayEvents}
-            onRowClick={(r) => router.push(`/admin/events/${r._id}`)}
+            onRowClick={(r) => router.push(`${basePath}/${r._id}`)}
             columns={[
               { 
                 key: "title", 
@@ -277,7 +290,7 @@ function AdminEvents() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Manage Event</DropdownMenuLabel>
                         <DropdownMenuItem asChild>
-                          <Link href={`/admin/events/${r._id}`}>View Event Page</Link>
+                          <Link href={`${basePath}/${r._id}`}>View Event Page</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setRegistrationsModal({ open: true, eventId: r._id, eventTitle: r.title })}>
                           View Registrations
@@ -309,7 +322,7 @@ function AdminEvents() {
                         Toggle Mode (Online/In-person)
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href={`/admin/events/${r._id}/edit`}>Edit Event Details</Link>
+                        <Link href={`${basePath}/${r._id}/edit`}>Edit Event Details</Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => {

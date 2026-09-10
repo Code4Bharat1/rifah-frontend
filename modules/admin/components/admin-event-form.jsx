@@ -95,6 +95,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const router = useRouter();
   const { user } = useAuth();
   const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
+  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : "/admin/events";
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
 
@@ -262,7 +263,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         toast.success("Cover image uploaded");
       }
 
-      router.push("/admin/events");
+      router.push(basePath);
       router.refresh();
     } catch (err) {
       toast.error(err.message || "Failed to save event");
@@ -279,7 +280,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       subtitle={isEditMode ? "Update event details and manage publishing." : "Draft a new chamber event or workshop."}
       actions={
         <Button variant="outline" asChild>
-          <Link href="/admin/events">
+          <Link href={basePath}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Events
           </Link>
         </Button>
