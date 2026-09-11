@@ -360,7 +360,17 @@ function AdminVerification() {
           <div className="text-xs text-muted-foreground">
             {isApproved && item.reviewedBy && (
               <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Approved by {item.reviewedBy.name || "Secretariat"}
+                <CheckCircle2 className="h-3.5 w-3.5" /> 
+                Approved by {item.reviewedBy.name || "Secretariat"} 
+                {item.reviewedBy.role && (
+                  <span className="opacity-90">
+                    ({item.reviewedBy.role === "chapter_admin" 
+                      ? `${item.reviewedBy.chapter ? item.reviewedBy.chapter.replace(/\s*[Cc]hapter\s*/g, "") : ""} Chapter Admin`.trim()
+                      : item.reviewedBy.role === "super_admin" 
+                      ? "RIFAH Super Admin" 
+                      : "Secretariat"})
+                  </span>
+                )}
               </span>
             )}
             {isChangesReq && (
@@ -376,7 +386,7 @@ function AdminVerification() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {!isApproved && (
+            {!isApproved && user?.role === "chapter_admin" && (
               <Button
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs gap-1.5"
@@ -387,7 +397,7 @@ function AdminVerification() {
               </Button>
             )}
 
-            {!isChangesReq && !isApproved && (
+            {!isChangesReq && !isApproved && user?.role === "chapter_admin" && (
               <Button
                 size="sm"
                 variant="outline"
@@ -399,7 +409,7 @@ function AdminVerification() {
               </Button>
             )}
 
-            {!isRejected && (
+            {!isRejected && user?.role === "chapter_admin" && (
               <Button
                 size="sm"
                 variant="ghost"
