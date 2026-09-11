@@ -153,7 +153,7 @@ function AdminVerification() {
     try {
       const statusMap = {
         approve: "verified",
-        changes_required: "changes_required",
+        changes_required: "correction_requested",
         reject: "rejected",
       };
 
@@ -341,7 +341,7 @@ function AdminVerification() {
                             className="h-7 px-2 text-xs text-primary font-semibold hover:bg-primary/10"
                             onClick={() => setSelectedDoc(d)}
                           >
-                            Inspect
+                            {isVerified ? "View" : "Inspect"}
                           </Button>
                         ) : (
                           <span className="text-[10px] text-muted-foreground">No file</span>
@@ -500,6 +500,7 @@ function AdminVerification() {
             <StatCard
               label="Approved / Verified"
               value={String(approved.length)}
+              icon={CheckCircle2}
               tone="success"
               hint="Live on directory"
             />
@@ -512,7 +513,7 @@ function AdminVerification() {
             )}
           >
             <StatCard
-              label="Queue Total"
+              label="Total"
               value={String(queue.length)}
               icon={Building2}
               hint="All submissions"
