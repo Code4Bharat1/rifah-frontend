@@ -10,13 +10,6 @@ import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bi
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@shared/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useChapters } from "@shared/hooks/use-rifah-api";
@@ -179,13 +172,13 @@ function AdminChapters() {
         </Panel>
       </div>
 
-      <Sheet open={openAdd} onOpenChange={setOpenAdd}>
-        <SheetContent side="right" className="w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="text-left">Add Chamber Chapter</SheetTitle>
-            <SheetDescription className="text-left">Establish a new regional chapter branch.</SheetDescription>
-          </SheetHeader>
-          <form onSubmit={handleCreateChapter} className="mt-4 space-y-4 px-4 pb-8">
+      <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Chamber Chapter</DialogTitle>
+            <DialogDescription>Establish a new regional chapter branch.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateChapter} className="space-y-4 pt-2">
             <div className="space-y-1.5">
               <Label htmlFor="ch-name">Chapter Name *</Label>
               <Input
@@ -219,8 +212,8 @@ function AdminChapters() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Chapter"}
             </Button>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!adminModalChapter} onOpenChange={(open) => !open && setAdminModalChapter(null)}>
         <DialogContent>
