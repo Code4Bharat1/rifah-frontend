@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2, ArrowRight, FileText, Printer, Sparkles, Building2, Globe, LayoutDashboard, ShieldCheck } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
@@ -96,6 +96,8 @@ function Checkout() {
     }
   }, [business, currentUser]);
 
+  const gstDebounceRef = useRef(null);
+
   // Automatically fetch business data as soon as 15-character GST is entered
   const fetchAndPopulateGst = async (gstin) => {
     const cleanGst = (gstin || "").trim().toUpperCase();
@@ -125,9 +127,13 @@ function Checkout() {
     const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     setGstNumber(val);
     setGstSuccess("");
-    // Instant fetch when 15 chars reached without any button
+    if (gstDebounceRef.current) {
+      clearTimeout(gstDebounceRef.current);
+    }
     if (val.length === 15) {
-      fetchAndPopulateGst(val);
+      gstDebounceRef.current = setTimeout(() => {
+        fetchAndPopulateGst(val);
+      }, 400);
     }
   };
 
@@ -764,45 +770,39 @@ function Checkout() {
               )}
 
               {step === 2 && (
-                <Panel title="Payment method">
+                <Panel title="Payment method" description="Select your preferred payment channel">
                   <RadioGroup value={method} onValueChange={setMethod} className="space-y-2.5">
                     {methods.map((m) => (
                       <label
                         key={m.id}
                         className={cn(
-                          "flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-colors",
-                          method === m.id ? "border-primary bg-primary-soft" : "border-border hover:bg-muted/60"
+                          "flex cursor-pointer items-center gap-3.5 rounded-2xl border p-4 sm:p-5 transition-all",
+                          method === m.id ? "border-primary bg-primary/5 shadow-xs" : "border-border hover:bg-muted/60"
                         )}
                       >
                         <RadioGroupItem value={m.id} />
-                        <m.icon className="h-4 w-4 shrink-0 text-primary" />
-                        <span className="min-w-0">
-                          <span className="block text-sm font-semibold">{m.label}</span>
-                          <span className="block text-xs text-muted-foreground">{m.note}</span>
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                          <m.icon className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <span className="block text-sm font-bold text-foreground">{m.label}</span>
+                          <span className="block text-xs text-muted-foreground mt-0.5">{m.note}</span>
+                        </div>
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 shrink-0">
+                          Instant Activation
                         </span>
                       </label>
                     ))}
                   </RadioGroup>
 
-                  {method === "card" && (
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label htmlFor="cardno">Card number</Label>
-                        <Input id="cardno" inputMode="numeric" placeholder="4111 2222 3333 4444" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="exp">Expiry</Label>
-                        <Input id="exp" placeholder="MM / YY" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="cvv">CVV</Label>
-                        <Input id="cvv" inputMode="numeric" placeholder="123" />
-                      </div>
-                    </div>
-                  )}
+                  <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Clicking <strong className="text-foreground">"Confirm & Pay"</strong> opens the secure Razorpay payment modal where you can pay seamlessly via Debit/Credit Card, UPI (Google Pay, PhonePe, Paytm), Net Banking (50+ Banks), or Corporate Wallets.
+                    </p>
+                  </div>
 
                   <p className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Lock className="h-3.5 w-3.5" /> 256-bit encrypted chamber payment gateway.
+                    <Lock className="h-3.5 w-3.5 text-emerald-600" /> 256-bit encrypted chamber payment gateway with official GST invoice.
                   </p>
                   <label className="mt-3 flex items-start gap-2.5 text-sm">
                     <Checkbox className="mt-0.5" defaultChecked />

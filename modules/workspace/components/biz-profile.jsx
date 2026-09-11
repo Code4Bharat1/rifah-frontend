@@ -138,9 +138,7 @@ function BizProfile() {
           }
         }
       }
-      await refetch();
-      queryClient.invalidateQueries({ queryKey: ["my-business"] });
-      queryClient.invalidateQueries({ queryKey: ["businesses"] });
+      syncBusinessCache();
       setSaveSuccess(true);
       toast.success("Business profile saved successfully!");
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -151,13 +149,25 @@ function BizProfile() {
     }
   };
 
+  const syncBusinessCache = () => {
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ["my-business"] });
+    if (business?._id) {
+      queryClient.invalidateQueries({ queryKey: ["business", business._id] });
+    }
+    if (business?.slug) {
+      queryClient.invalidateQueries({ queryKey: ["business", business.slug] });
+    }
+    queryClient.invalidateQueries({ queryKey: ["businesses"] });
+  };
+
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !business?._id) return;
     try {
       await businessApi.uploadLogo(business._id, file);
       toast.success("Logo uploaded successfully");
-      refetch();
+      syncBusinessCache();
     } catch (err) {
       toast.error(err.message || "Failed to upload logo.");
     }
@@ -168,7 +178,7 @@ function BizProfile() {
     try {
       await businessApi.update(business._id, { logo: "" });
       toast.success("Logo removed successfully");
-      refetch();
+      syncBusinessCache();
     } catch (err) {
       toast.error(err.message || "Failed to remove logo.");
     }
@@ -181,7 +191,7 @@ function BizProfile() {
     try {
       await businessApi.uploadCover(business._id, file);
       toast.success("Cover image updated successfully");
-      refetch();
+      syncBusinessCache();
     } catch (err) {
       toast.error(err.message || "Failed to upload cover image.");
     } finally {
@@ -195,7 +205,7 @@ function BizProfile() {
     try {
       await businessApi.update(business._id, { coverImage: "" });
       toast.success("Cover banner removed successfully");
-      refetch();
+      syncBusinessCache();
     } catch (err) {
       toast.error(err.message || "Failed to remove cover banner.");
     }
@@ -208,7 +218,7 @@ function BizProfile() {
     try {
       await businessApi.uploadGallery(business._id, files);
       toast.success("Gallery photos updated successfully");
-      refetch();
+      syncBusinessCache();
     } catch (err) {
       toast.error(err.message || "Failed to upload gallery photos.");
     } finally {
@@ -223,7 +233,7 @@ function BizProfile() {
       const updatedGallery = currentGallery.filter((_, idx) => idx !== indexToDelete);
       await businessApi.update(business._id, { gallery: updatedGallery });
       toast.success("Photo removed from gallery");
-      refetch();
+      syncBusinessCache();
     } catch (err) {
       toast.error(err.message || "Failed to delete gallery image.");
     }
@@ -236,7 +246,7 @@ function BizProfile() {
     try {
       await businessApi.uploadCertificate(business._id, file);
       toast.success("Certificate uploaded successfully");
-      refetch();
+      syncBusinessCache();
     } catch (err) {
       toast.error(err.message || "Failed to upload certificate.");
     } finally {
@@ -252,7 +262,7 @@ function BizProfile() {
       const updatedCerts = currentCerts.filter((_, idx) => idx !== indexToDelete);
       await businessApi.update(business._id, { certifications: updatedCerts });
       toast.success("Certificate removed successfully");
-      refetch();
+      syncBusinessCache();
     } catch (err) {
       toast.error(err.message || "Failed to delete certificate.");
     }
@@ -430,7 +440,7 @@ function BizProfile() {
                   <button
                     type="button"
                     onClick={() => handleDeleteGalleryImage(i)}
-                    className="absolute top-2 right-2 grid h-7 w-7 place-items-center rounded-full bg-red-600 text-white hover:bg-red-700 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-md cursor-pointer z-10"
+                    className="absolute top-2 right-2 grid h-7 w-7 place-items-center rounded-full bg-red-600 text-white hover:bg-red-700 opacity-90 sm:opacity-0 sm:scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-md cursor-pointer z-10"
                     title="Remove photo"
                   >
                     <X className="h-4 w-4" />
@@ -473,7 +483,7 @@ function BizProfile() {
                 <button
                   type="button"
                   onClick={handleDeleteLogo}
-                  className="absolute top-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-red-600 text-white hover:bg-red-700 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-md cursor-pointer z-10"
+                  className="absolute top-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-red-600 text-white hover:bg-red-700 opacity-90 sm:opacity-0 sm:scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-md cursor-pointer z-10"
                   title="Remove logo"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -506,7 +516,7 @@ function BizProfile() {
                 <button
                   type="button"
                   onClick={handleDeleteCover}
-                  className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600 text-white text-xs font-semibold hover:bg-red-700 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-md cursor-pointer z-10"
+                  className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600 text-white text-xs font-semibold hover:bg-red-700 opacity-90 sm:opacity-0 sm:scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-md cursor-pointer z-10"
                   title="Remove cover banner"
                 >
                   <X className="h-3.5 w-3.5" /> Remove banner
@@ -559,7 +569,7 @@ function BizProfile() {
                       <button
                         type="button"
                         onClick={() => handleDeleteCertificate(i)}
-                        className="grid h-6 w-6 place-items-center rounded-full text-slate-400 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+                        className="grid h-6 w-6 place-items-center rounded-full text-slate-400 opacity-90 sm:opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
                         title="Delete certificate"
                       >
                         <X className="h-3.5 w-3.5" />

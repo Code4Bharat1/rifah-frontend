@@ -134,8 +134,9 @@ export function BizNewEnquiry() {
       setError("Please select the required-by timeline or date.");
       return;
     }
-    if (!formData.description.trim() || formData.description.trim().length < 10) {
-      setError("Please describe your requirement specifications (at least 10 characters).");
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (formData.requiredBy < todayStr) {
+      setError("Required-by date cannot be in the past.");
       return;
     }
 
@@ -457,6 +458,7 @@ export function BizNewEnquiry() {
                 <Input
                   id="requiredBy"
                   type="date"
+                  min={new Date().toISOString().split("T")[0]}
                   value={formData.requiredBy}
                   onChange={(e) => handleInputChange("requiredBy", e.target.value)}
                   className="mt-1"
@@ -481,7 +483,7 @@ export function BizNewEnquiry() {
 
             <div>
               <Label htmlFor="description" className="text-sm font-semibold">
-                Detailed Technical Specifications & Requirements *
+                Detailed Technical Specifications & Requirements (Optional)
               </Label>
               <Textarea
                 id="description"
@@ -490,7 +492,6 @@ export function BizNewEnquiry() {
                 value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
                 className="mt-1"
-                required
               />
             </div>
           </div>

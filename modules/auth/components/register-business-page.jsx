@@ -232,6 +232,17 @@ function RegisterBusiness({ isAdmin = false }) {
     }
   };
 
+  const gstDebounceRef = useRef(null);
+
+  const triggerGstVerification = (val) => {
+    if (gstDebounceRef.current) {
+      clearTimeout(gstDebounceRef.current);
+    }
+    gstDebounceRef.current = setTimeout(() => {
+      handleVerifyGst(val);
+    }, 400);
+  };
+
   const handleVerifyGst = async (customGstin) => {
     const targetGst = (customGstin || formData.taxId || "").trim().toUpperCase();
     if (!targetGst) {
@@ -249,7 +260,16 @@ function RegisterBusiness({ isAdmin = false }) {
     setGstVerifying(true);
     try {
       if (targetGst.length === 15) {
-        const res = await businessApi.verifyGst(targetGst);
+        let res;
+        try {
+          res = await businessApi.verifyGst(targetGst);
+        } catch (apiErr) {
+          console.warn("[GST Lookup Info]", apiErr.message);
+          setGstVerified(false);
+          setGstErrorMsg(apiErr.message || "Unable to reach GST verification service. You can still proceed by entering details manually.");
+          setGstVerifying(false);
+          return;
+        }
         const data = res?.data || res;
         if (data && (data.isValid || data.valid || data.status === "Active" || data.taxpayerStatus === "Active")) {
           setGstVerified(true);
@@ -893,7 +913,7 @@ function RegisterBusiness({ isAdmin = false }) {
                               setGstErrorMsg("");
                               setError("");
                               if (val.length === 15) {
-                                handleVerifyGst(val);
+                                triggerGstVerification(val);
                               }
                             }}
                             placeholder="e.g. 27AAACT2727Q1ZW"

@@ -301,8 +301,14 @@ function BizVerification() {
   const uploadedCount = uploadedDocs.length;
   const hasUploadedDocs = uploadedCount > 0;
 
-  // Strict Rule: A business cannot be considered verified on the verification desk if all required documents are not uploaded
-  const isVerified = (business?.isVerified === true || rawStatus === "approved" || rawStatus === "verified") && isAllDocsUploaded;
+  const hasEverBeenApproved =
+    business?.isVerified === true ||
+    rawStatus === "approved" ||
+    rawStatus === "verified" ||
+    (Array.isArray(business?.verificationHistory) &&
+      business.verificationHistory.some((h) => h.action === "verified" || h.action === "approved"));
+
+  const isVerified = hasEverBeenApproved && isAllDocsUploaded;
   const isChangesRequired = !isVerified && (rawStatus === "changes_required" || rawStatus === "correction" || rawStatus === "correction_requested");
   const isRejected = !isVerified && rawStatus === "rejected";
   const isUnderReview = !isVerified && !isChangesRequired && !isRejected && isAllDocsUploaded && (rawStatus === "under_review" || rawStatus === "pending");

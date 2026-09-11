@@ -60,6 +60,14 @@ function DiscoverPage() {
     ? businessesData
     : (businessesData?.businesses || []);
 
+  const dynamicCities = Array.from(
+    new Set([
+      ...cities,
+      ...chaptersList.map((ch) => ch.city || (ch.name ? ch.name.replace(/\s+Chapter$/i, "") : "")).filter(Boolean),
+      ...results.map((b) => b.city).filter(Boolean),
+    ])
+  ).sort();
+
   const setParam = (patch) => {
     const current = new URLSearchParams(searchParams ? searchParams.toString() : "");
     Object.entries(patch).forEach(([key, val]) => {
@@ -124,7 +132,7 @@ function DiscoverPage() {
           </SelectTrigger>
           <SelectContent className="max-h-72">
             <SelectItem value="all">{t("allCities")}</SelectItem>
-            {cities.map((city) => (
+            {dynamicCities.map((city) => (
               <SelectItem key={city} value={city}>
                 {city}
               </SelectItem>
