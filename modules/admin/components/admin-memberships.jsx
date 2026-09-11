@@ -20,7 +20,9 @@ function AdminMemberships() {
   const { data: businessesData, refetch: refetchBusinesses } = useBusinesses();
 
   const plans = plansData || {};
-  const businesses = Array.isArray(businessesData) ? businessesData : [];
+  const rawBusinesses = Array.isArray(businessesData) ? businessesData : [];
+  // Per business rule: Only verified businesses are officially RIFAH members
+  const businesses = rawBusinesses.filter(b => b.verification === "verified" || b.isVerified === true);
 
   const [filter, setFilter] = useState("all");
   const filteredBusinesses = businesses.filter((b) => {
