@@ -41,80 +41,164 @@ function AdminPayments() {
     return true;
   });
 
-  const handleDownloadReceipt = (r) => {
+  const handleDownloadReceipt = async (r) => {
     if (!r) return;
     const isUsd = (r.currency || "").toUpperCase() === "USD";
-    const currSymbol = isUsd ? "$" : "₹";
+    const currSymbol = isUsd ? "$" : "Rs.";
     const formattedAmount = `${currSymbol} ${Number(r.amount || 0).toLocaleString(isUsd ? "en-US" : "en-IN")}${isUsd ? " USD" : ""}`;
 
-    const receiptContent = `
-      <html>
-        <head>
-          <title>Official Receipt - ${r.invoiceNumber || "INV"}</title>
-          <style>
-            body { font-family: 'Inter', -apple-system, sans-serif; padding: 30px; color: #1e293b; background: #f8fafc; }
-            .receipt-box { max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; padding: 36px; background: #ffffff; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
-            .header-bar { height: 6px; background: linear-gradient(90deg, #10b981 0%, #0284c7 100%); border-radius: 6px 6px 0 0; margin: -36px -36px 30px -36px; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; border-bottom: 2px solid #0f172a; padding-bottom: 20px; }
-            .header h1 { margin: 0; font-size: 22px; font-weight: 800; color: #0b192c; }
-            .header p { margin: 4px 0 0 0; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-            .inv-meta { text-align: right; }
-            .inv-meta h2 { margin: 0; font-size: 16px; font-weight: 800; color: #0284c7; }
-            .inv-meta p { margin: 3px 0 0 0; font-size: 12px; color: #64748b; }
-            .details-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
-            .details-table th, .details-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; font-size: 13px; }
-            .details-table th { color: #64748b; width: 35%; background: #f8fafc; font-weight: 600; }
-            .total-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px 20px; text-align: right; margin-top: 24px; }
-            .total-box span.label { font-size: 13px; color: #166534; font-weight: 600; text-transform: uppercase; margin-right: 12px; }
-            .total-box span.val { font-size: 22px; font-weight: 800; color: #15803d; }
-            .badge-verified { display: inline-block; background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-            .footer { text-align: center; color: #94a3b8; font-size: 11px; margin-top: 36px; border-top: 1px solid #f1f5f9; padding-top: 16px; }
-          </style>
-        </head>
-        <body>
-          <div class="receipt-box">
-            <div class="header-bar"></div>
-            <div class="header">
-              <div>
-                <h1>RIFAH Chamber of Commerce</h1>
-                <p>Secretariat Payment Receipt & Official Voucher</p>
-              </div>
-              <div class="inv-meta">
-                <h2>INVOICE #${r.invoiceNumber || "N/A"}</h2>
-                <p>Date: ${new Date(r.paidAt || r.createdAt).toLocaleDateString()}</p>
-              </div>
-            </div>
-            <table class="details-table">
-              <tr><th>Payer Member</th><td><strong>${r.payer?.name || r.user?.name || "Member User"}</strong></td></tr>
-              <tr><th>Business / Enterprise</th><td>${r.business?.name || "Member Enterprise"}</td></tr>
-              <tr><th>Contact Email</th><td>${r.payer?.email || "N/A"}</td></tr>
-              <tr><th>Subscription Item</th><td>${r.description || r.purpose || r.itemType || "Membership Subscription"}</td></tr>
-              <tr><th>Payment Method</th><td>${r.method || "Online Gateway"}</td></tr>
-              <tr><th>Currency</th><td>${r.currency || "INR"}</td></tr>
-              <tr><th>Transaction ID</th><td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${r.transactionId || "N/A"}</code></td></tr>
-              <tr><th>Audit Status</th><td><span class="badge-verified">✓ ${r.status || "Paid"}</span></td></tr>
-            </table>
-            <div class="total-box">
-              <span class="label">Total Paid & Verified:</span>
-              <span class="val">${formattedAmount}</span>
-            </div>
-            <div class="footer">
-              This is a verified computer-generated payment receipt issued by RIFAH Chamber Secretariat.<br/>
-              www.rifah.org · Official transaction record for tax & audit verification
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-    const blob = new Blob([receiptContent], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Receipt-${r.invoiceNumber}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const pw = doc.internal.pageSize.getWidth();
+    const mx = 20; // margin x
+    const cw = pw - mx * 2; // content width
+
+    // --- Gradient header bar ---
+    for (let i = 0; i < cw; i++) {
+      const t = i / cw;
+      const red = Math.round(16 + (2 - 16) * t);
+      const green = Math.round(185 + (132 - 185) * t);
+      const blue = Math.round(129 + (199 - 129) * t);
+      doc.setFillColor(red, green, blue);
+      doc.rect(mx + i, 18, 1.2, 3, "F");
+    }
+
+    // --- Header ---
+    let y = 28;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(11, 25, 44);
+    doc.text("RIFAH Chamber of Commerce", mx, y);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text("SECRETARIAT PAYMENT RECEIPT & OFFICIAL VOUCHER", mx, y + 6);
+
+    // Invoice number & date (right aligned)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(2, 132, 199);
+    doc.text(`INVOICE #${r.invoiceNumber || "N/A"}`, pw - mx, y, { align: "right" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Date: ${new Date(r.paidAt || r.createdAt).toLocaleDateString()}`, pw - mx, y + 6, { align: "right" });
+
+    // Separator line
+    y += 12;
+    doc.setDrawColor(15, 23, 42);
+    doc.setLineWidth(0.5);
+    doc.line(mx, y, pw - mx, y);
+
+    // --- Details table ---
+    y += 8;
+    const rows = [
+      ["Payer Member", r.payer?.name || r.user?.name || "Member User"],
+      ["Business / Enterprise", r.business?.name || "Member Enterprise"],
+      ["Contact Email", r.payer?.email || "N/A"],
+      ["Subscription Item", r.description || r.purpose || r.itemType || "Membership Subscription"],
+      ["Payment Method", r.method || "Online Gateway"],
+      ["Currency", r.currency || "INR"],
+      ["Transaction ID", r.transactionId || "N/A"],
+      ["Audit Status", (r.status || "Paid").toUpperCase()],
+    ];
+
+    const labelW = cw * 0.35;
+    const valueW = cw * 0.65;
+    const rowH = 10;
+
+    // Table border
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(mx, y - 2, cw, rows.length * rowH + 4, 2, 2, "S");
+
+    rows.forEach(([label, value], i) => {
+      const ry = y + i * rowH;
+
+      // Label cell background
+      doc.setFillColor(248, 250, 252);
+      if (i === 0) {
+        doc.rect(mx, ry - 2, labelW, rowH, "F");
+      } else {
+        doc.rect(mx, ry, labelW, rowH, "F");
+      }
+
+      // Row divider
+      if (i > 0) {
+        doc.setDrawColor(241, 245, 249);
+        doc.setLineWidth(0.2);
+        doc.line(mx, ry, pw - mx, ry);
+      }
+
+      // Label text
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(label, mx + 5, ry + 6.5);
+
+      // Value text
+      if (label === "Audit Status") {
+        // Green badge
+        const badgeText = `  ${value}  `;
+        doc.setFillColor(220, 252, 231);
+        doc.setTextColor(22, 101, 52);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        const tw = doc.getTextWidth(badgeText);
+        doc.roundedRect(mx + labelW + 5, ry + 2.5, tw + 4, 5.5, 2, 2, "F");
+        doc.text(badgeText, mx + labelW + 7, ry + 6.5);
+      } else if (label === "Payer Member") {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text(value, mx + labelW + 5, ry + 6.5);
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text(value, mx + labelW + 5, ry + 6.5);
+      }
+    });
+
+    // --- Total box ---
+    y += rows.length * rowH + 12;
+    doc.setFillColor(240, 253, 244);
+    doc.setDrawColor(187, 247, 208);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(mx, y, cw, 16, 3, 3, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(22, 101, 52);
+    doc.text("TOTAL PAID & VERIFIED:", pw - mx - 5, y + 7, { align: "right" });
+
+    doc.setFontSize(16);
+    doc.setTextColor(21, 128, 61);
+    doc.text(formattedAmount, pw - mx - 5, y + 13, { align: "right" });
+
+    // --- Footer ---
+    y += 26;
+    doc.setDrawColor(241, 245, 249);
+    doc.setLineWidth(0.2);
+    doc.line(mx, y, pw - mx, y);
+
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      "This is a verified computer-generated payment receipt issued by RIFAH Chamber Secretariat.",
+      pw / 2, y, { align: "center" }
+    );
+    doc.text(
+      "www.rifah.org  |  Official transaction record for tax & audit verification",
+      pw / 2, y + 5, { align: "center" }
+    );
+
+    // Save
+    doc.save(`Receipt-${r.invoiceNumber || "INV"}.pdf`);
   };
 
   const totalRevenue = payments
