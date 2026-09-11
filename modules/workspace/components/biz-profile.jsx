@@ -411,13 +411,6 @@ function BizProfile() {
                     "Save changes"
                   )}
                 </Button>
-                <Button asChild variant="outline">
-                  <Link href="/biz/verification" className="flex items-center gap-1.5 font-medium">
-                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                    <span>Upload Verification Documents</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
               </div>
             </form>
           </Panel>

@@ -13,7 +13,7 @@ import { FieldRow, Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { eventImage } from "@shared/lib/media";
 import { useEventDetail, useEvents } from "@shared/hooks/use-rifah-api";
-import { eventApi } from "@shared/lib/api-services";
+import { eventApi, paymentApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
 function EventDetail() {
@@ -37,6 +37,18 @@ function EventDetail() {
     ))
   );
 
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
   const handleRegister = async () => {
     if (!user) {
       toast.info("Please log in to RSVP / register for this event");
@@ -50,6 +62,86 @@ function EventDetail() {
     }
 
     setRegistering(true);
+
+    if (event.isPaid) {
+      try {
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) throw new Error("Razorpay not loaded");
+
+        // Use any backend endpoint that creates an order
+        // For events, we can use the same paymentApi.createOrder
+        // We'll pass itemType="Event Pass" and eventId
+        const orderRes = await paymentApi.createOrder({
+          amount: event.ticketPrice,
+          currency: "INR",
+          eventId: event._id,
+          itemType: "Event Pass",
+          description: `Pass for ${event.title}`,
+        });
+
+        const orderData = orderRes?.data || orderRes;
+        
+        const options = {
+          key: orderData.keyId || "rzp_test_TTykh9OVkLKNHl",
+          amount: orderData.amount,
+          currency: orderData.currency || "INR",
+          name: "RIFAH Events",
+          description: `Pass for ${event.title}`,
+          order_id: orderData.orderId,
+          handler: async function (response) {
+            try {
+              setRegistering(true);
+
+              // Run both in parallel — no need to wait for one before the other
+              await Promise.all([
+                // Creates Payment record in DB
+                paymentApi.verifyPayment({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  amount: event.ticketPrice,
+                  currency: "INR",
+                  itemType: "Event Pass",
+                  eventId: event._id,
+                  description: `Event Pass: ${event.title}`,
+                }),
+                // Registers user on the event
+                eventApi.registerPaid(event._id, {
+                  paymentId: response.razorpay_payment_id,
+                  transactionId: response.razorpay_order_id,
+                }),
+              ]);
+
+              setRegistered(true);
+              queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+              queryClient.invalidateQueries({ queryKey: ["events"] });
+              queryClient.invalidateQueries({ queryKey: ["all-payments"] });
+              toast.success("Payment successful! You are registered.");
+            } catch (err) {
+              console.error("Event payment error:", err);
+              toast.error(err.message || "Registration failed after payment.");
+            } finally {
+              setRegistering(false);
+            }
+          },
+          prefill: {
+            name: user.name || "",
+            email: user.email || "",
+          },
+          theme: { color: "#0F2942" },
+          modal: { ondismiss: () => setRegistering(false) }
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", () => toast.error("Payment failed."));
+        rzp.open();
+      } catch (err) {
+        setRegistering(false);
+        console.error("Payment init error:", err);
+        toast.error(err.message || "Failed to initialize payment gateway.");
+      }
+      return;
+    }
+
     try {
       await eventApi.register(event._id);
       setRegistered(true);
@@ -164,7 +256,7 @@ function EventDetail() {
                   <FieldRow label="Chapter" value={event.chapter} />
                   <FieldRow label="Mode" value={event.mode} />
                   <FieldRow label="Location" value={`${event.venue || ""}${event.city ? `, ${event.city}` : ""}`} />
-                  <FieldRow label="Participation fee" value={event.fee} />
+                  <FieldRow label="Participation fee" value={event.isPaid ? `₹${event.ticketPrice}` : (event.fee || "Free")} />
                   <FieldRow label="Who should attend" value="Member businesses, buyers and chapter invitees" />
                 </dl>
               </Panel>
@@ -200,7 +292,7 @@ function EventDetail() {
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <p className="text-2xl font-bold tracking-tight">{event.fee}</p>
+                    <p className="text-2xl font-bold tracking-tight">{event.isPaid ? `₹${event.ticketPrice}` : (event.fee || "Free")}</p>
                     <p className="text-xs text-muted-foreground">
                       {Math.max(0, (event.seats || 100) - (event.registeredCount || 0))} seats remaining
                     </p>
