@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, Search, SlidersHorizontal, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 
 import { BusinessCard, CompactBusinessCard } from "@shared/components/rifah/business-card";
@@ -28,6 +28,12 @@ function DiscoverPage() {
   const [query, setQuery] = useState(search.q || search.search || "");
   const t = useTranslations("Discover");
 
+  // Keep query input in sync with URL search params
+  const currentSearchTerm = search.q || search.search || "";
+  useEffect(() => {
+    setQuery(currentSearchTerm);
+  }, [currentSearchTerm]);
+
   const { data: businessesData, isLoading } = useBusinesses({
     search: search.q || search.search,
     industry: search.industry,
@@ -35,6 +41,7 @@ function DiscoverPage() {
     chapter: search.chapter,
     membership: search.membership,
     verified: search.verified,
+    sort: search.sort,
   });
 
   const { data: chaptersData } = useChapters();
@@ -77,12 +84,12 @@ function DiscoverPage() {
   const filters = (
     <div className="space-y-5">
       <div>
-        <Label htmlFor="f-industry">{t("industry")}</Label>
-        <Select value={search.industry ?? "all"} onValueChange={(v) => setParam({ industry: v === "all" ? undefined : v })}>
-          <SelectTrigger id="f-industry" className="mt-1.5">
+        <Label htmlFor="f-industry" className="font-semibold text-xs text-foreground uppercase tracking-wider">{t("industry")}</Label>
+        <Select value={search.industry || "all"} onValueChange={(v) => setParam({ industry: v === "all" ? undefined : v })}>
+          <SelectTrigger id="f-industry" className="mt-1.5 h-10 rounded-xl bg-background">
             <SelectValue placeholder={t("allIndustries")} />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-72">
             <SelectItem value="all">{t("allIndustries")}</SelectItem>
             {mainCategories.length > 0 ? (
               <>
@@ -91,7 +98,7 @@ function DiscoverPage() {
                   return (
                     <SelectGroup key={mc.name}>
                       <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
-                      <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
+                      <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">All {mc.name}</SelectItem>
                       {subs.map(sc => (
                         <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
                       ))}
@@ -110,12 +117,12 @@ function DiscoverPage() {
         </Select>
       </div>
       <div>
-        <Label htmlFor="f-city">{t("city")}</Label>
-        <Select value={search.city ?? "all"} onValueChange={(v) => setParam({ city: v === "all" ? undefined : v })}>
-          <SelectTrigger id="f-city" className="mt-1.5">
+        <Label htmlFor="f-city" className="font-semibold text-xs text-foreground uppercase tracking-wider">{t("city")}</Label>
+        <Select value={search.city || "all"} onValueChange={(v) => setParam({ city: v === "all" ? undefined : v })}>
+          <SelectTrigger id="f-city" className="mt-1.5 h-10 rounded-xl bg-background">
             <SelectValue placeholder={t("allCities")} />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-72">
             <SelectItem value="all">{t("allCities")}</SelectItem>
             {cities.map((city) => (
               <SelectItem key={city} value={city}>
@@ -126,12 +133,12 @@ function DiscoverPage() {
         </Select>
       </div>
       <div>
-        <Label htmlFor="f-chapter">{t("chapter")}</Label>
-        <Select value={search.chapter ?? "all"} onValueChange={(v) => setParam({ chapter: v === "all" ? undefined : v })}>
-          <SelectTrigger id="f-chapter" className="mt-1.5">
+        <Label htmlFor="f-chapter" className="font-semibold text-xs text-foreground uppercase tracking-wider">{t("chapter")}</Label>
+        <Select value={search.chapter || "all"} onValueChange={(v) => setParam({ chapter: v === "all" ? undefined : v })}>
+          <SelectTrigger id="f-chapter" className="mt-1.5 h-10 rounded-xl bg-background">
             <SelectValue placeholder={t("allChapters")} />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-72">
             <SelectItem value="all">{t("allChapters")}</SelectItem>
             {chaptersList.map((ch) => (
               <SelectItem key={ch._id || ch.name} value={ch.name}>
@@ -142,31 +149,38 @@ function DiscoverPage() {
         </Select>
       </div>
       <fieldset>
-        <Label htmlFor="f-membership">{t("membershipLevel")}</Label>
-        <div className="mt-3 space-y-2.5">
-          {membershipLevels.map((lvl) => (
-            <label key={lvl} className="flex min-h-9 items-center gap-2.5 text-sm">
-              <Checkbox
-                checked={search.membership === lvl}
-                onCheckedChange={(c) => setParam({ membership: c ? lvl : undefined })}
-              />
-              {lvl}
-            </label>
-          ))}
+        <Label className="font-semibold text-xs text-foreground uppercase tracking-wider">{t("membershipLevel")}</Label>
+        <div className="mt-2.5 space-y-2">
+          {membershipLevels.map((lvl) => {
+            const isChecked = (search.membership || "").toLowerCase() === lvl.toLowerCase();
+            return (
+              <label key={lvl} className="flex items-center gap-2.5 text-sm py-1 cursor-pointer select-none">
+                <Checkbox
+                  checked={isChecked}
+                  onCheckedChange={(c) => setParam({ membership: c ? lvl : undefined })}
+                />
+                <span className={cn("text-xs font-medium", isChecked ? "text-primary font-bold" : "text-foreground")}>
+                  {lvl}
+                </span>
+              </label>
+            );
+          })}
         </div>
       </fieldset>
-      <div>
-        <label className="flex items-center gap-2 text-sm font-medium leading-none cursor-pointer">
+      <div className="pt-1">
+        <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
           <Checkbox
-            checked={!!search.verified}
-            onCheckedChange={(c) => setParam({ verified: c ? true : undefined })}
+            checked={search.verified === "true" || search.verified === true}
+            onCheckedChange={(c) => setParam({ verified: c ? "true" : undefined })}
           />
-          {t("verifiedOnly")}
+          <span className={cn("text-xs font-medium", (search.verified === "true" || search.verified === true) ? "text-primary font-bold" : "text-foreground")}>
+            {t("verifiedOnly")}
+          </span>
         </label>
       </div>
       <Button
         variant="outline"
-        className="w-full"
+        className="w-full h-9 rounded-xl text-xs font-semibold"
         onClick={() => router.push("/discover")}
       >
         {t("clearAllFilters")}

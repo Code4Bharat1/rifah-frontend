@@ -38,6 +38,7 @@ function AdminPayments() {
   const filteredPayments = payments.filter((p) => {
     if (filter === "completed") return p.status === "completed" || p.status === "Paid";
     if (filter === "pending") return p.status === "pending" || p.status === "Pending";
+    if (filter === "events") return p.itemType === "Event Pass";
     return true;
   });
 
@@ -47,6 +48,74 @@ function AdminPayments() {
     const currSymbol = isUsd ? "$" : "Rs.";
     const formattedAmount = `${currSymbol} ${Number(r.amount || 0).toLocaleString(isUsd ? "en-US" : "en-IN")}${isUsd ? " USD" : ""}`;
 
+    const receiptContent = `
+      <html>
+        <head>
+          <title>Official Receipt - ${r.invoiceNumber || "INV"}</title>
+          <style>
+            body { font-family: 'Inter', -apple-system, sans-serif; padding: 30px; color: #1e293b; background: #f8fafc; }
+            .receipt-box { max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; padding: 36px; background: #ffffff; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+            .header-bar { height: 6px; background: linear-gradient(90deg, #10b981 0%, #0284c7 100%); border-radius: 6px 6px 0 0; margin: -36px -36px 30px -36px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; border-bottom: 2px solid #0f172a; padding-bottom: 20px; }
+            .header h1 { margin: 0; font-size: 22px; font-weight: 800; color: #0b192c; }
+            .header p { margin: 4px 0 0 0; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+            .inv-meta { text-align: right; }
+            .inv-meta h2 { margin: 0; font-size: 16px; font-weight: 800; color: #0284c7; }
+            .inv-meta p { margin: 3px 0 0 0; font-size: 12px; color: #64748b; }
+            .details-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+            .details-table th, .details-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: left; font-size: 13px; }
+            .details-table th { color: #64748b; width: 35%; background: #f8fafc; font-weight: 600; }
+            .total-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px 20px; text-align: right; margin-top: 24px; }
+            .total-box span.label { font-size: 13px; color: #166534; font-weight: 600; text-transform: uppercase; margin-right: 12px; }
+            .total-box span.val { font-size: 22px; font-weight: 800; color: #15803d; }
+            .badge-verified { display: inline-block; background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+            .footer { text-align: center; color: #94a3b8; font-size: 11px; margin-top: 36px; border-top: 1px solid #f1f5f9; padding-top: 16px; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-box">
+            <div class="header-bar"></div>
+            <div class="header">
+              <div>
+                <h1>RIFAH Chamber of Commerce</h1>
+                <p>Secretariat Payment Receipt & Official Voucher</p>
+              </div>
+              <div class="inv-meta">
+                <h2>INVOICE #${r.invoiceNumber || "N/A"}</h2>
+                <p>Date: ${new Date(r.paidAt || r.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+            <table class="details-table">
+              <tr><th>Payer Member</th><td><strong>${r.payer?.name || r.user?.name || "Member User"}</strong></td></tr>
+              <tr><th>Business / Enterprise</th><td>${r.business?.name || "Member Enterprise"}</td></tr>
+              <tr><th>Contact Email</th><td>${r.payer?.email || "N/A"}</td></tr>
+              <tr><th>Subscription Item</th><td>${(r.itemType === "Event Pass" && r.eventId) ? `Event: ${r.eventId.title}` : (r.description || r.purpose || r.itemType || "Membership Subscription")}</td></tr>
+              <tr><th>Payment Method</th><td>${r.method || "Online Gateway"}</td></tr>
+              <tr><th>Currency</th><td>${r.currency || "INR"}</td></tr>
+              <tr><th>Transaction ID</th><td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${r.transactionId || "N/A"}</code></td></tr>
+              <tr><th>Audit Status</th><td><span class="badge-verified">✓ ${r.status || "Paid"}</span></td></tr>
+            </table>
+            <div class="total-box">
+              <span class="label">Total Paid & Verified:</span>
+              <span class="val">${formattedAmount}</span>
+            </div>
+            <div class="footer">
+              This is a verified computer-generated payment receipt issued by RIFAH Chamber Secretariat.<br/>
+              www.rifah.org · Official transaction record for tax & audit verification
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    const blob = new Blob([receiptContent], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Receipt-${r.invoiceNumber}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     const pw = doc.internal.pageSize.getWidth();
@@ -212,7 +281,7 @@ function AdminPayments() {
       subtitle="Chamber membership fee & event transaction records"
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <div onClick={() => setFilter("all")} className={`cursor-pointer transition-all duration-200 ${filter === 'all' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
             <StatCard
               label="Total Revenue"
@@ -238,9 +307,16 @@ function AdminPayments() {
               tone="warning"
             />
           </div>
+          <div onClick={() => setFilter("events")} className={`cursor-pointer transition-all duration-200 ${filter === 'events' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard
+              label="Event Passes"
+              value={String(payments.filter((p) => p.itemType === "Event Pass").length)}
+              tone="primary"
+            />
+          </div>
         </div>
 
-        <Panel title={filter === "all" ? "Transaction ledger" : filter === "completed" ? "Completed Transactions" : "Pending Transactions"}>
+        <Panel title={filter === "all" ? "Transaction ledger" : filter === "completed" ? "Completed Transactions" : filter === "events" ? "Event Payments" : "Pending Transactions"}>
           {error ? (
             <EmptyState
               icon={Wallet}
@@ -255,7 +331,7 @@ function AdminPayments() {
             columns={[
               { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{r.invoiceNumber || "N/A"}</span> },
               { key: "payer", header: "Payer", cell: (r) => r.payer?.name || r.user?.name || "Member Enterprise" },
-              { key: "purpose", header: "Purpose", cell: (r) => r.description || r.purpose || r.itemType || "Membership Subscription" },
+              { key: "purpose", header: "Purpose", cell: (r) => (r.itemType === "Event Pass" && r.eventId) ? <span className="font-medium text-primary">Event: {r.eventId.title}</span> : (r.description || r.purpose || r.itemType || "Membership Subscription") },
               { key: "date", header: "Date", cell: (r) => new Date(r.paidAt || r.createdAt).toLocaleDateString() },
               {
                 key: "amount",

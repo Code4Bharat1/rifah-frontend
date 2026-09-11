@@ -257,7 +257,17 @@ function BusinessHome() {
             );
           }
 
-          if (!hasUploadedDocs && !isVer && !isChanges && !isRej) {
+          // Only show banner if profile is incomplete
+          const isProfileIncomplete = Boolean(
+            !business?.name ||
+            !business?.city ||
+            !business?.state ||
+            !business?.address ||
+            !business?.phone ||
+            completeness < 100
+          );
+
+          if (isProfileIncomplete && !hasUploadedDocs && !isVer && !isChanges && !isRej) {
             return (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-sky-300 bg-sky-50/90 dark:border-sky-800 dark:bg-sky-950/40 p-4 text-sky-950 dark:text-sky-200 shadow-2xs animate-in fade-in duration-200">
                 <div className="flex items-start gap-3">
@@ -270,24 +280,18 @@ function BusinessHome() {
                         Welcome to RIFAH Chamber Workspace!
                       </h4>
                       <span className="rounded-full bg-sky-200/70 dark:bg-sky-900 px-2 py-0.5 text-[10px] font-bold text-sky-800 dark:text-sky-300 uppercase">
-                        Membership Active
+                        Profile Incomplete ({completeness}%)
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-sky-900/80 dark:text-sky-300/80">
-                      Your business profile has been activated. Customize your profile branding, then upload your verification paperwork to earn the verified chamber badge.
+                      Your business profile has been activated. Please complete your profile details and business branding.
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Button asChild size="sm" variant="outline" className="border-sky-300 text-sky-900 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-200 font-semibold text-xs">
+                  <Button asChild size="sm" className="bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs shadow-xs">
                     <Link href="/biz/profile">
                       <span>Complete Profile</span>
-                    </Link>
-                  </Button>
-                  <Button asChild size="sm" className="bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs gap-1.5 shadow-xs">
-                    <Link href="/biz/verification">
-                      <span>Upload Documents</span>
-                      <ArrowUpRight className="h-3.5 w-3.5" />
                     </Link>
                   </Button>
                 </div>

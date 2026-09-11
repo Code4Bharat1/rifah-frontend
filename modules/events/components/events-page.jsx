@@ -94,6 +94,7 @@ function EventsPage() {
                   <div className="mt-3 flex flex-1 flex-wrap items-end gap-1.5">
                     <Pill tone={ev.mode === "Online" ? "primary" : "neutral"}>{ev.mode}</Pill>
                     <Pill>{ev.chapter}</Pill>
+                    {ev.isPaid ? <Pill tone="warning">Paid (₹{ev.ticketPrice})</Pill> : <Pill tone="success">Free</Pill>}
                   </div>
                 </Link>
               </li>

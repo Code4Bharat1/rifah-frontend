@@ -143,6 +143,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     cover: null,
     scheduledDate: "",
     scheduledTime: "08:00",
+    isPaid: false,
+    ticketPrice: "",
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -214,14 +216,48 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   };
 
   const handleSave = async (targetStatus) => {
-    if (!formData.title || !formData.date) {
+    if (!formData.title && !formData.date) {
       toast.error("Title and Date are required");
       return;
     }
-    
-    if (targetStatus === "Scheduled" && (!formData.scheduledDate || !formData.scheduledTime)) {
-      toast.error("Scheduled Date and Time are required");
+    if (!formData.title) {
+      toast.error("Event Title is required");
       return;
+    }
+    if (!formData.date) {
+      toast.error("Event Date is required");
+      return;
+    }
+    
+    if (!isEditMode && formData.date) {
+      const selectedDate = new Date(formData.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        toast.error("You cannot create an event in the past. Please select today's date or a future date.");
+        return;
+      }
+    }
+
+    if (targetStatus === "Scheduled") {
+      if (!formData.scheduledDate && !formData.scheduledTime) {
+        toast.error("Scheduled Date and Time are required");
+        return;
+      }
+      if (!formData.scheduledDate) {
+        toast.error("Scheduled Date is required");
+        return;
+      }
+      if (!formData.scheduledTime) {
+        toast.error("Scheduled Time is required");
+        return;
+      }
+
+      const scheduleDateTime = new Date(`${formData.scheduledDate}T${formData.scheduledTime}:00`);
+      if (scheduleDateTime < new Date()) {
+        toast.error("Cannot schedule in the past. Please select a future time.");
+        return;
+      }
     }
 
     if (targetStatus === "Upcoming") setLoading(true);
@@ -308,6 +344,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   id="date"
                   type="date"
                   required
+                  min={!isEditMode ? new Date().toISOString().split("T")[0] : undefined}
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 />
@@ -356,6 +393,35 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="isPaid">Event Type</Label>
+                <Select value={formData.isPaid ? "Paid" : "Free"} onValueChange={(val) => setFormData({ ...formData, isPaid: val === "Paid", ticketPrice: val === "Free" ? "" : formData.ticketPrice })}>
+                  <SelectTrigger id="isPaid">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Free">Free / Complimentary</SelectItem>
+                    <SelectItem value="Paid">Paid Event</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {formData.isPaid && (
+                <div className="space-y-2">
+                  <Label htmlFor="ticketPrice">Ticket Price (₹) <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="ticketPrice"
+                    type="number"
+                    min="0"
+                    required
+                    value={formData.ticketPrice}
+                    onChange={(e) => setFormData({ ...formData, ticketPrice: e.target.value ? Number(e.target.value) : "" })}
+                    placeholder="e.g. 500"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

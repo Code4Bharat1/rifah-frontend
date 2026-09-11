@@ -38,10 +38,16 @@ export function useBusinessDetail(idOrSlug) {
     queryKey: ["business", idOrSlug],
     queryFn: async () => {
       if (!idOrSlug) return null;
-      const res = await businessApi.getByIdOrSlug(idOrSlug);
-      return res?.data || res;
+      try {
+        const res = await businessApi.getByIdOrSlug(idOrSlug);
+        return res?.data || res;
+      } catch (err) {
+        // Return null for 404 or missing business so page renders polite NotFound state instead of crashing
+        return null;
+      }
     },
     enabled: Boolean(idOrSlug),
+    retry: 1,
   });
 }
 
