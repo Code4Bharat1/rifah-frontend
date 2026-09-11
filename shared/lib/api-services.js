@@ -48,6 +48,7 @@ export const businessApi = {
   getByIdOrSlug: (idOrSlug) => apiClient(`/businesses/detail/${idOrSlug}`),
   getMyBusiness: () => apiClient("/businesses/me"),
   create: (data) => apiClient("/businesses", { method: "POST", body: JSON.stringify(data) }),
+  createAdmin: (data) => apiClient("/businesses/admin/create", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/businesses/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   updateStatus: (id, data) => apiClient(`/businesses/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   uploadLogo: (id, file) => {

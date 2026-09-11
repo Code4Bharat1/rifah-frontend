@@ -39,6 +39,7 @@ function AdminPayments() {
     if (filter === "completed") return p.status === "completed" || p.status === "Paid";
     if (filter === "pending") return p.status === "pending" || p.status === "Pending";
     if (filter === "events") return p.itemType === "Event Pass";
+    if (filter === "cash") return p.method === "CASH" && p.itemType === "Membership";
     return true;
   });
 
@@ -162,9 +163,16 @@ function AdminPayments() {
               tone="primary"
             />
           </div>
+          <div onClick={() => setFilter("cash")} className={`cursor-pointer transition-all duration-200 ${filter === 'cash' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard
+              label="Cash Registrations"
+              value={String(payments.filter((p) => p.method === "CASH" && p.itemType === "Membership").length)}
+              tone="success"
+            />
+          </div>
         </div>
 
-        <Panel title={filter === "all" ? "Transaction ledger" : filter === "completed" ? "Completed Transactions" : filter === "events" ? "Event Payments" : "Pending Transactions"}>
+        <Panel title={filter === "all" ? "Transaction ledger" : filter === "completed" ? "Completed Transactions" : filter === "events" ? "Event Payments" : filter === "cash" ? "Cash Business Registrations" : "Pending Transactions"}>
           {error ? (
             <EmptyState
               icon={Wallet}

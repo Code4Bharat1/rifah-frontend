@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe, FileText, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
@@ -46,7 +47,8 @@ const loadRazorpayScript = () => {
   });
 };
 
-function RegisterBusiness() {
+function RegisterBusiness({ isAdmin = false }) {
+  const router = useRouter();
   const { registerBusiness } = useAuth();
   const { data: chaptersData } = useChapters();
   const { data: plansData } = useMembershipPlans();
@@ -65,6 +67,9 @@ function RegisterBusiness() {
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [paidSuccess, setPaidSuccess] = useState(false);
+
+  // Admin Specific
+  const [paymentMethod, setPaymentMethod] = useState("cash");
 
   // Region Selection Modal Popup State
   const [showRegionModal, setShowRegionModal] = useState(true);
@@ -354,6 +359,35 @@ function RegisterBusiness() {
         }
       }
 
+      // If Admin and Cash Payment
+      if (isAdmin && paymentMethod === "cash") {
+         await businessApi.createAdmin({
+            businessName: formData.businessName,
+            ownerName: formData.contactPerson || formData.businessName,
+            email: formData.email,
+            phone: formData.phone,
+            chapter: formData.chapter,
+            industry: formData.industry,
+            businessType: formData.businessType,
+            city: formData.city,
+            state: isInternational ? (formData.state || "International") : "Maharashtra",
+            address: formData.address,
+            pincode: formData.pincode,
+            founded: formData.founded,
+            employees: formData.employees,
+            taxId: isInternational ? (certDocNumber || "") : (formData.taxId || "").trim().toUpperCase(),
+            region: formData.region || "national",
+            membershipTier: tier,
+            about: formData.about,
+            amountCollected: planAmount
+         });
+         
+         // Notify admin and redirect
+         alert("Business registered successfully! An email with login credentials has been sent to the owner.");
+         router.push("/admin/businesses");
+         return;
+      }
+
       // Step 1: Register the business & user account
       await registerBusiness({
         name: formData.contactPerson || formData.businessName,
@@ -540,10 +574,12 @@ function RegisterBusiness() {
     );
   }
 
+  const Wrapper = isAdmin ? ({children}) => <div className="py-6 animate-in fade-in">{children}</div> : PublicLayout;
+
   return (
-    <PublicLayout>
+    <Wrapper>
       {/* INITIAL JURISDICTION SELECTION MODAL POPUP */}
-      <Dialog open={showRegionModal} onOpenChange={setShowRegionModal}>
+      <Dialog open={showRegionModal && !isAdmin} onOpenChange={setShowRegionModal}>
         <DialogContent className="w-[94vw] max-w-xl p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl font-sans">
           <DialogHeader className="space-y-1.5 text-left">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold w-fit">
@@ -723,17 +759,19 @@ function RegisterBusiness() {
                   setError("Please provide a valid account email.");
                   return;
                 }
-                if (!emailVerified) {
-                  if (!otpSent) {
-                    handleSendOtp();
+                if (!isAdmin) {
+                  if (!emailVerified) {
+                    if (!otpSent) {
+                      handleSendOtp();
+                      return;
+                    }
+                    setError("Please enter the 6-digit verification code sent to your email.");
                     return;
                   }
-                  setError("Please enter the 6-digit verification code sent to your email.");
-                  return;
-                }
-                if (!formData.password || formData.password.length < 6) {
-                  setError("Please enter an account password with at least 6 characters.");
-                  return;
+                  if (!formData.password || formData.password.length < 6) {
+                    setError("Please enter an account password with at least 6 characters.");
+                    return;
+                  }
                 }
               }
 
@@ -1268,13 +1306,13 @@ function RegisterBusiness() {
                               : ""
                         )}
                       />
-                      {emailVerified ? (
+                      {(!isAdmin && emailVerified) ? (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                           <span>Verified</span>
                         </div>
                       ) : (
-                        !otpSent && (
+                        !isAdmin && !otpSent && (
                           <Button
                             type="button"
                             onClick={handleSendOtp}
@@ -1296,15 +1334,20 @@ function RegisterBusiness() {
                         )
                       )}
                     </div>
-                    {!emailVerified && !otpSent && (
+                    {!isAdmin && !emailVerified && !otpSent && (
                       <p className="text-xs text-muted-foreground">
                         We will send a 6-digit verification code to confirm this email.
+                      </p>
+                    )}
+                    {isAdmin && (
+                      <p className="text-xs text-muted-foreground">
+                        An auto-generated secure password will be sent to this email.
                       </p>
                     )}
                   </div>
 
                   {/* Step 2: 6-Digit Verification Code Box (Matching Forgot Password Theme) */}
-                  {otpSent && !emailVerified && (
+                  {!isAdmin && otpSent && !emailVerified && (
                     <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] p-5 space-y-4 shadow-sm animate-in fade-in duration-200">
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -1396,7 +1439,7 @@ function RegisterBusiness() {
                   )}
 
                   {/* Password Field - Revealed after email verification */}
-                  {emailVerified && (
+                  {!isAdmin && emailVerified && (
                     <div className="space-y-2 animate-in fade-in duration-300 pt-1">
                       <Label htmlFor="reg-pass">Account Password *</Label>
                       <Input
@@ -1551,7 +1594,34 @@ function RegisterBusiness() {
                               : "Razorpay Instant Payment Gateway (UPI / QR / Cards / NetBanking in INR)"}
                           </span>
                         </div>
-                        <p className="text-[11px] text-muted-foreground">
+                        {isAdmin && (
+                          <div className="mt-4 flex flex-col space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Payment Method (Admin Override)</span>
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setPaymentMethod("cash")}
+                                className={cn(
+                                  "flex-1 rounded-lg border py-2 px-3 text-sm font-semibold transition-all text-center",
+                                  paymentMethod === "cash" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                )}
+                              >
+                                Direct Cash
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPaymentMethod("online")}
+                                className={cn(
+                                  "flex-1 rounded-lg border py-2 px-3 text-sm font-semibold transition-all text-center",
+                                  paymentMethod === "online" ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                )}
+                              >
+                                Online Gateway
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        <p className="text-[11px] text-muted-foreground mt-3">
                           {isIntl ? (
                             <>
                               Official international subscription receipt will be dispatched to <strong>{formData.email}</strong> upon payment confirmation.
@@ -1598,6 +1668,9 @@ function RegisterBusiness() {
                       : (activePlan?.price || 0);
 
                     if (activeAmt > 0) {
+                      if (isAdmin && paymentMethod === "cash") {
+                        return isIntl ? `Receive $${activeAmt} Cash & Register` : `Receive ₹${activeAmt.toLocaleString("en-IN")} Cash & Register`;
+                      }
                       return isIntl
                         ? `🔒 Pay $${activeAmt} USD & Register`
                         : `🔒 Pay ₹${activeAmt.toLocaleString("en-IN")} & Register`;
@@ -1612,7 +1685,7 @@ function RegisterBusiness() {
           </form>
         </div>
       </div>
-    </PublicLayout>
+    </Wrapper>
   );
 }
 

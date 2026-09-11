@@ -204,7 +204,7 @@ export default function LoginPage() {
   };
 
   const navigateUser = (user) => {
-    if (user.requirePasswordReset) {
+    if (user.requirePasswordReset || user.forcePasswordChange) {
       router.push("/change-password");
     } else if (user.role === "business_owner") {
       router.push("/biz");

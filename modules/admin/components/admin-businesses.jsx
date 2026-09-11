@@ -21,7 +21,6 @@ import {
 import { useBusinesses, useCategories } from "@shared/hooks/use-rifah-api";
 import { businessApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
-
 function AdminBusinesses() {
   const [q, setQ] = useState("");
   const [industry, setIndustry] = useState("all");
@@ -54,7 +53,12 @@ function AdminBusinesses() {
       title="Member businesses"
       subtitle={`${rows.length} listed businesses`}
       actions={
-        <Button variant="outline" className="rounded-full">Export directory</Button>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="rounded-full">Export directory</Button>
+          <Button asChild className="rounded-full bg-blue-600 hover:bg-blue-700">
+            <Link href="/admin/businesses/new">Add Business</Link>
+          </Button>
+        </div>
       }
     >
       <div className="space-y-4">
