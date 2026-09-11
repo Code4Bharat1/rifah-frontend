@@ -23,14 +23,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@shared/components/ui/dialog";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMyBusiness, useBusinessCatalogue } from "@shared/hooks/use-rifah-api";
 import { catalogueApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
 function BizCatalogue() {
+  const queryClient = useQueryClient();
   const { data: business } = useMyBusiness();
   const { data: catalogueItems, refetch } = useBusinessCatalogue(business?._id);
   const items = catalogueItems || [];
+
+  const syncCatalogueCache = () => {
+    refetch();
+    if (business?._id) {
+      queryClient.invalidateQueries({ queryKey: ["catalogue", business._id] });
+      queryClient.invalidateQueries({ queryKey: ["business", business._id] });
+    }
+    if (business?.slug) {
+      queryClient.invalidateQueries({ queryKey: ["business", business.slug] });
+    }
+  };
 
   const [openAdd, setOpenAdd] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -133,7 +146,7 @@ function BizCatalogue() {
       setAddFiles([]);
       setAddPreviews([]);
       toast.success("Catalogue item added successfully!");
-      refetch();
+      syncCatalogueCache();
     } catch (err) {
       toast.error(err.message || "Failed to add catalogue item.");
     } finally {
@@ -182,7 +195,7 @@ function BizCatalogue() {
       setEditFiles([]);
       setEditPreviews([]);
       toast.success("Catalogue item updated successfully!");
-      refetch();
+      syncCatalogueCache();
     } catch (err) {
       toast.error(err.message || "Failed to update item.");
     } finally {
@@ -195,7 +208,7 @@ function BizCatalogue() {
     try {
       await catalogueApi.delete(id);
       toast.success("Catalogue item deleted");
-      refetch();
+      syncCatalogueCache();
     } catch (err) {
       toast.error(err.message || "Failed to delete item.");
     }

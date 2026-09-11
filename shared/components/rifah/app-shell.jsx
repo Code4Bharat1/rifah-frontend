@@ -265,9 +265,13 @@ export function AppShell({
   const { data: conversationsData } = useConversations();
   const { data: businessData, isLoading: isBizLoading } = useMyBusiness();
   const vStatus = (businessData?.verification || businessData?.verificationStatus || "").toLowerCase();
-  const isBizVerified = role !== "business" || (
-    businessData?.isVerified === true || vStatus === "verified" || vStatus === "approved"
-  );
+  const hasEverBeenVerified =
+    businessData?.isVerified === true ||
+    vStatus === "verified" ||
+    vStatus === "approved" ||
+    (Array.isArray(businessData?.verificationHistory) &&
+      businessData.verificationHistory.some((h) => h.action === "verified" || h.action === "approved"));
+  const isBizVerified = role !== "business" || hasEverBeenVerified;
   const isGatedPage = role === "business" && !isBizLoading && businessData && !isBizVerified && !isAccessibleUnverifiedPath(path);
 
   const unreadNotifs = notificationsData?.unreadCount ?? (

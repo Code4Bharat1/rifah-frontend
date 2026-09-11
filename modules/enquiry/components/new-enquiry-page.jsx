@@ -132,6 +132,11 @@ function NewEnquiry() {
             className="mt-5 space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
+              const todayStr = new Date().toISOString().split("T")[0];
+              if (formData.requiredBy && formData.requiredBy < todayStr) {
+                setError("Required-by date cannot be in the past.");
+                return;
+              }
               if (step < steps.length - 1) {
                 setStep((s) => s + 1);
               } else {
@@ -188,11 +193,10 @@ function NewEnquiry() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="description">Requirement description *</Label>
+                    <Label htmlFor="description">Requirement description (Optional)</Label>
                     <Textarea
                       id="description"
                       rows={5}
-                      required
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Specifications, volume, tolerances, quality expectations, delivery terms."
@@ -229,8 +233,12 @@ function NewEnquiry() {
                     <Input
                       id="by"
                       type="date"
+                      min={new Date().toISOString().split("T")[0]}
                       value={formData.requiredBy}
-                      onChange={(e) => setFormData({ ...formData, requiredBy: e.target.value })}
+                      onChange={(e) => {
+                        setError("");
+                        setFormData({ ...formData, requiredBy: e.target.value });
+                      }}
                     />
                   </div>
                   <div className="space-y-1.5">
