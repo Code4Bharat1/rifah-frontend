@@ -35,6 +35,7 @@ import {
 } from "@shared/components/ui/dialog";
 
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
+import { BusinessCard } from "@shared/components/rifah/business-card";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { FieldRow, Panel, SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
@@ -74,9 +75,13 @@ function BusinessProfile() {
   const { data: business, isLoading } = useBusinessDetail(businessId);
   const { data: catalogueItems } = useBusinessCatalogue(business?._id);
   const { data: reviewsData } = useBusinessReviews(business?._id);
+  const industryOrCat = business?.industry || (Array.isArray(business?.categories) ? business.categories[0] : business?.category) || "";
   const { data: relatedData } = useBusinesses({
-    industry: business?.industry,
-    limit: 3,
+    industry: industryOrCat || undefined,
+    limit: 8,
+  });
+  const { data: allDirectoryData } = useBusinesses({
+    limit: 8,
   });
 
   const queryClient = useQueryClient();
@@ -168,7 +173,38 @@ function BusinessProfile() {
     return { stars, pct, count };
   });
 
-  const related = (relatedData?.businesses || []).filter((b) => b._id !== business._id);
+  const currentBizId = String(business?._id || business?.id || "");
+  const currentBizSlug = business?.slug ? String(business.slug).toLowerCase() : "";
+
+  const extractBusinesses = (input) => {
+    if (Array.isArray(input)) return input;
+    if (Array.isArray(input?.businesses)) return input.businesses;
+    if (Array.isArray(input?.data)) return input.data;
+    if (Array.isArray(input?.data?.businesses)) return input.data.businesses;
+    return [];
+  };
+
+  const filterSelf = (list) =>
+    list.filter((b) => {
+      const bId = String(b?._id || b?.id || "");
+      const bSlug = b?.slug ? String(b.slug).toLowerCase() : "";
+      if (currentBizId && bId === currentBizId) return false;
+      if (currentBizSlug && bSlug === currentBizSlug) return false;
+      return true;
+    });
+
+  const categoryRelated = filterSelf(extractBusinesses(relatedData));
+  const generalRelated = filterSelf(extractBusinesses(allDirectoryData));
+
+  const mergedRelated = [...categoryRelated];
+  generalRelated.forEach((b) => {
+    const bId = String(b?._id || b?.slug || b?.id);
+    if (!mergedRelated.some((m) => String(m?._id || m?.slug || m?.id) === bId)) {
+      mergedRelated.push(b);
+    }
+  });
+
+  const related = mergedRelated.slice(0, 3);
 
   const handleToggleSave = async () => {
     try {
@@ -687,25 +723,41 @@ function BusinessProfile() {
           </aside>
         </div>
 
-        <section className="py-10">
-          <SectionHeader title={`Similar businesses in ${business.industry}`} />
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {related.map((b) => (
-              <Link
-                key={b._id || b.slug}
-                href={`/business/${b.slug || b._id}`}
-                className="rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/40"
-              >
-                <p className="text-sm font-semibold">{b.name}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {b.industry} · {b.city}
-                </p>
-                <div className="mt-2">
-                  <VerificationBadge status={b.verification} compact />
-                </div>
-              </Link>
-            ))}
+        <section className="py-10 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                Similar businesses {business?.industry ? `in ${business.industry}` : ""}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Discover verified chamber members and trusted business partners.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm" className="rounded-xl shrink-0 self-start sm:self-auto">
+              <Link href="/discover">View all directory</Link>
+            </Button>
           </div>
+
+          {related.length > 0 ? (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {related.map((b) => (
+                <BusinessCard key={b._id || b.slug || b.id} business={b} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-border bg-surface/50 p-8 sm:p-12 text-center">
+              <Building2 className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="font-semibold text-sm text-foreground">
+                No other businesses registered in {business?.industry || "this category"} yet
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+                Explore our full chamber directory to connect with verified partners across all industries.
+              </p>
+              <Button asChild size="sm" className="mt-4 rounded-xl">
+                <Link href="/discover">Explore Full Directory</Link>
+              </Button>
+            </div>
+          )}
         </section>
       </div>
 
