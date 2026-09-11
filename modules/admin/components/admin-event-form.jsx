@@ -214,14 +214,48 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   };
 
   const handleSave = async (targetStatus) => {
-    if (!formData.title || !formData.date) {
+    if (!formData.title && !formData.date) {
       toast.error("Title and Date are required");
       return;
     }
-    
-    if (targetStatus === "Scheduled" && (!formData.scheduledDate || !formData.scheduledTime)) {
-      toast.error("Scheduled Date and Time are required");
+    if (!formData.title) {
+      toast.error("Event Title is required");
       return;
+    }
+    if (!formData.date) {
+      toast.error("Event Date is required");
+      return;
+    }
+    
+    if (!isEditMode && formData.date) {
+      const selectedDate = new Date(formData.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        toast.error("You cannot create an event in the past. Please select today's date or a future date.");
+        return;
+      }
+    }
+
+    if (targetStatus === "Scheduled") {
+      if (!formData.scheduledDate && !formData.scheduledTime) {
+        toast.error("Scheduled Date and Time are required");
+        return;
+      }
+      if (!formData.scheduledDate) {
+        toast.error("Scheduled Date is required");
+        return;
+      }
+      if (!formData.scheduledTime) {
+        toast.error("Scheduled Time is required");
+        return;
+      }
+
+      const scheduleDateTime = new Date(`${formData.scheduledDate}T${formData.scheduledTime}:00`);
+      if (scheduleDateTime < new Date()) {
+        toast.error("Cannot schedule in the past. Please select a future time.");
+        return;
+      }
     }
 
     if (targetStatus === "Upcoming") setLoading(true);
@@ -308,6 +342,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   id="date"
                   type="date"
                   required
+                  min={!isEditMode ? new Date().toISOString().split("T")[0] : undefined}
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 />
