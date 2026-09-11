@@ -11,7 +11,7 @@ function getApiBaseUrl() {
       return `${window.location.origin}/api/v1`;
     }
   }
-  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api/v1";
 }
 
 const API_BASE_URL = getApiBaseUrl();
@@ -27,7 +27,7 @@ function getBackendServerBase() {
       // fallback
     }
   }
-  return process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
+  return process.env.NEXT_PUBLIC_SERVER_URL || "http://127.0.0.1:5000";
 }
 
 const SERVER_BASE_URL = getBackendServerBase();

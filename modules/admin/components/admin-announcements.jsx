@@ -22,6 +22,8 @@ function AdminAnnouncements() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("Draft");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("08:00");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
@@ -34,28 +36,55 @@ function AdminAnnouncements() {
       setTitle(announcement.title);
       setMessage(announcement.message);
       setStatus(announcement.status);
+      if (announcement.scheduledAt) {
+        const d = new Date(announcement.scheduledAt);
+        setScheduledDate(d.toISOString().split("T")[0]);
+        setScheduledTime(`${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`);
+      } else {
+        setScheduledDate("");
+        setScheduledTime("08:00");
+      }
     } else {
       setEditingId(null);
       setTitle("");
       setMessage("");
       setStatus("Draft");
+      setScheduledDate("");
+      setScheduledTime("08:00");
     }
     setIsCreating(true);
   };
 
   const handleSave = async (e, overrideStatus = null) => {
     if (e) e.preventDefault();
-    if (!title || !message) return toast.error("Title and message are required.");
-    setSaving(true);
+    if (!title && !message) return toast.error("Title and message are required.");
+    if (!title) return toast.error("Title is missing. Please provide a title.");
+    if (!message) return toast.error("Message is missing. Please type a message.");
+    
     const finalStatus = overrideStatus || status;
+    
+    let scheduledAt = null;
+    if (finalStatus === "Scheduled") {
+      if (!scheduledDate || !scheduledTime) {
+        return toast.error("Scheduled Date and Time are required.");
+      }
+      const scheduleDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`);
+      if (scheduleDateTime < new Date()) {
+        return toast.error("Cannot schedule in the past. Please select a future time.");
+      }
+      scheduledAt = scheduleDateTime;
+    }
+
+    setSaving(true);
     try {
+      const payload = { title, message, status: finalStatus, scheduledAt };
       if (editingId) {
-        await announcementApi.update(editingId, { title, message, status: finalStatus });
-        toast.success(`Announcement ${finalStatus === 'Published' ? 'published' : 'updated'} successfully`);
+        await announcementApi.update(editingId, payload);
+        toast.success(`Announcement ${finalStatus.toLowerCase()} successfully`);
       } else {
-        await announcementApi.create({ title, message, status: finalStatus, chapter: "dummy" }); 
+        await announcementApi.create({ ...payload, chapter: "dummy" }); 
         // backend will auto-override chapter with req.user.chapter
-        toast.success("Announcement created successfully");
+        toast.success(`Announcement ${finalStatus.toLowerCase()} successfully`);
       }
       setIsCreating(false);
       refetch();
@@ -94,6 +123,7 @@ function AdminAnnouncements() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Total Announcements" value={String(announcements.length)} icon={Megaphone} tone="primary" />
           <StatCard label="Published" value={String(announcements.filter(a => a.status === 'Published').length)} tone="success" />
+          <StatCard label="Scheduled" value={String(announcements.filter(a => a.status === 'Scheduled').length)} tone="primary" />
           <StatCard label="Drafts" value={String(announcements.filter(a => a.status === 'Draft').length)} tone="warning" />
         </div>
 
@@ -123,7 +153,7 @@ function AdminAnnouncements() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      {r.status === "Draft" && (
+                      {(r.status === "Draft" || r.status === "Scheduled") && (
                         <>
                           <DropdownMenuItem onClick={() => handlePublishDirectly(r._id)}>
                             <Send className="mr-2 h-4 w-4 text-success" /> Publish Now
@@ -179,17 +209,50 @@ function AdminAnnouncements() {
                   disabled={status === "Published"}
                 />
               </div>
+              {(status === "Draft" || status === "Scheduled") && (
+                <div className="pt-4 border-t space-y-3">
+                  <Label>Schedule Publication (Optional)</Label>
+                  <div className="flex gap-4">
+                    <div className="space-y-1.5 flex-1">
+                      <Label className="text-xs text-muted-foreground">Date</Label>
+                      <Input
+                        type="date"
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        min={new Date().toISOString().split("T")[0]}
+                      />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <Label className="text-xs text-muted-foreground">Time</Label>
+                      <Input
+                        type="time"
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Leave blank to publish immediately. If you set a schedule, click "Schedule Announcement" instead of Publish.
+                  </p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
-              {status === "Draft" && (
+              {(status === "Draft" || status === "Scheduled") && (
                 <>
-                  <Button type="button" variant="secondary" onClick={() => { setStatus("Draft"); handleSave(null, "Draft"); }} disabled={saving}>
+                  <Button type="button" variant="secondary" onClick={() => handleSave(null, "Draft")} disabled={saving}>
                     Save as Draft
                   </Button>
-                  <Button type="button" onClick={() => { setStatus("Published"); handleSave(null, "Published"); }} disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publish & Broadcast"}
-                  </Button>
+                  {scheduledDate && scheduledTime ? (
+                    <Button type="button" onClick={() => handleSave(null, "Scheduled")} disabled={saving}>
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Schedule Announcement"}
+                    </Button>
+                  ) : (
+                    <Button type="button" onClick={() => handleSave(null, "Published")} disabled={saving}>
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publish & Broadcast"}
+                    </Button>
+                  )}
                 </>
               )}
             </DialogFooter>
