@@ -38,6 +38,7 @@ function AdminPayments() {
   const filteredPayments = payments.filter((p) => {
     if (filter === "completed") return p.status === "completed" || p.status === "Paid";
     if (filter === "pending") return p.status === "pending" || p.status === "Pending";
+    if (filter === "events") return p.itemType === "Event Pass";
     return true;
   });
 
@@ -88,7 +89,7 @@ function AdminPayments() {
               <tr><th>Payer Member</th><td><strong>${r.payer?.name || r.user?.name || "Member User"}</strong></td></tr>
               <tr><th>Business / Enterprise</th><td>${r.business?.name || "Member Enterprise"}</td></tr>
               <tr><th>Contact Email</th><td>${r.payer?.email || "N/A"}</td></tr>
-              <tr><th>Subscription Item</th><td>${r.description || r.purpose || r.itemType || "Membership Subscription"}</td></tr>
+              <tr><th>Subscription Item</th><td>${(r.itemType === "Event Pass" && r.eventId) ? `Event: ${r.eventId.title}` : (r.description || r.purpose || r.itemType || "Membership Subscription")}</td></tr>
               <tr><th>Payment Method</th><td>${r.method || "Online Gateway"}</td></tr>
               <tr><th>Currency</th><td>${r.currency || "INR"}</td></tr>
               <tr><th>Transaction ID</th><td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${r.transactionId || "N/A"}</code></td></tr>
@@ -128,7 +129,7 @@ function AdminPayments() {
       subtitle="Chamber membership fee & event transaction records"
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <div onClick={() => setFilter("all")} className={`cursor-pointer transition-all duration-200 ${filter === 'all' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
             <StatCard
               label="Total Revenue"
@@ -154,9 +155,16 @@ function AdminPayments() {
               tone="warning"
             />
           </div>
+          <div onClick={() => setFilter("events")} className={`cursor-pointer transition-all duration-200 ${filter === 'events' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
+            <StatCard
+              label="Event Passes"
+              value={String(payments.filter((p) => p.itemType === "Event Pass").length)}
+              tone="primary"
+            />
+          </div>
         </div>
 
-        <Panel title={filter === "all" ? "Transaction ledger" : filter === "completed" ? "Completed Transactions" : "Pending Transactions"}>
+        <Panel title={filter === "all" ? "Transaction ledger" : filter === "completed" ? "Completed Transactions" : filter === "events" ? "Event Payments" : "Pending Transactions"}>
           {error ? (
             <EmptyState
               icon={Wallet}
@@ -171,7 +179,7 @@ function AdminPayments() {
             columns={[
               { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{r.invoiceNumber || "N/A"}</span> },
               { key: "payer", header: "Payer", cell: (r) => r.payer?.name || r.user?.name || "Member Enterprise" },
-              { key: "purpose", header: "Purpose", cell: (r) => r.description || r.purpose || r.itemType || "Membership Subscription" },
+              { key: "purpose", header: "Purpose", cell: (r) => (r.itemType === "Event Pass" && r.eventId) ? <span className="font-medium text-primary">Event: {r.eventId.title}</span> : (r.description || r.purpose || r.itemType || "Membership Subscription") },
               { key: "date", header: "Date", cell: (r) => new Date(r.paidAt || r.createdAt).toLocaleDateString() },
               {
                 key: "amount",

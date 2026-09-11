@@ -143,6 +143,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     cover: null,
     scheduledDate: "",
     scheduledTime: "08:00",
+    isPaid: false,
+    ticketPrice: "",
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -356,6 +358,35 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="isPaid">Event Type</Label>
+                <Select value={formData.isPaid ? "Paid" : "Free"} onValueChange={(val) => setFormData({ ...formData, isPaid: val === "Paid", ticketPrice: val === "Free" ? "" : formData.ticketPrice })}>
+                  <SelectTrigger id="isPaid">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Free">Free / Complimentary</SelectItem>
+                    <SelectItem value="Paid">Paid Event</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {formData.isPaid && (
+                <div className="space-y-2">
+                  <Label htmlFor="ticketPrice">Ticket Price (₹) <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="ticketPrice"
+                    type="number"
+                    min="0"
+                    required
+                    value={formData.ticketPrice}
+                    onChange={(e) => setFormData({ ...formData, ticketPrice: e.target.value ? Number(e.target.value) : "" })}
+                    placeholder="e.g. 500"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

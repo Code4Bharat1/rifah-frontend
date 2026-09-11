@@ -152,6 +152,8 @@ function AdminEvents() {
     displayEvents = events.filter((e) => e.status === "Pending Approval");
   } else if (filterMode === "Scheduled") {
     displayEvents = events.filter((e) => e.status === "Scheduled");
+  } else if (filterMode === "Paid") {
+    displayEvents = events.filter((e) => e.isPaid);
   }
 
   const [deleteId, setDeleteId] = useState(null);
@@ -203,8 +205,8 @@ function AdminEvents() {
           <button type="button" onClick={() => setFilterMode("past")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "past" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
             <StatCard label="Past Events" value={String(pastEvents.length)} />
           </button>
-          <button type="button" onClick={() => setFilterMode("Pending")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Pending" ? "ring-2 ring-warning ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Pending Approval" value={String(pendingCount)} tone="warning" />
+          <button type="button" onClick={() => setFilterMode("Paid")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Paid" ? "ring-2 ring-warning ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
+            <StatCard label="Paid Events" value={String(events.filter((e) => e.isPaid).length)} tone="warning" />
           </button>
           <button type="button" onClick={() => setFilterMode("Scheduled")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Scheduled" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
             <StatCard label="Scheduled" value={String(scheduledCount)} tone="primary" />
@@ -212,7 +214,7 @@ function AdminEvents() {
         </div>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-semibold tracking-tight">
-            {filterMode === "today" ? "Today's Events" : filterMode === "upcoming" ? "Upcoming Events" : filterMode === "past" ? "Past Events" : filterMode === "Scheduled" ? "Scheduled Events" : "All Events"}
+            {filterMode === "today" ? "Today's Events" : filterMode === "upcoming" ? "Upcoming Events" : filterMode === "past" ? "Past Events" : filterMode === "Scheduled" ? "Scheduled Events" : filterMode === "Paid" ? "Paid Events" : "All Events"}
           </h2>
           <div className="bg-muted p-1 flex items-center gap-1 rounded-lg">
             <button onClick={() => setViewMode("table")} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === "table" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
@@ -240,12 +242,13 @@ function AdminEvents() {
                   return (
                     <div className="flex flex-col gap-1">
                       <span className="font-semibold">{r.title}</span>
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1.5 flex-wrap">
                         <Pill tone={r.status === "Pending Approval" ? "warning" : r.status === "Draft" ? "neutral" : "success"}>
                           {r.status || "Upcoming"}
                         </Pill>
                         {isToday && <Pill tone="success">Today</Pill>}
                         {r.date < today && <Pill tone="neutral">Past</Pill>}
+                        {r.isPaid ? <Pill tone="warning">Paid (₹{r.ticketPrice})</Pill> : <Pill tone="neutral">Free</Pill>}
                       </div>
                     </div>
                   );
