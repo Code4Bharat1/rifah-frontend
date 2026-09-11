@@ -142,6 +142,30 @@ function Checkout() {
 
     setLoading(true);
     try {
+      // Direct upgrade for Free Plan (no payment gateway needed)
+      if (selected === "free" || checkoutAmount <= 0) {
+        const upgradeRes = await membershipApi.upgradePlan({
+          planId: "free",
+          businessId: business?._id,
+        });
+        const resultData = upgradeRes?.data || upgradeRes;
+        if (resultData?.accessToken) {
+          localStorage.setItem("rifah_access_token", resultData.accessToken);
+        }
+        if (resultData?.user) {
+          localStorage.setItem("rifah_user", JSON.stringify(resultData.user));
+        }
+        if (refreshProfile) {
+          try { await refreshProfile(); } catch (e) {}
+        }
+        queryClient.invalidateQueries({ queryKey: ["my-business"] });
+        queryClient.invalidateQueries({ queryKey: ["user"] });
+        setInvoiceId(`FREE-${Date.now().toString().slice(-4)}`);
+        setStep(3);
+        setLoading(false);
+        return;
+      }
+
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
         alert("Failed to load Razorpay SDK. Please check your internet connection.");
@@ -849,20 +873,8 @@ function Checkout() {
                         <LayoutDashboard className="h-4 w-4" /> Go to Dashboard <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button asChild variant="outline" size="sm" className="w-full">
-                        <Link href="/biz/profile" className="flex items-center justify-center gap-1.5">
-                          <Building2 className="h-3.5 w-3.5" /> Complete Profile
-                        </Link>
-                      </Button>
-                      <Button asChild variant="outline" size="sm" className="w-full">
-                        <Link href="/biz/verification" className="flex items-center justify-center gap-1.5">
-                          <ShieldCheck className="h-3.5 w-3.5" /> Upload Documents
-                        </Link>
-                      </Button>
-                    </div>
                     <p className="text-center text-[11px] text-muted-foreground mt-1">
-                      Your business profile and tier are activated. You can explore your dashboard, customize your profile branding, and upload verification paperwork anytime.
+                      Your business profile and tier are activated. You can explore your dashboard and manage your account anytime.
                     </p>
                   </div>
                 </div>

@@ -1,10 +1,27 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+function getApiBaseUrl() {
+  if (typeof window !== "undefined") {
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      const isLiveDomain = window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+      if (isLiveDomain && process.env.NEXT_PUBLIC_API_URL.includes("localhost")) {
+        return `${window.location.origin}/api/v1`;
+      }
+      return process.env.NEXT_PUBLIC_API_URL;
+    }
+    if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+      return `${window.location.origin}/api/v1`;
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Automatically determine backend root server URL from API_BASE_URL or env
 function getBackendServerBase() {
-  if (API_BASE_URL && (API_BASE_URL.startsWith("http://") || API_BASE_URL.startsWith("https://"))) {
+  const currentApiUrl = getApiBaseUrl();
+  if (currentApiUrl && (currentApiUrl.startsWith("http://") || currentApiUrl.startsWith("https://"))) {
     try {
-      const u = new URL(API_BASE_URL);
+      const u = new URL(currentApiUrl);
       return `${u.protocol}//${u.host}`;
     } catch (e) {
       // fallback
@@ -69,12 +86,19 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
     ...customHeaders,
   };
 
-  const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  const activeApiUrl = getApiBaseUrl();
+  const url = endpoint.startsWith("http") ? endpoint : `${activeApiUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (netErr) {
+    console.error(`[API Client Network Error] fetch failed for ${url}:`, netErr);
+    throw new Error(`Unable to connect to the backend server (${url}). Please check if the server is running.`);
+  }
 
   let data = null;
   const contentType = response.headers.get("content-type");

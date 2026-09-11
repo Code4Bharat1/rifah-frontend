@@ -308,6 +308,17 @@ function BizVerification() {
   const isUnderReview = !isVerified && !isChangesRequired && !isRejected && isAllDocsUploaded && (rawStatus === "under_review" || rawStatus === "pending");
   const isUnsubmitted = !isVerified && !isChangesRequired && !isRejected && !isUnderReview;
 
+  // Show popup message when business is verified
+  useEffect(() => {
+    if (isVerified) {
+      toast.success("Congratulations! Your business profile has been verified by the RIFAH Secretariat.", {
+        id: "biz-verified-status",
+        duration: 5000,
+      });
+    }
+  }, [isVerified]);
+
+
   const stepIndex = isVerified
     ? 3
     : isUnderReview
@@ -470,23 +481,23 @@ function BizVerification() {
         )}
 
         {/* Top Status Callouts */}
-        {isUnsubmitted && (
-          <div className="rounded-xl border border-border bg-surface border-l-4 border-l-amber-500 p-4 shadow-xs">
-            <div className="flex items-start gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <Upload className="h-4.5 w-4.5" />
+        {(!isAllDocsUploaded || isUnsubmitted) && !isUnderReview && !isChangesRequired && !isRejected && !isVerified && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50/80 dark:border-amber-900/60 dark:bg-amber-950/30 border-l-4 border-l-amber-500 p-4 shadow-xs">
+            <div className="flex items-start gap-3.5">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Upload className="h-5 w-5" />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="text-sm font-semibold text-foreground">
-                    Verification Incomplete — Documents Required
+                  <h4 className="text-sm font-bold text-amber-950 dark:text-amber-200">
+                    Action Required: Upload Verification Documents
                   </h4>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                    Documents Pending
+                  <span className="rounded-full bg-amber-200/80 dark:bg-amber-900/80 px-2.5 py-0.5 text-[10px] font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+                    {uploadedTemplateCount} / {totalRequiredDocs} Uploaded
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Please upload your official business registration paperwork (GSTIN, Business PAN, or Trade License PDF) below to submit for Secretariat review.
+                <p className="mt-1 text-xs text-amber-900/85 dark:text-amber-300/85 leading-relaxed">
+                  To get your business verified by the RIFAH Chamber Secretariat and unlock full directory benefits, please upload all {totalRequiredDocs} required compliance documents below. Once attached, your application will be submitted for Secretariat evaluation.
                 </p>
               </div>
             </div>
@@ -577,32 +588,8 @@ function BizVerification() {
           </div>
         )}
 
-        {isVerified && (
-          <div className="rounded-xl border border-border bg-surface border-l-4 border-l-emerald-500 p-4 shadow-xs">
-            <div className="flex items-start gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="h-4.5 w-4.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <h4 className="text-sm font-semibold text-foreground">
-                    Verified Chamber Member — Live
-                  </h4>
-                  <Link
-                    href={`/business/${business?.slug || business?._id}`}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                  >
-                    <span>View Public Profile</span>
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Congratulations! Your business has been approved by the RIFAH Secretariat. Your profile is active and publicly verified.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Removed static verified banner as requested: toast popup handles verified status */}
+
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* Main Left Column: Progress, Documents & Resubmit */}
@@ -768,7 +755,34 @@ function BizVerification() {
                         <Lock className="h-4 w-4 mr-1.5" /> Submit Locked ({uploadedTemplateCount}/{totalRequiredDocs} Uploaded)
                       </Button>
                     </div>
+                  ) : isUnderReview ? (
+                    /* When all documents are uploaded and application is ALREADY submitted / in review -> Button is Disabled */
+                    <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/20 p-5">
+                      <div className="flex items-start gap-3">
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                          <CheckCircle2 className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-bold text-amber-950 dark:text-white">
+                            All {totalRequiredDocs} Compliance Documents Submitted!
+                          </h4>
+                          <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80 leading-relaxed">
+                            Your verification package has been submitted to the RIFAH Secretariat queue. You do not need to re-submit unless the Secretariat requests changes.
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        disabled
+                        size="lg"
+                        className="mt-4 w-full bg-muted text-muted-foreground font-semibold text-xs border border-border/80 cursor-not-allowed opacity-75 gap-2"
+                      >
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <span>Application Submitted — Awaiting Secretariat Review</span>
+                      </Button>
+                    </div>
                   ) : (
+                    /* When corrections are requested or fresh initial submission */
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/60 dark:bg-emerald-950/30 p-5">
                       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
                         <div className="flex items-center gap-2.5">
@@ -777,10 +791,10 @@ function BizVerification() {
                           </span>
                           <div>
                             <h4 className="text-sm font-bold text-emerald-950 dark:text-white">
-                              All {totalRequiredDocs} Compliance Documents Attached & Ready!
+                              All {totalRequiredDocs} Compliance Documents Ready to Send!
                             </h4>
                             <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80">
-                              All required paperwork is attached. Click below to officially send your complete application package to the RIFAH Secretariat for review.
+                              Click below to send your complete application package to the RIFAH Secretariat.
                             </p>
                           </div>
                         </div>
@@ -796,7 +810,7 @@ function BizVerification() {
                             rows={2}
                             value={resubmitNotes}
                             onChange={(e) => setResubmitNotes(e.target.value)}
-                            placeholder="e.g. Attached all 5 verified compliance documents for chamber accreditation review."
+                            placeholder="e.g. Attached all verified compliance documents for chamber accreditation review."
                             className="text-xs bg-white dark:bg-slate-900"
                           />
                         </div>
@@ -815,7 +829,7 @@ function BizVerification() {
                           ) : (
                             <>
                               <Send className="h-4 w-4" />
-                              <span>Submit Complete Application for Secretariat Approval ({totalRequiredDocs}/{totalRequiredDocs} Docs)</span>
+                              <span>Submit Application for Secretariat Approval ({totalRequiredDocs}/{totalRequiredDocs} Docs)</span>
                             </>
                           )}
                         </Button>
