@@ -268,6 +268,12 @@ export const auditApi = {
   getLogs: (params = {}) => apiClient(`/audit${toQueryString(params)}`),
 };
 
+export const contactApi = {
+  submitQuery: (data) => apiClient("/queries", { method: "POST", body: JSON.stringify(data) }),
+  getQueries: (params = {}) => apiClient(`/queries${toQueryString(params)}`),
+  replyQuery: (id, replyMessage) => apiClient(`/queries/${id}/reply`, { method: "PATCH", body: JSON.stringify({ replyMessage }) }),
+};
+
 export const settingsApi = {
   get: () => apiClient("/settings", { cache: "no-store" }),
   update: (data) => apiClient("/settings", { method: "PATCH", body: JSON.stringify(data) }),

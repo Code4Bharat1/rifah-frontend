@@ -32,6 +32,7 @@ import {
   Ticket,
   UserRound,
   Users,
+  MessageSquareText,
   RotateCcw,
 } from "lucide-react";
 
@@ -131,6 +132,7 @@ const navs = {
       { label: "Users", to: "/chapter-admin/users", icon: Users },
       { label: "Memberships", to: "/chapter-admin/memberships", icon: Star },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
+      { label: "Queries", to: "/chapter-admin/queries", icon: MessageSquareText },
       { label: "Reviews", to: "/chapter-admin/reviews", icon: MessageSquare },
       { label: "Categories", to: "/chapter-admin/categories", icon: Folder },
       { label: "My Chapter", to: "/chapter-admin/chapter", icon: MapPinned },
