@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe, FileText, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
@@ -92,6 +92,9 @@ const FastTextarea = ({ value, onValueChange, ...props }) => {
 
 function RegisterBusiness({ isAdmin = false }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const convertEmail = searchParams.get("convertEmail") || "";
+  
   const { registerBusiness } = useAuth();
   const { data: chaptersData } = useChapters();
   const { data: plansData } = useMembershipPlans();
@@ -159,7 +162,7 @@ function RegisterBusiness({ isAdmin = false }) {
     about: "",
     contactPerson: "",
     phone: "",
-    email: "",
+    email: convertEmail || "",
     password: "",
     taxId: "",
     address: "",
@@ -1373,11 +1376,11 @@ function RegisterBusiness({ isAdmin = false }) {
                           "h-11",
                           (!isAdmin && emailVerified)
                             ? "bg-emerald-50/50 border-emerald-200 text-emerald-900 pr-24 focus-visible:ring-emerald-500"
-                            : (!isAdmin && otpSent)
+                            : (!isAdmin && otpSent) || (isAdmin && convertEmail)
                               ? "bg-slate-50 text-slate-500 pr-24"
                               : ""
                         )}
-                        disabled={!isAdmin && (emailVerified || otpSent)}
+                        disabled={(!isAdmin && (emailVerified || otpSent)) || (isAdmin && !!convertEmail)}
                       />
                       {(!isAdmin && emailVerified) ? (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">

@@ -27,14 +27,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useAdminUsers } from "@shared/hooks/use-rifah-api";
 import { userApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
+import { useRouter } from "next/navigation";
 
 function AdminUsers() {
+  const router = useRouter();
   const { user: currentUser } = useAuth();
   const isChapterAdmin = currentUser?.role === "chapter_admin";
   const [q, setQ] = useState("");
   const debouncedQ = useDebounce(q, 300);
   const { data: usersData, refetch, isLoading, error } = useAdminUsers({ search: debouncedQ || undefined });
-  
+
   console.log("Admin Users Data:", usersData, "Error:", error);
 
   // Try to extract users from various possible response formats
@@ -42,11 +44,11 @@ function AdminUsers() {
   if (Array.isArray(usersData)) {
     rows = usersData;
   } else if (usersData && typeof usersData === "object") {
-    rows = Array.isArray(usersData.users) ? usersData.users : 
-           (Array.isArray(usersData.data) ? usersData.data : 
-           (Array.isArray(usersData.data?.users) ? usersData.data.users : []));
+    rows = Array.isArray(usersData.users) ? usersData.users :
+      (Array.isArray(usersData.data) ? usersData.data :
+        (Array.isArray(usersData.data?.users) ? usersData.data.users : []));
   }
-  
+
   const [roleFilter, setRoleFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -182,7 +184,11 @@ function AdminUsers() {
                         <DropdownMenuItem onClick={() => handleChangeRole(r, "customer")} disabled={r.role === "customer"}>
                           Make Buyer
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleChangeRole(r, "business_owner")} disabled={r.role === "business_owner"}>
+                        <DropdownMenuItem onClick={() => {
+                          if (r.role !== "business_owner") {
+                            router.push(`/admin/businesses/new?convertEmail=${encodeURIComponent(r.email)}`);
+                          }
+                        }} disabled={r.role === "business_owner"}>
                           Make Business Owner
                         </DropdownMenuItem>
                         {!isChapterAdmin && (
@@ -191,7 +197,7 @@ function AdminUsers() {
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className={isActive ? "text-red-600 focus:bg-red-50" : "text-green-600 focus:bg-green-50"}
                           onClick={() => handleToggleStatus(r)}
                         >
@@ -206,19 +212,19 @@ function AdminUsers() {
             mobile={(r) => {
               const isActive = (r.status || "active").toLowerCase() === "active";
               return (
-              <div className="rounded-xl border border-border p-3.5">
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{r.name}</p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{r.email}</p>
+                <div className="rounded-xl border border-border p-3.5">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{r.name}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{r.email}</p>
+                    </div>
+                    <Pill tone={(r.status || "active").toLowerCase() === "active" ? "success" : "warning"}>{r.status || "Active"}</Pill>
                   </div>
-                  <Pill tone={(r.status || "active").toLowerCase() === "active" ? "success" : "warning"}>{r.status || "Active"}</Pill>
+                  <div className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5">
+                    <Pill tone="primary">{r.role}</Pill>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectedUser(r)}>Manage</Button>
+                  </div>
                 </div>
-                <div className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5">
-                  <Pill tone="primary">{r.role}</Pill>
-                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectedUser(r)}>Manage</Button>
-                </div>
-              </div>
               );
             }}
           />
@@ -277,10 +283,10 @@ function AdminUsers() {
                 <p className="text-xs text-muted-foreground mt-0.5 font-mono">{selectedUser?._id}</p>
               </div>
             </div>
-            
+
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setSelectedUser(null)}>Close</Button>
-              <Button 
+              <Button
                 variant={(selectedUser?.status || "active").toLowerCase() === "active" ? "destructive" : "default"}
                 onClick={() => {
                   handleToggleStatus(selectedUser);

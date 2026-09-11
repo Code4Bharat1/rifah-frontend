@@ -21,7 +21,7 @@ export default function AdminAddBusinessPage() {
       }
     >
       <div className="max-w-4xl mx-auto border bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm my-6">
-         <RegisterBusinessPage isAdmin={true} />
+        <RegisterBusinessPage isAdmin={true} />
       </div>
     </AppShell>
   );
