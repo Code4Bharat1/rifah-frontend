@@ -136,7 +136,6 @@ const navs = {
       { label: "My Chapter", to: "/chapter-admin/chapter", icon: MapPinned },
       { label: "Units", to: "/chapter-admin/units", icon: Users },
       { label: "Events", to: "/chapter-admin/events", icon: Ticket },
-      { label: "Payments", to: "/chapter-admin/payments", icon: CreditCard },
       { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
       { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
       { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },

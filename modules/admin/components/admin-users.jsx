@@ -179,22 +179,24 @@ function AdminUsers() {
                         <DropdownMenuItem onClick={() => setSelectedUser(r)}>
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel>Change Role</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleChangeRole(r, "customer")} disabled={r.role === "customer"}>
-                          Make Buyer
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                          if (r.role !== "business_owner") {
-                            router.push(`/admin/businesses/new?convertEmail=${encodeURIComponent(r.email)}`);
-                          }
-                        }} disabled={r.role === "business_owner"}>
-                          Make Business Owner
-                        </DropdownMenuItem>
                         {!isChapterAdmin && (
-                          <DropdownMenuItem onClick={() => handleChangeRole(r, "secretariat")} disabled={r.role === "secretariat"}>
-                            Make Secretariat
-                          </DropdownMenuItem>
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel>Change Role</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleChangeRole(r, "customer")} disabled={r.role === "customer"}>
+                              Make Buyer
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              if (r.role !== "business_owner") {
+                                router.push(`/admin/businesses/new?convertEmail=${encodeURIComponent(r.email)}`);
+                              }
+                            }} disabled={r.role === "business_owner"}>
+                              Make Business Owner
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleChangeRole(r, "secretariat")} disabled={r.role === "secretariat"}>
+                              Make Secretariat
+                            </DropdownMenuItem>
+                          </>
                         )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
