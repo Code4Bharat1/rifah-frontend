@@ -54,6 +54,9 @@ export function AdminEventDetail() {
       subtitle={`${event.chapter} · ${event.mode}`}
       actions={
         <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+          </Button>
           <Button variant="outline" asChild>
             <Link href={`/events/${event.slug || event._id}`} target="_blank">
               <Eye className="h-4 w-4 mr-2" /> Public View

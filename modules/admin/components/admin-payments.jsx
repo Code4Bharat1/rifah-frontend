@@ -43,10 +43,10 @@ function AdminPayments() {
     return true;
   });
 
-  const handleDownloadReceipt = (r) => {
+  const handleDownloadReceipt = async (r) => {
     if (!r) return;
     const isUsd = (r.currency || "").toUpperCase() === "USD";
-    const currSymbol = isUsd ? "$" : "₹";
+    const currSymbol = isUsd ? "$" : "Rs.";
     const formattedAmount = `${currSymbol} ${Number(r.amount || 0).toLocaleString(isUsd ? "en-US" : "en-IN")}${isUsd ? " USD" : ""}`;
 
     const receiptContent = `
@@ -117,6 +117,158 @@ function AdminPayments() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const pw = doc.internal.pageSize.getWidth();
+    const mx = 20; // margin x
+    const cw = pw - mx * 2; // content width
+
+    // --- Gradient header bar ---
+    for (let i = 0; i < cw; i++) {
+      const t = i / cw;
+      const red = Math.round(16 + (2 - 16) * t);
+      const green = Math.round(185 + (132 - 185) * t);
+      const blue = Math.round(129 + (199 - 129) * t);
+      doc.setFillColor(red, green, blue);
+      doc.rect(mx + i, 18, 1.2, 3, "F");
+    }
+
+    // --- Header ---
+    let y = 28;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(11, 25, 44);
+    doc.text("RIFAH Chamber of Commerce", mx, y);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text("SECRETARIAT PAYMENT RECEIPT & OFFICIAL VOUCHER", mx, y + 6);
+
+    // Invoice number & date (right aligned)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(2, 132, 199);
+    doc.text(`INVOICE #${r.invoiceNumber || "N/A"}`, pw - mx, y, { align: "right" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Date: ${new Date(r.paidAt || r.createdAt).toLocaleDateString()}`, pw - mx, y + 6, { align: "right" });
+
+    // Separator line
+    y += 12;
+    doc.setDrawColor(15, 23, 42);
+    doc.setLineWidth(0.5);
+    doc.line(mx, y, pw - mx, y);
+
+    // --- Details table ---
+    y += 8;
+    const rows = [
+      ["Payer Member", r.payer?.name || r.user?.name || "Member User"],
+      ["Business / Enterprise", r.business?.name || "Member Enterprise"],
+      ["Contact Email", r.payer?.email || "N/A"],
+      ["Subscription Item", r.description || r.purpose || r.itemType || "Membership Subscription"],
+      ["Payment Method", r.method || "Online Gateway"],
+      ["Currency", r.currency || "INR"],
+      ["Transaction ID", r.transactionId || "N/A"],
+      ["Audit Status", (r.status || "Paid").toUpperCase()],
+    ];
+
+    const labelW = cw * 0.35;
+    const valueW = cw * 0.65;
+    const rowH = 10;
+
+    // Table border
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(mx, y - 2, cw, rows.length * rowH + 4, 2, 2, "S");
+
+    rows.forEach(([label, value], i) => {
+      const ry = y + i * rowH;
+
+      // Label cell background
+      doc.setFillColor(248, 250, 252);
+      if (i === 0) {
+        doc.rect(mx, ry - 2, labelW, rowH, "F");
+      } else {
+        doc.rect(mx, ry, labelW, rowH, "F");
+      }
+
+      // Row divider
+      if (i > 0) {
+        doc.setDrawColor(241, 245, 249);
+        doc.setLineWidth(0.2);
+        doc.line(mx, ry, pw - mx, ry);
+      }
+
+      // Label text
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(label, mx + 5, ry + 6.5);
+
+      // Value text
+      if (label === "Audit Status") {
+        // Green badge
+        const badgeText = `  ${value}  `;
+        doc.setFillColor(220, 252, 231);
+        doc.setTextColor(22, 101, 52);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        const tw = doc.getTextWidth(badgeText);
+        doc.roundedRect(mx + labelW + 5, ry + 2.5, tw + 4, 5.5, 2, 2, "F");
+        doc.text(badgeText, mx + labelW + 7, ry + 6.5);
+      } else if (label === "Payer Member") {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text(value, mx + labelW + 5, ry + 6.5);
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text(value, mx + labelW + 5, ry + 6.5);
+      }
+    });
+
+    // --- Total box ---
+    y += rows.length * rowH + 12;
+    doc.setFillColor(240, 253, 244);
+    doc.setDrawColor(187, 247, 208);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(mx, y, cw, 16, 3, 3, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(22, 101, 52);
+    doc.text("TOTAL PAID & VERIFIED:", pw - mx - 5, y + 7, { align: "right" });
+
+    doc.setFontSize(16);
+    doc.setTextColor(21, 128, 61);
+    doc.text(formattedAmount, pw - mx - 5, y + 13, { align: "right" });
+
+    // --- Footer ---
+    y += 26;
+    doc.setDrawColor(241, 245, 249);
+    doc.setLineWidth(0.2);
+    doc.line(mx, y, pw - mx, y);
+
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      "This is a verified computer-generated payment receipt issued by RIFAH Chamber Secretariat.",
+      pw / 2, y, { align: "center" }
+    );
+    doc.text(
+      "www.rifah.org  |  Official transaction record for tax & audit verification",
+      pw / 2, y + 5, { align: "center" }
+    );
+
+    // Save
+    doc.save(`Receipt-${r.invoiceNumber || "INV"}.pdf`);
   };
 
   const totalRevenue = payments
