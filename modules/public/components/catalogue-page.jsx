@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Package, Search, Send, SlidersHorizontal, Wrench } from "lucide-react";
+import { Package, Search, SlidersHorizontal, Wrench } from "lucide-react";
 import { useState } from "react";
 
 import { Pill, VerificationBadge } from "@shared/components/rifah/badges";
@@ -36,7 +36,7 @@ function CataloguePage() {
       <div className="rifah-container py-6 sm:py-10">
         <SectionHeader
           title="Products & services catalogue"
-          description="Offerings published by RIFAH member businesses. Send an enquiry and the chamber routes it to the supplier."
+          description="Offerings published by RIFAH member businesses across all chapters."
         />
 
         <div className="mt-5 space-y-3">
@@ -171,11 +171,6 @@ function CataloguePage() {
                       </div>
                       {biz?.verification === "verified" && <VerificationBadge level="verified" compact />}
                     </div>
-                    <Button asChild size="sm" className="mt-3 w-full">
-                      <Link href={`/enquiry/new?category=${encodeURIComponent(item.category)}`}>
-                        <Send className="h-3.5 w-3.5" /> Enquire about this
-                      </Link>
-                    </Button>
                   </div>
                 </article>
               );

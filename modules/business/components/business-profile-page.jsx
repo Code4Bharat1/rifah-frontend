@@ -22,7 +22,7 @@ import {
   Smartphone,
   Image as ImageIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@shared/providers/auth-provider";
 import { toast } from "sonner";
@@ -92,6 +92,13 @@ function BusinessProfile() {
   const [reviewTitle, setReviewTitle] = useState("");
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [coverError, setCoverError] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setCoverError(false);
+    setLogoError(false);
+  }, [businessId, business?._id]);
 
   const getShareUrl = () => {
     if (typeof window !== "undefined") {
@@ -201,9 +208,6 @@ function BusinessProfile() {
       setReviewSubmitting(false);
     }
   };
-
-  const [coverError, setCoverError] = useState(false);
-  const [logoError, setLogoError] = useState(false);
 
   const isValidImage = (url) => typeof url === "string" && url.trim().length > 0 && !url.includes("undefined") && !url.includes("null");
 
