@@ -184,7 +184,7 @@ function BizMembership() {
     let saved = null;
     try {
       saved = JSON.parse(localStorage.getItem("rifah_billing_details") || "null");
-    } catch (err) {}
+    } catch (err) { }
 
     if (saved) {
       setBillingForm(saved);
@@ -260,7 +260,7 @@ function BizMembership() {
     e.preventDefault();
     try {
       localStorage.setItem("rifah_billing_details", JSON.stringify(billingForm));
-    } catch (err) {}
+    } catch (err) { }
     toast.success("Billing details updated successfully");
     setDialogOpen(false);
   };
@@ -548,7 +548,7 @@ function BizMembership() {
                   <span>Priority RFQ quoting privileges</span>
                 </li>
               </ul>
-              
+
               <div className="mt-6 space-y-2">
                 {currentTier !== "enterprise" ? (
                   <Button
@@ -635,13 +635,12 @@ function BizMembership() {
               return (
                 <div
                   key={plan.id}
-                  className={`relative flex flex-col justify-between rounded-2xl border p-4.5 transition-all ${
-                    isCurrent
+                  className={`relative flex flex-col justify-between rounded-2xl border p-4.5 transition-all ${isCurrent
                       ? "border-emerald-500/80 bg-emerald-50/40 dark:border-emerald-700 dark:bg-emerald-950/20 shadow-sm"
                       : plan.highlight
-                      ? "border-[#0088d1] bg-sky-50/40 dark:border-sky-700 dark:bg-sky-950/20 shadow-md"
-                      : "border-border bg-card hover:border-slate-300 dark:hover:border-slate-700"
-                  }`}
+                        ? "border-[#0088d1] bg-sky-50/40 dark:border-sky-700 dark:bg-sky-950/20 shadow-md"
+                        : "border-border bg-card hover:border-slate-300 dark:hover:border-slate-700"
+                    }`}
                 >
                   {isCurrent && (
                     <span className="absolute -top-2.5 right-4 rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-2xs">
@@ -687,11 +686,10 @@ function BizMembership() {
                       <Button
                         asChild
                         size="sm"
-                        className={`w-full font-bold shadow-2xs ${
-                          plan.highlight
+                        className={`w-full font-bold shadow-2xs ${plan.highlight
                             ? "bg-[#0088d1] hover:bg-[#0077b6] text-white"
                             : "bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900"
-                        }`}
+                          }`}
                       >
                         <Link href={`/membership/checkout?plan=${plan.id}`}>
                           Select {plan.name}
