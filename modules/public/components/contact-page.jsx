@@ -16,6 +16,8 @@ import {
 } from "@shared/components/ui/select";
 import { Textarea } from "@shared/components/ui/textarea";
 import { useChapters } from "@shared/hooks/use-rifah-api";
+import { contactApi } from "@shared/lib/api-services";
+import { toast } from "sonner";
 
 const desks = [
   { name: "Membership desk", detail: "Plan selection, upgrades and renewals" },
@@ -26,6 +28,7 @@ const desks = [
 
 function ContactPage() {
   const [sent, setSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: chaptersData } = useChapters();
   const chapters = chaptersData || [];
 
@@ -55,30 +58,55 @@ function ContactPage() {
             ) : (
               <form
                 className="grid gap-4 sm:grid-cols-2"
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  setSent(true);
+                  setIsSubmitting(true);
+                  const formData = new FormData(e.currentTarget);
+                  const payload = {
+                    fullName: formData.get("fullName"),
+                    organization: formData.get("organization"),
+                    email: formData.get("email"),
+                    phone: formData.get("phone"),
+                    desk: formData.get("desk"),
+                    chapter: formData.get("chapter"),
+                    message: formData.get("message"),
+                  };
+
+                  if (!payload.desk || !payload.chapter) {
+                    toast.error("Please select both a desk and a chapter.");
+                    setIsSubmitting(false);
+                    return;
+                  }
+
+                  try {
+                    await contactApi.submitQuery(payload);
+                    setSent(true);
+                  } catch (err) {
+                    toast.error(err.message || "Failed to send message. Please try again.");
+                  } finally {
+                    setIsSubmitting(false);
+                  }
                 }}
               >
                 <div className="space-y-1.5">
                   <Label htmlFor="cname">Full name</Label>
-                  <Input id="cname" required placeholder="Your name" />
+                  <Input id="cname" name="fullName" required placeholder="Your name" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="corg">Organisation</Label>
-                  <Input id="corg" placeholder="Company or institution" />
+                  <Input id="corg" name="organization" required placeholder="Company or institution" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="cemail">Email</Label>
-                  <Input id="cemail" type="email" required placeholder="you@example.com" />
+                  <Input id="cemail" name="email" type="email" required placeholder="you@example.com" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="cphone">Phone</Label>
-                  <Input id="cphone" type="tel" placeholder="Mobile number" />
+                  <Input id="cphone" name="phone" type="tel" required placeholder="Mobile number" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="cdesk">Which desk?</Label>
-                  <Select>
+                  <Select name="desk">
                     <SelectTrigger id="cdesk">
                       <SelectValue placeholder="Select a desk" />
                     </SelectTrigger>
@@ -93,7 +121,7 @@ function ContactPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="cchapter">Chapter</Label>
-                  <Select>
+                  <Select name="chapter">
                     <SelectTrigger id="cchapter">
                       <SelectValue placeholder="Select a chapter" />
                     </SelectTrigger>
@@ -110,14 +138,15 @@ function ContactPage() {
                   <Label htmlFor="cmsg">Message</Label>
                   <Textarea
                     id="cmsg"
+                    name="message"
                     rows={4}
                     required
                     placeholder="Tell us what you need or how we can help..."
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <Button type="submit" size="lg">
-                    <Send className="h-4 w-4" /> Send message
+                  <Button type="submit" size="lg" disabled={isSubmitting}>
+                    <Send className="h-4 w-4" /> {isSubmitting ? "Sending..." : "Send message"}
                   </Button>
                 </div>
               </form>

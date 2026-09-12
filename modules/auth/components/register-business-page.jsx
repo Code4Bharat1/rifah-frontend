@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe, FileText, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
@@ -47,19 +48,72 @@ const loadRazorpayScript = () => {
   });
 };
 
+const FastInput = ({ value, onValueChange, ...props }) => {
+  const [localValue, setLocalValue] = useState(value || "");
+  
+  useEffect(() => {
+    setLocalValue(value || "");
+  }, [value]);
+
+  return (
+    <Input
+      {...props}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={() => {
+        if (localValue !== value) {
+          onValueChange(localValue);
+        }
+      }}
+    />
+  );
+};
+
+const FastTextarea = ({ value, onValueChange, ...props }) => {
+  const [localValue, setLocalValue] = useState(value || "");
+  
+  useEffect(() => {
+    setLocalValue(value || "");
+  }, [value]);
+
+  return (
+    <Textarea
+      {...props}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={() => {
+        if (localValue !== value) {
+          onValueChange(localValue);
+        }
+      }}
+    />
+  );
+};
+
 function RegisterBusiness({ isAdmin = false }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const convertEmail = searchParams.get("convertEmail") || "";
+  
   const { registerBusiness } = useAuth();
   const { data: chaptersData } = useChapters();
   const { data: plansData } = useMembershipPlans();
 
   const chapters = chaptersData || [];
-  const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
+  
+  const plans = React.useMemo(() => {
+    return plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
+  }, [plansData]);
 
   const { data: categoriesData } = useCategories();
-  const categories = Array.isArray(categoriesData) ? categoriesData : [];
-  const mainCategories = categories.filter(c => !c.parent);
-  const subCategories = categories.filter(c => c.parent);
+  
+  const { mainCategories, subCategories } = React.useMemo(() => {
+    const cats = Array.isArray(categoriesData) ? categoriesData : [];
+    return {
+      mainCategories: cats.filter(c => !c.parent),
+      subCategories: cats.filter(c => c.parent)
+    };
+  }, [categoriesData]);
 
   const [step, setStep] = useState(0);
   const [tier, setTier] = useState("premium");
@@ -108,7 +162,7 @@ function RegisterBusiness({ isAdmin = false }) {
     about: "",
     contactPerson: "",
     phone: "",
-    email: "",
+    email: convertEmail || "",
     password: "",
     taxId: "",
     address: "",
@@ -403,6 +457,7 @@ function RegisterBusiness({ isAdmin = false }) {
          });
          
          // Notify admin and redirect
+         setLoading(false);
          alert("Business registered successfully! An email with login credentials has been sent to the owner.");
          router.push("/admin/businesses");
          return;
@@ -899,21 +954,21 @@ function RegisterBusiness({ isAdmin = false }) {
 
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         <div className="relative flex-1">
-                          <Input
+                          <FastInput
                             id="bgst"
                             required
                             maxLength={15}
                             value={formData.taxId}
-                            onChange={(e) => {
-                              const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-                              setFormData((prev) => ({ ...prev, taxId: val }));
+                            onValueChange={(val) => {
+                              const upperVal = val.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                              setFormData((prev) => ({ ...prev, taxId: upperVal }));
                               setGstVerified(false);
                               setGstData(null);
                               setGstSuccessMsg("");
                               setGstErrorMsg("");
                               setError("");
-                              if (val.length === 15) {
-                                triggerGstVerification(val);
+                              if (upperVal.length === 15) {
+                                triggerGstVerification(upperVal);
                               }
                             }}
                             placeholder="e.g. 27AAACT2727Q1ZW"
@@ -1090,11 +1145,14 @@ function RegisterBusiness({ isAdmin = false }) {
 
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="bname">Business name *</Label>
-                    <Input
+                    <FastInput
                       id="bname"
                       required
                       value={formData.businessName}
-                      onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                      onValueChange={(val) => {
+                        setFormData({ ...formData, businessName: val });
+                        setError("");
+                      }}
                       placeholder="Registered enterprise name"
                     />
                   </div>
@@ -1153,11 +1211,11 @@ function RegisterBusiness({ isAdmin = false }) {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="byear">Year established</Label>
-                    <Input
+                    <FastInput
                       id="byear"
                       inputMode="numeric"
                       value={formData.founded}
-                      onChange={(e) => setFormData({ ...formData, founded: e.target.value })}
+                      onValueChange={(val) => setFormData({ ...formData, founded: val })}
                       placeholder="e.g. 2014"
                     />
                   </div>
@@ -1181,11 +1239,11 @@ function RegisterBusiness({ isAdmin = false }) {
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="babout">About the business</Label>
-                    <Textarea
+                    <FastTextarea
                       id="babout"
                       rows={3}
                       value={formData.about}
-                      onChange={(e) => setFormData({ ...formData, about: e.target.value })}
+                      onValueChange={(val) => setFormData({ ...formData, about: val })}
                       placeholder="Capabilities, products manufactured, sectors served."
                     />
                   </div>
@@ -1198,23 +1256,23 @@ function RegisterBusiness({ isAdmin = false }) {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="cperson">Contact person *</Label>
-                    <Input
+                    <FastInput
                       id="cperson"
                       required
                       value={formData.contactPerson}
-                      onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                      onValueChange={(val) => setFormData({ ...formData, contactPerson: val })}
                       placeholder="Authorised representative"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bphone">Mobile / Phone Number *</Label>
-                    <Input
+                    <FastInput
                       id="bphone"
                       type="tel"
                       required
                       value={formData.phone}
-                      onChange={(e) => {
-                        setFormData({ ...formData, phone: e.target.value });
+                      onValueChange={(val) => {
+                        setFormData({ ...formData, phone: val });
                         setError("");
                       }}
                       placeholder="Mobile number (Mandatory)"
@@ -1223,21 +1281,21 @@ function RegisterBusiness({ isAdmin = false }) {
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="baddress">Address</Label>
-                    <Input
+                    <FastInput
                       id="baddress"
                       value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      onValueChange={(val) => setFormData({ ...formData, address: val })}
                       placeholder="Street, area, premises"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bcity">City *</Label>
-                    <Input
+                    <FastInput
                       id="bcity"
                       required
                       value={formData.city}
-                      onChange={(e) => {
-                        setFormData({ ...formData, city: e.target.value });
+                      onValueChange={(val) => {
+                        setFormData({ ...formData, city: val });
                         setError("");
                       }}
                       placeholder="e.g. Mumbai, Bhopal, Dubai, London"
@@ -1245,11 +1303,11 @@ function RegisterBusiness({ isAdmin = false }) {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bpincode">Pincode / Postal code</Label>
-                    <Input
+                    <FastInput
                       id="bpincode"
                       inputMode="numeric"
                       value={formData.pincode}
-                      onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                      onValueChange={(val) => setFormData({ ...formData, pincode: val })}
                       placeholder="Postal / Zip code"
                     />
                   </div>
@@ -1297,34 +1355,32 @@ function RegisterBusiness({ isAdmin = false }) {
                             setOtpError("");
                             setOtpSuccess("");
                           }}
-                          className="text-xs font-semibold text-primary hover:underline"
+                          className="text-xs font-semibold text-[#0060df] hover:underline"
                         >
                           Change Email
                         </button>
                       )}
                     </div>
                     <div className="relative">
-                      <Input
+                      <FastInput
                         id="reg-email"
                         type="email"
                         required
-                        disabled={emailVerified || otpSending}
                         value={formData.email}
-                        onChange={(e) => {
-                          setFormData({ ...formData, email: e.target.value });
-                          setOtpError("");
-                          setOtpSuccess("");
+                        onValueChange={(val) => {
+                          setFormData({ ...formData, email: val });
                           setError("");
                         }}
-                        placeholder="owner@company.com"
+                        placeholder="e.g. info@business.com"
                         className={cn(
                           "h-11",
-                          emailVerified
-                            ? "border-emerald-500 bg-emerald-50/50 text-emerald-950 font-medium pr-28"
-                            : !otpSent
-                              ? "pr-32"
+                          (!isAdmin && emailVerified)
+                            ? "bg-emerald-50/50 border-emerald-200 text-emerald-900 pr-24 focus-visible:ring-emerald-500"
+                            : (!isAdmin && otpSent) || (isAdmin && convertEmail)
+                              ? "bg-slate-50 text-slate-500 pr-24"
                               : ""
                         )}
+                        disabled={(!isAdmin && (emailVerified || otpSent)) || (isAdmin && !!convertEmail)}
                       />
                       {(!isAdmin && emailVerified) ? (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
@@ -1462,14 +1518,14 @@ function RegisterBusiness({ isAdmin = false }) {
                   {!isAdmin && emailVerified && (
                     <div className="space-y-2 animate-in fade-in duration-300 pt-1">
                       <Label htmlFor="reg-pass">Account Password *</Label>
-                      <Input
+                      <FastInput
                         id="reg-pass"
                         type="password"
                         required
                         autoFocus
                         value={formData.password}
-                        onChange={(e) => {
-                          setFormData({ ...formData, password: e.target.value });
+                        onValueChange={(val) => {
+                          setFormData({ ...formData, password: val });
                           setError("");
                         }}
                         placeholder="Minimum 6 characters"

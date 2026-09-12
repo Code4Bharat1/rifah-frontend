@@ -19,6 +19,7 @@ import {
   reviewApi,
   reportApi,
   auditApi,
+  contactApi,
 } from "../lib/api-services";
 
 // ==================== BUSINESS HOOKS ====================
@@ -154,6 +155,16 @@ export function useAllEnquiries(params = {}) {
     queryKey: ["all-enquiries", params],
     queryFn: async () => {
       const res = await enquiryApi.getAllEnquiries(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function useQueries(params = {}) {
+  return useQuery({
+    queryKey: ["queries", params],
+    queryFn: async () => {
+      const res = await contactApi.getQueries(params);
       return res?.data || res;
     },
   });
