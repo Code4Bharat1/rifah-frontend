@@ -527,11 +527,11 @@ function UnderApprovalAccessGate({ business, path }) {
                 className={cn(
                   "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
                   isChangesReq && "bg-blue-200 text-blue-900 dark:bg-blue-900 dark:text-blue-200",
-                  isRejected && "bg-rose-200 text-rose-900 dark:bg-rose-900 dark:text-rose-200",
+                  isRejected && "bg-rose-600 text-white dark:bg-rose-600 dark:text-white",
                   isUnderReview && "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200"
                 )}
               >
-                {isChangesReq ? "CHANGES REQUESTED" : isRejected ? "VERIFICATION UNSUCCESSFUL" : "UNDER SECRETARIAT APPROVAL"}
+                {isChangesReq ? "CHANGES REQUESTED" : isRejected ? "VERIFICATION REJECTED" : "UNDER SECRETARIAT APPROVAL"}
               </span>
               <span className="text-xs text-muted-foreground">•</span>
               <span className="text-xs font-semibold text-foreground/80">{business?.name || "Business Enterprise"}</span>
@@ -541,7 +541,7 @@ function UnderApprovalAccessGate({ business, path }) {
               {isChangesReq
                 ? "Action Required: Secretariat Requested Changes"
                 : isRejected
-                ? "Application Not Approved"
+                ? "Verification Application Rejected"
                 : "Workspace Access Restricted — Under Secretariat Approval"}
             </h2>
 
@@ -549,7 +549,7 @@ function UnderApprovalAccessGate({ business, path }) {
               {isChangesReq
                 ? "The RIFAH Chamber Secretariat has reviewed your business application and requested specific changes or additional paperwork before granting verification approval."
                 : isRejected
-                ? "Your verification request could not be approved by the secretariat at this time. Please see details below or contact support."
+                ? "Your verification application has been rejected by the Secretariat. Please review the feedback reason below and update your documents to re-submit."
                 : "Your business profile is currently in the RIFAH Secretariat Verification queue. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
             </p>
 

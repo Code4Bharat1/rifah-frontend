@@ -19,6 +19,7 @@ import { MembershipBadge, Pill, StatusBadge, VerificationBadge } from "@shared/c
 import { MoreLink, Panel, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Progress } from "@shared/components/ui/progress";
+import { cn } from "@shared/lib/utils";
 import {
   useMyBusiness,
   useMyLeads,
@@ -534,8 +535,19 @@ function BusinessHome() {
                 </li>
                 <li className="flex items-center justify-between gap-3">
                   <span className="text-slate-500 font-medium">Status</span>
-                  <span className="font-bold text-slate-900">
-                    {business?.verification === "verified" ? "Active Verified" : "Pending Verification"}
+                  <span className={cn(
+                    "font-bold",
+                    business?.verification === "verified"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : business?.verification === "rejected"
+                      ? "text-rose-600 dark:text-rose-400"
+                      : "text-slate-900 dark:text-white"
+                  )}>
+                    {business?.verification === "verified"
+                      ? "Active Verified"
+                      : business?.verification === "rejected"
+                      ? "Rejected"
+                      : "Pending Verification"}
                   </span>
                 </li>
               </ul>

@@ -41,8 +41,11 @@ export function Pill({
 const verificationMap = {
   verified: { label: "Verified", tone: "success", icon: <BadgeCheck className="h-3.5 w-3.5" /> },
   pending: { label: "Verification pending", tone: "warning", icon: <Clock className="h-3.5 w-3.5" /> },
+  under_review: { label: "Under Review", tone: "warning", icon: <Clock className="h-3.5 w-3.5" /> },
   correction: { label: "Correction required", tone: "warning", icon: <AlertCircle className="h-3.5 w-3.5" /> },
-  rejected: { label: "Not verified", tone: "danger", icon: <ShieldX className="h-3.5 w-3.5" /> },
+  correction_requested: { label: "Changes Required", tone: "warning", icon: <AlertCircle className="h-3.5 w-3.5" /> },
+  changes_required: { label: "Changes Required", tone: "warning", icon: <AlertCircle className="h-3.5 w-3.5" /> },
+  rejected: { label: "Rejected", tone: "danger", icon: <ShieldX className="h-3.5 w-3.5" /> },
   unverified: { label: "Not verified", tone: "neutral", icon: <ShieldX className="h-3.5 w-3.5" /> },
 };
 

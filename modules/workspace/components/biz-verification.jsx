@@ -256,7 +256,6 @@ function BizVerification() {
     }
   };
 
-  const rawStatus = (verificationData?.status || business?.verification || business?.verificationStatus || "unverified").toLowerCase();
   const uploadedDocs = Array.isArray(verificationData?.documents) ? verificationData.documents : (business?.documents || []);
   const totalRequiredDocs = docTemplates.length;
   const missingTemplates = docTemplates.filter(
@@ -264,6 +263,25 @@ function BizVerification() {
   );
   const uploadedTemplateCount = totalRequiredDocs - missingTemplates.length;
   const isAllDocsUploaded = missingTemplates.length === 0;
+
+  const isDirectlyRejected =
+    (business?.verification && String(business.verification).toLowerCase() === "rejected") ||
+    (verificationData?.status && String(verificationData.status).toLowerCase() === "rejected") ||
+    (business?.verificationStatus && String(business.verificationStatus).toLowerCase() === "rejected") ||
+    (business?.status && String(business.status).toLowerCase() === "rejected");
+
+  const isDirectlyChangesRequired =
+    (business?.verification && String(business.verification).toLowerCase() === "correction_requested") ||
+    (verificationData?.status && (verificationData.status.toLowerCase() === "changes_required" || verificationData.status.toLowerCase() === "correction" || verificationData.status.toLowerCase() === "correction_requested"));
+
+  const rawStatus = (
+    (isDirectlyRejected ? "rejected" : null) ||
+    (isDirectlyChangesRequired ? "correction_requested" : null) ||
+    verificationData?.status ||
+    business?.verification ||
+    business?.verificationStatus ||
+    "unverified"
+  ).toLowerCase();
 
   const handleResubmit = async () => {
     if (!business?._id) return;
@@ -301,16 +319,14 @@ function BizVerification() {
   const uploadedCount = uploadedDocs.length;
   const hasUploadedDocs = uploadedCount > 0;
 
-  const hasEverBeenApproved =
-    business?.isVerified === true ||
-    rawStatus === "approved" ||
-    rawStatus === "verified" ||
-    (Array.isArray(business?.verificationHistory) &&
-      business.verificationHistory.some((h) => h.action === "verified" || h.action === "approved"));
+  const isVerified =
+    !isDirectlyRejected &&
+    !isDirectlyChangesRequired &&
+    (business?.isVerified === true || rawStatus === "approved" || rawStatus === "verified") &&
+    isAllDocsUploaded;
 
-  const isVerified = hasEverBeenApproved && isAllDocsUploaded;
-  const isChangesRequired = !isVerified && (rawStatus === "changes_required" || rawStatus === "correction" || rawStatus === "correction_requested");
-  const isRejected = !isVerified && rawStatus === "rejected";
+  const isRejected = !isVerified && isDirectlyRejected;
+  const isChangesRequired = !isVerified && !isRejected && isDirectlyChangesRequired;
   const isUnderReview = !isVerified && !isChangesRequired && !isRejected && isAllDocsUploaded && (rawStatus === "under_review" || rawStatus === "pending");
   const isUnsubmitted = !isVerified && !isChangesRequired && !isRejected && !isUnderReview;
 
@@ -430,13 +446,23 @@ function BizVerification() {
           type: "rejected",
           title: "Application Rejected",
           date: h.createdAt,
-          description: h.reason || "Application rejected by secretariat.",
+          description: h.reason || business?.verificationReviewReason || business?.verificationRemarks || "Application rejected by secretariat.",
           status: "rejected",
         });
       }
     });
 
-    if (!seenApproved && isVerified) {
+    if (!seenApproved && isRejected) {
+      if (!filtered.some((f) => f.type === "rejected")) {
+        filtered.push({
+          type: "rejected",
+          title: "Verification Rejected",
+          date: business?.updatedAt || new Date(),
+          description: business?.verificationReviewReason || business?.verificationRemarks || verificationData?.remarks || "Application rejected by secretariat. Please review feedback and update documents.",
+          status: "rejected",
+        });
+      }
+    } else if (!seenApproved && isVerified) {
       filtered.push({
         type: "approved",
         title: "Verified & Approved",
@@ -562,31 +588,31 @@ function BizVerification() {
         )}
 
         {isRejected && (
-          <div className="rounded-xl border border-border bg-surface border-l-4 border-l-rose-500 p-4 shadow-xs">
+          <div className="rounded-2xl border border-rose-300 bg-rose-50/95 dark:border-rose-900/70 dark:bg-rose-950/40 border-l-4 border-l-rose-600 p-5 shadow-xs">
             <div className="flex items-start gap-3.5">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                <XCircle className="h-4.5 w-4.5" />
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-600 text-white shadow-xs">
+                <XCircle className="h-6 w-6" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="text-sm font-semibold text-foreground">
-                    Verification Application Not Approved
+                  <h4 className="text-base font-bold text-rose-950 dark:text-rose-100">
+                    Verification Application Rejected
                   </h4>
-                  <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:text-rose-300 uppercase tracking-wide">
+                  <span className="rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-bold text-white uppercase tracking-wider">
                     Rejected
                   </span>
                 </div>
 
-                <div className="mt-2.5 rounded-lg bg-muted/60 p-3 text-xs">
-                  <span className="block font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Reason for Rejection / Feedback:
+                <div className="mt-3 rounded-xl bg-white/90 dark:bg-slate-900/90 p-3.5 border border-rose-200/80 dark:border-rose-900/60 text-xs shadow-2xs">
+                  <span className="block font-bold text-[11px] uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                    Reason for Rejection / Secretariat Feedback:
                   </span>
-                  <p className="mt-1 font-medium text-foreground leading-relaxed">
+                  <p className="mt-1 font-semibold text-foreground text-sm leading-relaxed">
                     {business?.verificationReviewReason || business?.verificationRemarks || verificationData?.remarks || "The submitted documentation did not meet the compliance standards. Please review requirements and replace documents below."}
                   </p>
                 </div>
 
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2.5 text-xs text-rose-900/85 dark:text-rose-300/85 leading-relaxed">
                   You can upload corrected PDF documents below and click <strong>"Submit Application"</strong> to re-open your evaluation.
                 </p>
               </div>
@@ -616,7 +642,7 @@ function BizVerification() {
                         Documents Pending Upload
                       </span>
                     ) : (
-                      <VerificationBadge status={isVerified ? "verified" : rawStatus} compact />
+                      <VerificationBadge status={isVerified ? "verified" : isRejected ? "rejected" : isChangesRequired ? "correction_requested" : rawStatus} compact />
                     )
                   }
                 />
@@ -634,8 +660,9 @@ function BizVerification() {
               <ul className="space-y-3">
                 {docTemplates.map((template) => {
                   const uploaded = uploadedDocs.find((d) => isMatchingDoc(d?.type, template.type));
-                  const isChecked = uploaded && (uploaded.status === "approved" || isVerified);
-                  const isPending = uploaded && !isChecked;
+                  const isRejectedDoc = uploaded && (uploaded.status === "rejected" || isRejected);
+                  const isChecked = uploaded && (uploaded.status === "approved" || isVerified) && !isRejectedDoc;
+                  const isPending = uploaded && !isChecked && !isRejectedDoc;
 
                   return (
                     <li
@@ -661,6 +688,11 @@ function BizVerification() {
                         {isChecked && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400">
                             Verified
+                          </span>
+                        )}
+                        {isRejectedDoc && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400">
+                            Needs Re-upload
                           </span>
                         )}
                         {isPending && (
@@ -893,6 +925,10 @@ function BizVerification() {
                             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-amber-200">
                               <RotateCcw className="h-3.5 w-3.5" />
                             </div>
+                          ) : item.status === "rejected" ? (
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+                              <XCircle className="h-3.5 w-3.5" />
+                            </div>
                           ) : (
                             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400 border border-red-200">
                               <AlertCircle className="h-3.5 w-3.5" />
@@ -905,7 +941,7 @@ function BizVerification() {
                           <div className="flex items-center justify-between gap-2">
                             <span className={cn(
                               "font-bold uppercase tracking-wider text-[11px]",
-                              isApproved ? "text-emerald-600 dark:text-emerald-400 font-extrabold" : "text-slate-900 dark:text-white"
+                              isApproved ? "text-emerald-600 dark:text-emerald-400 font-extrabold" : item.status === "rejected" ? "text-rose-600 dark:text-rose-400 font-extrabold" : "text-slate-900 dark:text-white"
                             )}>
                               {item.title}
                             </span>
