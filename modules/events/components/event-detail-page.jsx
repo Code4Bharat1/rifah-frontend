@@ -63,7 +63,9 @@ const loadRazorpayScript = () => {
 
     setRegistering(true);
 
-    if (event.isPaid) {
+    const isPaidEvent = Boolean(event.isPaid && Number(event.ticketPrice) > 0);
+
+    if (isPaidEvent) {
       try {
         const scriptLoaded = await loadRazorpayScript();
         if (!scriptLoaded) throw new Error("Razorpay not loaded");
@@ -256,7 +258,7 @@ const loadRazorpayScript = () => {
                   <FieldRow label="Chapter" value={event.chapter} />
                   <FieldRow label="Mode" value={event.mode} />
                   <FieldRow label="Location" value={`${event.venue || ""}${event.city ? `, ${event.city}` : ""}`} />
-                  <FieldRow label="Participation fee" value={event.isPaid ? `₹${event.ticketPrice}` : (event.fee || "Free")} />
+                  <FieldRow label="Participation fee" value={Boolean(event.isPaid && Number(event.ticketPrice) > 0) ? `₹${event.ticketPrice}` : (event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")} />
                   <FieldRow label="Who should attend" value="Member businesses, buyers and chapter invitees" />
                 </dl>
               </Panel>
@@ -269,7 +271,7 @@ const loadRazorpayScript = () => {
                 <div className="space-y-3 text-center">
                   <p className="text-sm text-muted-foreground">You are viewing this event as an admin.</p>
                   <Button asChild className="w-full" variant="outline">
-                    <Link href={`/admin/events/${event._id}`}>Open in Admin Panel</Link>
+                    <Link href={user?.role === "chapter_admin" ? `/chapter-admin/events/${event._id}` : `/admin/events/${event._id}`}>Open in Admin Panel</Link>
                   </Button>
                 </div>
               </Panel>
@@ -292,7 +294,7 @@ const loadRazorpayScript = () => {
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <p className="text-2xl font-bold tracking-tight">{event.isPaid ? `₹${event.ticketPrice}` : (event.fee || "Free")}</p>
+                    <p className="text-2xl font-bold tracking-tight">{Boolean(event.isPaid && Number(event.ticketPrice) > 0) ? `₹${event.ticketPrice}` : (event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")}</p>
                     <p className="text-xs text-muted-foreground">
                       {Math.max(0, (event.seats || 100) - (event.registeredCount || 0))} seats remaining
                     </p>

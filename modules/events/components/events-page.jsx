@@ -88,7 +88,7 @@ function EventsPage() {
                       <Users className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{ev.seats} seats ({ev.registeredCount || 0} registered)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Ticket className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{ev.fee}</span>
+                      <Ticket className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{ev.isPaid ? `₹${ev.ticketPrice}` : (ev.fee && ev.fee !== "Complimentary for Members" ? ev.fee : "Free")}</span>
                     </div>
                   </dl>
                   <div className="mt-3 flex flex-1 flex-wrap items-end gap-1.5">

@@ -1,7 +1,7 @@
-import { AdminVerification } from "@modules/admin";
+import { redirect } from "next/navigation";
 
-export default function Page(props) {
-  return <AdminVerification {...props} />;
+export default function Page() {
+  redirect("/admin");
 }
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";

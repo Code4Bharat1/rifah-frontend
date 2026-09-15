@@ -104,7 +104,7 @@ export function AdminEventDetail() {
                 <FieldRow label="City" value={event.city} />
                 <FieldRow label="Chapter" value={event.chapter} />
                 <FieldRow label="Organiser" value={event.organizer} />
-                <FieldRow label="Fee" value={event.fee} />
+                <FieldRow label="Fee" value={event.isPaid ? `Paid (₹${event.ticketPrice})` : (event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")} />
                 <FieldRow label="Mode" value={event.mode} />
               </dl>
             </Panel>

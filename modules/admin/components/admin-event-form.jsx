@@ -164,6 +164,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       setFormData({
         ...initialFormState,
         ...initialData,
+        isPaid: Boolean(initialData.isPaid),
+        ticketPrice: initialData.isPaid ? (initialData.ticketPrice ?? "") : "",
         location: initialData.venue || initialData.location || "",
         date: initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : "",
         startTime: parsedTime.startTime,
@@ -260,6 +262,14 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       }
     }
 
+    if (formData.isPaid) {
+      const priceNum = Number(formData.ticketPrice);
+      if (!formData.ticketPrice || isNaN(priceNum) || priceNum <= 0) {
+        toast.error("Please enter a valid ticket price greater than 0 for paid events");
+        return;
+      }
+    }
+
     if (targetStatus === "Upcoming") setLoading(true);
     else setSavingDraft(true);
 
@@ -269,8 +279,15 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         scheduledAt = new Date(`${formData.scheduledDate}T${formData.scheduledTime}:00`);
       }
 
+      const isPaid = Boolean(formData.isPaid);
+      const ticketPrice = isPaid ? Number(formData.ticketPrice) : 0;
+      const fee = isPaid ? `₹${ticketPrice}` : "Free";
+
       const payload = { 
         ...formData, 
+        isPaid,
+        ticketPrice,
+        fee,
         time: formatTimeStr(formData.startTime, formData.endTime),
         venue: formData.location,
         status: targetStatus,

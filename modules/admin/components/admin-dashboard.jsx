@@ -17,7 +17,6 @@ import {
   useAuditLogs,
   useAllPayments,
 } from "@shared/hooks/use-rifah-api";
-import { verificationApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminHome() {
@@ -42,29 +41,7 @@ function AdminHome() {
   const mix = overviewData?.membershipMix || { Basic: 0, Premium: 0, Enterprise: 0 };
   const totalMembers = Object.values(mix).reduce((a, b) => a + b, 0) || 1;
 
-  const handleApprove = async (id) => {
-    try {
-      await verificationApi.review(id, { status: "approved", remarks: "Approved by Secretariat" });
-      toast.success("Business verified successfully!");
-      refetchQueue();
-      refetchOverview();
-    } catch (err) {
-      toast.error(err.message || "Failed to approve verification.");
-    }
-  };
 
-  const handleReject = async (id) => {
-    const reason = prompt("Enter reason for rejection:");
-    if (!reason) return;
-    try {
-      await verificationApi.review(id, { status: "rejected", remarks: reason });
-      toast.success("Business verification rejected.");
-      refetchQueue();
-      refetchOverview();
-    } catch (err) {
-      toast.error(err.message || "Failed to reject verification.");
-    }
-  };
 
   return (
     <AppShell
@@ -206,43 +183,47 @@ function AdminHome() {
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-4">
-            <Panel
-              title="Verification queue"
-              description="Businesses awaiting secretariat verification"
-              action={<MoreLink href="/admin/verification" />}
-            >
-              {queue.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  Verification queue is clear. No pending applications.
-                </p>
-              ) : (
-                <ul className="space-y-3">
-                  {queue.slice(0, 5).map((item) => (
-                    <li key={item._id} className="rounded-xl border border-border p-3.5">
-                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">{item.business?.name || "Business Application"}</p>
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {item.business?.industry} · {item.business?.city} · {item.business?.chapter}
-                          </p>
+            {!isSuperAdmin && (
+              <Panel
+                title="Verification queue"
+                description="Businesses awaiting chapter document verification"
+                action={<MoreLink href="/chapter-admin/verification" />}
+              >
+                {queue.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Verification queue is clear. No pending applications.
+                  </p>
+                ) : (
+                  <ul className="space-y-3">
+                    {queue.slice(0, 5).map((item) => (
+                      <li key={item._id} className="rounded-xl border border-border p-3.5 hover:border-primary/40 transition-colors">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">{item.business?.name || "Business Application"}</p>
+                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                              {item.business?.industry} · {item.business?.city} · {item.business?.chapter}
+                            </p>
+                          </div>
+                          <VerificationBadge status={item.status} compact />
                         </div>
-                        <VerificationBadge status={item.status} compact />
-                      </div>
-                      {['pending', 'under_review'].includes(item.status?.toLowerCase()) && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Button size="sm" onClick={() => handleApprove(item._id)}>
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleReject(item._id)}>
-                            Reject
-                          </Button>
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Panel>
+                        {['pending', 'under_review'].includes(item.status?.toLowerCase()) && (
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2.5">
+                            <span className="text-xs text-muted-foreground">
+                              {item.documents?.length || 0} document{(item.documents?.length || 0) === 1 ? "" : "s"} submitted
+                            </span>
+                            <Button asChild size="sm" variant="outline" className="h-8 gap-1 text-xs font-semibold text-primary hover:bg-primary/10">
+                              <Link href="/chapter-admin/verification">
+                                Inspect & Review <ArrowRight className="h-3 w-3" />
+                              </Link>
+                            </Button>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
+            )}
 
             <Panel title="Recent enquiries" description="Lead flow across the chamber" action={<MoreLink href="/admin/enquiries" />}>
               {enquiries.length === 0 ? (

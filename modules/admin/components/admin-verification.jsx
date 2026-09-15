@@ -20,6 +20,7 @@ import {
   ArrowRight,
   ShieldAlert,
   UserCheck,
+  Eye,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -94,6 +95,7 @@ function AdminVerification() {
     if (selectedDoc?.fileUrl) {
       const url = resolveMediaUrl(selectedDoc.fileUrl);
       setSecureDocUrl(url);
+      setVerifiedDocs((prev) => (prev.includes(selectedDoc.fileUrl) ? prev : [...prev, selectedDoc.fileUrl]));
     } else {
       setSecureDocUrl(null);
     }
@@ -110,6 +112,23 @@ function AdminVerification() {
           </p>
           <Button asChild>
             <a href="/auth/login">Go to Login</a>
+          </Button>
+        </Panel>
+      </AppShell>
+    );
+  }
+
+  if (user && user.role !== "chapter_admin") {
+    return (
+      <AppShell role="admin" title="Verification Desk">
+        <Panel className="p-12 text-center max-w-lg mx-auto my-8 border border-border/80 rounded-2xl shadow-xs">
+          <ShieldAlert className="mx-auto h-12 w-12 text-amber-500 mb-4" />
+          <h2 className="text-xl font-bold text-foreground">Decentralized Chamber Verification</h2>
+          <p className="text-muted-foreground mt-2 mb-6 text-sm">
+            Business document verification is handled exclusively by each local Chapter/Chamber Administrator.
+          </p>
+          <Button asChild>
+            <a href="/admin">Return to Administration</a>
           </Button>
         </Panel>
       </AppShell>
@@ -332,13 +351,24 @@ function AdminVerification() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {isVerified && <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />}
+                        {isVerified ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                            <ShieldCheck className="h-3.5 w-3.5" /> Viewed
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
+                            Not viewed
+                          </span>
+                        )}
                         {d.fileUrl ? (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-xs text-primary font-semibold hover:bg-primary/10"
+                            className={cn(
+                              "h-7 px-2 text-xs font-semibold",
+                              isVerified ? "text-slate-600 hover:bg-slate-100" : "text-primary hover:bg-primary/10"
+                            )}
                             onClick={() => setSelectedDoc(d)}
                           >
                             {isVerified ? "View" : "Inspect"}
@@ -386,16 +416,42 @@ function AdminVerification() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {!isApproved && user?.role === "chapter_admin" && (
-              <Button
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs gap-1.5"
-                onClick={() => openDecisionModal(item, "approve")}
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Approve & Publish Live</span>
-              </Button>
-            )}
+            {!isApproved && user?.role === "chapter_admin" && (() => {
+              const hasDocs = docs.length > 0;
+              const allDocsViewed = hasDocs && docs.every((d) => !d.fileUrl || verifiedDocs.includes(d.fileUrl));
+              const canApprove = hasDocs && allDocsViewed;
+
+              return (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    disabled={!canApprove}
+                    className={cn(
+                      "font-semibold shadow-xs gap-1.5 transition-all",
+                      canApprove
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                        : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300/60 dark:border-slate-700"
+                    )}
+                    onClick={() => {
+                      if (!canApprove) {
+                        toast.warning("Please inspect and view all submitted documents before approving.");
+                        return;
+                      }
+                      openDecisionModal(item, "approve");
+                    }}
+                    title={!canApprove ? "Please inspect all documents above to unlock verification" : "Approve & Publish Live"}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>Approve & Publish Live</span>
+                  </Button>
+                  {!canApprove && (
+                    <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/40 px-2 py-1 rounded-md border border-amber-200 dark:border-amber-800/60">
+                      {hasDocs ? "Inspect all docs to unlock" : "No documents uploaded"}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
 
             {!isChangesReq && !isApproved && user?.role === "chapter_admin" && (
               <Button
