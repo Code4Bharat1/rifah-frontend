@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { Button } from "@shared/components/ui/button";
+import { useAuth } from "@shared/providers/auth-provider";
 import { businessImage, businessLogo, resolveMediaUrl } from "@shared/lib/media";
 
 import { cn } from "@shared/lib/utils";
@@ -47,6 +48,7 @@ export function BusinessCard({
   allowUnsave = false,
   onToggleSave,
 }) {
+  const { user } = useAuth();
   const bizId = business.slug || business._id || business.id || "";
   const rating = (Number(business.rating) || 0).toFixed(1);
   const reviewsCount = business.reviewsCount ?? business.reviews ?? 0;
@@ -71,21 +73,21 @@ export function BusinessCard({
             >
               {business.name}
             </Link>
-            {allowUnsave && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (onToggleSave) onToggleSave(business);
-                }}
-                aria-label={`Remove ${business.name} from saved`}
-                title="Remove from saved"
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer"
-              >
-                <Bookmark className="h-4 w-4 fill-current transition-transform active:scale-90" />
-              </button>
-            )}
+            {allowUnsave && user?.role === 'customer' && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (onToggleSave) onToggleSave(business);
+                  }}
+                  aria-label={`Remove ${business.name} from saved`}
+                  title="Remove from saved"
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer"
+                >
+                  <Bookmark className="h-4 w-4 fill-current transition-transform active:scale-90" />
+                </button>
+              )}
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">{locationText}</p>
         </div>
@@ -252,7 +254,7 @@ export function CompactBusinessCard({
           <VerificationBadge status={business.verification} compact />
         </div>
       </Link>
-      {onToggleSave ? (
+      {onToggleSave && user?.role === 'customer' ? (
         <button
           type="button"
           onClick={onToggleSave}
@@ -261,9 +263,7 @@ export function CompactBusinessCard({
         >
           <Bookmark className={cn("h-5 w-5", saved && "fill-primary text-primary")} />
         </button>
-      ) : (
-        <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-      )}
+      ) : null}
     </div>
   );
 }

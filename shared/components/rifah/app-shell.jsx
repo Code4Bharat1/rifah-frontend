@@ -99,10 +99,10 @@ const navs = {
       { label: "Overview", to: "/admin", icon: Gauge },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Leads", to: "/admin/leads", icon: Target },
+      { label: "Users", to: "/admin/users", icon: Users },
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Users", to: "/admin/users", icon: Users },
       { label: "Memberships", to: "/admin/memberships", icon: Star },
       { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },

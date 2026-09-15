@@ -157,6 +157,11 @@ export function AuthProvider({ children }) {
   };
 
   const toggleSaveBusiness = async (businessId) => {
+    // Only customers are allowed to save/unsave businesses
+    if (user?.role !== 'customer') {
+      // Early exit with an error-like payload
+      return { error: 'Only customers can save businesses' };
+    }
     if (!businessId) return null;
     const res = await userApi.toggleSaveBusiness(businessId);
     const payload = res?.data || res;

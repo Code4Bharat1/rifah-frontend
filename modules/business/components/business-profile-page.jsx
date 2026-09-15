@@ -85,7 +85,7 @@ function BusinessProfile() {
   });
 
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, toggleSaveBusiness } = useAuth();
   const ownerId = business?.owner?._id || business?.owner;
   const isMyOwnBusiness = Boolean(user?._id && ownerId && String(user._id) === String(ownerId));
 
@@ -104,6 +104,18 @@ function BusinessProfile() {
     setCoverError(false);
     setLogoError(false);
   }, [businessId, business?._id]);
+
+  useEffect(() => {
+    if (user?.role === "customer" && Array.isArray(user?.savedBusinesses) && business?._id) {
+      const isSaved = user.savedBusinesses.some((b) => {
+        const id = typeof b === "object" && b !== null ? (b._id || b.id) : b;
+        return String(id) === String(business._id);
+      });
+      setSaved(Boolean(isSaved));
+    } else {
+      setSaved(false);
+    }
+  }, [user, business?._id]);
 
   const getShareUrl = () => {
     if (typeof window !== "undefined") {
@@ -207,11 +219,26 @@ function BusinessProfile() {
   const related = mergedRelated.slice(0, 3);
 
   const handleToggleSave = async () => {
+    // Redirect guests to login preserving intended destination
+    if (!user) {
+      const redirectPath = `/login?redirect=/business/${business.slug || business._id}`;
+      window.location.href = redirectPath;
+      return;
+    }
+    // Only customers can save businesses
+    if (user.role !== 'customer') {
+      return; // silently ignore for non‑customers
+    }
     try {
       setSaved((s) => !s);
-      await userApi.toggleSaveBusiness(business._id);
+      if (typeof toggleSaveBusiness === "function") {
+        await toggleSaveBusiness(business._id);
+      } else {
+        await userApi.toggleSaveBusiness(business._id);
+      }
     } catch (err) {
-      console.error("Save business error:", err);
+      // Log error for debugging without showing UI toast
+      console.error('Save business error:', err);
     }
   };
 
@@ -325,16 +352,18 @@ function BusinessProfile() {
 
                 {/* Profile actions (Save & Share) */}
                 <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleToggleSave}
-                    aria-pressed={saved}
-                    className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs"
-                  >
-                    <Bookmark className={cn("h-4 w-4", saved && "fill-primary text-primary")} />
-                    {saved ? "Saved" : "Save"}
-                  </Button>
+                  {(!user || user?.role === "customer") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleToggleSave}
+                      aria-pressed={saved}
+                      className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs"
+                    >
+                      <Bookmark className={cn("h-4 w-4", saved && "fill-primary text-primary")} />
+                      {saved ? "Saved" : "Save"}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
