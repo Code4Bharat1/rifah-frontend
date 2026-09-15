@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Filter, Target, Loader2, Send, CheckCircle2, Clock, MapPin, Building2, User, Check, Sparkles, FileText, Download } from "lucide-react";
+import { Filter, Target, Loader2, Send, CheckCircle2, Clock, MapPin, Building2, User, Check, Sparkles, FileText, Download, Lock } from "lucide-react";
 import { useState } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -602,8 +602,9 @@ function LeadsPage() {
                           Edit Quote
                         </button>
                       </div>
-                      <p className="text-[11px] text-emerald-700 font-medium">
-                        ✓ Delivered directly to {resolveCustomerName(openLead)}&apos;s message box with end-to-end access isolation.
+                      <p className="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                        <span>Delivered directly to {resolveCustomerName(openLead)}&apos;s message box with end-to-end access isolation.</span>
                       </p>
                       {openLead.quotation.notes && (
                         <p className="text-emerald-800 leading-relaxed border-t border-emerald-200/60 pt-1.5">
@@ -683,9 +684,32 @@ function LeadsPage() {
                   )}
 
                   {(() => {
+                    const hasSubmittedQuote =
+                      Boolean(openLead.quotation && (openLead.quotation.amount || openLead.quotation.price)) ||
+                      ["Responded", "Won", "Negotiation"].includes(openLead.status);
                     const buyerId = openLead.enquiry?.requester?._id || openLead.enquiry?.requester || openLead.requester?._id || openLead.requester;
                     const buyerName = openLead.enquiry?.requesterName || openLead.enquiry?.buyerName || openLead.buyerName || "Buyer";
                     const buyerMsgUrl = buyerId ? `/biz/messages?userId=${buyerId}&name=${encodeURIComponent(buyerName)}` : "/biz/messages";
+
+                    if (!hasSubmittedQuote) {
+                      return (
+                        <div className="space-y-1 w-full">
+                          <Button
+                            type="button"
+                            disabled
+                            variant="outline"
+                            className="w-full rounded-full border border-slate-200/60 bg-slate-100/90 text-slate-400 font-semibold text-sm h-12 cursor-not-allowed opacity-60 shadow-none pointer-events-none flex items-center justify-center gap-1.5"
+                          >
+                            <Lock className="h-4 w-4 text-slate-400" /> Message buyer
+                          </Button>
+                          <p className="text-[11px] text-center text-amber-600 dark:text-amber-400 font-medium flex items-center justify-center gap-1.5">
+                            <Lock className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400" />
+                            <span>Submit quotation first to enable messaging with buyer</span>
+                          </p>
+                        </div>
+                      );
+                    }
+
                     return (
                       <Button
                         asChild

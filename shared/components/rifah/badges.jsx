@@ -49,16 +49,17 @@ const verificationMap = {
   unverified: { label: "Not verified", tone: "neutral", icon: <ShieldX className="h-3.5 w-3.5" /> },
 };
 
-export function VerificationBadge({ status, compact = false }) {
-  const normalizedStatus = typeof status === "string" ? status.toLowerCase() : "unverified";
+export function VerificationBadge({ status, level, compact = false }) {
+  const raw = status || level;
+  const normalizedStatus = typeof raw === "string" ? raw.toLowerCase() : "unverified";
   const v = verificationMap[normalizedStatus] || {
-    label: status || "Not verified",
+    label: raw || "Not verified",
     tone: "neutral",
     icon: <ShieldX className="h-3.5 w-3.5" />,
   };
   return (
     <Pill tone={v.tone} icon={v.icon}>
-      {compact && normalizedStatus === "verified" ? "Verified" : v.label}
+      {compact && (normalizedStatus === "verified" || normalizedStatus === "approved") ? "Verified" : v.label}
     </Pill>
   );
 }

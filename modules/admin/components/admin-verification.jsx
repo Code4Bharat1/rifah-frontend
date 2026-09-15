@@ -221,15 +221,30 @@ function AdminVerification() {
                   {biz.membership} Tier
                 </span>
               )}
-              {biz.paymentStatus === "paid" ? (
-                <span className="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                  <CreditCard className="h-3 w-3" /> Paid
-                </span>
-              ) : (
-                <span className="rounded-md bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
-                  Payment: {biz.paymentStatus || "Pending"}
-                </span>
-              )}
+              {(() => {
+                const isPaid =
+                  biz.paymentStatus?.toLowerCase() === "paid" ||
+                  biz.paymentStatus?.toLowerCase() === "completed" ||
+                  biz.isPaid === true ||
+                  item.paymentStatus?.toLowerCase() === "paid" ||
+                  (biz.membership &&
+                    biz.membership.toLowerCase() !== "free" &&
+                    biz.membership.toLowerCase() !== "free listing");
+
+                if (isPaid) {
+                  return (
+                    <span className="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                      <CreditCard className="h-3 w-3" /> Paid
+                    </span>
+                  );
+                }
+
+                return (
+                  <span className="rounded-md bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                    Payment: {biz.paymentStatus || item.paymentStatus || "Pending"}
+                  </span>
+                );
+              })()}
             </div>
 
             <p className="mt-1 text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
