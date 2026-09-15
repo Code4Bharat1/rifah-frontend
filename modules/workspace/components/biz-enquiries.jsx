@@ -13,6 +13,7 @@ import {
   FileText,
   Clock,
   IndianRupee,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -291,11 +292,17 @@ function BizEnquiries() {
                     >
                       {isQuoted ? "View Details" : "View & Quote"}
                     </Button>
-                    <Button asChild size="sm" variant="outline" className="h-8 text-xs font-semibold">
-                      <Link href={buyerId ? `/biz/messages?userId=${buyerId}&name=${encodeURIComponent(buyerName)}` : "/biz/messages"}>
-                        <MessageSquare className="mr-1 h-3.5 w-3.5" /> Message
-                      </Link>
-                    </Button>
+                    {isQuoted ? (
+                      <Button asChild size="sm" variant="outline" className="h-8 text-xs font-semibold">
+                        <Link href={buyerId ? `/biz/messages?userId=${buyerId}&name=${encodeURIComponent(buyerName)}` : "/biz/messages"}>
+                          <MessageSquare className="mr-1 h-3.5 w-3.5" /> Message
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="outline" disabled className="h-8 text-xs font-semibold opacity-50 cursor-not-allowed pointer-events-none">
+                        <Lock className="mr-1 h-3 w-3 text-muted-foreground" /> Message
+                      </Button>
+                    )}
                   </div>
                 );
               },
@@ -341,11 +348,17 @@ function BizEnquiries() {
                   >
                     {isQuoted ? "View Details" : "View & Quote"}
                   </Button>
-                  <Button asChild size="sm" variant="outline" className="h-7 text-xs">
-                    <Link href={buyerId ? `/biz/messages?userId=${buyerId}&name=${encodeURIComponent(buyerName)}` : "/biz/messages"}>
-                      <MessageSquare className="mr-1 h-3.5 w-3.5" /> Message
-                    </Link>
-                  </Button>
+                  {isQuoted ? (
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                      <Link href={buyerId ? `/biz/messages?userId=${buyerId}&name=${encodeURIComponent(buyerName)}` : "/biz/messages"}>
+                        <MessageSquare className="mr-1 h-3.5 w-3.5" /> Message
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" disabled className="h-7 text-xs opacity-50 cursor-not-allowed pointer-events-none">
+                      <Lock className="mr-1 h-3 w-3 text-muted-foreground" /> Message
+                    </Button>
+                  )}
                 </div>
               </div>
             );
@@ -563,6 +576,16 @@ function BizEnquiries() {
               {(() => {
                 const bId = selectedEnquiry?.requester?._id || selectedEnquiry?.requester || selectedEnquiry?.enquiry?.requester?._id || selectedEnquiry?.enquiry?.requester || "";
                 const bName = selectedEnquiry?.requesterName || selectedEnquiry?.requester?.name || selectedEnquiry?.buyerName || "Requester";
+                const isQuoted = Boolean(selectedEnquiry?.myQuotation?.amount && Number(selectedEnquiry.myQuotation.amount) > 0);
+
+                if (!isQuoted) {
+                  return (
+                    <Button disabled variant="outline" className="opacity-50 cursor-not-allowed pointer-events-none">
+                      <Lock className="mr-1.5 h-4 w-4 text-muted-foreground" /> Message / Negotiate Deal
+                    </Button>
+                  );
+                }
+
                 return (
                   <Button asChild>
                     <Link href={bId ? `/biz/messages?userId=${bId}&name=${encodeURIComponent(bName)}` : "/biz/messages"}>

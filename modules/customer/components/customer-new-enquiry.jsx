@@ -73,8 +73,8 @@ export function CustomerNewEnquiry() {
     setError("");
 
     // Validation
-    if (!formData.title.trim() || formData.title.trim().length < 3) {
-      setError("Please provide a requirement title (at least 3 characters).");
+    if (!formData.title.trim()) {
+      setError("Please provide a requirement title.");
       return;
     }
     if (!formData.category) {

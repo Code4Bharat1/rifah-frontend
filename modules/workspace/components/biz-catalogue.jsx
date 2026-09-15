@@ -36,13 +36,16 @@ function BizCatalogue() {
 
   const syncCatalogueCache = () => {
     refetch();
+    queryClient.invalidateQueries({ queryKey: ["catalogue"] });
+    queryClient.invalidateQueries({ queryKey: ["catalogue-business"] });
     if (business?._id) {
-      queryClient.invalidateQueries({ queryKey: ["catalogue", business._id] });
+      queryClient.invalidateQueries({ queryKey: ["catalogue-business", business._id] });
       queryClient.invalidateQueries({ queryKey: ["business", business._id] });
     }
     if (business?.slug) {
       queryClient.invalidateQueries({ queryKey: ["business", business.slug] });
     }
+    queryClient.invalidateQueries({ queryKey: ["businesses"] });
   };
 
   const [openAdd, setOpenAdd] = useState(false);

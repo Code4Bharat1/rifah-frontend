@@ -316,16 +316,14 @@ export function useConversations() {
     queryFn: async () => {
       try {
         const res = await messageApi.getConversations();
-        return res?.data?.conversations || res?.data || res;
+        return res?.data?.conversations || res?.data || res || [];
       } catch (err) {
-        if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
-          return [];
-        }
-        throw err;
+        // Return empty array on temporary network/auth hiccups during polling
+        return [];
       }
     },
     refetchInterval: 6000,
-    retry: false,
+    retry: 1,
   });
 }
 
@@ -336,17 +334,14 @@ export function useMessages(otherUserId) {
       if (!otherUserId) return [];
       try {
         const res = await messageApi.getMessages(otherUserId);
-        return res?.data?.messages || res?.data || res;
+        return res?.data?.messages || res?.data || res || [];
       } catch (err) {
-        if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
-          return [];
-        }
-        throw err;
+        return [];
       }
     },
     enabled: Boolean(otherUserId),
     refetchInterval: 4000,
-    retry: false,
+    retry: 1,
   });
 }
 
@@ -366,14 +361,11 @@ export function useNotifications() {
 
         return { notifications, unreadCount };
       } catch (err) {
-        if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
-          return { notifications: [], unreadCount: 0 };
-        }
-        throw err;
+        return { notifications: [], unreadCount: 0 };
       }
     },
     refetchInterval: 8000,
-    retry: false,
+    retry: 1,
   });
 }
 

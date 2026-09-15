@@ -11,7 +11,7 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { cities } from "@shared/lib/mock-data";
-import { useCatalogue } from "@shared/hooks/use-rifah-api";
+import { useCatalogue, useChapters } from "@shared/hooks/use-rifah-api";
 import { cn } from "@shared/lib/utils";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
@@ -20,6 +20,13 @@ function CataloguePage() {
   const [type, setType] = useState("all");
   const [city, setCity] = useState("All locations");
   const [openFilters, setOpenFilters] = useState(false);
+
+  const { data: chaptersData } = useChapters();
+  const rawChapters = Array.isArray(chaptersData) ? chaptersData : (chaptersData?.chapters || []);
+  const chapterNames = rawChapters.map((c) => (c.name || "").replace(/\s*Chapter\s*/gi, "").trim()).filter(Boolean);
+
+  // Combine real chapters with popular cities
+  const availableLocations = Array.from(new Set(["All locations", ...chapterNames, ...cities.slice(0, 8)]));
 
   const { data: catalogueData, isLoading } = useCatalogue({
     search: query || undefined,
@@ -30,6 +37,8 @@ function CataloguePage() {
   const results = Array.isArray(catalogueData)
     ? catalogueData
     : (catalogueData?.items || []);
+
+  const hasActiveFilters = query.trim() !== "" || type !== "all" || city !== "All locations";
 
   return (
     <PublicLayout>
@@ -45,13 +54,13 @@ function CataloguePage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search offerings, e.g. corrugated boxes"
+              placeholder="Search offerings by name, category, keyword..."
               aria-label="Search catalogue"
               className="h-12 pl-10"
             />
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex">
-            <Tabs value={type} onValueChange={(v) => setType(v)} className="min-w-0">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:flex-wrap">
+            <Tabs value={type} onValueChange={(v) => setType(v || "all")} className="min-w-0">
               <TabsList className="w-full sm:w-auto">
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="Product">Products</TabsTrigger>
@@ -64,27 +73,61 @@ function CataloguePage() {
               onClick={() => setOpenFilters((o) => !o)}
               aria-expanded={openFilters}
             >
-              <SlidersHorizontal className="h-4 w-4" /> Location
+              <SlidersHorizontal className="h-4 w-4" /> Locations
             </Button>
             <div className={cn("col-span-2 sm:block", openFilters ? "block" : "hidden")}>
-              <div className="flex flex-wrap gap-1.5">
-                {["All locations", ...cities.slice(0, 6)].map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCity(c)}
-                    aria-pressed={city === c}
-                    className={cn(
-                      "rounded-full border border-border px-3 py-1.5 text-xs font-medium transition-colors",
-                      city === c ? "border-primary bg-primary-soft text-primary" : "hover:bg-muted"
-                    )}
-                  >
-                    {c}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-1.5 items-center">
+                {availableLocations.map((c) => {
+                  const isSelected = city.toLowerCase() === c.toLowerCase();
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCity(isSelected && c !== "All locations" ? "All locations" : c)}
+                      aria-pressed={isSelected}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground shadow-xs font-semibold"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
+
+          {hasActiveFilters && (
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-xs text-muted-foreground">Active filters:</span>
+              {type !== "all" && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  Type: {type}s
+                  <button type="button" onClick={() => setType("all")} className="ml-1 hover:text-destructive">×</button>
+                </span>
+              )}
+              {city !== "All locations" && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  Location: {city}
+                  <button type="button" onClick={() => setCity("All locations")} className="ml-1 hover:text-destructive">×</button>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setType("all");
+                  setCity("All locations");
+                }}
+                className="text-xs text-muted-foreground underline hover:text-foreground ml-auto"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground" role="status">
@@ -166,10 +209,10 @@ function CataloguePage() {
                           {biz?.name}
                         </Link>
                         <p className="text-[11px] text-muted-foreground">
-                          {item.city} · {biz?.chapter}
+                          {item.city || biz?.city} · {biz?.chapter || "Chamber"}
                         </p>
                       </div>
-                      {biz?.verification === "verified" && <VerificationBadge level="verified" compact />}
+                      <VerificationBadge status={biz?.verification || (biz?.isVerified ? "verified" : "unverified")} compact />
                     </div>
                   </div>
                 </article>

@@ -271,8 +271,10 @@ export function AppShell({
     vStatus === "approved" ||
     (Array.isArray(businessData?.verificationHistory) &&
       businessData.verificationHistory.some((h) => h.action === "verified" || h.action === "approved"));
-  const isBizVerified = role !== "business" || hasEverBeenVerified;
-  const isGatedPage = role === "business" && !isBizLoading && businessData && !isBizVerified && !isAccessibleUnverifiedPath(path);
+
+  // While business profile is loading, treat as verified to prevent flashing lock screen & lock icons on reload
+  const isBizVerified = role !== "business" || isBizLoading || !businessData || hasEverBeenVerified;
+  const isGatedPage = role === "business" && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(path);
 
   const unreadNotifs = notificationsData?.unreadCount ?? (
     Array.isArray(notificationsData)
@@ -329,7 +331,7 @@ export function AppShell({
             let badge = null;
             if (item.label === "Messages") badge = unreadMsgs;
             if (item.label === "Notifications") badge = unreadNotifs;
-            const isItemLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(item.to);
+            const isItemLocked = role === "business" && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to);
             return (
               <SidebarLink
                 key={item.to + item.label}

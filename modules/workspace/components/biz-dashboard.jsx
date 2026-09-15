@@ -566,13 +566,12 @@ function BusinessHome() {
             </Panel>
 
             {/* Box 3: Recent Messages */}
-            {/* Box 3: Recent Messages */}
             <Panel title="Recent messages" action={<MoreLink href="/biz/messages" label="View all →" />}>
-              {messageList.length === 0 ? (
+              {conversations.length === 0 ? (
                 <p className="text-xs text-slate-400 font-medium text-center py-4">No recent messages</p>
               ) : (
                 <ul className="space-y-2.5">
-                  {messageList.map((msg, i) => {
+                  {conversations.slice(0, 5).map((msg, i) => {
                     const senderName = safeText(msg.otherUser?.name || msg.name, "Customer");
                     const lastMsg = safeText(msg.lastMessage?.text || msg.lastMessage?.body || msg.lastMessage || msg.snippet, "New message");
                     const unreadCount = Number(msg.unreadCount || msg.unread || 0);
