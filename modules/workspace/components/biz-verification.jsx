@@ -330,15 +330,22 @@ function BizVerification() {
   const isUnderReview = !isVerified && !isChangesRequired && !isRejected && isAllDocsUploaded && (rawStatus === "under_review" || rawStatus === "pending");
   const isUnsubmitted = !isVerified && !isChangesRequired && !isRejected && !isUnderReview;
 
-  // Show popup message when business is verified
+  // Show popup message only once when business is verified
   useEffect(() => {
-    if (isVerified) {
-      toast.success("Congratulations! Your business profile has been verified by the RIFAH Secretariat.", {
-        id: "biz-verified-status",
-        duration: 5000,
-      });
+    if (isVerified && business?._id) {
+      const storageKey = `rifah_verified_notified_${business._id}`;
+      const alreadyNotified = typeof window !== "undefined" ? localStorage.getItem(storageKey) : null;
+      if (!alreadyNotified) {
+        toast.success("Congratulations! Your business profile has been verified by the RIFAH Secretariat.", {
+          id: "biz-verified-status",
+          duration: 5000,
+        });
+        try {
+          localStorage.setItem(storageKey, "true");
+        } catch (e) {}
+      }
     }
-  }, [isVerified]);
+  }, [isVerified, business?._id]);
 
 
   const stepIndex = isVerified
