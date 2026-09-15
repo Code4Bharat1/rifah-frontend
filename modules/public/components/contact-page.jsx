@@ -15,29 +15,33 @@ import {
   SelectValue,
 } from "@shared/components/ui/select";
 import { Textarea } from "@shared/components/ui/textarea";
-import { useChapters } from "@shared/hooks/use-rifah-api";
+import { useChapters, useSettings } from "@shared/hooks/use-rifah-api";
 import { contactApi } from "@shared/lib/api-services";
 import { toast } from "sonner";
-
-const desks = [
-  { name: "Membership desk", detail: "Plan selection, upgrades and renewals" },
-  { name: "Verification team", detail: "Document review and listing approvals" },
-  { name: "Trade facilitation unit", detail: "Buyer enquiries and lead routing" },
-  { name: "Events desk", detail: "Trade meets, clinics and chapter sessions" },
-];
 
 function ContactPage() {
   const [sent, setSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: chaptersData } = useChapters();
+  const { data: settings, isLoading: isSettingsLoading } = useSettings({
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
   const chapters = chaptersData || [];
+
+  const cleanSettings = settings?.data || settings || {};
+  const orgName = cleanSettings.organisationName || "";
+  const orgEmail = cleanSettings.secretariatEmail || "";
+  const orgPhone = cleanSettings.supportPhone ? String(cleanSettings.supportPhone) : "";
+  const orgAddress = cleanSettings.secretariatAddress || "";
+  const orgHours = cleanSettings.workingHours || "";
 
   return (
     <PublicLayout>
       <div className="rifah-container py-6 sm:py-10">
         <SectionHeader
           title="Contact RIFAH"
-          description="The secretariat routes enquiries to the correct desk or regional chapter within one working day."
+          description="The secretariat routes enquiries to the regional chapter within one working day."
         />
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -67,13 +71,13 @@ function ContactPage() {
                     organization: formData.get("organization"),
                     email: formData.get("email"),
                     phone: formData.get("phone"),
-                    desk: formData.get("desk"),
+                    desk: "General",
                     chapter: formData.get("chapter"),
                     message: formData.get("message"),
                   };
 
-                  if (!payload.desk || !payload.chapter) {
-                    toast.error("Please select both a desk and a chapter.");
+                  if (!payload.chapter) {
+                    toast.error("Please select a chapter.");
                     setIsSubmitting(false);
                     return;
                   }
@@ -104,22 +108,7 @@ function ContactPage() {
                   <Label htmlFor="cphone">Phone</Label>
                   <Input id="cphone" name="phone" type="tel" required placeholder="Mobile number" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="cdesk">Which desk?</Label>
-                  <Select name="desk">
-                    <SelectTrigger id="cdesk">
-                      <SelectValue placeholder="Select a desk" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {desks.map((d) => (
-                        <SelectItem key={d.name} value={d.name}>
-                          {d.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="cchapter">Chapter</Label>
                   <Select name="chapter">
                     <SelectTrigger id="cchapter">
@@ -155,43 +144,47 @@ function ContactPage() {
 
           <aside className="space-y-4">
             <Panel title="Central Secretariat">
-              <div className="space-y-3 text-sm">
-                <p className="flex items-start gap-2.5">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span>
-                    RIFAH Chamber of Commerce & Industry
-                    <br />
-                    Central Secretariat, Byculla, Mumbai 400 008
-                  </span>
-                </p>
-                <p className="flex items-center gap-2.5">
-                  <Phone className="h-4 w-4 shrink-0 text-primary" />
-                  <a href="tel:+912223456789" className="hover:underline">
-                    +91 22 2345 6789
-                  </a>
-                </p>
-                <p className="flex items-center gap-2.5">
-                  <Mail className="h-4 w-4 shrink-0 text-primary" />
-                  <a href="mailto:secretariat@rifah.org" className="hover:underline">
-                    secretariat@rifah.org
-                  </a>
-                </p>
-                <p className="flex items-center gap-2.5 text-xs text-muted-foreground">
-                  <Clock className="h-4 w-4 shrink-0" />
-                  <span>Mon–Fri · 09:30–18:00 IST</span>
-                </p>
-              </div>
-            </Panel>
-
-            <Panel title="Desks & working units">
-              <ul className="space-y-2.5 text-xs">
-                {desks.map((d) => (
-                  <li key={d.name} className="rounded-lg bg-surface-muted p-2.5">
-                    <p className="font-semibold text-foreground">{d.name}</p>
-                    <p className="text-muted-foreground">{d.detail}</p>
-                  </li>
-                ))}
-              </ul>
+              {isSettingsLoading ? (
+                <div className="space-y-3 py-2 text-sm text-muted-foreground animate-pulse">
+                  <div className="h-4 w-3/4 rounded bg-muted"></div>
+                  <div className="h-4 w-1/2 rounded bg-muted"></div>
+                  <div className="h-4 w-2/3 rounded bg-muted"></div>
+                </div>
+              ) : (
+                <div className="space-y-3 text-sm">
+                  {(orgName || orgAddress) ? (
+                    <p className="flex items-start gap-2.5">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span className="whitespace-pre-line leading-relaxed">
+                        {orgName && <strong className="font-semibold block text-foreground">{orgName}</strong>}
+                        {orgAddress && <span className="text-muted-foreground">{orgAddress}</span>}
+                      </span>
+                    </p>
+                  ) : null}
+                  {orgPhone ? (
+                    <p className="flex items-center gap-2.5">
+                      <Phone className="h-4 w-4 shrink-0 text-primary" />
+                      <a href={`tel:${orgPhone.replace(/[^+\d]/g, "")}`} className="hover:underline text-foreground">
+                        {orgPhone}
+                      </a>
+                    </p>
+                  ) : null}
+                  {orgEmail ? (
+                    <p className="flex items-center gap-2.5">
+                      <Mail className="h-4 w-4 shrink-0 text-primary" />
+                      <a href={`mailto:${orgEmail}`} className="hover:underline text-foreground">
+                        {orgEmail}
+                      </a>
+                    </p>
+                  ) : null}
+                  {orgHours ? (
+                    <p className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                      <Clock className="h-4 w-4 shrink-0" />
+                      <span>{orgHours}</span>
+                    </p>
+                  ) : null}
+                </div>
+              )}
             </Panel>
           </aside>
         </div>

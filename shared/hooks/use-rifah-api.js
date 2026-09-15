@@ -20,6 +20,7 @@ import {
   reportApi,
   auditApi,
   contactApi,
+  settingsApi,
 } from "../lib/api-services";
 
 // ==================== BUSINESS HOOKS ====================
@@ -295,13 +296,15 @@ export function useBusinessReviews(businessId) {
   });
 }
 
-export function useAdminReviews() {
+export function useAdminReviews(params = {}, options = {}) {
   return useQuery({
-    queryKey: ["admin-reviews"],
+    queryKey: ["admin-reviews", params],
     queryFn: async () => {
-      const res = await reviewApi.getAdminReviews();
-      return res?.data || res;
+      const res = await reviewApi.getAdminReviews(params);
+      return res?.data?.reviews || res?.data || res;
     },
+    staleTime: 0,
+    ...options,
   });
 }
 
@@ -454,12 +457,15 @@ export function useVerificationQueue(params = {}) {
   });
 }
 
-export function useSettings() {
+export function useSettings(options = {}) {
   return useQuery({
     queryKey: ["settings"],
     queryFn: async () => {
       const res = await settingsApi.get();
-      return res?.data || res;
+      return res?.data?.data || res?.data || res;
     },
+    staleTime: 0,
+    refetchOnMount: "always",
+    ...options,
   });
 }

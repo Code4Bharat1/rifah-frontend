@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   Building2,
@@ -64,12 +65,15 @@ const togglesTemplate = [
 ];
 
 export function AdminSettings() {
+  const queryClient = useQueryClient();
   const { data: globalSettings, refetch, isLoading } = useSettings();
   
   const [chamberDetails, setChamberDetails] = useState({
-    organisationName: "RIFAH Chamber of Commerce & Industries",
-    secretariatEmail: "secretariat@example.org",
-    supportPhone: "+00 0000 000000",
+    organisationName: "RIFAH Chamber of Commerce & Industry",
+    secretariatEmail: "secretariat@rifah.org",
+    supportPhone: "+91 22 2345 6789",
+    secretariatAddress: "Central Secretariat, Byculla, Mumbai 400 008",
+    workingHours: "Mon–Fri · 09:30–18:00 IST",
     membershipYear: "2026-27"
   });
   
@@ -89,6 +93,7 @@ export function AdminSettings() {
 
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   const [savingPassword, setSavingPassword] = useState(false);
+  const [savingChamber, setSavingChamber] = useState(false);
 
   const handleChangePassword = async () => {
     if (!passwords.currentPassword || !passwords.newPassword) return toast.error("Please fill both password fields.");
@@ -109,9 +114,11 @@ export function AdminSettings() {
   useEffect(() => {
     if (globalSettings) {
       setChamberDetails({
-        organisationName: globalSettings.organisationName || "RIFAH Chamber of Commerce & Industries",
-        secretariatEmail: globalSettings.secretariatEmail || "secretariat@example.org",
-        supportPhone: globalSettings.supportPhone || "+00 0000 000000",
+        organisationName: globalSettings.organisationName || "RIFAH Chamber of Commerce & Industry",
+        secretariatEmail: globalSettings.secretariatEmail || "secretariat@rifah.org",
+        supportPhone: globalSettings.supportPhone || "+91 22 2345 6789",
+        secretariatAddress: globalSettings.secretariatAddress || "Central Secretariat, Byculla, Mumbai 400 008",
+        workingHours: globalSettings.workingHours || "Mon–Fri · 09:30–18:00 IST",
         membershipYear: globalSettings.membershipYear || "2026-27"
       });
       
@@ -148,6 +155,7 @@ export function AdminSettings() {
       await settingsApi.update({ [key]: value });
       toast.success("Settings updated successfully");
       refetch();
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
     } catch (e) {
       // Revert on failure
       setToggleStates(prev => ({ ...prev, [key]: !value }));
@@ -156,12 +164,16 @@ export function AdminSettings() {
   };
 
   const handleSaveChamberDetails = async () => {
+    setSavingChamber(true);
     try {
       await settingsApi.update(chamberDetails);
       toast.success("Chamber details saved successfully!");
-      refetch();
+      await refetch();
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
     } catch (e) {
-      toast.error("Failed to save chamber details");
+      toast.error(e?.message || "Failed to save chamber details");
+    } finally {
+      setSavingChamber(false);
     }
   };
 
@@ -235,14 +247,17 @@ export function AdminSettings() {
                 value={chamberDetails.organisationName} 
                 onChange={(e) => setChamberDetails({...chamberDetails, organisationName: e.target.value})}
                 className="h-11" 
+                placeholder="RIFAH Chamber of Commerce & Industry"
               />
             </div>
             <div className="space-y-1.5">
               <Label>Secretariat email</Label>
               <Input 
+                type="email"
                 value={chamberDetails.secretariatEmail}
                 onChange={(e) => setChamberDetails({...chamberDetails, secretariatEmail: e.target.value})}
                 className="h-11" 
+                placeholder="secretariat@rifah.org"
               />
             </div>
             <div className="space-y-1.5">
@@ -251,6 +266,7 @@ export function AdminSettings() {
                 value={chamberDetails.supportPhone}
                 onChange={(e) => setChamberDetails({...chamberDetails, supportPhone: e.target.value})}
                 className="h-11" 
+                placeholder="+91 22 2345 6789"
               />
             </div>
             <div className="space-y-1.5">
@@ -259,10 +275,31 @@ export function AdminSettings() {
                 value={chamberDetails.membershipYear}
                 onChange={(e) => setChamberDetails({...chamberDetails, membershipYear: e.target.value})}
                 className="h-11" 
+                placeholder="2026-27"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Secretariat address</Label>
+              <Input 
+                value={chamberDetails.secretariatAddress}
+                onChange={(e) => setChamberDetails({...chamberDetails, secretariatAddress: e.target.value})}
+                className="h-11" 
+                placeholder="Central Secretariat, Byculla, Mumbai 400 008"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Working hours / Timings</Label>
+              <Input 
+                value={chamberDetails.workingHours}
+                onChange={(e) => setChamberDetails({...chamberDetails, workingHours: e.target.value})}
+                className="h-11" 
+                placeholder="Mon–Fri · 09:30–18:00 IST"
               />
             </div>
             <div className="col-span-full pt-2">
-              <Button onClick={handleSaveChamberDetails}>Save Changes</Button>
+              <Button onClick={handleSaveChamberDetails} disabled={savingChamber}>
+                {savingChamber ? "Saving..." : "Save Changes"}
+              </Button>
             </div>
           </div>
         </Panel>

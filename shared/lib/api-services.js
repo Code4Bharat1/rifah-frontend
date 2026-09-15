@@ -207,8 +207,10 @@ export const eventApi = {
 export const reviewApi = {
   getByBusiness: (businessId) => apiClient(`/reviews/business/${businessId}`),
   submit: (data) => apiClient("/reviews", { method: "POST", body: JSON.stringify(data) }),
-  getAdminReviews: () => apiClient("/reviews/admin/all"),
+  getAdminReviews: (params = {}) => apiClient(`/reviews/admin/all${toQueryString(params)}`),
   moderate: (id, data) => apiClient(`/reviews/${id}/moderate`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/reviews/${id}`, { method: "DELETE" }),
+  deleteAll: (params = {}) => apiClient(`/reviews/admin/all${toQueryString(params)}`, { method: "DELETE" }),
 };
 
 export const reportApi = {
