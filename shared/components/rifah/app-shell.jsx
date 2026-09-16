@@ -126,13 +126,15 @@ const roleNavs = {
       { label: "Dashboard", to: "/state-admin", icon: Gauge },
       { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
       { label: "Members", to: "/state-admin/members", icon: Users },
-      { label: "Events", to: "/state-admin/events", icon: CalendarDays },
+      { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
+      { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
+      { label: "Events", to: "/state-admin/events", icon: CalendarDays },
       { label: "Announcements", to: "/state-admin/announcements", icon: Megaphone },
       { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
+      { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/state-admin/settings", icon: Settings },
     ],
   },
@@ -149,8 +151,7 @@ const roleNavs = {
   },
 };
 
-const roleSwitcherItems = [
-  { role: "customer", label: "Personal", to: "/me" },
+const navRoles = [
   { role: "business", label: "Business", to: "/biz" },
   { role: "admin", label: "Admin", to: "/admin" },
 ];
@@ -170,8 +171,8 @@ function toRoleAwarePath(path, role, user) {
   if (user?.role === "state_admin") {
     if (path === "/admin" || path === "/chapter-admin") return "/state-admin";
     if (path === "/admin/chapters" || path === "/chapter-admin/chapter") return "/state-admin/chapters";
-    if (path === "/admin/leads" || path === "/chapter-admin/leads") return "/chapter-admin/enquiries";
-    if (path.startsWith("/admin/")) return path.replace(/^\/admin/, "/chapter-admin");
+    if (path === "/admin/leads" || path === "/chapter-admin/leads") return "/state-admin/enquiries";
+    if (path.startsWith("/admin/")) return path.replace(/^\/admin/, "/state-admin");
     return path;
   }
   if (role === "admin" && user?.role === "chapter_admin" && path.startsWith("/admin")) {
@@ -437,7 +438,9 @@ export function AppShell({
               href={
                 role === "business"
                   ? "/biz/profile"
-                  : user?.role === "state_admin" || user?.role === "chapter_admin"
+                  : user?.role === "state_admin"
+                  ? "/state-admin/settings"
+                  : user?.role === "chapter_admin"
                   ? "/chapter-admin/settings"
                   : "/admin/settings"
               }
