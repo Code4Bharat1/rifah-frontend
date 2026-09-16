@@ -117,7 +117,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
   return (
     <AppShell
       role="state_admin"
-      title={isChaptersOnly ? `${stateName} Chapter Admin` : `${stateName} State Administration`}
+      title={isChaptersOnly ? `${stateName} Chapters` : `${stateName} State Administration`}
       subtitle={
         isChaptersOnly
           ? `City chapters and appointed Chapter Admins across ${stateName}`
@@ -139,7 +139,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
-            label="Chapters Admin"
+            label="Chapters"
             value={String(totalChapters)}
             icon={MapPin}
             tone="primary"
@@ -169,9 +169,9 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
           />
         </div>
 
-        {/* Chapters Admin & Chapter Admins Management Table */}
+        {/* Chapters & Chapter Admins Management Table */}
         <Panel
-          title={`Chapters Admin in ${stateName}${statusFilter === "active" ? " (Active)" : ""}`}
+          title={`Chapters in ${stateName}${statusFilter === "active" ? " (Active)" : ""}`}
           action={
             <div className="flex items-center gap-2">
               <div className="relative w-48 sm:w-64">
@@ -185,7 +185,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                 />
               </div>
               <Button size="sm" onClick={() => setOpenAddChapter(true)} className="gap-1">
-                <Plus className="h-3.5 w-3.5" /> Add Chapter Admin
+                <Plus className="h-3.5 w-3.5" /> Add Chapter
               </Button>
             </div>
           }
@@ -194,11 +194,11 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
             rows={filteredChapters}
             isLoading={isLoading}
             emptyTitle={`No chapters established in ${stateName} yet`}
-            emptyDescription="Click 'Add Chapter Admin' to establish your first municipal branch."
+            emptyDescription="Click 'Add Chapter' to establish your first municipal branch."
             columns={[
               {
                 key: "name",
-                header: "Chapter Admin",
+                header: "Chapter",
                 cell: (r) => (
                   <div>
                     <span className="font-semibold text-sm text-foreground">{r.name}</span>
@@ -264,13 +264,13 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
         </Panel>
       </div>
 
-      {/* Add Chapter Admin Dialog */}
+      {/* Add Chapter Dialog */}
       <Dialog open={openAddChapter} onOpenChange={setOpenAddChapter}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Establish New Chapter Admin</DialogTitle>
+            <DialogTitle>Establish New Chapter</DialogTitle>
             <DialogDescription>
-              Appoint a new chapter admin within your allocated state of {stateName}.
+              Establish a new city chapter within your allocated state of {stateName}.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateChapter} className="space-y-4 pt-2">
@@ -312,7 +312,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
             </div>
             <Button type="submit" className="w-full" disabled={creatingChapter}>
               {creatingChapter ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {creatingChapter ? "Establishing..." : "Establish Chapter Admin"}
+              {creatingChapter ? "Establishing..." : "Establish Chapter"}
             </Button>
           </form>
         </DialogContent>

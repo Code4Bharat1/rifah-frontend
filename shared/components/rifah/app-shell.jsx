@@ -113,6 +113,7 @@ const navs = {
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
       { label: "Categories", to: "/admin/categories", icon: Folder },
       { label: "States", to: "/admin/states", icon: MapPin },
+      { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
       { label: "Units", to: "/admin/units", icon: Users },
       { label: "Events", to: "/admin/events", icon: Ticket },
       { label: "Payments", to: "/admin/payments", icon: CreditCard },
@@ -127,7 +128,7 @@ const navs = {
     title: "State administration",
     primary: [
       { label: "Overview", to: "/state-admin", icon: Gauge },
-      { label: "Chapter Admin", to: "/state-admin/chapters", icon: MapPin },
+      { label: "Chapters", to: "/state-admin/chapters", icon: MapPin },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
       { label: "Users", to: "/chapter-admin/users", icon: Users },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
