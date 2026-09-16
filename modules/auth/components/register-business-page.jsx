@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe, FileText, X } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe, FileText, X, Copy } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -170,6 +170,7 @@ function RegisterBusiness({ isAdmin = false }) {
     about: "",
     contactPerson: "",
     phone: "",
+    businessEmail: "",
     email: convertEmail || "",
     password: "",
     taxId: "",
@@ -373,7 +374,8 @@ function RegisterBusiness({ isAdmin = false }) {
             founded: founded || prev.founded,
             contactPerson: contactPerson || prev.contactPerson,
             phone: phone || prev.phone,
-            email: email || prev.email,
+            businessEmail: email || prev.businessEmail,
+            email: prev.email || email,
             address: address || prev.address,
             city: city || prev.city,
             pincode: pincode || prev.pincode,
@@ -455,7 +457,9 @@ function RegisterBusiness({ isAdmin = false }) {
          await businessApi.createAdmin({
             businessName: formData.businessName,
             ownerName: formData.contactPerson || formData.businessName,
-            email: formData.email,
+            contactPerson: formData.contactPerson || formData.businessName,
+            businessEmail: (formData.businessEmail || formData.email).toLowerCase().trim(),
+            email: formData.email.toLowerCase().trim(),
             phone: formData.phone,
             chapter: formData.chapter,
             industry: formData.industry,
@@ -484,7 +488,9 @@ function RegisterBusiness({ isAdmin = false }) {
       // Step 1: Register the business & user account
       await registerBusiness({
         name: formData.contactPerson || formData.businessName,
-        email: formData.email,
+        contactPerson: formData.contactPerson || formData.businessName,
+        businessEmail: (formData.businessEmail || formData.email).toLowerCase().trim(),
+        email: formData.email.toLowerCase().trim(),
         password: formData.password,
         phone: formData.phone,
         businessName: formData.businessName,
@@ -839,6 +845,10 @@ function RegisterBusiness({ isAdmin = false }) {
                 }
                 if (!formData.phone || formData.phone.trim().length < 7) {
                   setError("Mobile / Phone number is mandatory. Please enter a valid mobile number before proceeding.");
+                  return;
+                }
+                if (formData.businessEmail && (!formData.businessEmail.includes("@") || !formData.businessEmail.includes("."))) {
+                  setError("Please provide a valid official business email or leave it empty.");
                   return;
                 }
                 if (!formData.city || formData.city.trim().length < 2) {
@@ -1300,6 +1310,30 @@ function RegisterBusiness({ isAdmin = false }) {
                     <p className="text-[10px] text-muted-foreground">Direct mobile contact is mandatory for lead notifications.</p>
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="bemail" className="font-semibold text-slate-800 dark:text-slate-200">
+                        Official Business Email
+                      </Label>
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        Public & Buyer Facing (Optional)
+                      </span>
+                    </div>
+                    <FastInput
+                      id="bemail"
+                      type="email"
+                      value={formData.businessEmail}
+                      onValueChange={(val) => {
+                        setFormData({ ...formData, businessEmail: val });
+                        setError("");
+                      }}
+                      placeholder="e.g. contact@yourbusiness.com or sales@company.in"
+                      className="h-11"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Public email displayed on your business directory card & catalogue for buyer RFQs and customer enquiries. (If left blank, your owner login email will be used).
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="baddress">Address</Label>
                     <FastInput
                       id="baddress"
@@ -1402,26 +1436,56 @@ function RegisterBusiness({ isAdmin = false }) {
             {step === 2 && (
               <Panel title="Owner Login Account">
                 <div className="space-y-5">
+                  {/* Account Information Helper Callout */}
+                  <div className="flex items-start gap-3 rounded-xl border border-blue-200/80 bg-blue-50/50 dark:border-blue-900/40 dark:bg-blue-950/20 p-3.5 text-xs text-slate-700 dark:text-slate-300">
+                    <Shield className="h-4 w-4 text-[#0060df] shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <strong className="text-slate-900 dark:text-white block font-bold">
+                        Business Owner Login Credentials
+                      </strong>
+                      <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+                        This email is your personal account username. Official chamber notices, OTP verification, security alerts, and administrative correspondence will be delivered here.
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Account Email Field */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="reg-email">Account Email *</Label>
-                      {emailVerified && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEmailVerified(false);
-                            setOtpSent(false);
-                            setVerifiedToken(null);
-                            setOtpDigits(["", "", "", "", "", ""]);
-                            setOtpError("");
-                            setOtpSuccess("");
-                          }}
-                          className="text-xs font-semibold text-[#0060df] hover:underline"
-                        >
-                          Change Email
-                        </button>
-                      )}
+                      <Label htmlFor="reg-email" className="font-bold text-sm text-slate-900 dark:text-white">
+                        Owner Personal Email *
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        {formData.businessEmail && formData.email !== formData.businessEmail && !emailVerified && !otpSent && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, email: prev.businessEmail }));
+                              setError("");
+                            }}
+                            className="text-xs font-semibold text-[#0060df] hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Copy className="h-3 w-3" />
+                            <span>Same as official business email</span>
+                          </button>
+                        )}
+                        {emailVerified && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEmailVerified(false);
+                              setOtpSent(false);
+                              setVerifiedToken(null);
+                              setOtpDigits(["", "", "", "", "", ""]);
+                              setOtpError("");
+                              setOtpSuccess("");
+                            }}
+                            className="text-xs font-semibold text-[#0060df] hover:underline"
+                          >
+                            Change Email
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="relative">
                       <FastInput
@@ -1433,7 +1497,7 @@ function RegisterBusiness({ isAdmin = false }) {
                           setFormData({ ...formData, email: val });
                           setError("");
                         }}
-                        placeholder="e.g. info@business.com"
+                        placeholder="e.g. owner.name@gmail.com"
                         className={cn(
                           "h-11",
                           (!isAdmin && emailVerified)

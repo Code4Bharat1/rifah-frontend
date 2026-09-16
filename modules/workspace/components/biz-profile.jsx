@@ -477,13 +477,24 @@ function BizProfile() {
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="biz-email">Contact Email</Label>
+                <Label htmlFor="biz-email">Public Business Email</Label>
                 <Input
                   id="biz-email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="contact@company.com"
                   className="h-11"
                 />
+                <p className="text-[10px] text-muted-foreground">Public email displayed on catalogue & directory for client RFQs.</p>
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-muted-foreground">Owner Login / Account Email</Label>
+                <Input
+                  value={business?.ownerEmail || user?.email || ""}
+                  disabled
+                  className="h-11 bg-muted/40 cursor-not-allowed text-muted-foreground"
+                />
+                <p className="text-[10px] text-muted-foreground">Primary private login email (OTP verified).</p>
               </div>
               <div className="grid gap-1.5 sm:col-span-2">
                 <Label htmlFor="biz-about">About the business</Label>
