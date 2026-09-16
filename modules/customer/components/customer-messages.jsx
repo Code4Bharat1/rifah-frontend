@@ -532,7 +532,7 @@ function MessagesPage() {
           {displayConversations.length === 0 ? (
             <div className="p-6 text-center">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                No conversations yet. When the Chamber administration routes your requirements to verified businesses, quotations and messaging will appear here.
+                No conversations yet. When the Central administration routes your requirements to verified businesses, quotations and messaging will appear here.
               </p>
               <Button asChild size="sm" variant="outline" className="mt-4">
                 <Link href="/me/enquiries/new">Post a Requirement</Link>

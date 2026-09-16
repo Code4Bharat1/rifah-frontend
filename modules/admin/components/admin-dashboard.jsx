@@ -46,7 +46,7 @@ function AdminHome() {
   return (
     <AppShell
       role="admin"
-      title="Chamber administration"
+      title="Central administration"
       subtitle="RIFAH Secretariat · all chapters"
       actions={
         <Button asChild variant="outline" className="rounded-full">
