@@ -52,7 +52,7 @@ const loadGsiScript = () => {
 };
 
 export function GoogleAuthButton({
-  roleTarget = "customer",
+  roleTarget = "business_owner",
   text = "Continue with Google",
   onSuccess,
   onError,
@@ -119,10 +119,14 @@ export function GoogleAuthButton({
                   onSuccess(loggedInUser);
                 } else if (loggedInUser.isProfileComplete === false) {
                   router.push("/onboarding");
-                } else if (loggedInUser.role === "business_owner") {
-                  router.push("/biz");
+                } else if (loggedInUser.role === "chapter_admin") {
+                  router.push("/chapter-admin");
+                } else if (loggedInUser.role === "state_admin") {
+                  router.push("/state-admin");
+                } else if (loggedInUser.role === "super_admin" || loggedInUser.role === "secretariat") {
+                  router.push("/admin");
                 } else {
-                  router.push("/me");
+                  router.push("/biz");
                 }
               } catch (err) {
                 const msg = err.message || "Google authentication failed on server.";
@@ -161,10 +165,14 @@ export function GoogleAuthButton({
                 onSuccess(loggedInUser);
               } else if (loggedInUser.isProfileComplete === false) {
                 router.push("/onboarding");
-              } else if (loggedInUser.role === "business_owner") {
-                router.push("/biz");
+              } else if (loggedInUser.role === "chapter_admin") {
+                router.push("/chapter-admin");
+              } else if (loggedInUser.role === "state_admin") {
+                router.push("/state-admin");
+              } else if (loggedInUser.role === "super_admin" || loggedInUser.role === "secretariat") {
+                router.push("/admin");
               } else {
-                router.push("/me");
+                router.push("/biz");
               }
             } catch (serverErr) {
               const msg = serverErr.message || "Failed to authenticate with Google.";

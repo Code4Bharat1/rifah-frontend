@@ -46,6 +46,8 @@ function AdminHome() {
   return (
     <AppShell
       role="admin"
+      title="Central administration"
+      subtitle="RIFAH Secretariat · all chapters"
       title="Chamber administration"
       subtitle="RIFAH Central Admin · all chapters"
       actions={

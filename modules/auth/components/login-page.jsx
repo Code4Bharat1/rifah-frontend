@@ -59,14 +59,6 @@ const quickDemoLogins = [
     icon: Building2,
     note: "Leads, catalogue & verification",
   },
-  {
-    role: "Customer / Buyer",
-    email: "buyer@example.com",
-    pass: "Password@123",
-    target: "/me",
-    icon: UserRound,
-    note: "Enquiries, saved & messages",
-  },
 ];
 
 export default function LoginPage() {
@@ -215,7 +207,7 @@ export default function LoginPage() {
     } else if (user.role === "super_admin") {
       router.push("/admin");
     } else {
-      router.push("/me");
+      router.push("/biz");
     }
   };
 
@@ -649,7 +641,7 @@ export default function LoginPage() {
             {/* Google Login Button */}
             <div className="relative z-10">
               <GoogleAuthButton
-                roleTarget="customer"
+                roleTarget="business_owner"
                 text="Continue with Google"
                 className="w-full h-10 sm:h-10.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm shadow-2xs transition-all flex items-center justify-center gap-2.5"
                 onError={(msg) => setError(msg)}
@@ -660,22 +652,6 @@ export default function LoginPage() {
             <div className="mt-3.5 sm:mt-4 rounded-2xl border border-slate-100 bg-[#f8fafc] p-2.5 sm:p-3 space-y-1.5 relative z-10">
               <p className="text-xs font-bold text-slate-800 px-1">Don&apos;t have an account?</p>
               <div className="grid gap-1.5">
-                <Link
-                  href="/register"
-                  className="group flex items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 transition-all hover:border-slate-200 hover:shadow-2xs"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-[#0284c7]">
-                      <Building2 className="h-3.5 w-3.5" />
-                    </div>
-                    <div>
-                      <span className="block text-xs font-bold text-slate-800">Create a buyer account</span>
-                      <span className="block text-[10px] text-slate-500">Post sourcing enquiries and find members</span>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 mr-1" />
-                </Link>
-
                 <Link
                   href="/register-business"
                   className="group flex items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 transition-all hover:border-slate-200 hover:shadow-2xs"
@@ -720,7 +696,7 @@ export default function LoginPage() {
                     {role === "chapter_admin" ? <ShieldCheck className="h-5 w-5 text-primary" /> : <Building2 className="h-5 w-5 text-primary" />}
                   </div>
                   <div>
-                    <div className="font-semibold">{role === "chapter_admin" ? "Chapter Admin" : "Business Owner / Customer"}</div>
+                    <div className="font-semibold">{role === "chapter_admin" ? "Chapter Admin" : "Business Owner"}</div>
                     <div className="text-xs text-muted-foreground">
                       {role === "chapter_admin" ? "Manage your chapter" : "Manage your business profile"}
                     </div>

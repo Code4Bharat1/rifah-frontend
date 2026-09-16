@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bookmark, ChevronRight, MapPin, Star } from "lucide-react";
+import { ChevronRight, MapPin, Star } from "lucide-react";
 import { useState } from "react";
 
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
@@ -73,21 +73,6 @@ export function BusinessCard({
             >
               {business.name}
             </Link>
-            {allowUnsave && user?.role === 'customer' && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (onToggleSave) onToggleSave(business);
-                  }}
-                  aria-label={`Remove ${business.name} from saved`}
-                  title="Remove from saved"
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer"
-                >
-                  <Bookmark className="h-4 w-4 fill-current transition-transform active:scale-90" />
-                </button>
-              )}
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">{locationText}</p>
         </div>
@@ -254,16 +239,6 @@ export function CompactBusinessCard({
           <VerificationBadge status={business.verification} compact />
         </div>
       </Link>
-      {onToggleSave && user?.role === 'customer' ? (
-        <button
-          type="button"
-          onClick={onToggleSave}
-          aria-label={saved ? `Remove ${business.name} from saved` : `Save ${business.name}`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
-        >
-          <Bookmark className={cn("h-5 w-5", saved && "fill-primary text-primary")} />
-        </button>
-      ) : null}
     </div>
   );
 }

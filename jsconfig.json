@@ -20,9 +20,6 @@
       "@modules/business": [
         "./modules/business/index.js"
       ],
-      "@modules/customer": [
-        "./modules/customer/index.js"
-      ],
       "@modules/enquiry": [
         "./modules/enquiry/index.js"
       ],

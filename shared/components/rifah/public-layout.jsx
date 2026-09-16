@@ -58,9 +58,7 @@ export function PublicHeader() {
       ? "/state-admin"
       : user?.role === "chapter_admin"
       ? "/chapter-admin"
-      : user?.role === "business_owner"
-      ? "/biz"
-      : "/me";
+      : "/biz";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
@@ -144,9 +142,7 @@ function MobileMenu() {
       ? "/state-admin"
       : user?.role === "chapter_admin"
       ? "/chapter-admin"
-      : user?.role === "business_owner"
-      ? "/biz"
-      : "/me";
+      : "/biz";
 
   return (
     <Sheet>

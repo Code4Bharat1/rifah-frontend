@@ -95,10 +95,12 @@ function NewEnquiry() {
               Your sourcing requirement has been recorded in the RIFAH Chamber network. Administration will review and route it to verified member businesses to provide quotations.
             </p>
             <div className="mt-6 grid gap-2">
-              <Button asChild>
-                <Link href="/me/enquiries">Track my enquiries</Link>
-              </Button>
-              <Button asChild variant="outline">
+              {user ? (
+                <Button asChild>
+                  <Link href="/biz/my-enquiries">Track my enquiries</Link>
+                </Button>
+              ) : null}
+              <Button asChild variant={user ? "outline" : "default"}>
                 <Link href="/discover">Keep browsing the directory</Link>
               </Button>
             </div>
