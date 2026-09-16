@@ -1,18 +1,17 @@
 "use client";
 import { useState } from "react";
-import { Inbox, MessageSquare, MoreHorizontal } from "lucide-react";
+import { Inbox, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
-import { useAllEnquiries, useChapters, useAdminUsers } from "@shared/hooks/use-rifah-api";
+import { useAllEnquiries, useChapters } from "@shared/hooks/use-rifah-api";
 import { enquiryApi } from "@shared/lib/api-services";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { Download, Target } from "lucide-react";
 
@@ -22,70 +21,19 @@ function AdminEnquiries() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
 
-  const { data: enquiriesData, refetch } = useAllEnquiries({
+  const { data: enquiriesData } = useAllEnquiries({
     search: search || undefined,
     status: statusFilter,
     type: typeFilter,
     chapter: chapterFilter,
   });
   const enquiries = Array.isArray(enquiriesData) ? enquiriesData : [];
-  
+
   const { data: chaptersData } = useChapters();
   const chapters = Array.isArray(chaptersData) ? chaptersData : [];
 
-  const { data: adminUsersData } = useAdminUsers();
-  const adminUsers = Array.isArray(adminUsersData) 
-    ? adminUsersData.filter(u => ["super_admin", "secretariat", "chapter_admin"].includes(u.role)) 
-    : [];
-
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [isResolving, setIsResolving] = useState(false);
-  const [resolutionNote, setResolutionNote] = useState("");
-  const [resolveStatus, setResolveStatus] = useState("");
-  const [resolvingId, setResolvingId] = useState(null);
-  
-  const handleUpdateStatus = async (id, newStatus) => {
-    if (newStatus === "Closed" || newStatus === "Won" || newStatus === "Rejected") {
-      setResolvingId(id);
-      setResolveStatus(newStatus);
-      setResolutionNote("");
-      setIsResolving(true);
-      return;
-    }
-    try {
-      await enquiryApi.updateStatus(id, { status: newStatus });
-      toast.success(`Status updated to ${newStatus}`);
-      refetch();
-    } catch (error) {
-      toast.error(error.message || "Failed to update status");
-    }
-  };
-
-  const handleResolveSubmit = async () => {
-    try {
-      await enquiryApi.updateStatus(resolvingId, { 
-        status: resolveStatus, 
-        resolutionNote: resolutionNote,
-        timelineUpdate: { label: `Marked as ${resolveStatus}`, at: new Date().toISOString() }
-      });
-      toast.success(`Enquiry marked as ${resolveStatus}`);
-      setIsResolving(false);
-      refetch();
-    } catch (error) {
-      toast.error(error.message || "Failed to update status");
-    }
-  };
-
-  const handleAssign = async (id, userId) => {
-    try {
-      await enquiryApi.updateStatus(id, { assignedTo: userId });
-      toast.success("Enquiry assigned successfully");
-      refetch();
-    } catch (error) {
-      toast.error(error.message || "Failed to assign enquiry");
-    }
-  };
 
   return (
     <AppShell 
@@ -206,62 +154,24 @@ function AdminEnquiries() {
               { key: "category", header: "CATEGORY", cell: (r) => r.category },
               { key: "buyer", header: "BUYER", cell: (r) => r.requesterName || r.buyerName || "Registered Buyer" },
               { key: "city", header: "LOCATION", cell: (r) => r.city || r.location },
-              { key: "status", header: "STATUS", cell: (r) => <StatusBadge status={r.status} /> },
               { key: "responses", header: "RESPONSES", cell: (r) => r.responses?.length || 0 },
               {
                 key: "action",
                 header: "",
                 cell: (r) => (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Manage Enquiry</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => setSelectedEnquiry(r)}>
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>Update Status</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "New")} disabled={r.status === "New"}>
-                        Mark as New
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Routed")} disabled={r.status === "Routed"}>
-                        Mark as Routed
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "In Progress")} disabled={r.status === "In Progress"}>
-                        Mark as In Progress
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Responded")} disabled={r.status === "Responded"}>
-                        Mark as Responded
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Won")} disabled={r.status === "Won"}>
-                        Mark as Won
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-red-600 focus:bg-red-50" onClick={() => handleUpdateStatus(r._id, "Rejected")} disabled={r.status === "Rejected"}>
-                        Reject Enquiry
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Closed")} disabled={r.status === "Closed"}>
-                        Close Enquiry
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedEnquiry(r)}>
+                    View Details
+                  </Button>
                 ),
               },
             ]}
             mobile={(r) => (
               <div className="rounded-xl border border-border p-3.5">
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{r.title}</p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {r.requesterName || r.buyerName} · {r.city || r.location}
-                    </p>
-                  </div>
-                  <StatusBadge status={r.status} />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{r.title}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {r.requesterName || r.buyerName} · {r.city || r.location}
+                  </p>
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5">
                   <Pill>{r.category}</Pill>
@@ -322,30 +232,6 @@ function AdminEnquiries() {
                  </div>
                )}
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Resolution Dialog */}
-      <Dialog open={isResolving} onOpenChange={setIsResolving}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Mark Enquiry as {resolveStatus}</DialogTitle>
-            <DialogDescription>
-              Please add a short note about how this enquiry was resolved. This will be saved in the timeline.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Input 
-              autoFocus
-              placeholder="e.g. Deal closed for 5 tons of packaging material."
-              value={resolutionNote}
-              onChange={(e) => setResolutionNote(e.target.value)}
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsResolving(false)}>Cancel</Button>
-            <Button onClick={handleResolveSubmit} disabled={!resolutionNote.trim()}>Save & Update</Button>
           </div>
         </DialogContent>
       </Dialog>

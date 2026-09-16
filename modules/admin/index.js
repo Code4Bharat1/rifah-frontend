@@ -1,11 +1,9 @@
 export { AdminDashboard } from "./components/admin-dashboard.jsx";
 export { AdminAudit } from "./components/admin-audit.jsx";
 export { AdminBusinesses } from "./components/admin-businesses.jsx";
-export { AdminCategories } from "./components/admin-categories.jsx";
 export { AdminChapters } from "./components/admin-chapters.jsx";
 export { AdminEnquiries } from "./components/admin-enquiries.jsx";
 export { AdminEvents } from "./components/admin-events.jsx";
-export { AdminLeads } from "./components/admin-leads.jsx";
 export { AdminMemberships } from "./components/admin-memberships.jsx";
 export { AdminNotifications } from "./components/admin-notifications.jsx";
 export { AdminPayments } from "./components/admin-payments.jsx";
