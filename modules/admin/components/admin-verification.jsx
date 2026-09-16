@@ -327,7 +327,7 @@ function AdminVerification() {
             {item.remarks && (
               <div className="mt-2 pt-2 border-t border-border/50">
                 <span className="block text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400">
-                  Secretariat Remarks / Changes Requested
+                  Central Admin Remarks / Changes Requested
                 </span>
                 <p className="mt-0.5 text-xs text-foreground font-medium bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
                   {item.remarks}
@@ -406,14 +406,14 @@ function AdminVerification() {
             {isApproved && item.reviewedBy && (
               <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
                 <CheckCircle2 className="h-3.5 w-3.5" /> 
-                Approved by {item.reviewedBy.name || "Secretariat"} 
+                Approved by {item.reviewedBy.name || "Central Admin"} 
                 {item.reviewedBy.role && (
                   <span className="opacity-90">
                     ({item.reviewedBy.role === "chapter_admin" 
                       ? `${item.reviewedBy.chapter ? item.reviewedBy.chapter.replace(/\s*[Cc]hapter\s*/g, "") : ""} Chapter Admin`.trim()
                       : item.reviewedBy.role === "super_admin" 
                       ? "RIFAH Super Admin" 
-                      : "Secretariat"})
+                      : "Central Admin"})
                   </span>
                 )}
               </span>
@@ -501,7 +501,7 @@ function AdminVerification() {
     <AppShell
       role="admin"
       title="Verification Queue"
-      subtitle="Secretariat Business Compliance, Document Vetting & Approval Desk"
+      subtitle="Central Admin Business Compliance, Document Vetting & Approval Desk"
     >
       <div className="space-y-4">
         {/* Top Control Bar: Search & Chapter Scope */}

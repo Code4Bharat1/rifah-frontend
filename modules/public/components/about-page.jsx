@@ -22,7 +22,7 @@ const pillars = [
   {
     icon: ShieldCheck,
     title: "Verification & trust",
-    body: "The secretariat reviews documents before a listing carries the RIFAH verified badge.",
+    body: "The central admin reviews documents before a listing carries the RIFAH verified badge.",
   },
   {
     icon: Users,
@@ -61,7 +61,7 @@ function AboutPage() {
               asChild
               className="border border-white/20 bg-white text-navy font-semibold hover:bg-slate-100 hover:text-navy shadow-sm transition-colors"
             >
-              <Link href="/contact">Contact the secretariat</Link>
+              <Link href="/contact">Contact central admin</Link>
             </Button>
           </div>
         </div>

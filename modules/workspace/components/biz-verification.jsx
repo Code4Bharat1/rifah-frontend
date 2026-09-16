@@ -286,7 +286,7 @@ function BizVerification() {
   const handleResubmit = async () => {
     if (!business?._id) return;
     if (!isAllDocsUploaded) {
-      toast.error(`Please upload all ${totalRequiredDocs} required documents before submitting for Secretariat review.`);
+      toast.error(`Please upload all ${totalRequiredDocs} required documents before submitting for Central Admin review.`);
       return;
     }
 
@@ -302,10 +302,10 @@ function BizVerification() {
       await verificationApi.submit({
         businessId: business._id,
         documents: existingDocs,
-        notes: resubmitNotes.trim() || "Owner submitted complete business verification package for Secretariat review",
+        notes: resubmitNotes.trim() || "Owner submitted complete business verification package for Central Admin review",
       });
 
-      toast.success("Application submitted successfully! The RIFAH Secretariat will review your documents.");
+      toast.success("Application submitted successfully! The RIFAH Central Admin will review your documents.");
       setResubmitNotes("");
       await fetchVerification();
       await refetchBiz();
@@ -336,7 +336,7 @@ function BizVerification() {
       const storageKey = `rifah_verified_notified_${business._id}`;
       const alreadyNotified = typeof window !== "undefined" ? localStorage.getItem(storageKey) : null;
       if (!alreadyNotified) {
-        toast.success("Congratulations! Your business profile has been verified by the RIFAH Secretariat.", {
+        toast.success("Congratulations! Your business profile has been verified by the RIFAH Central Admin.", {
           id: "biz-verified-status",
           duration: 5000,
         });
@@ -357,11 +357,11 @@ function BizVerification() {
     : 0;
 
   const referenceNo = verificationData?.referenceNo || `VER-2026-${business?._id ? business._id.slice(-4).toUpperCase() : "PENDING"}`;
-  const reviewerName = `Secretariat · ${business?.chapter ? `${business.chapter} Chapter` : "Central Chapter"}`;
+  const reviewerName = `Central Admin · ${business?.chapter ? `${business.chapter} Chapter` : "Central Chapter"}`;
   const lastUpdate = formatLastUpdate(verificationData?.updatedAt, business?.updatedAt);
   const historyList = Array.isArray(business?.verificationHistory) ? business.verificationHistory : [];
 
-  // Deduplicate and consolidate timeline into clean logical milestones (Payment -> Documents -> Secretariat Approval)
+  // Deduplicate and consolidate timeline into clean logical milestones (Payment -> Documents -> Central Admin Approval)
   const processedTimeline = (() => {
     const raw = Array.isArray(historyList) ? [...historyList] : [];
     const filtered = [];
@@ -378,7 +378,7 @@ function BizVerification() {
             type: "payment",
             title: "Payment Completed",
             date: h.createdAt,
-            description: h.reason || "Membership payment confirmed. Application queued for secretariat review.",
+            description: h.reason || "Membership payment confirmed. Application queued for central admin review.",
             status: "completed",
           });
           seenPayment = true;
@@ -420,7 +420,7 @@ function BizVerification() {
         type: "documents",
         title: "Documents Submitted",
         date: business?.updatedAt || business?.createdAt,
-        description: `${uploadedCount || "Required"} business documents attached for secretariat vetting.`,
+        description: `${uploadedCount || "Required"} business documents attached for central admin vetting.`,
         status: "completed",
       });
       seenSubmitted = true;
@@ -435,7 +435,7 @@ function BizVerification() {
             type: "approved",
             title: "Verified & Approved",
             date: h.createdAt,
-            description: h.reason || "Approved by Chamber Secretariat. Business profile is live & verified on directory.",
+            description: h.reason || "Approved by Chamber Central Admin. Business profile is live & verified on directory.",
             status: "approved",
           });
           seenApproved = true;
@@ -445,7 +445,7 @@ function BizVerification() {
           type: "changes",
           title: "Correction Requested",
           date: h.createdAt,
-          description: h.reason || "Secretariat requested document re-upload or details update.",
+          description: h.reason || "Central Admin requested document re-upload or details update.",
           status: "warning",
         });
       } else if (act.includes("reject")) {
@@ -453,7 +453,7 @@ function BizVerification() {
           type: "rejected",
           title: "Application Rejected",
           date: h.createdAt,
-          description: h.reason || business?.verificationReviewReason || business?.verificationRemarks || "Application rejected by secretariat.",
+          description: h.reason || business?.verificationReviewReason || business?.verificationRemarks || "Application rejected by central admin.",
           status: "rejected",
         });
       }
@@ -465,7 +465,7 @@ function BizVerification() {
           type: "rejected",
           title: "Verification Rejected",
           date: business?.updatedAt || new Date(),
-          description: business?.verificationReviewReason || business?.verificationRemarks || verificationData?.remarks || "Application rejected by secretariat. Please review feedback and update documents.",
+          description: business?.verificationReviewReason || business?.verificationRemarks || verificationData?.remarks || "Application rejected by central admin. Please review feedback and update documents.",
           status: "rejected",
         });
       }
@@ -474,15 +474,15 @@ function BizVerification() {
         type: "approved",
         title: "Verified & Approved",
         date: business?.updatedAt || new Date(),
-        description: "Approved by Chamber Secretariat. Business is live with verified badge.",
+        description: "Approved by Chamber Central Admin. Business is live with verified badge.",
         status: "approved",
       });
     } else if (!seenApproved && isUnderReview) {
       filtered.push({
         type: "under_review",
-        title: "Under Secretariat Review",
+        title: "Under Central Admin Review",
         date: new Date(),
-        description: "Document review in progress by chamber secretariat officer.",
+        description: "Document review in progress by chamber central admin officer.",
         status: "pending",
       });
     }
@@ -491,7 +491,7 @@ function BizVerification() {
   })();
 
   return (
-    <AppShell role="business" title="Verification" subtitle="RIFAH Chamber Secretariat Vetting & Compliance Status">
+    <AppShell role="business" title="Verification" subtitle="RIFAH Chamber Central Admin Vetting & Compliance Status">
       <div className="space-y-4">
         {/* Profile Completion Prompt if Business Profile is missing or lacks State */}
         {(!business?._id || !business?.state) && (
@@ -536,7 +536,7 @@ function BizVerification() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-amber-900/85 dark:text-amber-300/85 leading-relaxed">
-                  To get your business verified by the RIFAH Chamber Secretariat and unlock full directory benefits, please upload all {totalRequiredDocs} required compliance documents below. Once attached, your application will be submitted for Secretariat evaluation.
+                  To get your business verified by the RIFAH Chamber Central Admin and unlock full directory benefits, please upload all {totalRequiredDocs} required compliance documents below. Once attached, your application will be submitted for Central Admin evaluation.
                 </p>
               </div>
             </div>
@@ -552,7 +552,7 @@ function BizVerification() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="text-sm font-semibold text-foreground">
-                    Action Required: Changes Requested by Secretariat
+                    Action Required: Changes Requested by Central Admin
                   </h4>
                   <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300 uppercase tracking-wide">
                     Action Required
@@ -560,7 +560,7 @@ function BizVerification() {
                 </div>
                 <div className="mt-2.5 rounded-lg bg-muted/60 p-3 text-xs">
                   <span className="block font-semibold text-foreground text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Secretariat Instructions:
+                    Central Admin Instructions:
                   </span>
                   <p className="mt-1 text-foreground font-medium">
                     {business?.verificationReviewReason || verificationData?.remarks || "Please replace the requested documents below and submit for re-evaluation."}
@@ -580,14 +580,14 @@ function BizVerification() {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="text-sm font-semibold text-foreground">
-                    Application Under Secretariat Review
+                    Application Under Central Admin Review
                   </h4>
                   <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">
                     In Review
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Your business documents are currently in the Secretariat Queue for review. Once verified, your business profile will carry the verified chamber badge.
+                  Your business documents are currently in the Central Admin Queue for review. Once verified, your business profile will carry the verified chamber badge.
                 </p>
               </div>
             </div>
@@ -612,7 +612,7 @@ function BizVerification() {
 
                 <div className="mt-3 rounded-xl bg-white/90 dark:bg-slate-900/90 p-3.5 border border-rose-200/80 dark:border-rose-900/60 text-xs shadow-2xs">
                   <span className="block font-bold text-[11px] uppercase tracking-wider text-rose-700 dark:text-rose-400">
-                    Reason for Rejection / Secretariat Feedback:
+                    Reason for Rejection / Central Admin Feedback:
                   </span>
                   <p className="mt-1 font-semibold text-foreground text-sm leading-relaxed">
                     {business?.verificationReviewReason || business?.verificationRemarks || verificationData?.remarks || "The submitted documentation did not meet the compliance standards. Please review requirements and replace documents below."}
@@ -636,7 +636,7 @@ function BizVerification() {
             {/* Progress Panel */}
             <Panel title="Verification Lifecycle">
               <Steps
-                steps={["Submitted", "Documents Checked", "Secretariat Review", "Verified & Live"]}
+                steps={["Submitted", "Documents Checked", "Central Admin Review", "Verified & Live"]}
                 current={stepIndex}
               />
               <dl className="mt-4 divide-y divide-border/60">
@@ -766,7 +766,7 @@ function BizVerification() {
                         Submission Locked — All {totalRequiredDocs} Documents Required
                       </h4>
                       <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80 max-w-lg mx-auto leading-relaxed">
-                        You have uploaded <strong>{uploadedTemplateCount} of {totalRequiredDocs}</strong> required compliance documents. Please upload the remaining <strong>{missingTemplates.length} document{missingTemplates.length > 1 ? "s" : ""}</strong> above to enable submission for Secretariat review.
+                        You have uploaded <strong>{uploadedTemplateCount} of {totalRequiredDocs}</strong> required compliance documents. Please upload the remaining <strong>{missingTemplates.length} document{missingTemplates.length > 1 ? "s" : ""}</strong> above to enable submission for Central Admin review.
                       </p>
 
                       {/* Progress Bar & Missing Items Indicator */}
@@ -812,7 +812,7 @@ function BizVerification() {
                             All {totalRequiredDocs} Compliance Documents Submitted!
                           </h4>
                           <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80 leading-relaxed">
-                            Your verification package has been submitted to the RIFAH Secretariat queue. You do not need to re-submit unless the Secretariat requests changes.
+                            Your verification package has been submitted to the RIFAH Central Admin queue. You do not need to re-submit unless the Central Admin requests changes.
                           </p>
                         </div>
                       </div>
@@ -823,7 +823,7 @@ function BizVerification() {
                         className="mt-4 w-full bg-muted text-muted-foreground font-semibold text-xs border border-border/80 cursor-not-allowed opacity-75 gap-2"
                       >
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        <span>Application Submitted — Awaiting Secretariat Review</span>
+                        <span>Application Submitted — Awaiting Central Admin Review</span>
                       </Button>
                     </div>
                   ) : (
@@ -839,7 +839,7 @@ function BizVerification() {
                               All {totalRequiredDocs} Compliance Documents Ready to Send!
                             </h4>
                             <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80">
-                              Click below to send your complete application package to the RIFAH Secretariat.
+                              Click below to send your complete application package to the RIFAH Central Admin.
                             </p>
                           </div>
                         </div>
@@ -848,7 +848,7 @@ function BizVerification() {
                       <div className="space-y-3">
                         <div className="space-y-1">
                           <Label htmlFor="submit-notes" className="text-xs font-semibold text-foreground">
-                            Notes for Secretariat (Optional)
+                            Notes for Central Admin (Optional)
                           </Label>
                           <Textarea
                             id="submit-notes"
@@ -874,7 +874,7 @@ function BizVerification() {
                           ) : (
                             <>
                               <Send className="h-4 w-4" />
-                              <span>Submit Application for Secretariat Approval ({totalRequiredDocs}/{totalRequiredDocs} Docs)</span>
+                              <span>Submit Application for Central Admin Approval ({totalRequiredDocs}/{totalRequiredDocs} Docs)</span>
                             </>
                           )}
                         </Button>
@@ -987,12 +987,12 @@ function BizVerification() {
             </Panel>
 
             {/* Need help? Panel */}
-            <Panel title="Secretariat Assistance">
+            <Panel title="Central Admin Assistance">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Have questions about required paperwork? Connect with the secretariat verification desk.
+                Have questions about required paperwork? Connect with the central admin verification desk.
               </p>
               <Button variant="outline" className="w-full mt-3 font-semibold text-xs h-9 rounded-xl" asChild>
-                <Link href="/biz/messages">Message Secretariat</Link>
+                <Link href="/biz/messages">Message Central Admin</Link>
               </Button>
             </Panel>
           </div>

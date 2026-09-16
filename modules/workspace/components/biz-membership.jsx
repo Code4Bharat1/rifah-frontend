@@ -208,7 +208,7 @@ function BizMembership() {
     name: membershipData?.planName || (currentTier === "premium" ? "Premium" : currentTier === "enterprise" ? "Enterprise" : currentTier === "basic" ? "Basic" : "Free"),
     price: membershipData?.price || (currentTier === "premium" ? 12999 : currentTier === "enterprise" ? 29999 : currentTier === "basic" ? 4999 : 0),
     summary: currentTier === "free" ? "Get started on RIFAH Connect" : "Active chamber membership plan",
-    features: membershipData?.features?.length > 0 ? membershipData.features : (currentTier === "enterprise" ? ["All Premium features", "Secretariat advisory", "Global chapter access", "Custom expo pavilion"] : currentTier === "premium" ? ["Featured listing", "Verified badge", "Unlimited leads", "Chamber event passes", "RFQ priority"] : currentTier === "basic" ? ["Directory listing", "Verified badge", "15 leads / mo", "Direct buyer messaging"] : ["Directory listing", "Basic search", "5 leads / mo"]),
+    features: membershipData?.features?.length > 0 ? membershipData.features : (currentTier === "enterprise" ? ["All Premium features", "Central Admin advisory", "Global chapter access", "Custom expo pavilion"] : currentTier === "premium" ? ["Featured listing", "Verified badge", "Unlimited leads", "Chamber event passes", "RFQ priority"] : currentTier === "basic" ? ["Directory listing", "Verified badge", "15 leads / mo", "Direct buyer messaging"] : ["Directory listing", "Basic search", "5 leads / mo"]),
   };
 
   const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || []);
@@ -334,7 +334,7 @@ function BizMembership() {
         rawPrice: 29999,
         period: "/ year",
         desc: "For corporate groups, leaders and multi-chapter operations.",
-        features: ["All Premium benefits", "Multi-chapter directory", "Secretariat trade advisory", "Custom expo pavilion", "Unlimited catalogue"],
+        features: ["All Premium benefits", "Multi-chapter directory", "Central Admin trade advisory", "Custom expo pavilion", "Unlimited catalogue"],
       },
     ];
   }, [plansData]);
@@ -527,7 +527,7 @@ function BizMembership() {
               </div>
               <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
                 {currentTier === "enterprise"
-                  ? "You have full access to all chamber trade privileges, secretariat advisory & multi-chapter tools."
+                  ? "You have full access to all chamber trade privileges, central admin advisory & multi-chapter tools."
                   : upgradeTarget.desc}
               </p>
               <ul className="mt-4 space-y-2.5 text-xs text-foreground">

@@ -632,12 +632,12 @@ function RegisterBusiness({ isAdmin = false }) {
             <p className="mt-2 text-sm text-muted-foreground">
               {paidSuccess
                 ? "Your membership payment was processed successfully. An official GST Tax invoice has been dispatched to your email."
-                : "Your business profile has been created and submitted for RIFAH secretariat verification. You can now access your workspace."}
+                : "Your business profile has been created and submitted for RIFAH central admin verification. You can now access your workspace."}
             </p>
             <ol className="mt-5 space-y-2 text-left text-sm">
               {[
                 paidSuccess ? "Membership payment confirmed" : "Application received",
-                "Document review by secretariat",
+                "Document review by central admin",
                 "Verification decision",
                 "Listing published on directory",
               ].map((s, i) => (
@@ -1775,7 +1775,7 @@ function RegisterBusiness({ isAdmin = false }) {
                   }
                   return (
                     <p className="mt-4 text-xs text-muted-foreground">
-                      The listing is activated in the directory upon secretariat review.
+                      The listing is activated in the directory upon central admin review.
                     </p>
                   );
                 })()}

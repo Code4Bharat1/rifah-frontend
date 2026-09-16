@@ -15,7 +15,7 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@shared/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
-import { cities, industries } from "@shared/lib/mock-data";
+import { industries } from "@shared/lib/mock-data";
 import { useBusinesses, useChapters, useCategories } from "@shared/hooks/use-rifah-api";
 import { cn } from "@shared/lib/utils";
 
@@ -37,7 +37,7 @@ function DiscoverPage() {
   const { data: businessesData, isLoading } = useBusinesses({
     search: search.q || search.search,
     industry: search.industry,
-    city: search.city,
+    state: search.state,
     chapter: search.chapter,
     membership: search.membership,
     verified: search.verified,
@@ -51,6 +51,16 @@ function DiscoverPage() {
       ? chaptersData
       : [];
 
+  const states = Array.from(
+    new Set(chaptersList.map((ch) => (ch.state || "").trim()).filter(Boolean))
+  ).sort();
+
+  const chaptersForSelectedState = search.state
+    ? chaptersList.filter(
+        (ch) => (ch.state || "").trim().toLowerCase() === search.state.trim().toLowerCase()
+      )
+    : chaptersList;
+
   const { data: categoriesData } = useCategories();
   const categories = Array.isArray(categoriesData) ? categoriesData : [];
   const mainCategories = categories.filter(c => !c.parent);
@@ -59,14 +69,6 @@ function DiscoverPage() {
   const results = Array.isArray(businessesData)
     ? businessesData
     : (businessesData?.businesses || []);
-
-  const dynamicCities = Array.from(
-    new Set([
-      ...cities,
-      ...chaptersList.map((ch) => ch.city || (ch.name ? ch.name.replace(/\s+Chapter$/i, "") : "")).filter(Boolean),
-      ...results.map((b) => b.city).filter(Boolean),
-    ])
-  ).sort();
 
   const setParam = (patch) => {
     const current = new URLSearchParams(searchParams ? searchParams.toString() : "");
@@ -83,7 +85,7 @@ function DiscoverPage() {
 
   const activeChips = [
     search.industry && { label: search.industry, clear: () => setParam({ industry: undefined }) },
-    search.city && { label: search.city, clear: () => setParam({ city: undefined }) },
+    search.state && { label: search.state, clear: () => setParam({ state: undefined }) },
     search.chapter && { label: search.chapter, clear: () => setParam({ chapter: undefined }) },
     search.membership && { label: search.membership, clear: () => setParam({ membership: undefined }) },
     search.verified && { label: t("verifiedOnly"), clear: () => setParam({ verified: undefined }) },
@@ -125,16 +127,25 @@ function DiscoverPage() {
         </Select>
       </div>
       <div>
-        <Label htmlFor="f-city" className="font-semibold text-xs text-foreground uppercase tracking-wider">{t("city")}</Label>
-        <Select value={search.city || "all"} onValueChange={(v) => setParam({ city: v === "all" ? undefined : v })}>
-          <SelectTrigger id="f-city" className="mt-1.5 h-10 rounded-xl bg-background">
-            <SelectValue placeholder={t("allCities")} />
+        <Label htmlFor="f-state" className="font-semibold text-xs text-foreground uppercase tracking-wider">{t("state")}</Label>
+        <Select
+          value={search.state || "all"}
+          onValueChange={(v) => {
+            const nextState = v === "all" ? undefined : v;
+            const chapterStillValid = !search.chapter || chaptersList.some(
+              (ch) => ch.name === search.chapter && (!nextState || (ch.state || "").trim().toLowerCase() === nextState.trim().toLowerCase())
+            );
+            setParam({ state: nextState, chapter: chapterStillValid ? search.chapter : undefined });
+          }}
+        >
+          <SelectTrigger id="f-state" className="mt-1.5 h-10 rounded-xl bg-background">
+            <SelectValue placeholder={t("allStates")} />
           </SelectTrigger>
           <SelectContent className="max-h-72">
-            <SelectItem value="all">{t("allCities")}</SelectItem>
-            {dynamicCities.map((city) => (
-              <SelectItem key={city} value={city}>
-                {city}
+            <SelectItem value="all">{t("allStates")}</SelectItem>
+            {states.map((state) => (
+              <SelectItem key={state} value={state}>
+                {state}
               </SelectItem>
             ))}
           </SelectContent>
@@ -148,7 +159,7 @@ function DiscoverPage() {
           </SelectTrigger>
           <SelectContent className="max-h-72">
             <SelectItem value="all">{t("allChapters")}</SelectItem>
-            {chaptersList.map((ch) => (
+            {chaptersForSelectedState.map((ch) => (
               <SelectItem key={ch._id || ch.name} value={ch.name}>
                 {ch.name}
               </SelectItem>

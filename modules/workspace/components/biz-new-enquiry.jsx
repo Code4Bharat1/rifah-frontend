@@ -289,7 +289,7 @@ export function BizNewEnquiry() {
                     <MapPin className="h-5 w-5" />
                   </div>
                   <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
-                    City Chapter
+                    Chapter Admin
                   </span>
                 </div>
                 <h4 className="mt-3 text-sm font-semibold text-foreground">Chamber Specific</h4>

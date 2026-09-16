@@ -535,10 +535,10 @@ function Checkout() {
 
                 <div class="info-card">
                   <div class="info-card-header">PAYMENT & CHAMBER DETAILS</div>
-                  <div style="font-size: 10.5px; color: #0f172a;">Issuer: <strong>RIFAH Chamber Central Secretariat</strong></div>
+                  <div style="font-size: 10.5px; color: #0f172a;">Issuer: <strong>RIFAH Chamber Central Admin</strong></div>
                   <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Payment Mode: <strong>Razorpay Online (Txn Verified)</strong></div>
                   <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Subscription Term: <strong>1 Year (Annual Active)</strong></div>
-                  <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">Support: secretariat@rifah.org</div>
+                  <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">Support: admin@rifah.org</div>
                 </div>
               </div>
 
@@ -860,7 +860,7 @@ function Checkout() {
                           Next Step: Upload Compliance Documents for Verification
                         </h4>
                         <p className="mt-0.5 text-xs text-sky-900/80 dark:text-sky-300/80">
-                          To get your business approved and verified by the Chamber Secretariat, please upload your official registration documents (GST Certificate, PAN Card, or Trade License PDF).
+                          To get your business approved and verified by the Chamber Central Admin, please upload your official registration documents (GST Certificate, PAN Card, or Trade License PDF).
                         </p>
                       </div>
                     </div>

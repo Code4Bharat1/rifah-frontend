@@ -101,7 +101,7 @@ export const coreFlow = [
     emphasis: 3,
     toConfirm: true,
     what: "The requirement is matched to relevant member businesses by category, location and membership tier.",
-    who: "RIFAH platform / secretariat",
+    who: "RIFAH platform / central admin",
     next: "Matched businesses receive the lead.",
   },
   {
@@ -216,7 +216,7 @@ export const buyerJourney = [
 export const businessJourney = [
   { label: "Register", detail: "Business owner creates an account on RIFAH Connect." },
   { label: "Business Information", detail: "Legal name, categories, chapter, address, contacts." },
-  { label: "Verification", detail: "Submit documents for secretariat vetting.", toConfirm: true },
+  { label: "Verification", detail: "Submit documents for central admin vetting.", toConfirm: true },
   { label: "Membership", detail: "Choose a plan and complete payment.", toConfirm: true },
   { label: "Create Profile", detail: "About, gallery, certifications, service areas." },
   { label: "Add Products / Services", detail: "Build the catalogue used by search and matching." },
@@ -230,7 +230,7 @@ export const businessJourney = [
 ];
 
 export const adminJourney = [
-  { label: "Admin Login", detail: "Secretariat access to the control layer." },
+  { label: "Admin Login", detail: "Central admin access to the control layer." },
   { label: "Dashboard", detail: "Membership, verification, lead and revenue overview." },
   { label: "Businesses", detail: "Directory moderation, suspension, feature placement." },
   { label: "Verification", detail: "Document review, approve, request correction, reject." },
@@ -376,8 +376,8 @@ const seeds = {
     ],
   },
   "RIFAH Admin": {
-    what: "The secretariat verifies members, routes leads, manages memberships and monitors the ecosystem.",
-    who: "RIFAH Secretariat and chapter coordinators.",
+    what: "The central admin verifies members, routes leads, manages memberships and monitors the ecosystem.",
+    who: "RIFAH Central Admin and chapter coordinators.",
     next: "Approve verification, publish listings, review reports.",
     data: [
       { label: "Members", value: "875 listed businesses across 6 chapters" },
@@ -436,7 +436,7 @@ const seeds = {
   "Lead Routing": {
     toConfirm: true,
     what: "Matching logic assigns each enquiry to relevant verified members by category, city and tier.",
-    who: "Platform logic with secretariat override.",
+    who: "Platform logic with central admin override.",
     next: "Members receive the lead in their workspace.",
     data: [
       { label: "Match example", value: "ENQ-2041 → Bakka Bags, 2 other bag manufacturers" },
@@ -454,7 +454,7 @@ const seeds = {
     ],
   },
   Messaging: {
-    what: "Buyer–member conversation thread tied to the enquiry, with the secretariat able to assist.",
+    what: "Buyer–member conversation thread tied to the enquiry, with the central admin able to assist.",
     who: "Buyers, members, admin.",
     next: "Close the deal offline or mark the enquiry closed.",
     data: [
@@ -513,12 +513,12 @@ const seeds = {
 const kindCopy = {
   module: {
     what: (l, g) => `${l} is a platform module inside the ${g ?? "core"} area of RIFAH Connect.`,
-    who: "Depends on the module owner — buyer, member or secretariat.",
+    who: "Depends on the module owner — buyer, member or central admin.",
     next: "Detailed screens for this module come in the UI/UX design phase.",
   },
   ecosystem: {
     what: (l, g) => `${l} sits on the ${g ?? "platform"} side of the three-sided ecosystem.`,
-    who: "Buyers, members and the secretariat interact through this capability.",
+    who: "Buyers, members and the central admin interact through this capability.",
     next: "Validate that this capability belongs in the MVP.",
   },
   journey: {

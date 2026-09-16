@@ -94,6 +94,7 @@ const navs = {
       { label: "Memberships", to: "/admin/memberships", icon: Star },
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
       { label: "States", to: "/admin/states", icon: MapPin },
+      { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
       { label: "Units", to: "/admin/units", icon: Users },
       { label: "Events", to: "/admin/events", icon: Ticket },
       { label: "Payments", to: "/admin/payments", icon: CreditCard },
@@ -108,12 +109,13 @@ const navs = {
     title: "State administration",
     primary: [
       { label: "Overview", to: "/state-admin", icon: Gauge },
+      { label: "Chapters", to: "/state-admin/chapters", icon: MapPin },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
-      { label: "Verify", to: "/chapter-admin/verification", icon: ShieldCheck },
+      { label: "Users", to: "/chapter-admin/users", icon: Users },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Users", to: "/chapter-admin/users", icon: Users },
+      { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
       { label: "Events", to: "/chapter-admin/events", icon: Ticket },
       { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
@@ -160,8 +162,14 @@ function useResolvedNav(role) {
 
 function toRoleAwarePath(path, role, user) {
   if (user?.role === "state_admin") {
-    if (path === "/admin" || path === "/admin/chapters" || path === "/chapter-admin") {
+    if (path === "/admin" || path === "/chapter-admin") {
       return "/state-admin";
+    }
+    if (path === "/admin/chapters" || path === "/chapter-admin/chapter") {
+      return "/state-admin/chapters";
+    }
+    if (path === "/admin/leads" || path === "/chapter-admin/leads") {
+      return "/chapter-admin/enquiries";
     }
     if (path.startsWith("/admin/")) {
       return path.replace(/^\/admin/, "/chapter-admin");
@@ -307,7 +315,7 @@ export function AppShell({
     if (title === "Central administration" || title === "Chapters and units" || title === "Overview") {
       finalTitle = `${user.chapter || "Regional"} Workspace`;
     }
-    if (subtitle === "RIFAH Secretariat · all chapters" || subtitle === "Regional structure and branch desks of RIFAH Chamber") {
+    if (subtitle === "RIFAH Central Admin · all chapters" || subtitle === "RIFAH Secretariat · all chapters" || subtitle === "Regional structure and branch desks of RIFAH Chamber") {
       finalSubtitle = "Regional branch dashboard";
     }
   }
@@ -567,8 +575,8 @@ function UnderApprovalAccessGate({ business, path }) {
       actionText: "Manage Membership →",
     },
     {
-      title: "Secretariat Notifications",
-      description: "Receive real-time notifications, status updates, and Secretariat review announcements.",
+      title: "Central Admin Notifications",
+      description: "Receive real-time notifications, status updates, and Central Admin review announcements.",
       to: "/biz/notifications",
       icon: Bell,
       badge: "Accessible",
@@ -609,7 +617,7 @@ function UnderApprovalAccessGate({ business, path }) {
                   isUnderReview && "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200"
                 )}
               >
-                {isChangesReq ? "CHANGES REQUESTED" : isRejected ? "VERIFICATION REJECTED" : "UNDER SECRETARIAT APPROVAL"}
+                {isChangesReq ? "CHANGES REQUESTED" : isRejected ? "VERIFICATION REJECTED" : "UNDER CENTRAL ADMIN APPROVAL"}
               </span>
               <span className="text-xs text-muted-foreground">•</span>
               <span className="text-xs font-semibold text-foreground/80">{business?.name || "Business Enterprise"}</span>
@@ -617,24 +625,24 @@ function UnderApprovalAccessGate({ business, path }) {
 
             <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
               {isChangesReq
-                ? "Action Required: Secretariat Requested Changes"
+                ? "Action Required: Central Admin Requested Changes"
                 : isRejected
                 ? "Verification Application Rejected"
-                : "Workspace Access Restricted — Under Secretariat Approval"}
+                : "Workspace Access Restricted — Under Central Admin Approval"}
             </h2>
 
             <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
               {isChangesReq
-                ? "The RIFAH Chamber Secretariat has reviewed your business application and requested specific changes or additional paperwork before granting verification approval."
+                ? "The RIFAH Chamber Central Admin has reviewed your business application and requested specific changes or additional paperwork before granting verification approval."
                 : isRejected
-                ? "Your verification application has been rejected by the Secretariat. Please review the feedback reason below and update your documents to re-submit."
-                : "Your business profile is currently in the RIFAH Secretariat Verification queue. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
+                ? "Your verification application has been rejected by the Central Admin. Please review the feedback reason below and update your documents to re-submit."
+                : "Your business profile is currently in the RIFAH Central Admin Verification queue. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
             </p>
 
             {business?.verificationReviewReason && (
               <div className="mt-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 p-4 border border-border/80 text-xs">
                 <span className="block font-bold text-foreground text-[11px] uppercase tracking-wider mb-1 text-primary">
-                  Secretariat Review Notes:
+                  Central Admin Review Notes:
                 </span>
                 <p className="text-foreground/90 font-medium leading-relaxed">
                   {business.verificationReviewReason}
@@ -706,7 +714,7 @@ function UnderApprovalAccessGate({ business, path }) {
       <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-4 text-xs text-muted-foreground flex items-center gap-3">
         <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
         <p className="leading-relaxed">
-          <strong>Locked Modules:</strong> Buyer Leads, Open Enquiries, Catalogue Items, Analytics Reports, and Direct Messaging are locked while under review to maintain Chamber buyer safety standards. They will unlock automatically upon Secretariat verification.
+          <strong>Locked Modules:</strong> Buyer Leads, Open Enquiries, Catalogue Items, Analytics Reports, and Direct Messaging are locked while under review to maintain Chamber buyer safety standards. They will unlock automatically upon Central Admin verification.
         </p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Filter, Target, Loader2, Send, CheckCircle2, Clock, MapPin, Building2, User, Check, Sparkles, FileText, Download, Lock } from "lucide-react";
+import { Filter, Target, Loader2, Send, CheckCircle2, Clock, MapPin, Building2, User, Check, Sparkles, FileText, Download, Lock, TrendingUp } from "lucide-react";
 import { useState } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -213,6 +213,7 @@ function LeadsPage() {
           <StatCard
             label="In progress"
             value={inProgressCount}
+            icon={Clock}
             tone="warning"
             active={stage === "In progress"}
             onClick={() => setStage(stage === "In progress" ? "All" : "In progress")}
@@ -220,6 +221,7 @@ function LeadsPage() {
           <StatCard
             label="Won"
             value={wonCount}
+            icon={CheckCircle2}
             tone="success"
             active={stage === "Won"}
             onClick={() => setStage(stage === "Won" ? "All" : "Won")}
@@ -228,6 +230,7 @@ function LeadsPage() {
             label="Response rate"
             value={responseRate}
             hint="Within 24 hours"
+            icon={TrendingUp}
             tone="primary"
             href="/biz/analytics"
           />

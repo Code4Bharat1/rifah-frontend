@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { CreditCard, Download, FileSpreadsheet, Plus, Receipt } from "lucide-react";
+import { CreditCard, Download, FileSpreadsheet, Plus, Receipt, CalendarClock, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -566,11 +566,15 @@ function BizPayments() {
           <StatCard
             label="Next renewal"
             value={nextRenewalText}
+            icon={CalendarClock}
+            tone="info"
             href="/biz/membership"
           />
           <StatCard
             label="Payment method"
             value={paymentMethodText}
+            icon={Wallet}
+            tone="primary"
           />
         </div>
 

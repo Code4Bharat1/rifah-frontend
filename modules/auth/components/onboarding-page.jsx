@@ -247,7 +247,7 @@ export function OnboardingPage() {
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {role === "business_owner"
-                ? "Your enterprise profile has been registered and submitted for RIFAH Secretariat verification. You can now access your workspace, manage catalogue items, and respond to buyer leads."
+                ? "Your enterprise profile has been registered and submitted for RIFAH Central Admin verification. You can now access your workspace, manage catalogue items, and respond to buyer leads."
                 : "Your buyer account is now fully active. You can start exploring suppliers, posting RFQs, and requesting quotations."}
             </p>
 
@@ -255,7 +255,7 @@ export function OnboardingPage() {
               <ol className="mt-6 space-y-2 text-left text-xs sm:text-sm">
                 {[
                   "Application received & account activated",
-                  "Document & GST review by Secretariat",
+                  "Document & GST review by Central Admin",
                   "Verified supplier badge assigned",
                   "Priority listing published in Directory",
                 ].map((s, i) => (
@@ -574,7 +574,7 @@ export function OnboardingPage() {
 
                 {/* STAGE 4: TAX & VERIFICATION */}
                 {step === 3 && (
-                  <Panel title="Stage 4: Tax & Verification" description="Enterprise identification for Secretariat verification and buyer trust.">
+                  <Panel title="Stage 4: Tax & Verification" description="Enterprise identification for Central Admin verification and buyer trust.">
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
@@ -601,10 +601,10 @@ export function OnboardingPage() {
                       <div className="rounded-xl border border-warning/30 bg-warning-soft/20 p-4">
                         <div className="flex items-center gap-2">
                           <ShieldCheck className="h-5 w-5 text-warning shrink-0" />
-                          <span className="text-sm font-semibold text-foreground">Secretariat Verification Review</span>
+                          <span className="text-sm font-semibold text-foreground">Central Admin Verification Review</span>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Your profile will be queued for RIFAH Secretariat verification upon submission. Verified suppliers receive 4x more buyer lead engagements and priority search badges.
+                          Your profile will be queued for RIFAH Central Admin verification upon submission. Verified suppliers receive 4x more buyer lead engagements and priority search badges.
                         </p>
                       </div>
                     </div>
@@ -646,7 +646,7 @@ export function OnboardingPage() {
                       })}
                     </div>
                     <p className="mt-4 text-xs text-muted-foreground">
-                      Listing is published in the directory upon secretariat review. You can upgrade plans anytime from your workspace.
+                      Listing is published in the directory upon central admin review. You can upgrade plans anytime from your workspace.
                     </p>
                   </Panel>
                 )}

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { MapPin, Plus, Users, Loader2, MoreHorizontal } from "lucide-react";
+import { MapPin, Plus, Users, Loader2, MoreHorizontal, CheckCircle2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -97,8 +97,8 @@ function AdminChapters() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Chapters" value={String(chapters.length)} icon={MapPin} tone="primary" />
           <StatCard label="Specialised units" value={String(totalUnits)} icon={Users} />
-          <StatCard label="Active Chapters" value={String(chapters.filter((c) => c.status === "Active").length)} tone="success" />
-          <StatCard label="Regions" value="Pan-India" tone="warning" />
+          <StatCard label="Active Chapters" value={String(chapters.filter((c) => c.status === "Active").length)} icon={CheckCircle2} tone="success" />
+          <StatCard label="Regions" value="Pan-India" icon={Globe} tone="warning" />
         </div>
 
         <Panel title="Regional Chapters">
