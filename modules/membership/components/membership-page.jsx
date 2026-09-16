@@ -30,7 +30,7 @@ const comparison = [
 const faqs = [
   {
     q: "How does RIFAH verification work?",
-    a: "Businesses submit registration and compliance documents in the workspace. The RIFAH secretariat reviews them and either approves the listing, requests a correction, or rejects it with a reason.",
+    a: "Businesses submit registration and compliance documents in the workspace. The RIFAH central admin reviews them and either approves the listing, requests a correction, or rejects it with a reason.",
   },
   {
     q: "How are leads routed to members?",

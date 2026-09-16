@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, Phone, MoreHorizontal, UserCheck, Trash2 } from "lucide-react";
+import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, Phone, MoreHorizontal, UserCheck, Trash2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -81,7 +81,7 @@ export function AdminStates() {
     <AppShell
       role="admin"
       title="States & Regional Leadership"
-      subtitle="National structure: Super Admin allocates State Admins to manage city chapters"
+      subtitle="National structure: Super Admin allocates State Admins to manage Chapter Admin"
       actions={
         isSuperAdmin ? (
           <Button onClick={() => handleOpenAllocate()} className="gap-2">
@@ -103,8 +103,8 @@ export function AdminStates() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="States Active" value={String(totalStates)} icon={MapPin} tone="primary" />
           <StatCard label="States with Admins" value={String(statesWithAdmin)} icon={UserCheck} tone="success" />
-          <StatCard label="Total City Chapters" value={String(totalChapters)} icon={Users} />
-          <StatCard label="Regional Businesses" value={String(totalBusinesses)} tone="warning" />
+          <StatCard label="Total Chapter Admins" value={String(totalChapters)} icon={Users} />
+          <StatCard label="Regional Businesses" value={String(totalBusinesses)} icon={Building2} tone="warning" />
         </div>
 
         {/* States Table */}
@@ -125,7 +125,7 @@ export function AdminStates() {
                     </div>
                     <div>
                       <span className="font-semibold text-foreground text-sm">{r.state}</span>
-                      <p className="text-xs text-muted-foreground">{r.chaptersCount} city chapter{r.chaptersCount === 1 ? "" : "s"}</p>
+                      <p className="text-xs text-muted-foreground">{r.chaptersCount} Chapter Admin{r.chaptersCount === 1 ? "" : "s"}</p>
                     </div>
                   </div>
                 ),
@@ -160,7 +160,7 @@ export function AdminStates() {
                         </span>
                       ))
                     ) : (
-                      <span className="text-xs text-muted-foreground italic">No city chapters yet</span>
+                      <span className="text-xs text-muted-foreground italic">No Chapter Admin yet</span>
                     )}
                   </div>
                 ),

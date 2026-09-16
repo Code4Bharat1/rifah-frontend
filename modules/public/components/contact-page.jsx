@@ -31,9 +31,9 @@ function ContactPage() {
 
   const cleanSettings = settings?.data || settings || {};
   const orgName = cleanSettings.organisationName || "";
-  const orgEmail = cleanSettings.secretariatEmail || "";
+  const orgEmail = cleanSettings.centralAdminEmail || cleanSettings.secretariatEmail || "";
   const orgPhone = cleanSettings.supportPhone ? String(cleanSettings.supportPhone) : "";
-  const orgAddress = cleanSettings.secretariatAddress || "";
+  const orgAddress = cleanSettings.centralAdminAddress || cleanSettings.secretariatAddress || "";
   const orgHours = cleanSettings.workingHours || "";
 
   return (
@@ -41,7 +41,7 @@ function ContactPage() {
       <div className="rifah-container py-6 sm:py-10">
         <SectionHeader
           title="Contact RIFAH"
-          description="The secretariat routes enquiries to the regional chapter within one working day."
+          description="The central admin routes enquiries to the regional chapter within one working day."
         />
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -53,7 +53,7 @@ function ContactPage() {
                 </span>
                 <h2 className="mt-3 text-base font-semibold">Message sent</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  The secretariat will respond to your registered email shortly.
+                  The central admin will respond to your registered email shortly.
                 </p>
                 <Button variant="outline" className="mt-5" onClick={() => setSent(false)}>
                   Send another message
@@ -143,7 +143,7 @@ function ContactPage() {
           </Panel>
 
           <aside className="space-y-4">
-            <Panel title="Central Secretariat">
+            <Panel title="Central Admin">
               {isSettingsLoading ? (
                 <div className="space-y-3 py-2 text-sm text-muted-foreground animate-pulse">
                   <div className="h-4 w-3/4 rounded bg-muted"></div>

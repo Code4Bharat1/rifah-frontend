@@ -1,5 +1,5 @@
 "use client";
-import { Download, Wallet, MoreHorizontal, Eye, CheckCircle2, ShieldCheck, Check } from "lucide-react";
+import { Download, Wallet, MoreHorizontal, Eye, CheckCircle2, ShieldCheck, Check, CreditCard, Clock, Ticket, Banknote } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -76,7 +76,7 @@ function AdminPayments() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(100, 116, 139);
-      doc.text("SECRETARIAT PAYMENT RECEIPT & OFFICIAL VOUCHER", mx, y + 6);
+      doc.text("CENTRAL ADMIN PAYMENT RECEIPT & OFFICIAL VOUCHER", mx, y + 6);
 
       // Invoice number & date (right aligned)
       doc.setFont("helvetica", "bold");
@@ -191,7 +191,7 @@ function AdminPayments() {
       doc.setFontSize(8);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        "This is a verified computer-generated payment receipt issued by RIFAH Chamber Secretariat.",
+        "This is a verified computer-generated payment receipt issued by RIFAH Central Admin.",
         pw / 2, y, { align: "center" }
       );
       doc.text(
@@ -231,6 +231,7 @@ function AdminPayments() {
           <StatCard
             label="Transactions"
             value={String(payments.length)}
+            icon={CreditCard}
             tone="primary"
             active={filter === "all"}
             onClick={() => setFilter("all")}
@@ -238,6 +239,7 @@ function AdminPayments() {
           <StatCard
             label="Completed"
             value={String(payments.filter((p) => p.status === "completed" || p.status === "Paid").length)}
+            icon={CheckCircle2}
             tone="success"
             active={filter === "completed"}
             onClick={() => setFilter("completed")}
@@ -245,6 +247,7 @@ function AdminPayments() {
           <StatCard
             label="Pending"
             value={String(payments.filter((p) => p.status === "pending" || p.status === "Pending").length)}
+            icon={Clock}
             tone="warning"
             active={filter === "pending"}
             onClick={() => setFilter("pending")}
@@ -252,6 +255,7 @@ function AdminPayments() {
           <StatCard
             label="Event Passes"
             value={String(payments.filter((p) => p.itemType === "Event Pass").length)}
+            icon={Ticket}
             tone="primary"
             active={filter === "events"}
             onClick={() => setFilter("events")}
@@ -259,6 +263,7 @@ function AdminPayments() {
           <StatCard
             label="Cash Registrations"
             value={String(payments.filter((p) => p.method === "CASH" && p.itemType === "Membership").length)}
+            icon={Banknote}
             tone="success"
             active={filter === "cash"}
             onClick={() => setFilter("cash")}

@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Ticket,
   FileCheck2,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,14 +30,14 @@ import { useChapters } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 
-export function StateAdminDashboard() {
+export function StateAdminDashboard({ isChaptersOnly = false }) {
   const { user } = useAuth();
   const stateName = user?.state || "State Region";
 
   const { data: chaptersData, refetch, isLoading } = useChapters();
   const chapters = Array.isArray(chaptersData) ? chaptersData : [];
 
-  // Add City Chapter Modal State
+  // Add Chapter Modal State
   const [openAddChapter, setOpenAddChapter] = useState(false);
   const [creatingChapter, setCreatingChapter] = useState(false);
   const [newChapter, setNewChapter] = useState({
@@ -51,12 +52,23 @@ export function StateAdminDashboard() {
   const [assigningAdmin, setAssigningAdmin] = useState(false);
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "" });
   const [statusFilter, setStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const totalChapters = chapters.length;
   const activeChapters = chapters.filter((c) => c.status === "Active").length;
   const totalUnits = chapters.reduce((sum, c) => sum + (c.units?.length || 0), 0);
   const totalBusinesses = chapters.reduce((sum, c) => sum + (c.businessesCount || 0), 0);
   const displayedChapters = statusFilter === "active" ? chapters.filter((c) => c.status === "Active") : chapters;
+
+  const filteredChapters = displayedChapters.filter((c) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      c.name?.toLowerCase().includes(q) ||
+      c.city?.toLowerCase().includes(q) ||
+      c.lead?.toLowerCase().includes(q)
+    );
+  });
 
   const handleCreateChapter = async (e) => {
     e.preventDefault();
@@ -70,12 +82,12 @@ export function StateAdminDashboard() {
         ...newChapter,
         state: stateName, // Lock to state admin's state
       });
-      toast.success(`City chapter "${newChapter.name}" created successfully!`);
+      toast.success(`Chapter Admin "${newChapter.name}" created successfully!`);
       setOpenAddChapter(false);
       setNewChapter({ name: "", city: "", state: stateName, status: "Active" });
       refetch();
     } catch (err) {
-      toast.error(err.message || "Failed to create city chapter.");
+      toast.error(err.message || "Failed to create chapter admin.");
     } finally {
       setCreatingChapter(false);
     }
@@ -105,12 +117,11 @@ export function StateAdminDashboard() {
   return (
     <AppShell
       role="state_admin"
-      title={`${stateName} State Administration`}
-      subtitle={`State Executive Desk · Appoint city chapter admins and oversee regional growth`}
-      actions={
-        <Button onClick={() => setOpenAddChapter(true)} className="gap-2">
-          <Plus className="h-4 w-4" /> Add City Chapter
-        </Button>
+      title={isChaptersOnly ? `${stateName} Chapter Admin` : `${stateName} State Administration`}
+      subtitle={
+        isChaptersOnly
+          ? `City chapters and appointed Chapter Admins across ${stateName}`
+          : `State Executive Desk · Appoint chapter admins and oversee regional growth`
       }
     >
       <div className="space-y-6">
@@ -128,7 +139,7 @@ export function StateAdminDashboard() {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
-            label="City Chapters"
+            label="Chapters Admin"
             value={String(totalChapters)}
             icon={MapPin}
             tone="primary"
@@ -152,29 +163,42 @@ export function StateAdminDashboard() {
           <StatCard
             label="State Businesses"
             value={String(totalBusinesses)}
+            icon={Building2}
             tone="warning"
             href="/chapter-admin/businesses"
           />
         </div>
 
-        {/* City Chapters & Chapter Admins Management Table */}
+        {/* Chapters Admin & Chapter Admins Management Table */}
         <Panel
-          title={`City Chapters in ${stateName}${statusFilter === "active" ? " (Active)" : ""}`}
+          title={`Chapters Admin in ${stateName}${statusFilter === "active" ? " (Active)" : ""}`}
           action={
-            <Button size="sm" variant="outline" onClick={() => setOpenAddChapter(true)}>
-              <Plus className="mr-1 h-3.5 w-3.5" /> New City
-            </Button>
+            <div className="flex items-center gap-2">
+              <div className="relative w-48 sm:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search city or admin..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-8 pl-8 text-xs"
+                />
+              </div>
+              <Button size="sm" onClick={() => setOpenAddChapter(true)} className="gap-1">
+                <Plus className="h-3.5 w-3.5" /> Add Chapter Admin
+              </Button>
+            </div>
           }
         >
           <ResponsiveTable
-            rows={displayedChapters}
+            rows={filteredChapters}
             isLoading={isLoading}
             emptyTitle={`No chapters established in ${stateName} yet`}
-            emptyDescription="Click 'Add City Chapter' to establish your first municipal branch."
+            emptyDescription="Click 'Add Chapter Admin' to establish your first municipal branch."
             columns={[
               {
                 key: "name",
-                header: "City Chapter",
+                header: "Chapter Admin",
                 cell: (r) => (
                   <div>
                     <span className="font-semibold text-sm text-foreground">{r.name}</span>
@@ -230,7 +254,7 @@ export function StateAdminDashboard() {
                       onClick={() => setAdminModalChapter(r)}
                     >
                       <UserPlus className="h-3.5 w-3.5" />
-                      Appoint City Admin
+                      Appoint Chapter Admin
                     </Button>
                   </div>
                 ),
@@ -240,13 +264,13 @@ export function StateAdminDashboard() {
         </Panel>
       </div>
 
-      {/* Add City Chapter Dialog */}
+      {/* Add Chapter Admin Dialog */}
       <Dialog open={openAddChapter} onOpenChange={setOpenAddChapter}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Establish New City Chapter</DialogTitle>
+            <DialogTitle>Establish New Chapter Admin</DialogTitle>
             <DialogDescription>
-              Launch a new city chapter within your allocated state of {stateName}.
+              Appoint a new chapter admin within your allocated state of {stateName}.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateChapter} className="space-y-4 pt-2">
@@ -288,7 +312,7 @@ export function StateAdminDashboard() {
             </div>
             <Button type="submit" className="w-full" disabled={creatingChapter}>
               {creatingChapter ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {creatingChapter ? "Establishing..." : "Establish City Chapter"}
+              {creatingChapter ? "Establishing..." : "Establish Chapter Admin"}
             </Button>
           </form>
         </DialogContent>
@@ -298,7 +322,7 @@ export function StateAdminDashboard() {
       <Dialog open={!!adminModalChapter} onOpenChange={(open) => !open && setAdminModalChapter(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Appoint City Chapter Admin</DialogTitle>
+            <DialogTitle>Appoint Chapter Admin</DialogTitle>
             <DialogDescription>
               Appoint an administrator for <strong>{adminModalChapter?.name}</strong> ({adminModalChapter?.city}, {stateName}).
             </DialogDescription>

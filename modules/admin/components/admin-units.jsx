@@ -1,5 +1,5 @@
 "use client";
-import { Plus, Users, Loader2, MoreHorizontal, Pencil, Trash2, Search, Building2 } from "lucide-react";
+import { Plus, Users, Loader2, MoreHorizontal, Pencil, Trash2, Search, Building2, CheckCircle2, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -129,8 +129,8 @@ function AdminUnits() {
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Total Units" value={String(allUnits.length)} icon={Users} tone="primary" />
-          <StatCard label="Active" value={String(allUnits.filter((u) => u.status === "Active").length)} tone="success" />
-          <StatCard label="Planned" value={String(allUnits.filter((u) => u.status === "Planned").length)} tone="warning" />
+          <StatCard label="Active" value={String(allUnits.filter((u) => u.status === "Active").length)} icon={CheckCircle2} tone="success" />
+          <StatCard label="Planned" value={String(allUnits.filter((u) => u.status === "Planned").length)} icon={Clock} tone="warning" />
           <StatCard label="Chapters" value={String(chapters.length)} icon={Building2} />
         </div>
 

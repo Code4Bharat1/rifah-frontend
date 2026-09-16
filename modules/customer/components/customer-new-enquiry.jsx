@@ -242,7 +242,7 @@ export function CustomerNewEnquiry() {
                     Regional Chapter
                   </span>
                 </div>
-                <h4 className="mt-3 text-sm font-semibold text-foreground">Specific City Chapter</h4>
+                <h4 className="mt-3 text-sm font-semibold text-foreground">Specific Chapter Admin</h4>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Focus admin routing on verified member businesses within a specific city/chapter.
                 </p>

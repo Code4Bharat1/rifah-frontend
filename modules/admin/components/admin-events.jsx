@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Plus, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, LayoutGrid, List } from "lucide-react";
+import { CalendarDays, Plus, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, CalendarPlus, History, Ticket, CalendarCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -204,6 +204,7 @@ function AdminEvents() {
           <StatCard
             label="Today"
             value={String(todayEvents.length)}
+            icon={Clock}
             tone="success"
             active={filterMode === "today"}
             onClick={() => setFilterMode("today")}
@@ -211,18 +212,23 @@ function AdminEvents() {
           <StatCard
             label="Upcoming"
             value={String(upcomingEvents.length)}
+            icon={CalendarPlus}
+            tone="info"
             active={filterMode === "upcoming"}
             onClick={() => setFilterMode("upcoming")}
           />
           <StatCard
             label="Past Events"
             value={String(pastEvents.length)}
+            icon={History}
+            tone="default"
             active={filterMode === "past"}
             onClick={() => setFilterMode("past")}
           />
           <StatCard
             label="Paid Events"
             value={String(events.filter((e) => e.isPaid).length)}
+            icon={Ticket}
             tone="warning"
             active={filterMode === "Paid"}
             onClick={() => setFilterMode("Paid")}
@@ -230,6 +236,7 @@ function AdminEvents() {
           <StatCard
             label="Scheduled"
             value={String(scheduledCount)}
+            icon={CalendarCheck}
             tone="primary"
             active={filterMode === "Scheduled"}
             onClick={() => setFilterMode("Scheduled")}

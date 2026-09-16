@@ -1,22 +1,45 @@
 "use client";
-import { useState } from "react";
-import { Inbox, MessageSquare, MoreHorizontal } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Inbox, MessageSquare, MoreHorizontal, Clock, AlertCircle, ShieldCheck, MapPin, UserCheck, Eye, Download, Target } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
-import { useAllEnquiries, useChapters, useAdminUsers } from "@shared/hooks/use-rifah-api";
+import { useAllEnquiries, useChapters, useAdminUsers, useStates } from "@shared/hooks/use-rifah-api";
 import { enquiryApi } from "@shared/lib/api-services";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
+import { 
+  DropdownMenu, 
+  DropdownMenuTrigger, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent
+} from "@shared/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
-import { Download, Target } from "lucide-react";
+import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminEnquiries() {
+  const { user } = useAuth();
+  const currentRole = user?.role === "state_admin"
+    ? "state_admin"
+    : user?.role === "chapter_admin"
+    ? "chapter_admin"
+    : "admin";
+
+  const subtitle = user?.role === "state_admin"
+    ? `State Enquiry Desk · Buyer sourcing RFQs routed across ${user?.state ? user.state + " " : ""}chapters`
+    : user?.role === "chapter_admin"
+    ? "Chapter Enquiry Desk · Buyer sourcing RFQs for your chapter"
+    : "Buyer sourcing RFQs routed across chamber network";
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -33,10 +56,52 @@ function AdminEnquiries() {
   const { data: chaptersData } = useChapters();
   const chapters = Array.isArray(chaptersData) ? chaptersData : [];
 
-  const { data: adminUsersData } = useAdminUsers();
+  const { data: adminUsersData } = useAdminUsers({ limit: 100 });
   const adminUsers = Array.isArray(adminUsersData) 
-    ? adminUsersData.filter(u => ["super_admin", "secretariat", "chapter_admin"].includes(u.role)) 
+    ? adminUsersData.filter(u => ["super_admin", "secretariat", "state_admin", "chapter_admin"].includes(u.role)) 
     : [];
+
+  const { data: statesData } = useStates();
+
+  // Consolidate all State Admins across admin users and allocated state records
+  const stateAdminList = useMemo(() => {
+    const list = [];
+    const seenIds = new Set();
+
+    if (Array.isArray(adminUsersData)) {
+      adminUsersData
+        .filter((u) => u.role === "state_admin")
+        .forEach((u) => {
+          if (!seenIds.has(String(u._id))) {
+            seenIds.add(String(u._id));
+            list.push({
+              _id: u._id,
+              name: u.name,
+              email: u.email,
+              state: u.state || "",
+              phone: u.phone || "",
+            });
+          }
+        });
+    }
+
+    if (Array.isArray(statesData)) {
+      statesData.forEach((s) => {
+        if (s.admin && s.admin._id && !seenIds.has(String(s.admin._id))) {
+          seenIds.add(String(s.admin._id));
+          list.push({
+            _id: s.admin._id,
+            name: s.admin.name,
+            email: s.admin.email,
+            state: s.admin.state || s.state || "",
+            phone: s.admin.phone || "",
+          });
+        }
+      });
+    }
+
+    return list;
+  }, [adminUsersData, statesData]);
 
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -44,6 +109,67 @@ function AdminEnquiries() {
   const [resolutionNote, setResolutionNote] = useState("");
   const [resolveStatus, setResolveStatus] = useState("");
   const [resolvingId, setResolvingId] = useState(null);
+
+  // State Admin Assignment Modal state
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [assigningEnquiry, setAssigningEnquiry] = useState(null);
+  const [selectedStateAdminId, setSelectedStateAdminId] = useState("");
+  const [assignRoutingNote, setAssignRoutingNote] = useState("");
+  const [isSubmittingAssign, setIsSubmittingAssign] = useState(false);
+
+  const handleOpenAssignModal = (enquiry) => {
+    setAssigningEnquiry(enquiry);
+    const currentAdminId = enquiry?.assignedTo?._id || enquiry?.assignedTo;
+    setSelectedStateAdminId(currentAdminId || (stateAdminList[0]?._id || ""));
+    setAssignRoutingNote("");
+    setIsAssignModalOpen(true);
+  };
+
+  const handleQuickAssignStateAdmin = async (enquiry, stateAdmin) => {
+    try {
+      await enquiryApi.updateStatus(enquiry._id, {
+        assignedTo: stateAdmin._id,
+        status: "Routed",
+        timelineUpdate: {
+          label: `Assigned to State Admin (${stateAdmin.name}${stateAdmin.state ? ` - ${stateAdmin.state}` : ""})`,
+          at: new Date().toISOString(),
+        },
+      });
+      toast.success(`Enquiry assigned to State Admin (${stateAdmin.name})`);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to assign to State Admin");
+    }
+  };
+
+  const handleConfirmAssignModal = async () => {
+    if (!assigningEnquiry || !selectedStateAdminId) {
+      toast.error("Please select a State Admin");
+      return;
+    }
+    const adminObj = stateAdminList.find((sa) => String(sa._id) === String(selectedStateAdminId));
+    const adminLabel = adminObj ? `${adminObj.name}${adminObj.state ? ` - ${adminObj.state}` : ""}` : "State Admin";
+    setIsSubmittingAssign(true);
+    try {
+      await enquiryApi.updateStatus(assigningEnquiry._id, {
+        assignedTo: selectedStateAdminId,
+        status: "Routed",
+        resolutionNote: assignRoutingNote.trim() || undefined,
+        timelineUpdate: {
+          label: `Assigned to State Admin (${adminLabel})`,
+          at: new Date().toISOString(),
+        },
+      });
+      toast.success(`Enquiry successfully assigned & routed to ${adminObj?.name || "State Admin"}`);
+      setIsAssignModalOpen(false);
+      setAssigningEnquiry(null);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to assign State Admin");
+    } finally {
+      setIsSubmittingAssign(false);
+    }
+  };
   
   const handleUpdateStatus = async (id, newStatus) => {
     if (newStatus === "Closed" || newStatus === "Won" || newStatus === "Rejected") {
@@ -89,9 +215,9 @@ function AdminEnquiries() {
 
   return (
     <AppShell 
-      role="admin" 
-      title="Enquiry flow" 
-      subtitle="Buyer sourcing RFQs routed across chamber network"
+      role={currentRole} 
+      title="Enquiries" 
+      subtitle={subtitle}
       actions={
         <Button variant="outline" disabled={isExporting} onClick={async () => {
           try {
@@ -145,11 +271,12 @@ function AdminEnquiries() {
           <StatCard
             label="Unmatched"
             value={String(enquiries.filter((e) => !e.responses || e.responses.length === 0).length)}
+            icon={AlertCircle}
             tone="warning"
             active={statusFilter === "New"}
             onClick={() => setStatusFilter("New")}
           />
-          <StatCard label="Avg. first response" value="9.4 hrs" />
+          <StatCard label="Avg. first response" value="9.4 hrs" icon={Clock} tone="info" />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -218,11 +345,51 @@ function AdminEnquiries() {
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="w-56">
                       <DropdownMenuLabel>Manage Enquiry</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => setSelectedEnquiry(r)}>
+                        <Eye className="mr-2 h-4 w-4 text-muted-foreground" />
                         View Details
                       </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>State Admin</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => handleOpenAssignModal(r)}>
+                        <ShieldCheck className="mr-2 h-4 w-4 text-primary" />
+                        <span>Assign to State Admin</span>
+                      </DropdownMenuItem>
+
+                      {stateAdminList.length > 0 && (
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <span>Quick Route</span>
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="w-60">
+                            <DropdownMenuLabel>Select State Admin</DropdownMenuLabel>
+                            {stateAdminList.map((sa) => (
+                              <DropdownMenuItem
+                                key={sa._id}
+                                onClick={() => handleQuickAssignStateAdmin(r, sa)}
+                                className="flex flex-col items-start gap-0.5 cursor-pointer py-1.5"
+                              >
+                                <span className="font-semibold text-xs flex items-center gap-1.5">
+                                  {sa.name}
+                                  {sa.state && (
+                                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-normal">
+                                      {sa.state}
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">
+                                  {sa.email}
+                                </span>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      )}
+
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel>Update Status</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "New")} disabled={r.status === "New"}>
@@ -265,7 +432,12 @@ function AdminEnquiries() {
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5">
                   <Pill>{r.category}</Pill>
-                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectedEnquiry(r)}>View Details</Button>
+                  <div className="flex items-center gap-1.5">
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleOpenAssignModal(r)}>
+                      <ShieldCheck className="h-3.5 w-3.5 text-primary" /> State Admin
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectedEnquiry(r)}>View Details</Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -305,23 +477,144 @@ function AdminEnquiries() {
               </div>
             </div>
             <div>
-               <p className="text-xs font-medium text-muted-foreground mb-2">Current Status</p>
-               <div className="flex items-center gap-3">
+               <p className="text-xs font-medium text-muted-foreground mb-2">Current Status & Routing</p>
+               <div className="flex flex-wrap items-center gap-3">
                  <StatusBadge status={selectedEnquiry?.status} />
-                 {selectedEnquiry?.assignedTo && (
-                   <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                     Assigned to: <span className="font-medium text-foreground">{selectedEnquiry.assignedTo.name}</span>
+                 {selectedEnquiry?.assignedTo ? (
+                   <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-md border border-border flex items-center gap-1.5">
+                     <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                     Assigned to: <span className="font-semibold text-foreground">{selectedEnquiry.assignedTo.name}</span>
+                     {selectedEnquiry.assignedTo.state && (
+                       <span className="text-[10px] text-muted-foreground">({selectedEnquiry.assignedTo.state})</span>
+                     )}
+                   </span>
+                 ) : (
+                   <span className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-md border border-amber-200 dark:border-amber-800">
+                     Not assigned to any admin
                    </span>
                  )}
+                 <Button
+                   size="sm"
+                   variant="outline"
+                   className="h-7 text-xs gap-1.5 ml-auto"
+                   onClick={() => {
+                     const enq = selectedEnquiry;
+                     setSelectedEnquiry(null);
+                     handleOpenAssignModal(enq);
+                   }}
+                 >
+                   <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Assign to State Admin
+                 </Button>
                </div>
                
                {selectedEnquiry?.resolutionNote && (
                  <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border">
-                   <p className="text-xs font-semibold mb-1 text-primary">Resolution Note</p>
+                   <p className="text-xs font-semibold mb-1 text-primary">Routing / Resolution Note</p>
                    <p className="text-sm text-muted-foreground italic">"{selectedEnquiry.resolutionNote}"</p>
                  </div>
                )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign to State Admin Dialog */}
+      <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Assign Enquiry to State Admin
+            </DialogTitle>
+            <DialogDescription>
+              Route this buyer requirement directly to a regional State Admin for execution and supplier routing.
+            </DialogDescription>
+          </DialogHeader>
+
+          {assigningEnquiry && (
+            <div className="space-y-4 py-2">
+              {/* Enquiry Quick Summary Card */}
+              <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs space-y-1">
+                <div className="flex items-center justify-between font-semibold">
+                  <span className="text-primary font-mono">ENQ-{assigningEnquiry._id?.slice(-4).toUpperCase() || "1000"}</span>
+                  <StatusBadge status={assigningEnquiry.status} />
+                </div>
+                <p className="text-sm font-semibold text-foreground truncate">{assigningEnquiry.title}</p>
+                <p className="text-muted-foreground">
+                  Buyer: {assigningEnquiry.requesterName || assigningEnquiry.buyerName || "Registered Buyer"} · Location: {assigningEnquiry.city || assigningEnquiry.location || "Not specified"}
+                </p>
+              </div>
+
+              {/* State Admin Selector */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+                  <span>Select State Admin</span>
+                  <span className="text-[11px] font-normal text-muted-foreground">
+                    {stateAdminList.length} registered
+                  </span>
+                </div>
+
+                {stateAdminList.length === 0 ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300">
+                    <p className="font-semibold">No State Admins configured yet</p>
+                    <p className="mt-0.5">Please allocate a State Admin in the <strong>States</strong> section first.</p>
+                  </div>
+                ) : (
+                  <Select value={selectedStateAdminId} onValueChange={setSelectedStateAdminId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose a State Admin..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stateAdminList.map((sa) => (
+                        <SelectItem key={sa._id} value={sa._id}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{sa.name}</span>
+                            {sa.state && (
+                              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                                {sa.state}
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground">({sa.email})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {/* Routing / Handover Note */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Handover Instructions / Note <span className="text-muted-foreground font-normal">(Optional)</span>
+                </label>
+                <Input
+                  placeholder="e.g. Please coordinate with regional suppliers for prompt fulfillment..."
+                  value={assignRoutingNote}
+                  onChange={(e) => setAssignRoutingNote(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setIsAssignModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmAssignModal}
+              disabled={isSubmittingAssign || !selectedStateAdminId || stateAdminList.length === 0}
+              className="gap-1.5"
+            >
+              {isSubmittingAssign ? (
+                <>Saving...</>
+              ) : (
+                <>
+                  <ShieldCheck className="h-4 w-4" />
+                  Assign & Route
+                </>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

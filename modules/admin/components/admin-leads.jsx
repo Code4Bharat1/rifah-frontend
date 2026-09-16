@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Target, Download, Lock } from "lucide-react";
+import { Target, Download, Lock, Send, Megaphone, Route } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -170,6 +170,7 @@ function AdminLeads() {
           <StatCard
             label="Direct RFQs"
             value={String(enquiries.filter((e) => e.business).length)}
+            icon={Send}
             tone="success"
             active={activeTab === "direct"}
             onClick={() => setActiveTab("direct")}
@@ -177,11 +178,17 @@ function AdminLeads() {
           <StatCard
             label="Broadcast RFQs"
             value={String(enquiries.filter((e) => !e.business).length)}
+            icon={Megaphone}
             tone="warning"
             active={activeTab === "broadcast"}
             onClick={() => setActiveTab("broadcast")}
           />
-          <StatCard label="Routing Desk" value="Active" />
+          <StatCard
+            label="Routing Desk"
+            value="Active"
+            icon={Route}
+            tone="primary"
+          />
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <Input 

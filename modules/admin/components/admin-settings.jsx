@@ -59,7 +59,7 @@ import {
 } from "@shared/components/ui/dialog";
 
 const togglesTemplate = [
-  { key: "manualVerificationRequired", title: "Manual verification required", desc: "Every new listing is reviewed by the secretariat", defaultOn: true },
+  { key: "manualVerificationRequired", title: "Manual verification required", desc: "Every new listing is reviewed by the central admin", defaultOn: true },
   { key: "moderateReviewsBeforePublishing", title: "Moderate reviews before publishing", desc: "Buyer feedback stays hidden until approved", defaultOn: true },
   { key: "allowPublicEnquiryPosting", title: "Allow public enquiry posting", desc: "Buyers can post requirements without an account", defaultOn: false },
   { key: "autoRouteLeadsByCategory", title: "Auto-route leads by category", desc: "Match new enquiries to members automatically", defaultOn: true },
@@ -73,7 +73,7 @@ export function AdminSettings() {
     organisationName: "RIFAH Chamber of Commerce & Industry",
     secretariatEmail: "secretariat@rifah.org",
     supportPhone: "+91 22 2345 6789",
-    secretariatAddress: "Central Secretariat, Byculla, Mumbai 400 008",
+    secretariatAddress: "Central Admin Office, Byculla, Mumbai 400 008",
     workingHours: "Mon–Fri · 09:30–18:00 IST",
     membershipYear: "2026-27"
   });
@@ -118,7 +118,7 @@ export function AdminSettings() {
         organisationName: globalSettings.organisationName || "RIFAH Chamber of Commerce & Industry",
         secretariatEmail: globalSettings.secretariatEmail || "secretariat@rifah.org",
         supportPhone: globalSettings.supportPhone || "+91 22 2345 6789",
-        secretariatAddress: globalSettings.secretariatAddress || "Central Secretariat, Byculla, Mumbai 400 008",
+        secretariatAddress: globalSettings.secretariatAddress || "Central Admin Office, Byculla, Mumbai 400 008",
         workingHours: globalSettings.workingHours || "Mon–Fri · 09:30–18:00 IST",
         membershipYear: globalSettings.membershipYear || "2026-27"
       });
@@ -199,7 +199,7 @@ export function AdminSettings() {
   };
 
   return (
-    <AppShell role="admin" title="Settings and modules" subtitle="Platform configuration for the secretariat">
+    <AppShell role="admin" title="Settings and modules" subtitle="Platform configuration for central admin">
       <div className="space-y-4">
         {isLoading && !globalSettings && (
           <div className="p-4 flex items-center justify-center bg-blue-50/50 rounded-lg text-sm text-blue-600 mb-4">
@@ -252,13 +252,13 @@ export function AdminSettings() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Secretariat email</Label>
+              <Label>Central Admin email</Label>
               <Input 
                 type="email"
                 value={chamberDetails.secretariatEmail}
                 onChange={(e) => setChamberDetails({...chamberDetails, secretariatEmail: e.target.value})}
                 className="h-11" 
-                placeholder="secretariat@rifah.org"
+                placeholder="admin@rifah.org"
               />
             </div>
             <div className="space-y-1.5">
@@ -280,12 +280,12 @@ export function AdminSettings() {
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Secretariat address</Label>
+              <Label>Central Admin address</Label>
               <Input 
                 value={chamberDetails.secretariatAddress}
                 onChange={(e) => setChamberDetails({...chamberDetails, secretariatAddress: e.target.value})}
                 className="h-11" 
-                placeholder="Central Secretariat, Byculla, Mumbai 400 008"
+                placeholder="Central Admin Office, Byculla, Mumbai 400 008"
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">

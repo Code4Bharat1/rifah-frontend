@@ -9,10 +9,15 @@ import { Loader2, Search, Activity } from "lucide-react";
 import { Input } from "@shared/components/ui/input";
 import { Button } from "@shared/components/ui/button";
 
+import { useAuth } from "@shared/providers/auth-provider";
+
 export function AdminAudit() {
+  const { user } = useAuth();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const isStateAdmin = user?.role === "state_admin";
 
   const fetchLogs = async (query = "") => {
     setLoading(true);
@@ -20,7 +25,20 @@ export function AdminAudit() {
       const res = await auditApi.getLogs(query ? { search: query } : {});
       // Support nested pagination response or direct array
       const data = res?.data?.auditLogs || res?.data || res || [];
-      setLogs(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+
+      // Filter out super_admin logs and DELETE action status for state admin / scoped views
+      const filtered = list.filter((log) => {
+        if (isStateAdmin) {
+          if (log.actorRole === "super_admin" || log.actorRole === "superadmin") return false;
+          if (log.action?.toUpperCase() === "DELETE") return false;
+        } else if (log.action?.toUpperCase() === "DELETE") {
+          return false;
+        }
+        return true;
+      });
+
+      setLogs(filtered);
     } catch (err) {
       toast.error(err.message || "Failed to load audit logs");
     } finally {
@@ -30,7 +48,7 @@ export function AdminAudit() {
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+  }, [user]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -46,11 +64,16 @@ export function AdminAudit() {
     return "primary";
   };
 
+  const currentRole = user?.role === "state_admin" ? "state_admin" : user?.role === "chapter_admin" ? "chapter_admin" : "admin";
+  const subtitle = isStateAdmin
+    ? `${user?.state || "State"} executive activity logs & appointed chapter admin actions`
+    : "System activity and admin actions";
+
   return (
     <AppShell
-      role="admin"
+      role={currentRole}
       title="Audit Logs"
-      subtitle="System activity and admin actions"
+      subtitle={subtitle}
     >
       <Panel bodyClassName="p-0">
         <div className="flex items-center gap-2 p-4 border-b border-border">

@@ -184,7 +184,7 @@ export default function AdminChapterDetails({ chapterId }) {
                 
                 <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs border border-blue-100 flex gap-2 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50">
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-600" />
-                  <p>Appointed by the State Admin for {chapter.state} to manage businesses, units, and leads within this city chapter.</p>
+                  <p>Appointed by the State Admin for {chapter.state} to manage businesses, units, and leads within this chapter admin.</p>
                 </div>
               </div>
             ) : (
@@ -192,7 +192,7 @@ export default function AdminChapterDetails({ chapterId }) {
                 <UserCog className="h-10 w-10 text-muted-foreground opacity-20 mx-auto mb-3" />
                 <h3 className="font-semibold text-sm">No Chapter Administrator Assigned</h3>
                 <p className="text-xs text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
-                  City Chapter Administrators are appointed and managed by the <strong>State Admin for {chapter.state}</strong>.
+                  Chapter Administrators are appointed and managed by the <strong>State Admin for {chapter.state}</strong>.
                 </p>
                 <Button variant="outline" asChild>
                   <Link href="/admin/states">

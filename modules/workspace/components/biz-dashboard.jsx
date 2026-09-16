@@ -176,7 +176,7 @@ function BusinessHome() {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="text-sm font-bold text-blue-950 dark:text-white">
-                        Action Required: Secretariat Requested Changes
+                        Action Required: Central Admin Requested Changes
                       </h4>
                       <span className="rounded-full bg-blue-200/70 dark:bg-blue-900 px-2 py-0.5 text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase">
                         Needs Resubmission
@@ -185,7 +185,7 @@ function BusinessHome() {
                     <p className="mt-1 text-xs text-blue-900/80 dark:text-blue-300/80">
                       {business?.verificationReviewReason
                         ? `"${business.verificationReviewReason}"`
-                        : "The RIFAH Secretariat reviewed your documents and requested additional or clearer information before approving."}
+                        : "The RIFAH Central Admin reviewed your documents and requested additional or clearer information before approving."}
                     </p>
                   </div>
                 </div>
@@ -209,14 +209,14 @@ function BusinessHome() {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="text-sm font-bold text-amber-950 dark:text-white">
-                        Application Under Secretariat Review
+                        Application Under Central Admin Review
                       </h4>
                       <span className="rounded-full bg-amber-200/70 dark:bg-amber-900 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase">
                         Queued
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-300/80">
-                      Your business profile and payment have been received. The Chamber Secretariat is verifying your details. Your profile will be published live once approved.
+                      Your business profile and payment have been received. The Chamber Central Admin is verifying your details. Your profile will be published live once approved.
                     </p>
                   </div>
                 </div>
@@ -244,7 +244,7 @@ function BusinessHome() {
                     <p className="mt-1 text-xs text-rose-900/80 dark:text-rose-300/80">
                       {business?.verificationReviewReason
                         ? `Reason: ${business.verificationReviewReason}`
-                        : "Your application could not be verified by the secretariat. Please contact chamber support or update your documents."}
+                        : "Your application could not be verified by the central admin. Please contact chamber support or update your documents."}
                     </p>
                   </div>
                 </div>

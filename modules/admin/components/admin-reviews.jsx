@@ -156,6 +156,7 @@ export function AdminReviews() {
           <StatCard
             label="Pending Review"
             value={String(stats.pending)}
+            icon={Clock}
             tone="warning"
             active={statusFilter === "pending"}
             onClick={() => setStatusFilter("pending")}
@@ -163,6 +164,7 @@ export function AdminReviews() {
           <StatCard
             label="Approved / Live"
             value={String(stats.approved)}
+            icon={CheckCircle2}
             tone="success"
             active={statusFilter === "approved"}
             onClick={() => setStatusFilter("approved")}
@@ -170,6 +172,7 @@ export function AdminReviews() {
           <StatCard
             label="Rejected"
             value={String(stats.rejected)}
+            icon={XCircle}
             tone="danger"
             active={statusFilter === "rejected"}
             onClick={() => setStatusFilter("rejected")}

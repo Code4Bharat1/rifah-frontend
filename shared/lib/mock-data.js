@@ -89,7 +89,7 @@ export const membershipPlans = [
     price: "₹ 29,999",
     period: "per year",
     summary: "For established corporations and multi-chapter operations.",
-    features: ["All Premium features", "Multi-chapter directory exposure", "Direct secretariat trade advisory", "VIP delegate passes for annual summits", "Custom exhibition pavilion placement"],
+    features: ["All Premium features", "Multi-chapter directory exposure", "Direct central admin trade advisory", "VIP delegate passes for annual summits", "Custom exhibition pavilion placement"],
   },
 ];
 

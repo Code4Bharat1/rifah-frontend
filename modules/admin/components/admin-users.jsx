@@ -211,8 +211,11 @@ function AdminUsers() {
                             }} disabled={r.role === "business_owner"}>
                               Make Business Owner
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleChangeRole(r, "state_admin")} disabled={r.role === "state_admin"}>
+                              Make State Admin
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleChangeRole(r, "secretariat")} disabled={r.role === "secretariat"}>
-                              Make Secretariat
+                              Make Central Admin
                             </DropdownMenuItem>
                           </>
                         )}

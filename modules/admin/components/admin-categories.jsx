@@ -1,5 +1,5 @@
 "use client";
-import { Folder, Plus, Loader2, MoreHorizontal, FolderTree, Layers, Sparkles } from "lucide-react";
+import { Folder, Plus, Loader2, MoreHorizontal, FolderTree, Layers, Sparkles, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -89,7 +89,7 @@ function AdminCategories() {
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Total Categories" value={String(categories.length)} icon={Folder} tone="primary" />
-          <StatCard label="System Status" value="Active Taxonomy" tone="success" />
+          <StatCard label="System Status" value="Active Taxonomy" icon={CheckCircle2} tone="success" />
         </div>
 
         <Panel title="Create category">

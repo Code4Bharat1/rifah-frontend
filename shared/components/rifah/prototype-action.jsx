@@ -53,7 +53,7 @@ function blueprintFor(label) {
       [
         "Thread is created against the enquiry reference",
         "Both sides get in-app and email notification",
-        "Secretariat can audit the thread if a dispute is raised",
+        "Central Admin can audit the thread if a dispute is raised",
       ],
       [
         { label: "Thread SLA", value: "Respond within 24h" },
@@ -64,7 +64,7 @@ function blueprintFor(label) {
 
   if (/(verif|approve|reject|document|kyc)/.test(l))
     return make(
-      "Runs the secretariat verification decision for the selected member business.",
+      "Runs the central admin verification decision for the selected member business.",
       [
         "Reviewer checks GST, registration and address proof",
         "Decision is recorded with reviewer name and timestamp",
@@ -125,7 +125,7 @@ function blueprintFor(label) {
       "Generates a chamber report export for the current filters.",
       [
         "Report queued with the applied date and chapter filters",
-        "CSV / PDF emailed to the secretariat account",
+        "CSV / PDF emailed to the central admin account",
       ],
       [
         { label: "Formats", value: "CSV, XLSX, PDF" },
@@ -169,7 +169,7 @@ function blueprintFor(label) {
     ],
     [
       { label: "Prototype", value: "Wireframe / clickable demo" },
-      { label: "Status", value: "To confirm with chamber secretariat" },
+      { label: "Status", value: "To confirm with chamber central admin" },
     ],
   );
 }
