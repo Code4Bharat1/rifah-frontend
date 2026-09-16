@@ -138,10 +138,10 @@ function AdminHome() {
                 {chaptersDist.length === 0 ? (
                    <p className="text-xs text-muted-foreground">No chapters data available.</p>
                 ) : (
-                   chaptersDist.map(c => {
+                   chaptersDist.map((c, idx) => {
                      const pct = Math.round((c.members / (chaptersDist[0]?.members || 1)) * 100);
                      return (
-                       <div key={c.name} className="space-y-1.5">
+                       <div key={c.name || idx} className="space-y-1.5">
                           <div className="flex items-center justify-between text-sm">
                              <span className="font-medium">{c.name}</span>
                              <span className="font-semibold">{c.members}</span>
@@ -195,8 +195,8 @@ function AdminHome() {
                   </p>
                 ) : (
                   <ul className="space-y-3">
-                    {queue.slice(0, 5).map((item) => (
-                      <li key={item._id} className="rounded-xl border border-border p-3.5 hover:border-primary/40 transition-colors">
+                    {queue.slice(0, 5).map((item, idx) => (
+                      <li key={item._id || item.id || idx} className="rounded-xl border border-border p-3.5 hover:border-primary/40 transition-colors">
                         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold">{item.business?.name || "Business Application"}</p>
@@ -230,8 +230,8 @@ function AdminHome() {
                 <p className="py-4 text-xs text-muted-foreground">No recent enquiries.</p>
               ) : (
                 <ul className="space-y-2.5">
-                  {enquiries.slice(0, 5).map((e) => (
-                    <li key={e._id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border pb-2.5 last:border-0 last:pb-0">
+                  {enquiries.slice(0, 5).map((e, idx) => (
+                    <li key={e._id || e.id || idx} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border pb-2.5 last:border-0 last:pb-0">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{e.title}</p>
                         <p className="text-xs text-muted-foreground">
@@ -253,8 +253,8 @@ function AdminHome() {
               <>
                 <Panel title="Chapters & Units" action={<MoreLink href="/admin/states" />}>
                   <ul className="space-y-3">
-                    {chapters.slice(0, 5).map((c) => (
-                      <li key={c._id || c.name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                    {chapters.slice(0, 5).map((c, idx) => (
+                      <li key={c._id || c.id || c.name || idx} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{c.name}</p>
                           <p className="text-xs text-muted-foreground">{c.city}, {c.state}</p>
@@ -270,8 +270,8 @@ function AdminHome() {
                     <p className="py-4 text-xs text-muted-foreground">No payment records.</p>
                   ) : (
                     <ul className="space-y-2.5">
-                      {payments.slice(0, 4).map((p) => (
-                        <li key={p._id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                      {payments.slice(0, 4).map((p, idx) => (
+                        <li key={p._id || p.id || idx} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium">{p.invoiceNumber}</p>
                             <p className="truncate text-xs text-muted-foreground">
@@ -292,8 +292,8 @@ function AdminHome() {
                     <p className="py-4 text-xs text-muted-foreground">No audit logs.</p>
                   ) : (
                     <ul className="space-y-3">
-                      {auditLogs.slice(0, 4).map((a) => (
-                        <li key={a._id} className="min-w-0">
+                      {auditLogs.slice(0, 4).map((a, idx) => (
+                        <li key={a._id || a.id || idx} className="min-w-0">
                           <p className="truncate text-sm font-medium">{a.action}</p>
                           <p className="truncate text-xs text-muted-foreground">
                             {a.entity} · {a.user?.name || "Admin"}
