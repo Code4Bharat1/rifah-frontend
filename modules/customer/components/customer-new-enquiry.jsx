@@ -143,7 +143,7 @@ export function CustomerNewEnquiry() {
           </span>
           <h2 className="mt-4 text-2xl font-bold tracking-tight">Requirement Submitted!</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your enquiry <span className="font-semibold text-foreground">{createdRef}</span> has been successfully recorded and submitted to the RIFAH Chamber administration.
+            Your enquiry <span className="font-semibold text-foreground">{createdRef}</span> has been successfully recorded and submitted to the RIFAH Central administration.
             Our team will review your requirement and route it to matching verified businesses, who will review your specifications and submit quotations.
           </p>
 

@@ -1,17 +1,27 @@
 "use client";
+<<<<<<< HEAD
 import { useState, useMemo } from "react";
 import { Inbox, MessageSquare, MoreHorizontal, Clock, AlertCircle, ShieldCheck, MapPin, UserCheck, Eye, Download, Target } from "lucide-react";
+=======
+import { useState } from "react";
+import { Inbox, MessageSquare } from "lucide-react";
+>>>>>>> adbe6b3ea95db1f21458d2129afc11bf16fc494a
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
+<<<<<<< HEAD
 import { useAllEnquiries, useChapters, useAdminUsers, useStates } from "@shared/hooks/use-rifah-api";
+=======
+import { useAllEnquiries, useChapters } from "@shared/hooks/use-rifah-api";
+>>>>>>> adbe6b3ea95db1f21458d2129afc11bf16fc494a
 import { enquiryApi } from "@shared/lib/api-services";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+<<<<<<< HEAD
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
@@ -23,6 +33,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent
 } from "@shared/components/ui/dropdown-menu";
+=======
+>>>>>>> adbe6b3ea95db1f21458d2129afc11bf16fc494a
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { useAuth } from "@shared/providers/auth-provider";
 
@@ -45,17 +57,18 @@ function AdminEnquiries() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
 
-  const { data: enquiriesData, refetch } = useAllEnquiries({
+  const { data: enquiriesData } = useAllEnquiries({
     search: search || undefined,
     status: statusFilter,
     type: typeFilter,
     chapter: chapterFilter,
   });
   const enquiries = Array.isArray(enquiriesData) ? enquiriesData : [];
-  
+
   const { data: chaptersData } = useChapters();
   const chapters = Array.isArray(chaptersData) ? chaptersData : [];
 
+<<<<<<< HEAD
   const { data: adminUsersData } = useAdminUsers({ limit: 100 });
   const adminUsers = Array.isArray(adminUsersData) 
     ? adminUsersData.filter(u => ["super_admin", "secretariat", "state_admin", "chapter_admin"].includes(u.role)) 
@@ -212,6 +225,10 @@ function AdminEnquiries() {
       toast.error(error.message || "Failed to assign enquiry");
     }
   };
+=======
+  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+>>>>>>> adbe6b3ea95db1f21458d2129afc11bf16fc494a
 
   return (
     <AppShell 
@@ -333,12 +350,12 @@ function AdminEnquiries() {
               { key: "category", header: "CATEGORY", cell: (r) => r.category },
               { key: "buyer", header: "BUYER", cell: (r) => r.requesterName || r.buyerName || "Registered Buyer" },
               { key: "city", header: "LOCATION", cell: (r) => r.city || r.location },
-              { key: "status", header: "STATUS", cell: (r) => <StatusBadge status={r.status} /> },
               { key: "responses", header: "RESPONSES", cell: (r) => r.responses?.length || 0 },
               {
                 key: "action",
                 header: "",
                 cell: (r) => (
+<<<<<<< HEAD
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
@@ -416,19 +433,21 @@ function AdminEnquiries() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+=======
+                  <Button variant="outline" size="sm" onClick={() => setSelectedEnquiry(r)}>
+                    View Details
+                  </Button>
+>>>>>>> adbe6b3ea95db1f21458d2129afc11bf16fc494a
                 ),
               },
             ]}
             mobile={(r) => (
               <div className="rounded-xl border border-border p-3.5">
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{r.title}</p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {r.requesterName || r.buyerName} · {r.city || r.location}
-                    </p>
-                  </div>
-                  <StatusBadge status={r.status} />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{r.title}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {r.requesterName || r.buyerName} · {r.city || r.location}
+                  </p>
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5">
                   <Pill>{r.category}</Pill>
@@ -517,6 +536,7 @@ function AdminEnquiries() {
           </div>
         </DialogContent>
       </Dialog>
+<<<<<<< HEAD
 
       {/* Assign to State Admin Dialog */}
       <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
@@ -642,6 +662,8 @@ function AdminEnquiries() {
           </div>
         </DialogContent>
       </Dialog>
+=======
+>>>>>>> adbe6b3ea95db1f21458d2129afc11bf16fc494a
     </AppShell>
   );
 }

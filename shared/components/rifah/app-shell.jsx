@@ -16,7 +16,6 @@ import {
   ChevronLeft,
   CreditCard,
   FileStack,
-  Folder,
   Gauge,
   LayoutGrid,
   LogOut,
@@ -103,15 +102,13 @@ const navs = {
     primary: [
       { label: "Overview", to: "/admin", icon: Gauge },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
-      { label: "Leads", to: "/admin/leads", icon: Target },
+      { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
       { label: "Users", to: "/admin/users", icon: Users },
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
       { label: "Memberships", to: "/admin/memberships", icon: Star },
-      { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
-      { label: "Categories", to: "/admin/categories", icon: Folder },
       { label: "States", to: "/admin/states", icon: MapPin },
       { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
       { label: "Units", to: "/admin/units", icon: Users },
@@ -147,16 +144,14 @@ const navs = {
       { label: "Overview", to: "/chapter-admin", icon: Gauge },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
       { label: "Verify", to: "/chapter-admin/verification", icon: ShieldCheck },
-      { label: "Leads", to: "/chapter-admin/leads", icon: Target },
+      { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
       { label: "Users", to: "/chapter-admin/users", icon: Users },
       { label: "Memberships", to: "/chapter-admin/memberships", icon: Star },
-      { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
       { label: "Queries", to: "/chapter-admin/queries", icon: MessageSquareText },
       { label: "Reviews", to: "/chapter-admin/reviews", icon: MessageSquare },
-      { label: "Categories", to: "/chapter-admin/categories", icon: Folder },
       { label: "My Chapter", to: "/chapter-admin/chapter", icon: MapPinned },
       { label: "Units", to: "/chapter-admin/units", icon: Users },
       { label: "Events", to: "/chapter-admin/events", icon: Ticket },
@@ -334,7 +329,7 @@ export function AppShell({
   let finalSubtitle = subtitle;
 
   if (role === "admin" && user?.role === "chapter_admin") {
-    if (title === "Chamber administration" || title === "Chapters and units" || title === "Overview") {
+    if (title === "Central administration" || title === "Chapters and units" || title === "Overview") {
       finalTitle = `${user.chapter || "Regional"} Workspace`;
     }
     if (subtitle === "RIFAH Central Admin · all chapters" || subtitle === "RIFAH Secretariat · all chapters" || subtitle === "Regional structure and branch desks of RIFAH Chamber") {

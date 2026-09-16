@@ -28,6 +28,7 @@ import {
   DialogDescription,
 } from "@shared/components/ui/dialog";
 import { Textarea } from "@shared/components/ui/textarea";
+import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 import { cities, industries } from "@shared/lib/mock-data";
 import { useChapters, useMembershipPlans, useCategories } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -100,6 +101,12 @@ function RegisterBusiness({ isAdmin = false }) {
   const { data: plansData } = useMembershipPlans();
 
   const chapters = chaptersData || [];
+
+  const states = React.useMemo(() => {
+    return Array.from(
+      new Set(chapters.map((c) => (c.state || "").trim()).filter(Boolean))
+    ).sort();
+  }, [chapters]);
   
   const plans = React.useMemo(() => {
     return plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
@@ -156,7 +163,8 @@ function RegisterBusiness({ isAdmin = false }) {
   const [formData, setFormData] = useState({
     businessName: "",
     businessType: "Proprietorship",
-    industry: "Manufacturing",
+    industry: "",
+    subCategory: "",
     founded: "",
     employees: "11–50",
     about: "",
@@ -168,9 +176,17 @@ function RegisterBusiness({ isAdmin = false }) {
     address: "",
     city: "",
     pincode: "",
+    state: "",
     chapter: "",
     region: "national",
   });
+
+  const chaptersForSelectedState = React.useMemo(() => {
+    if (!formData.state) return chapters;
+    return chapters.filter(
+      (c) => (c.state || "").trim().toLowerCase() === formData.state.trim().toLowerCase()
+    );
+  }, [chapters, formData.state]);
 
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60)
@@ -361,6 +377,7 @@ function RegisterBusiness({ isAdmin = false }) {
             address: address || prev.address,
             city: city || prev.city,
             pincode: pincode || prev.pincode,
+            state: data.state || prev.state,
             chapter: matchingChapter || prev.chapter,
           }));
 
@@ -442,9 +459,10 @@ function RegisterBusiness({ isAdmin = false }) {
             phone: formData.phone,
             chapter: formData.chapter,
             industry: formData.industry,
+            subCategory: formData.subCategory,
             businessType: formData.businessType,
             city: formData.city,
-            state: isInternational ? (formData.state || "International") : "Maharashtra",
+            state: isInternational ? (formData.state || "International") : (formData.state || ""),
             address: formData.address,
             pincode: formData.pincode,
             founded: formData.founded,
@@ -471,9 +489,10 @@ function RegisterBusiness({ isAdmin = false }) {
         phone: formData.phone,
         businessName: formData.businessName,
         industry: formData.industry,
+        subCategory: formData.subCategory,
         businessType: formData.businessType,
         city: formData.city,
-        state: isInternational ? (formData.state || "International") : "Maharashtra",
+        state: isInternational ? (formData.state || "International") : (formData.state || ""),
         address: formData.address,
         pincode: formData.pincode,
         founded: formData.founded,
@@ -806,6 +825,10 @@ function RegisterBusiness({ isAdmin = false }) {
                   setError("Business name is required (at least 2 characters).");
                   return;
                 }
+                if (!formData.industry || !formData.industry.trim()) {
+                  setError("Please select or enter a business category.");
+                  return;
+                }
               }
 
               // Strict Validation for Step 1 (Contact & Location)
@@ -820,6 +843,10 @@ function RegisterBusiness({ isAdmin = false }) {
                 }
                 if (!formData.city || formData.city.trim().length < 2) {
                   setError("City is mandatory. Please enter your business city.");
+                  return;
+                }
+                if (formData.region === "national" && (!formData.state || !formData.state.trim())) {
+                  setError("State is mandatory. Please select your business state.");
                   return;
                 }
                 if (!formData.chapter || !formData.chapter.trim()) {
@@ -1175,39 +1202,32 @@ function RegisterBusiness({ isAdmin = false }) {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="bind">Industry</Label>
-                    <Select
+                    <Label htmlFor="bind">Category *</Label>
+                    <CreatableCombobox
+                      id="bind"
                       value={formData.industry}
-                      onValueChange={(v) => setFormData({ ...formData, industry: v })}
-                    >
-                      <SelectTrigger id="bind">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mainCategories.length > 0 ? (
-                          <>
-                            {mainCategories.map(mc => {
-                              const subs = subCategories.filter(sc => sc.parent === mc.name);
-                              return (
-                                <SelectGroup key={mc.name}>
-                                  <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
-                                  <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
-                                  {subs.map(sc => (
-                                    <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
-                                  ))}
-                                </SelectGroup>
-                              );
-                            })}
-                          </>
-                        ) : (
-                          industries.map((i) => (
-                            <SelectItem key={i} value={i}>
-                              {i}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                      onValueChange={(v) => setFormData({ ...formData, industry: v, subCategory: "" })}
+                      options={mainCategories.length > 0 ? mainCategories.map((c) => c.name) : industries}
+                      placeholder="Select or type a category"
+                      emptyText="No category found. Type to add a new one."
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Pick an existing category or type a new one — it will be added for everyone.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="bsubcat">Sub category</Label>
+                    <CreatableCombobox
+                      id="bsubcat"
+                      value={formData.subCategory}
+                      onValueChange={(v) => setFormData({ ...formData, subCategory: v })}
+                      options={subCategories
+                        .filter((sc) => sc.parent === formData.industry)
+                        .map((sc) => sc.name)}
+                      placeholder="Select or type a sub category"
+                      emptyText="No sub category found. Type to add a new one."
+                      disabled={!formData.industry}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="byear">Year established</Label>
@@ -1312,6 +1332,48 @@ function RegisterBusiness({ isAdmin = false }) {
                     />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
+                    {formData.region === "national" ? (
+                      <>
+                        <Label htmlFor="bstate">State *</Label>
+                        <Select
+                          value={formData.state}
+                          onValueChange={(v) => {
+                            const chapterStillValid = chapters.some(
+                              (c) => c.name === formData.chapter && (c.state || "").trim().toLowerCase() === v.trim().toLowerCase()
+                            );
+                            setFormData({
+                              ...formData,
+                              state: v,
+                              chapter: chapterStillValid ? formData.chapter : "",
+                            });
+                            setError("");
+                          }}
+                        >
+                          <SelectTrigger id="bstate" className="h-11">
+                            <SelectValue placeholder="Select your business state" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {states.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {s}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </>
+                    ) : (
+                      <>
+                        <Label htmlFor="bstate">Country / Region</Label>
+                        <FastInput
+                          id="bstate"
+                          value={formData.state}
+                          onValueChange={(val) => setFormData({ ...formData, state: val })}
+                          placeholder="e.g. United Arab Emirates"
+                        />
+                      </>
+                    )}
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="bchapter">RIFAH Chapter *</Label>
                     <Select
                       value={formData.chapter}
@@ -1321,10 +1383,10 @@ function RegisterBusiness({ isAdmin = false }) {
                       }}
                     >
                       <SelectTrigger id="bchapter" className="h-11">
-                        <SelectValue placeholder="Select mandatory chapter" />
+                        <SelectValue placeholder={formData.region === "national" && !formData.state ? "Select a state first" : "Select mandatory chapter"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {chapters.map((c) => (
+                        {(formData.region === "national" ? chaptersForSelectedState : chapters).map((c) => (
                           <SelectItem key={c._id || c.name} value={c.name}>
                             {c.name}
                           </SelectItem>
