@@ -46,13 +46,8 @@ function AdminHome() {
   return (
     <AppShell
       role="admin"
-<<<<<<< HEAD
-      title="Chamber administration"
-      subtitle="RIFAH Central Admin · all chapters"
-=======
       title="Central administration"
       subtitle="RIFAH Secretariat · all chapters"
->>>>>>> adbe6b3ea95db1f21458d2129afc11bf16fc494a
       actions={
         <Button asChild variant="outline" className="rounded-full">
           <Link href="/admin/reports">View reports</Link>
