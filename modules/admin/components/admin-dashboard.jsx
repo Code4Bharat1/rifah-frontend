@@ -48,11 +48,6 @@ function AdminHome() {
       role="admin"
       title="Central administration"
       subtitle="RIFAH Secretariat · all chapters"
-<<<<<<< Updated upstream
-      title="Chamber administration"
-      subtitle="RIFAH Central Admin · all chapters"
-=======
->>>>>>> Stashed changes
       actions={
         <Button asChild variant="outline" className="rounded-full">
           <Link href="/admin/reports">View reports</Link>
