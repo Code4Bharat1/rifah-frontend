@@ -30,7 +30,12 @@ export default function AdminChapterDetails({ chapterId }) {
   const router = useRouter();
   const { user } = useAuth();
   const isChapterAdmin = user?.role === "chapter_admin";
-  const backHref = isChapterAdmin ? "/chapter-admin" : "/admin/chapters";
+  const isStateAdmin = user?.role === "state_admin";
+  const currentRole = isChapterAdmin ? "chapter_admin" : isStateAdmin ? "state_admin" : "admin";
+  const backHref = isChapterAdmin ? "/chapter-admin" : isStateAdmin ? "/state-admin/chapters" : "/admin/chapters";
+  const businessesHref = isChapterAdmin ? "/chapter-admin/businesses" : isStateAdmin ? "/state-admin/businesses" : "/admin/businesses";
+  const membersHref = isChapterAdmin ? "/chapter-admin/members" : isStateAdmin ? "/state-admin/members" : "/admin/users";
+  const unitsHref = isChapterAdmin ? "/chapter-admin/units" : isStateAdmin ? "/state-admin/chapters" : "/admin/units";
   const { data, isLoading, refetch } = useChapterDetails(chapterId);
 
   const [openAdminModal, setOpenAdminModal] = useState(false);
@@ -42,7 +47,7 @@ export default function AdminChapterDetails({ chapterId }) {
 
   if (isLoading) {
     return (
-      <AppShell role="admin" title="Chapter Details">
+      <AppShell role={currentRole} title="Chapter Details">
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -52,7 +57,7 @@ export default function AdminChapterDetails({ chapterId }) {
 
   if (!data || !data.chapter) {
     return (
-      <AppShell role="admin" title="Chapter Details">
+      <AppShell role={currentRole} title="Chapter Details">
         <div className="text-center py-20">
           <p className="text-muted-foreground">Chapter not found.</p>
           <Button variant="link" onClick={() => router.push(backHref)}>
@@ -98,13 +103,13 @@ export default function AdminChapterDetails({ chapterId }) {
 
   return (
     <AppShell
-      role="admin"
+      role={currentRole}
       title={chapter.name}
       subtitle={`Regional branch in ${chapter.city}, ${chapter.state}`}
       actions={
         !isChapterAdmin && (
           <Button variant="outline" asChild>
-            <Link href="/admin/chapters">
+            <Link href={backHref}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Link>
           </Button>
@@ -146,21 +151,21 @@ export default function AdminChapterDetails({ chapterId }) {
             value={stats.businessesCount || 0} 
             icon={Building2} 
             tone="primary" 
-            href="/admin/businesses"
+            href={businessesHref}
           />
           <StatCard 
             label="Verified Members" 
             value={stats.customersCount || 0} 
             icon={Users} 
             tone="success" 
-            href="/admin/users"
+            href={membersHref}
           />
           <StatCard 
             label="Specialised Units" 
             value={chapter.units?.length || 0} 
             icon={Briefcase} 
             tone="warning" 
-            href="/admin/units"
+            href={unitsHref}
           />
         </div>
 
