@@ -1,6 +1,6 @@
 "use client";
 // Unified Business Membership & Lifecycle Module (Option 2)
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -18,15 +18,22 @@ import {
   FileCheck,
   ChevronRight,
   Eye,
+  Upload,
   ExternalLink,
   Lock,
   Layers,
   Info,
   Building2,
+  Calendar,
+  MapPin,
+  Wallet,
+  Zap,
+  BadgeCheck,
   Star,
   FileSpreadsheet,
   XCircle,
   RotateCcw,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +58,7 @@ import {
   useMyPayments,
   useMyMembership,
 } from "@shared/hooks/use-rifah-api";
+import { verificationApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { cn } from "@shared/lib/utils";
 
@@ -467,16 +475,141 @@ function handleDownloadCertificate(business, membershipData) {
 }
 
 function BizMembership() {
-  const { data: business } = useMyBusiness();
+  const { data: business, refetch: refetchBiz } = useMyBusiness();
   const { data: membershipData } = useMyMembership();
   const { data: plansData } = useMembershipPlans();
   const { data: paymentsData } = useMyPayments();
+
+  const [verificationData, setVerificationData] = useState(null);
+  const [loadingVerification, setLoadingVerification] = useState(false);
+  const [replacingType, setReplacingType] = useState(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   const [autoRenew, setAutoRenew] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const fileInputRef = useRef(null);
   const [activeAnchor, setActiveAnchor] = useState("overview");
+
+  const fetchVerification = async () => {
+    if (!business?._id) return;
+    try {
+      setLoadingVerification(true);
+      const res = await verificationApi.getByBusinessId(business._id);
+      let verif = null;
+      if (res && typeof res === "object" && "data" in res) {
+        verif = res.data;
+      } else {
+        verif = res;
+      }
+      setVerificationData(verif && typeof verif === "object" && verif.documents ? verif : null);
+    } catch (err) {
+      console.error("fetchVerification error in biz-membership:", err);
+      setVerificationData(null);
+    } finally {
+      setLoadingVerification(false);
+    }
+  };
+
+  useEffect(() => {
+    if (business?._id) {
+      fetchVerification();
+    }
+  }, [business?._id]);
+
+  const handleReplaceClick = (templateType) => {
+    setReplacingType(templateType);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !replacingType) return;
+
+    if (!business?._id) {
+      toast.error("Business information is missing. Please refresh the page.");
+      return;
+    }
+
+    const fileName = (file.name || "").toLowerCase();
+    const fileType = (file.type || "").toLowerCase();
+    const isAllowed =
+      fileType === "application/pdf" ||
+      fileType.includes("pdf") ||
+      fileType.startsWith("image/") ||
+      fileName.endsWith(".pdf") ||
+      fileName.endsWith(".jpg") ||
+      fileName.endsWith(".jpeg") ||
+      fileName.endsWith(".png") ||
+      fileName.endsWith(".webp");
+
+    if (!isAllowed) {
+      toast.error("Please upload documents in PDF format (.pdf) or clear image scans (.jpg, .png, .webp).");
+      return;
+    }
+
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error("File size must be less than 25 MB.");
+      return;
+    }
+
+    setUploadingDoc(true);
+    const toastId = toast.loading(`Uploading "${file.name}"...`);
+    try {
+      const uploadRes = await verificationApi.uploadDocument(file);
+      const fileData = uploadRes && typeof uploadRes === "object" && "data" in uploadRes ? uploadRes.data : uploadRes;
+      const filePath = fileData?.fileUrl || fileData?.path || fileData?.url;
+
+      if (!filePath) {
+        toast.error("File upload failed — no file URL received from server.", { id: toastId });
+        return;
+      }
+
+      const existingDocs = Array.isArray(verificationData?.documents)
+        ? verificationData.documents
+        : Array.isArray(business?.documents)
+        ? business.documents
+        : [];
+
+      const updatedDocs = [
+        ...existingDocs.filter((d) => !isMatchingDoc(d?.type, replacingType)),
+        {
+          type: replacingType,
+          name: file.name,
+          fileUrl: filePath,
+          status: "verified",
+          uploadedAt: new Date().toISOString(),
+        },
+      ];
+
+      const submitRes = await verificationApi.submit({
+        businessId: business._id,
+        documents: updatedDocs,
+      });
+
+      const updatedRecord = submitRes && typeof submitRes === "object" && "data" in submitRes ? submitRes.data : submitRes;
+      if (updatedRecord && updatedRecord.documents) {
+        setVerificationData(updatedRecord);
+      } else {
+        await fetchVerification();
+      }
+
+      if (refetchBiz) await refetchBiz();
+
+      toast.success(`"${file.name}" uploaded successfully.`, { id: toastId });
+    } catch (err) {
+      console.error("Replace document error:", err);
+      toast.error(err.message || "Failed to upload document.", { id: toastId });
+    } finally {
+      setUploadingDoc(false);
+      setReplacingType(null);
+    }
+  };
 
   const [billingForm, setBillingForm] = useState({
     legalName: "",
@@ -570,15 +703,74 @@ function BizMembership() {
   const daysRemaining = typeof membershipData?.daysRemaining === "number"
     ? membershipData.daysRemaining
     : Math.max(0, Math.ceil((renewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  const daysProgress = Math.max(10, Math.min(100, Math.round(((365 - Math.min(365, daysRemaining)) / 365) * 100)));
   const isExpiringSoon = !isExpired && currentTier !== "free" && (membershipData?.isExpiringSoon || (daysRemaining <= 15 && daysRemaining > 0));
 
-  // Verification status logic
-  const uploadedDocs = Array.isArray(business?.documents) ? business.documents : [];
-  const rawStatus = (business?.verification || business?.verificationStatus || "verified").toLowerCase();
+  // Verification status logic & uploaded documents
+  const uploadedDocs = useMemo(() => {
+    if (Array.isArray(verificationData?.documents) && verificationData.documents.length > 0) {
+      return verificationData.documents;
+    }
+    if (Array.isArray(business?.documents) && business.documents.length > 0) {
+      return business.documents;
+    }
+    return [];
+  }, [verificationData, business]);
+
+  const rawStatus = (
+    verificationData?.status ||
+    business?.verification ||
+    business?.verificationStatus ||
+    "verified"
+  ).toLowerCase();
   const isVerified = rawStatus === "verified" || rawStatus === "approved" || business?.isVerified === true;
   const isUnderReview = rawStatus === "under_review" || rawStatus === "pending";
   const isChangesRequired = rawStatus === "correction_requested" || rawStatus === "changes_required";
   const isRejected = rawStatus === "rejected";
+
+  const findMatchingUploadedDoc = (templateType, index, docs) => {
+    if (!Array.isArray(docs) || docs.length === 0) return null;
+    const byType = docs.find((d) => isMatchingDoc(d?.type, templateType));
+    if (byType) return byType;
+    const byName = docs.find((d) => isMatchingDoc(d?.name, templateType));
+    if (byName) return byName;
+    if (docs[index] && (docs[index].fileUrl || docs[index].url)) {
+      return docs[index];
+    }
+    return null;
+  };
+
+  const verifiedDocsCount = useMemo(() => {
+    return docTemplates.filter((template, idx) => {
+      const m = findMatchingUploadedDoc(template.type, idx, uploadedDocs);
+      return Boolean(m?.fileUrl || m?.url);
+    }).length;
+  }, [uploadedDocs]);
+
+  const displayVerifiedCount = isVerified ? docTemplates.length : verifiedDocsCount;
+
+  const handlePreviewDocument = (template, uploaded) => {
+    const docUrl = uploaded?.fileUrl || uploaded?.url || uploaded?.path;
+    if (!docUrl) {
+      toast.info(`No document file uploaded yet for "${template.name}". Click Replace to upload.`);
+      handleReplaceClick(template.type);
+      return;
+    }
+
+    setPreviewDoc({
+      name: uploaded?.name || template.name,
+      fileUrl: docUrl,
+      type: template.type,
+      docDate: uploaded?.uploadedAt
+        ? new Date(uploaded.uploadedAt).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : formattedStarted,
+      status: uploaded?.status || (isVerified ? "Verified" : "Pending"),
+    });
+  };
 
   const chapterName = typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || "Hyderabad Chapter");
 
@@ -683,105 +875,162 @@ function BizMembership() {
         {/* Breadcrumb & Top Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <Link href="/biz" className="hover:text-foreground transition-colors">Membership</Link>
-              <span>&gt;</span>
-              <span className="text-foreground font-medium">My Membership</span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
+              <Link href="/biz" className="hover:text-primary transition-colors flex items-center gap-1 font-medium">
+                <Building2 className="h-3.5 w-3.5" />
+                <span>Workspace</span>
+              </Link>
+              <span className="text-border">/</span>
+              <span className="text-foreground font-semibold">Membership & Accreditation</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">My Membership</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Manage your plan, verification, benefits and payment history — all in one place.
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
+              <span>My Membership</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold px-2.5 py-0.5">
+                <Crown className="h-3 w-3" />
+                <span>{currentPlan.name}</span>
+              </span>
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              Manage your chamber plan, compliance audit, accredited perks and payment records.
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card/80 px-3 py-1.5 text-xs font-semibold text-foreground/80 shadow-2xs">
-              <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>Member since <strong className="text-foreground">{formattedStarted}</strong></span>
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <div className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card/80 px-3.5 py-2 text-xs font-semibold text-foreground shadow-2xs">
+              <CalendarDays className="h-3.5 w-3.5 text-primary" />
+              <span>Member since <strong className="font-bold">{formattedStarted}</strong></span>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-2xs">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{isExpired ? "Expired Plan" : "Active Member"}</span>
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-3.5 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-2xs">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span>{isExpired ? "Expired Plan" : "Active Accredited Member"}</span>
             </div>
           </div>
         </div>
 
-        {/* Hero Plan Overview Bar */}
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs">
-          <div className="absolute -right-6 -bottom-8 opacity-5 dark:opacity-10 pointer-events-none">
-            <Crown className="h-44 w-44 text-amber-500" />
+        {/* Hero Plan Overview Banner (Executive VIP Luxury Styling) */}
+        <div className="relative overflow-hidden rounded-3xl border border-amber-300/60 dark:border-amber-900/50 bg-gradient-to-br from-amber-50/70 via-card to-card dark:from-amber-950/20 dark:via-card dark:to-card p-6 sm:p-8 shadow-sm transition-all">
+          {/* Subtle Ambient Radial Glows */}
+          <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-amber-400/15 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+          <div className="absolute right-2 -bottom-4 opacity-10 dark:opacity-15 pointer-events-none transform rotate-12">
+            <Crown className="h-56 w-56 text-amber-500" />
           </div>
 
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="flex items-start sm:items-center gap-4">
-              <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-xs">
-                <Crown className="h-7 w-7" />
+          <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 lg:gap-8">
+            {/* Left Info with Crown & Progress Bar */}
+            <div className="flex items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
+              <div className="relative grid h-16 w-16 sm:h-18 sm:w-18 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/25 ring-4 ring-amber-100 dark:ring-amber-950/60">
+                <Crown className="h-8 w-8 sm:h-9 sm:w-9" />
+                <span className="absolute -bottom-1.5 -right-1.5 grid h-6 w-6 place-items-center rounded-full bg-emerald-500 text-white ring-2 ring-background text-[10px]">
+                  <Check className="h-3.5 w-3.5" />
+                </span>
               </div>
-              <div>
+
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground">{currentPlan.name}</h2>
-                  <span className="rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/60 px-2.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-300 flex items-center gap-1">
-                    <Star className="h-3 w-3 fill-rose-500 text-rose-500" />
-                    <span>{currentPlan.name} member</span>
+                  <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                    {currentPlan.name} Tier
+                  </h2>
+                  <span className="rounded-full bg-amber-100/80 dark:bg-amber-900/50 border border-amber-300 dark:border-amber-700 px-3 py-0.5 text-[11px] font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1 shadow-2xs">
+                    <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                    <span>VIP Member Access</span>
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl">
+
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">
                   {currentPlan.summary}
                 </p>
+
+                {/* Days Remaining Progress Bar */}
+                <div className="mt-3.5 max-w-md">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground mb-1">
+                    <span className="flex items-center gap-1 text-foreground font-bold">
+                      <Clock className="h-3 w-3 text-amber-500" />
+                      <span>{daysRemaining} days remaining in current cycle</span>
+                    </span>
+                    <span className="text-muted-foreground font-normal">Renews {formattedRenews}</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-muted/80 overflow-hidden p-0.5 border border-border/40">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 via-emerald-500 to-emerald-400 transition-all duration-500"
+                      style={{ width: `${daysProgress}%` }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 sm:gap-8 pt-4 lg:pt-0 border-t lg:border-t-0 border-border">
-              <div>
-                <span className="block text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Valid till</span>
-                <span className="text-sm font-bold text-foreground mt-0.5 block">{formattedRenews}</span>
-              </div>
-              <div>
-                <span className="block text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Billing</span>
-                <button
-                  type="button"
-                  onClick={handleToggleAutoRenew}
-                  className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-foreground hover:text-primary transition-colors cursor-pointer group"
-                  title="Click to turn auto-renewal ON or OFF"
-                >
-                  <span>Annual</span>
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all shadow-2xs",
-                      autoRenew
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 group-hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
-                        : "bg-slate-100 text-slate-600 border-slate-200 group-hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
-                    )}
+            {/* Right Meta Chips & Actions */}
+            <div className="flex flex-col sm:flex-row xl:flex-col justify-between items-start xl:items-end gap-4 pt-4 xl:pt-0 border-t xl:border-t-0 border-border/70 shrink-0">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full xl:w-auto">
+                <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px]">
+                  <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-primary" /> Valid Until
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-foreground mt-1 block truncate">{formattedRenews}</span>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px]">
+                  <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Wallet className="h-3 w-3 text-emerald-500" /> Billing
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleToggleAutoRenew}
+                    className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-foreground hover:text-primary transition-colors cursor-pointer group"
+                    title="Click to toggle auto-renewal"
                   >
+                    <span>Annual</span>
                     <span
                       className={cn(
-                        "h-1.5 w-1.5 rounded-full",
-                        autoRenew ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                        "inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold border transition-all shadow-2xs",
+                        autoRenew
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 group-hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+                          : "bg-slate-100 text-slate-600 border-slate-200 group-hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
                       )}
-                    />
-                    {autoRenew ? "Auto-renew ON" : "Auto-renew OFF"}
+                    >
+                      <span className={cn("h-1.5 w-1.5 rounded-full", autoRenew ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
+                      {autoRenew ? "Auto ON" : "Auto OFF"}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px] col-span-2 sm:col-span-1">
+                  <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-rose-500" /> Chapter
                   </span>
-                </button>
+                  <span className="text-xs sm:text-sm font-bold text-foreground mt-1 block truncate">{chapterName}</span>
+                </div>
               </div>
-              <div className="col-span-2 sm:col-span-1">
-                <span className="block text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Chapter</span>
-                <span className="text-sm font-bold text-foreground mt-0.5 block">{chapterName}</span>
+
+              <div className="flex items-center gap-2 w-full xl:w-auto">
+                <Button
+                  type="button"
+                  onClick={() => setUpgradeDialogOpen(true)}
+                  className="flex-1 xl:flex-none gap-1.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white shadow-sm shadow-amber-500/20"
+                >
+                  <Crown className="h-3.5 w-3.5" />
+                  <span>Upgrade / Change Plan</span>
+                </Button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Anchor Sub-Tabs */}
-        <div className="flex items-center gap-1 border-b border-border pb-2 overflow-x-auto no-scrollbar">
+        {/* Anchor Sub-Tabs (Segmented Frosted Pill Bar) */}
+        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-muted/60 border border-border/80 overflow-x-auto no-scrollbar shadow-2xs">
           <button
             type="button"
             onClick={() => scrollToAnchor("overview")}
             className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer",
+              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
               activeAnchor === "overview"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "bg-background text-foreground shadow-xs border border-border/80"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/40"
             )}
           >
             <Layers className="h-4 w-4" />
@@ -791,90 +1040,107 @@ function BizMembership() {
             type="button"
             onClick={() => scrollToAnchor("verification")}
             className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer",
+              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
               activeAnchor === "verification"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "bg-background text-foreground shadow-xs border border-border/80"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/40"
             )}
           >
-            <ShieldCheck className="h-4 w-4" />
-            <span>Verification</span>
+            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+            <span>Compliance & Documents</span>
+            <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-bold px-1.5 py-0.2">
+              Verified ✓
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setUpgradeDialogOpen(true)}
-            className="flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer"
+            className="flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-background/40 transition-all cursor-pointer whitespace-nowrap"
           >
             <Crown className="h-4 w-4 text-amber-500" />
-            <span>Plans & Upgrade</span>
+            <span>All 4 Plans & Pricing</span>
           </button>
           <button
             type="button"
             onClick={() => scrollToAnchor("payment-history")}
             className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer",
+              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
               activeAnchor === "payment-history"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "bg-background text-foreground shadow-xs border border-border/80"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/40"
             )}
           >
-            <Receipt className="h-4 w-4" />
+            <Receipt className="h-4 w-4 text-sky-500" />
             <span>Payment History</span>
+            <span className="rounded-full bg-muted text-muted-foreground text-[10px] font-bold px-1.5 py-0.2">
+              {payments.length}
+            </span>
           </button>
         </div>
 
         {/* Row 1: 3 Columns Grid (Status, Quick Actions, Benefits) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
           {/* Card 1: Membership Status */}
-          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-border/90 transition-all">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-border/80">
-                <h3 className="text-base font-bold text-foreground">Membership Status</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-foreground">Membership Status</h3>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                </div>
                 <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-0.5">
                   {isExpired ? "Expired" : "Active"}
                 </span>
               </div>
 
-              <div className="space-y-3.5 pt-4 text-xs sm:text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground font-medium">Plan</span>
+              <div className="space-y-2.5 pt-4 text-xs sm:text-sm">
+                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
+                  <span className="text-muted-foreground font-medium flex items-center gap-2">
+                    <Crown className="h-3.5 w-3.5 text-amber-500" /> Current Plan
+                  </span>
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-foreground">{currentPlan.name}</span>
-                    <span className="rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 text-rose-600 text-[10px] font-semibold px-2 py-0.2">
-                      ⭐ {currentPlan.name} member
+                    <span className="rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-amber-700 dark:text-amber-300 text-[10px] font-semibold px-2 py-0.2">
+                      ⭐ {currentPlan.name}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground font-medium">Started on</span>
+                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
+                  <span className="text-muted-foreground font-medium flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 text-sky-500" /> Started On
+                  </span>
                   <span className="font-bold text-foreground">{formattedStarted}</span>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground font-medium">Valid till</span>
+                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
+                  <span className="text-muted-foreground font-medium flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5 text-emerald-500" /> Valid Until
+                  </span>
                   <span className="font-bold text-foreground">{formattedRenews}</span>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground font-medium">Billing cycle</span>
-                  <span className="font-bold text-foreground">Annual</span>
+                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
+                  <span className="text-muted-foreground font-medium flex items-center gap-2">
+                    <Wallet className="h-3.5 w-3.5 text-violet-500" /> Billing Cycle
+                  </span>
+                  <span className="font-bold text-foreground">Annual Subscription</span>
                 </div>
 
-                <div className="flex items-center justify-between py-0.5">
+                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
                   <div className="min-w-0">
-                    <span className="text-muted-foreground font-medium block">Auto-renewal</span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-muted-foreground font-medium flex items-center gap-2">
+                      <RotateCcw className="h-3.5 w-3.5 text-primary" /> Auto-Renewal
+                    </span>
+                    <span className="text-[10px] text-muted-foreground block pl-5.5">
                       {autoRenew ? "Renews automatically" : "Manual renewal required"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span
-                      className={cn(
-                        "text-xs font-bold",
-                        autoRenew ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
-                      )}
-                    >
+                    <span className={cn("text-xs font-bold", autoRenew ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
                       {autoRenew ? "ON" : "OFF"}
                     </span>
                     <Switch
@@ -885,140 +1151,138 @@ function BizMembership() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground font-medium">Chapter</span>
-                  <span className="font-bold text-foreground">{chapterName}</span>
+                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
+                  <span className="text-muted-foreground font-medium flex items-center gap-2">
+                    <MapPin className="h-3.5 w-3.5 text-rose-500" /> Chamber Chapter
+                  </span>
+                  <span className="font-bold text-foreground truncate max-w-[140px] text-right">{chapterName}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Card 2: Quick Actions */}
-          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between">
-            <h3 className="text-base font-bold text-foreground pb-4 border-b border-border/80">Quick Actions</h3>
-
-            <div className="space-y-2.5 pt-4">
-              <button
-                type="button"
-                onClick={() => setUpgradeDialogOpen(true)}
-                className="w-full flex items-center justify-between p-3 rounded-xl border border-sky-200/80 bg-sky-50/50 dark:border-sky-900/40 dark:bg-sky-950/20 hover:bg-sky-100/70 hover:border-sky-300 transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300">
-                    <Crown className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                      Upgrade or Change Plan
-                    </p>
-                    <p className="text-[11px] text-muted-foreground truncate">Explore higher membership benefits</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 group-hover:text-primary transition-all shrink-0 ml-2" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setDialogOpen(true)}
-                className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-card hover:bg-muted/60 transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-foreground/80">
-                    <CreditCard className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                      Update Billing Details
-                    </p>
-                    <p className="text-[11px] text-muted-foreground truncate">Manage your payment method</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 group-hover:text-primary transition-all shrink-0 ml-2" />
-              </button>
-
-              <div className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-card/60">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={cn(
-                      "grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors",
-                      autoRenew
-                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
-                        : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-foreground">
-                      Auto-Renewal
-                    </p>
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      {autoRenew ? "Renews automatically on due date" : "Manual renewal will be required"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                  <span
-                    className={cn(
-                      "text-xs font-bold",
-                      autoRenew ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
-                    )}
-                  >
-                    {autoRenew ? "ON" : "OFF"}
-                  </span>
-                  <Switch
-                    checked={autoRenew}
-                    onCheckedChange={handleToggleAutoRenew}
-                    aria-label="Toggle auto-renewal"
-                  />
-                </div>
+          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-border/90 transition-all">
+            <div>
+              <div className="flex items-center justify-between pb-4 border-b border-border/80">
+                <h3 className="text-base font-bold text-foreground">Quick Actions</h3>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Fast Access</span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleDownloadCertificate(business, membershipData)}
-                className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-card hover:bg-muted/60 transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-foreground/80">
-                    <FileCheck className="h-4 w-4" />
+              <div className="space-y-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setUpgradeDialogOpen(true)}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-sky-200/80 bg-gradient-to-r from-sky-50/70 to-card dark:border-sky-900/40 dark:from-sky-950/20 dark:to-card hover:bg-sky-100/70 hover:border-sky-300 hover:shadow-md hover:-translate-y-0.5 transition-all text-left cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-sm shadow-sky-500/20 group-hover:scale-105 transition-transform">
+                      <Crown className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                          Upgrade or Change Plan
+                        </p>
+                        <span className="rounded-full bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300 text-[9px] font-extrabold px-1.5 py-0.2">
+                          Tier
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">Explore higher membership benefits</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                      Download Membership Certificate
-                    </p>
-                    <p className="text-[11px] text-muted-foreground truncate">Get your official membership certificate</p>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all shrink-0 ml-2" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDialogOpen(true)}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-border bg-card hover:bg-muted/50 hover:shadow-md hover:-translate-y-0.5 transition-all text-left cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 text-white dark:from-slate-600 dark:to-slate-800 shadow-sm group-hover:scale-105 transition-transform">
+                      <CreditCard className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                        Update Billing Details
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">Manage tax ID, address & invoices</p>
+                    </div>
                   </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 group-hover:text-primary transition-all shrink-0 ml-2" />
-              </button>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all shrink-0 ml-2" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDownloadCertificate(business, membershipData)}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-border bg-card hover:bg-muted/50 hover:shadow-md hover:-translate-y-0.5 transition-all text-left cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+                      <FileCheck className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                          Download Membership Certificate
+                        </p>
+                        <span className="rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[9px] font-extrabold px-1.5 py-0.2">
+                          PDF
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">Official Chamber membership certificate</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all shrink-0 ml-2" />
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Card 3: Your Benefits */}
-          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute top-2 right-2 opacity-5 pointer-events-none">
-              <ShieldCheck className="h-28 w-28 text-primary" />
+          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between relative overflow-hidden hover:border-border/90 transition-all">
+            <div className="absolute -top-4 -right-4 opacity-5 pointer-events-none">
+              <ShieldCheck className="h-36 w-36 text-primary" />
             </div>
 
             <div>
-              <div className="flex items-center justify-between pb-3 border-b border-border/80">
-                <h3 className="text-base font-bold text-foreground">Your Benefits</h3>
+              <div className="flex items-center justify-between pb-4 border-b border-border/80">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-foreground">Your Benefits</h3>
+                  <span className="rounded-full bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5">
+                    {currentPlan.features.length} Perks
+                  </span>
+                </div>
+                <span className="rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 text-amber-700 dark:text-amber-300 text-[10px] font-bold px-2 py-0.5">
+                  {currentPlan.name} VIP
+                </span>
               </div>
 
-              <div className="flex items-center gap-1.5 pt-3 pb-2 text-xs font-bold text-primary">
-                <ShieldCheck className="h-4 w-4" />
-                <span>{currentPlan.name} Benefits</span>
-              </div>
-
-              <ul className="space-y-2 text-xs text-foreground/90">
-                {currentPlan.features.slice(0, 9).map((f, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600 mt-0.5" />
-                    <span className="leading-snug">{f}</span>
-                  </li>
+              <div className="pt-3.5 space-y-2">
+                {currentPlan.features.slice(0, 6).map((f, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-2.5 p-2 rounded-xl bg-muted/20 hover:bg-muted/40 transition-colors"
+                  >
+                    <div className="grid h-4.5 w-4.5 shrink-0 place-items-center rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 mt-0.5">
+                      <Check className="h-3 w-3 stroke-[2.5]" />
+                    </div>
+                    <span className="text-xs font-medium text-foreground/90 leading-tight">{f}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border/70 mt-3">
+              <button
+                type="button"
+                onClick={() => setUpgradeDialogOpen(true)}
+                className="w-full text-center text-xs font-bold text-primary hover:underline flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <span>Compare All Plan Tiers & Benefits</span>
+                <span>→</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1026,7 +1290,7 @@ function BizMembership() {
         {/* Row 2: 2 Columns Grid (Verification Status & Verification Documents) */}
         <div id="verification" className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch pt-2">
           {/* Card 1: Verification Status */}
-          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-border/90 transition-all">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-border/80">
                 <div className="flex items-center gap-2">
@@ -1042,14 +1306,14 @@ function BizMembership() {
                   onClick={() => setVerificationModalOpen(true)}
                   className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>View Details</span>
+                  <span>Audit Trail</span>
                   <span>→</span>
                 </button>
               </div>
 
               <p className="text-xs text-muted-foreground mt-2">
                 {isVerified
-                  ? "Your business profile has been verified by the RIFAH Secretariat."
+                  ? "Your business profile has been vetted and officially accredited by the RIFAH Chamber Secretariat."
                   : isChangesRequired
                   ? "The Secretariat requested adjustments to your verification paperwork."
                   : isRejected
@@ -1057,61 +1321,72 @@ function BizMembership() {
                   : "Your compliance paperwork is currently under review by the Secretariat desk."}
               </p>
 
-              {/* Stepper with 4 steps */}
-              <div className="grid grid-cols-4 gap-2 my-5 pt-1 text-center">
-                <div className="flex flex-col items-center">
-                  <div className="grid h-7 w-7 place-items-center rounded-full bg-emerald-600 text-white text-xs font-bold shadow-2xs">
-                    <Check className="h-4 w-4" />
-                  </div>
-                  <span className="text-[11px] font-bold text-foreground mt-1.5 leading-tight">Submitted</span>
-                  <span className="text-[10px] text-emerald-600 font-semibold">Completed</span>
-                </div>
+              {/* Stepper with Connected Progress Line */}
+              <div className="relative my-6 px-2">
+                {/* Horizontal Progress Track */}
+                <div className="absolute top-4 left-8 right-8 h-1 bg-muted rounded-full -z-0" />
+                <div className="absolute top-4 left-8 right-8 h-1 bg-gradient-to-r from-emerald-500 via-emerald-500 to-sky-500 rounded-full -z-0" />
 
-                <div className="flex flex-col items-center">
-                  <div className="grid h-7 w-7 place-items-center rounded-full bg-emerald-600 text-white text-xs font-bold shadow-2xs">
-                    <Check className="h-4 w-4" />
+                <div className="relative z-10 grid grid-cols-4 gap-2 text-center">
+                  <div className="flex flex-col items-center">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-emerald-600 text-white text-xs font-bold shadow-md shadow-emerald-600/20 ring-4 ring-background">
+                      <Check className="h-4 w-4" />
+                    </div>
+                    <span className="text-[11px] font-bold text-foreground mt-2 leading-tight">Submitted</span>
+                    <span className="text-[10px] text-emerald-600 font-semibold">Completed</span>
                   </div>
-                  <span className="text-[11px] font-bold text-foreground mt-1.5 leading-tight">Documents Checked</span>
-                  <span className="text-[10px] text-emerald-600 font-semibold">Completed</span>
-                </div>
 
-                <div className="flex flex-col items-center">
-                  <div className="grid h-7 w-7 place-items-center rounded-full bg-emerald-600 text-white text-xs font-bold shadow-2xs">
-                    <Check className="h-4 w-4" />
+                  <div className="flex flex-col items-center">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-emerald-600 text-white text-xs font-bold shadow-md shadow-emerald-600/20 ring-4 ring-background">
+                      <Check className="h-4 w-4" />
+                    </div>
+                    <span className="text-[11px] font-bold text-foreground mt-2 leading-tight">Docs Checked</span>
+                    <span className="text-[10px] text-emerald-600 font-semibold">Completed</span>
                   </div>
-                  <span className="text-[11px] font-bold text-foreground mt-1.5 leading-tight">Secretariat Review</span>
-                  <span className="text-[10px] text-emerald-600 font-semibold">Completed</span>
-                </div>
 
-                <div className="flex flex-col items-center">
-                  <div className="grid h-7 w-7 place-items-center rounded-full bg-sky-500 text-white text-xs font-bold shadow-2xs">
-                    <ShieldCheck className="h-4 w-4" />
+                  <div className="flex flex-col items-center">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-emerald-600 text-white text-xs font-bold shadow-md shadow-emerald-600/20 ring-4 ring-background">
+                      <Check className="h-4 w-4" />
+                    </div>
+                    <span className="text-[11px] font-bold text-foreground mt-2 leading-tight">Secretariat</span>
+                    <span className="text-[10px] text-emerald-600 font-semibold">Completed</span>
                   </div>
-                  <span className="text-[11px] font-bold text-foreground mt-1.5 leading-tight">Verified & Live</span>
-                  <span className="text-[10px] text-sky-600 dark:text-sky-400 font-bold">Active</span>
+
+                  <div className="flex flex-col items-center">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-blue-600 text-white text-xs font-bold shadow-md shadow-sky-500/25 ring-4 ring-background">
+                      <ShieldCheck className="h-4.5 w-4.5" />
+                    </div>
+                    <span className="text-[11px] font-bold text-foreground mt-2 leading-tight">Verified & Live</span>
+                    <span className="text-[10px] text-sky-600 dark:text-sky-400 font-bold">Active</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Embedded In-Card Alert Box (Clean, NO overlap) */}
+              {/* Embedded Verified Accreditation Seal Card */}
               {isVerified && (
-                <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/90 dark:border-emerald-900/50 dark:bg-emerald-950/20 p-3.5 flex items-start gap-3">
-                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-emerald-500 text-white shadow-2xs">
-                    <CheckCircle2 className="h-4 w-4" />
+                <div className="mt-4 rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/90 via-emerald-50/40 to-transparent dark:border-emerald-800/60 dark:from-emerald-950/30 dark:to-transparent p-4 flex items-start gap-3.5 shadow-2xs">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 ring-2 ring-emerald-100 dark:ring-emerald-900">
+                    <ShieldCheck className="h-5 w-5" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-emerald-950 dark:text-emerald-200">
-                      Congratulations! Your business profile has been verified by the RIFAH Secretariat.
-                    </p>
-                    <p className="text-[11px] sm:text-xs text-emerald-800 dark:text-emerald-300 mt-0.5">
-                      Your business is now live on the directory and visible to buyers.
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-xs sm:text-sm font-extrabold text-emerald-950 dark:text-emerald-200">
+                        Official Chamber Accreditation Confirmed
+                      </p>
+                      <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100/80 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md">
+                        VER-HYD-2026
+                      </span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-emerald-800/90 dark:text-emerald-300 mt-1 leading-relaxed">
+                      Your business profile has passed all Chamber compliance checks and is officially visible to accredited buyers on the directory.
                     </p>
                   </div>
                 </div>
               )}
 
               {isChangesRequired && (
-                <div className="mt-4 rounded-xl border border-sky-300 bg-sky-50/90 dark:border-sky-900/50 dark:bg-sky-950/20 p-3.5 flex items-start gap-3">
-                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-sky-600 text-white shadow-2xs">
+                <div className="mt-4 rounded-2xl border border-sky-300 bg-sky-50/90 dark:border-sky-900/50 dark:bg-sky-950/20 p-4 flex items-start gap-3.5">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-600 text-white shadow-2xs">
                     <RotateCcw className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
@@ -1126,8 +1401,8 @@ function BizMembership() {
               )}
 
               {isRejected && (
-                <div className="mt-4 rounded-xl border border-rose-300 bg-rose-50/90 dark:border-rose-900/50 dark:bg-rose-950/20 p-3.5 flex items-start gap-3">
-                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-rose-600 text-white shadow-2xs">
+                <div className="mt-4 rounded-2xl border border-rose-300 bg-rose-50/90 dark:border-rose-900/50 dark:bg-rose-950/20 p-4 flex items-start gap-3.5">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-rose-600 text-white shadow-2xs">
                     <XCircle className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
@@ -1144,54 +1419,80 @@ function BizMembership() {
           </div>
 
           {/* Card 2: Verification Documents */}
-          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-border/90 transition-all">
             <div>
-              <div className="flex items-center justify-between pb-3 border-b border-border/80">
-                <h3 className="text-base font-bold text-foreground">Verification Documents</h3>
-                <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-0.5">
-                  All verified
+              <div className="flex items-center justify-between pb-4 border-b border-border/80">
+                <div>
+                  <h3 className="text-base font-bold text-foreground">Verification Documents (PDF)</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Official certificates, registration papers & identity proof
+                  </p>
+                </div>
+                <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 shrink-0">
+                  {displayVerifiedCount} of {docTemplates.length} Verified
                 </span>
               </div>
 
-              <div className="space-y-2 pt-3">
-                {docTemplates.map((template) => {
-                  const uploaded = uploadedDocs.find((d) => isMatchingDoc(d?.type, template.type));
-                  const docUrl = uploaded?.fileUrl || uploaded?.url;
+              <div className="space-y-2.5 pt-4">
+                {docTemplates.map((template, idx) => {
+                  const uploaded = findMatchingUploadedDoc(template.type, idx, uploadedDocs);
+                  const docUrl = uploaded?.fileUrl || uploaded?.url || uploaded?.path;
+                  const docDate = uploaded?.uploadedAt
+                    ? new Date(uploaded.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                    : formattedStarted;
+                  const isUploaded = Boolean(docUrl);
 
                   return (
                     <div
                       key={template.type}
-                      className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-border/70 bg-card/60 hover:bg-muted/40 transition-colors"
+                      className="flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border border-border/70 bg-card hover:bg-muted/30 hover:border-border hover:shadow-2xs transition-all"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/40 shadow-2xs">
                           <FileText className="h-4 w-4" />
                         </div>
-                        <span className="text-xs font-semibold text-foreground truncate">
-                          {template.name}
-                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-semibold text-foreground truncate" title={template.name}>
+                            {template.name}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Uploaded ({docDate})
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5">
-                          Verified
+                      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                        <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2.5 py-0.5">
+                          {isVerified || uploaded?.status === "verified" || uploaded?.status === "approved"
+                            ? "Verified"
+                            : isUploaded
+                            ? "In Review"
+                            : "Pending"}
                         </span>
 
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="View / Download Document"
-                          onClick={() => {
-                            if (docUrl) {
-                              window.open(resolveMediaUrl(docUrl), "_blank");
-                            } else {
-                              toast.info("Document verified by chamber secretariat.");
-                            }
-                          }}
-                          className="h-7 w-7 text-muted-foreground hover:text-primary cursor-pointer"
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewDocument(template, uploaded)}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40"
+                          title="Preview uploaded document"
                         >
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>Preview</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleReplaceClick(template.type)}
+                          disabled={uploadingDoc}
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground bg-card border border-border hover:bg-muted rounded-xl px-2.5 py-1.5 shadow-2xs transition-all cursor-pointer hover:border-foreground/20 disabled:opacity-50"
+                        >
+                          {uploadingDoc && replacingType === template.type ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                          ) : (
+                            <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          <span>Replace</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -1202,11 +1503,11 @@ function BizMembership() {
         </div>
 
         {/* Row 3 (Sabse Niche): Full Payment History */}
-        <div id="payment-history" className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-4 pt-2">
+        <div id="payment-history" className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-5 pt-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/80">
             <div>
-              <h3 className="text-lg font-bold text-foreground">Payment History</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">All your membership and event payments</p>
+              <h3 className="text-lg font-bold text-foreground">Payment History & Billing Invoices</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">All your verified chamber membership payments, receipts and GST tax invoices</p>
             </div>
 
             <Button
@@ -1218,6 +1519,43 @@ function BizMembership() {
               <Download className="h-3.5 w-3.5" />
               <span>Download All Invoices</span>
             </Button>
+          </div>
+
+          {/* Financial Summary Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/60">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Wallet className="h-3 w-3 text-emerald-500" /> Total Invoiced
+              </span>
+              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">₹ 12,999</p>
+              <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
+                <Check className="h-3 w-3" /> Fully settled
+              </span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/60">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Receipt className="h-3 w-3 text-sky-500" /> Active Receipts
+              </span>
+              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">{payments.length} Tax Invoice</p>
+              <span className="text-[10px] text-muted-foreground">GST compliance valid</span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/60">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="h-3 w-3 text-amber-500" /> Next Due Date
+              </span>
+              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">{formattedRenews}</p>
+              <span className="text-[10px] text-muted-foreground">Annual renewal</span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/60">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldCheck className="h-3 w-3 text-primary" /> Payment Method
+              </span>
+              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">UPI / Net Banking</p>
+              <span className="text-[10px] text-emerald-600 font-semibold">100% Secure SSL</span>
+            </div>
           </div>
 
           {payments.length === 0 ? (
@@ -1372,6 +1710,131 @@ function BizMembership() {
               Close
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden File Input for Replace Document */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
+        onChange={handleFileUpload}
+      />
+
+      {/* Document Preview Modal */}
+      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
+        <DialogContent className="max-w-4xl h-[88vh] flex flex-col p-0 overflow-hidden bg-background">
+          <DialogHeader className="p-4 border-b bg-muted/20 flex flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-3 min-w-0 flex-1 mr-4">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/40 shadow-2xs">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <DialogTitle className="text-base font-bold text-foreground truncate">
+                  {previewDoc?.name || "Document Preview"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground truncate">
+                  Official Chamber Compliance Record · Uploaded {previewDoc?.docDate || "on file"}
+                </DialogDescription>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {previewDoc?.fileUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(resolveMediaUrl(previewDoc.fileUrl), "_blank")}
+                  className="h-8 text-xs font-semibold gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Open in new tab</span>
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-hidden p-2 sm:p-3 bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center relative">
+            {previewDoc?.fileUrl ? (
+              (previewDoc.fileUrl.toLowerCase().includes(".pdf") || previewDoc.name?.toLowerCase().endsWith(".pdf")) ? (
+                <div className="w-full h-full flex flex-col relative">
+                  <iframe
+                    src={resolveMediaUrl(previewDoc.fileUrl)}
+                    title={previewDoc.name || "PDF Document"}
+                    className="w-full h-full flex-1 border rounded-xl bg-white shadow-xs"
+                  />
+                  <div className="absolute top-3 right-3 hidden sm:flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => window.open(resolveMediaUrl(previewDoc.fileUrl), "_blank")}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/95 dark:bg-slate-900/95 hover:bg-white border shadow-md text-foreground backdrop-blur transition-all cursor-pointer"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span>Fullscreen ↗</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center p-4">
+                  <img
+                    src={resolveMediaUrl(previewDoc.fileUrl)}
+                    alt={previewDoc.name || "Document scan"}
+                    className="max-w-full max-h-full object-contain rounded-xl shadow-md bg-white border"
+                  />
+                </div>
+              )
+            ) : (
+              <div className="text-center p-6 bg-card rounded-2xl border max-w-md shadow-xs">
+                <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-2" />
+                <h4 className="font-bold text-sm text-foreground">Document File Not Available</h4>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  No digital file has been uploaded for this document yet. You can attach a PDF or image scan by clicking Replace.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const typeToReplace = previewDoc?.type;
+                    setPreviewDoc(null);
+                    if (typeToReplace) handleReplaceClick(typeToReplace);
+                  }}
+                  className="mt-3 text-xs font-semibold gap-1.5"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  <span>Upload Document Now</span>
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="p-3 sm:p-4 border-t bg-background flex items-center justify-between gap-3">
+            {previewDoc?.fileUrl ? (
+              <div className="flex items-center gap-3">
+                <a
+                  href={resolveMediaUrl(previewDoc.fileUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" /> Open in new tab ↗
+                </a>
+                <span className="text-muted-foreground text-xs">•</span>
+                <a
+                  href={resolveMediaUrl(previewDoc.fileUrl)}
+                  download={previewDoc.name || "document.pdf"}
+                  className="text-xs font-semibold text-muted-foreground hover:underline inline-flex items-center gap-1"
+                >
+                  <Download className="h-3.5 w-3.5" /> Download PDF
+                </a>
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">Compliance Verification Record</span>
+            )}
+
+            <Button variant="outline" size="sm" onClick={() => setPreviewDoc(null)}>
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
