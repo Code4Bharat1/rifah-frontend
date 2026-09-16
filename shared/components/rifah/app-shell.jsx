@@ -43,6 +43,7 @@ import {
   XCircle,
   ArrowRight,
   Shield,
+  Handshake,
 } from "lucide-react";
 import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
 import { Button } from "@shared/components/ui/button";
@@ -63,10 +64,11 @@ const navs = {
       { label: "Dashboard", to: "/biz", icon: Gauge },
       { label: "Enquiries", to: "/biz/enquiries", icon: FileStack },
       { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },
-      { label: "Messages", to: "/biz/messages", icon: MessageSquare },
+      { label: "Networking", to: "/biz/networking", icon: Handshake },
       { label: "More", to: "/biz/profile", icon: LayoutGrid },
     ],
     more: [
+      { label: "Messages", to: "/biz/messages", icon: MessageSquare },
       { label: "My Profile", to: "/biz/profile", icon: UserRound },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
       { label: "Membership", to: "/biz/membership", icon: Star },

@@ -101,6 +101,21 @@ export const stateApi = {
   removeAdmin: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}/admin`, { method: "DELETE" }),
 };
 
+export const oneToOneApi = {
+  create: (data) => apiClient("/one-to-ones", { method: "POST", body: JSON.stringify(data) }),
+  listMine: (params = {}) => apiClient(`/one-to-ones/me${toQueryString(params)}`),
+  listAdmin: (params = {}) => apiClient(`/one-to-ones${toQueryString(params)}`),
+  getById: (id) => apiClient(`/one-to-ones/${id}`),
+};
+
+export const thankYouNoteApi = {
+  create: (data) => apiClient("/thank-you-notes", { method: "POST", body: JSON.stringify(data) }),
+  listMine: (params = {}) => apiClient(`/thank-you-notes/me${toQueryString(params)}`),
+  listAdmin: (params = {}) => apiClient(`/thank-you-notes${toQueryString(params)}`),
+  summaryMine: () => apiClient("/thank-you-notes/summary/me"),
+  getById: (id) => apiClient(`/thank-you-notes/${id}`),
+};
+
 export const verificationApi = {
   getByBusinessId: (businessId) => apiClient(`/verification/business/${businessId}`),
   getQueue: (params = {}) => apiClient(`/verification/queue${toQueryString(params)}`),
