@@ -1,8 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { resolveMediaUrl } from "@shared/lib/media";
+
+let globalSidebarScrollTop = typeof window !== "undefined"
+  ? Number(sessionStorage.getItem("rifah_sidebar_scroll_top") || 0)
+  : 0;
 import {
   Bell,
   Bookmark,
@@ -17,6 +21,7 @@ import {
   LayoutGrid,
   LogOut,
   Mail,
+  MapPin,
   MapPinned,
   Megaphone,
   Menu,
@@ -107,7 +112,7 @@ const navs = {
       { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
       { label: "Categories", to: "/admin/categories", icon: Folder },
-      { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
+      { label: "States", to: "/admin/states", icon: MapPin },
       { label: "Units", to: "/admin/units", icon: Users },
       { label: "Events", to: "/admin/events", icon: Ticket },
       { label: "Payments", to: "/admin/payments", icon: CreditCard },
@@ -116,6 +121,23 @@ const navs = {
       { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
       { label: "Settings", to: "/admin/settings", icon: Settings },
+    ],
+  },
+  state_admin: {
+    title: "State administration",
+    primary: [
+      { label: "Overview", to: "/state-admin", icon: Gauge },
+      { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
+      { label: "Verify", to: "/chapter-admin/verification", icon: ShieldCheck },
+      { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
+    ],
+    more: [
+      { label: "Users", to: "/chapter-admin/users", icon: Users },
+      { label: "Events", to: "/chapter-admin/events", icon: Ticket },
+      { label: "Leads", to: "/chapter-admin/leads", icon: Target },
+      { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
+      { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
+      { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
     ],
   },
   chapter_admin: {
@@ -154,10 +176,21 @@ const roleSwitcher = [
 
 function useResolvedNav(role) {
   const { user } = useAuth();
-  return role === "admin" && user?.role === "chapter_admin" ? navs.chapter_admin : navs[role];
+  if (role === "state_admin" || user?.role === "state_admin") return navs.state_admin;
+  if ((role === "admin" || role === "chapter_admin") && user?.role === "chapter_admin") return navs.chapter_admin;
+  return navs[role] || navs.admin || navs.customer;
 }
 
 function toRoleAwarePath(path, role, user) {
+  if (user?.role === "state_admin") {
+    if (path === "/admin" || path === "/admin/chapters" || path === "/chapter-admin") {
+      return "/state-admin";
+    }
+    if (path.startsWith("/admin/")) {
+      return path.replace(/^\/admin/, "/chapter-admin");
+    }
+    return path;
+  }
   if (role === "admin" && user?.role === "chapter_admin" && path.startsWith("/admin")) {
     return path.replace(/^\/admin/, "/chapter-admin");
   }
@@ -187,10 +220,13 @@ function useCurrentPath() {
   return usePathname();
 }
 
-function SidebarLink({ item, active, badge, isLocked }) {
+function SidebarLink({ item, active, badge, isLocked, onSelect }) {
   return (
     <Link
       href={item.to}
+      scroll={false}
+      onClick={onSelect}
+      data-sidebar-active={active ? "true" : undefined}
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         active && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary",
@@ -252,8 +288,10 @@ export function AppShell({
   const path = useCurrentPath();
   const router = useRouter();
   const { user, logout, switchRole, loading } = useAuth();
-  const nav = useResolvedNav(role);
-  const all = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
+  const nav = useResolvedNav(role) || navs.admin || navs.customer;
+  const primary = nav?.primary || [];
+  const more = nav?.more || [];
+  const all = [...primary.filter((i) => i.label !== "More"), ...more];
 
   useEffect(() => {
     if (!loading && !user) {
@@ -299,10 +337,58 @@ export function AppShell({
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/me", "/discover"];
+    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
     if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };
+
+  const navRef = useRef(null);
+
+  const handleNavScroll = (e) => {
+    const top = e.currentTarget.scrollTop;
+    globalSidebarScrollTop = top;
+    try {
+      sessionStorage.setItem("rifah_sidebar_scroll_top", String(top));
+    } catch {}
+  };
+
+  const recordScroll = () => {
+    if (navRef.current) {
+      const top = navRef.current.scrollTop;
+      globalSidebarScrollTop = top;
+      try {
+        sessionStorage.setItem("rifah_sidebar_scroll_top", String(top));
+      } catch {}
+    }
+  };
+
+  const setNavRef = (node) => {
+    navRef.current = node;
+    if (node) {
+      if (globalSidebarScrollTop > 0) {
+        node.scrollTop = globalSidebarScrollTop;
+      } else {
+        const activeLink = node.querySelector('[data-sidebar-active="true"]');
+        if (activeLink) {
+          activeLink.scrollIntoView({ block: "nearest", behavior: "instant" });
+          globalSidebarScrollTop = node.scrollTop;
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (navRef.current) {
+      if (globalSidebarScrollTop > 0) {
+        navRef.current.scrollTop = globalSidebarScrollTop;
+      } else {
+        const activeLink = navRef.current.querySelector('[data-sidebar-active="true"]');
+        if (activeLink) {
+          activeLink.scrollIntoView({ block: "nearest", behavior: "instant" });
+        }
+      }
+    }
+  }, [path]);
 
   const handleLogout = () => {
     logout();
@@ -314,7 +400,7 @@ export function AppShell({
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-sidebar lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" scroll={false} className="flex items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-lg bg-surface">
               <LogoMark className="h-5" />
             </span>
@@ -326,7 +412,11 @@ export function AppShell({
             {nav.title}
           </p>
         </div>
-        <nav className="mt-2 flex-1 space-y-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-4">
+        <nav
+          ref={setNavRef}
+          onScroll={handleNavScroll}
+          className="mt-2 flex-1 space-y-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-4"
+        >
           {all.map((item) => {
             let badge = null;
             if (item.label === "Messages") badge = unreadMsgs;
@@ -339,6 +429,7 @@ export function AppShell({
                 active={isActive(item.to)}
                 badge={badge}
                 isLocked={isItemLocked}
+                onSelect={recordScroll}
               />
             );
           })}
@@ -346,7 +437,17 @@ export function AppShell({
         <div className="border-t border-sidebar-border p-3">
           {user && (
             <Link
-              href={role === "customer" ? "/me/profile" : role === "business" ? "/biz/profile" : "/admin/profile"}
+              href={
+                role === "customer"
+                  ? "/me/profile"
+                  : role === "business"
+                  ? "/biz/profile"
+                  : user?.role === "state_admin" || user?.role === "chapter_admin"
+                  ? "/chapter-admin/settings"
+                  : "/admin/settings"
+              }
+              scroll={false}
+              onClick={recordScroll}
               className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50 transition-colors cursor-pointer group"
               title="View profile"
             >
@@ -663,6 +764,7 @@ function MoreSheet({ role, isBizVerified = true }) {
               <Link
                 key={i.to + i.label}
                 href={i.to}
+                scroll={false}
                 className={cn(
                   "flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted",
                   isLocked && "opacity-75"

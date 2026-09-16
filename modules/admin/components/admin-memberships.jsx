@@ -148,29 +148,34 @@ function AdminMemberships() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div onClick={() => setFilter("all")} className={`cursor-pointer transition-all duration-200 ${filter === 'all' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-            <StatCard label="Total members" value={String(businesses.length)} icon={Star} tone="primary" />
-          </div>
-          <div onClick={() => setFilter("premium")} className={`cursor-pointer transition-all duration-200 ${filter === 'premium' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-            <StatCard
-              label="Premium / Enterprise"
-              value={String(businesses.filter((b) => b.membership === "Premium" || b.membership === "Enterprise").length)}
-              tone="success"
-            />
-          </div>
-          <div onClick={() => setFilter("basic")} className={`cursor-pointer transition-all duration-200 ${filter === 'basic' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-            <StatCard
-              label="Basic"
-              value={String(businesses.filter((b) => b.membership === "Basic").length)}
-            />
-          </div>
-          <div onClick={() => setFilter("verified")} className={`cursor-pointer transition-all duration-200 ${filter === 'verified' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-            <StatCard
-              label="Verified"
-              value={String(businesses.filter((b) => b.verification === "verified").length)}
-              tone="warning"
-            />
-          </div>
+          <StatCard
+            label="Total members"
+            value={String(businesses.length)}
+            icon={Star}
+            tone="primary"
+            active={filter === "all"}
+            onClick={() => setFilter("all")}
+          />
+          <StatCard
+            label="Premium / Enterprise"
+            value={String(businesses.filter((b) => b.membership === "Premium" || b.membership === "Enterprise").length)}
+            tone="success"
+            active={filter === "premium"}
+            onClick={() => setFilter("premium")}
+          />
+          <StatCard
+            label="Basic"
+            value={String(businesses.filter((b) => b.membership === "Basic").length)}
+            active={filter === "basic"}
+            onClick={() => setFilter("basic")}
+          />
+          <StatCard
+            label="Verified"
+            value={String(businesses.filter((b) => b.verification === "verified").length)}
+            tone="warning"
+            active={filter === "verified"}
+            onClick={() => setFilter("verified")}
+          />
         </div>
 
         <Panel 

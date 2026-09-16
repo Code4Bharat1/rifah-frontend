@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@shared/providers/auth-provider";
 
-const ALLOWED_ROLES = ["super_admin", "secretariat"];
+const ALLOWED_ROLES = ["super_admin"];
 
 export default function AdminLayout({ children }) {
   const { user, loading } = useAuth();
@@ -12,7 +12,9 @@ export default function AdminLayout({ children }) {
 
   useEffect(() => {
     if (loading || !user) return;
-    if (user.role === "chapter_admin") {
+    if (user.role === "state_admin") {
+      router.replace("/state-admin");
+    } else if (user.role === "chapter_admin") {
       router.replace("/chapter-admin");
     } else if (!ALLOWED_ROLES.includes(user.role)) {
       router.replace("/");

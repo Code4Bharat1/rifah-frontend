@@ -193,24 +193,47 @@ function AdminEvents() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-          <button type="button" onClick={() => setFilterMode("all")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="All Events" value={String(totalCount)} icon={CalendarDays} tone="primary" />
-          </button>
-          <button type="button" onClick={() => setFilterMode("today")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "today" ? "ring-2 ring-success ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Today" value={String(todayEvents.length)} tone="success" />
-          </button>
-          <button type="button" onClick={() => setFilterMode("upcoming")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "upcoming" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Upcoming" value={String(upcomingEvents.length)} />
-          </button>
-          <button type="button" onClick={() => setFilterMode("past")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "past" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Past Events" value={String(pastEvents.length)} />
-          </button>
-          <button type="button" onClick={() => setFilterMode("Paid")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Paid" ? "ring-2 ring-warning ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Paid Events" value={String(events.filter((e) => e.isPaid).length)} tone="warning" />
-          </button>
-          <button type="button" onClick={() => setFilterMode("Scheduled")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${filterMode === "Scheduled" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Scheduled" value={String(scheduledCount)} tone="primary" />
-          </button>
+          <StatCard
+            label="All Events"
+            value={String(totalCount)}
+            icon={CalendarDays}
+            tone="primary"
+            active={filterMode === "all"}
+            onClick={() => setFilterMode("all")}
+          />
+          <StatCard
+            label="Today"
+            value={String(todayEvents.length)}
+            tone="success"
+            active={filterMode === "today"}
+            onClick={() => setFilterMode("today")}
+          />
+          <StatCard
+            label="Upcoming"
+            value={String(upcomingEvents.length)}
+            active={filterMode === "upcoming"}
+            onClick={() => setFilterMode("upcoming")}
+          />
+          <StatCard
+            label="Past Events"
+            value={String(pastEvents.length)}
+            active={filterMode === "past"}
+            onClick={() => setFilterMode("past")}
+          />
+          <StatCard
+            label="Paid Events"
+            value={String(events.filter((e) => e.isPaid).length)}
+            tone="warning"
+            active={filterMode === "Paid"}
+            onClick={() => setFilterMode("Paid")}
+          />
+          <StatCard
+            label="Scheduled"
+            value={String(scheduledCount)}
+            tone="primary"
+            active={filterMode === "Scheduled"}
+            onClick={() => setFilterMode("Scheduled")}
+          />
         </div>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-semibold tracking-tight">

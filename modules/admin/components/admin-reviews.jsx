@@ -144,10 +144,36 @@ export function AdminReviews() {
     >
       <div className="space-y-4">
         {/* Top KPI statistics */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatCard label="Total Reviews" value={String(stats.total)} icon={MessageSquare} tone="primary" />
-          <StatCard label="Approved / Live" value={String(stats.approved)} tone="success" />
-          <StatCard label="Rejected" value={String(stats.rejected)} tone="destructive" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard
+            label="Total Reviews"
+            value={String(stats.total)}
+            icon={MessageSquare}
+            tone="primary"
+            active={statusFilter === "all"}
+            onClick={() => setStatusFilter("all")}
+          />
+          <StatCard
+            label="Pending Review"
+            value={String(stats.pending)}
+            tone="warning"
+            active={statusFilter === "pending"}
+            onClick={() => setStatusFilter("pending")}
+          />
+          <StatCard
+            label="Approved / Live"
+            value={String(stats.approved)}
+            tone="success"
+            active={statusFilter === "approved"}
+            onClick={() => setStatusFilter("approved")}
+          />
+          <StatCard
+            label="Rejected"
+            value={String(stats.rejected)}
+            tone="danger"
+            active={statusFilter === "rejected"}
+            onClick={() => setStatusFilter("rejected")}
+          />
         </div>
 
         <Panel title="Reviews Management">

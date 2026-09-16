@@ -1,5 +1,5 @@
 "use client";
-import { Megaphone, Send, Loader2 } from "lucide-react";
+import { Megaphone, Send, Loader2, Bell } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -23,12 +23,21 @@ function AdminNotifications() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [filter, setFilter] = useState("all");
 
   const { data: notifData, refetch } = useNotifications();
   const { data: chaptersData } = useChapters();
 
   const notifications = Array.isArray(notifData?.notifications) ? notifData.notifications : (Array.isArray(notifData) ? notifData : []);
   const chapters = chaptersData || [];
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const broadcastCount = notifications.filter(n => n.type === "Broadcast" || n.broadcastId).length;
+  const displayedNotifications = filter === "unread"
+    ? notifications.filter(n => !n.isRead)
+    : filter === "broadcasts"
+    ? notifications.filter(n => n.type === "Broadcast" || n.broadcastId)
+    : notifications;
 
   const [viewNotif, setViewNotif] = useState(null);
   const [confirmUndo, setConfirmUndo] = useState(null);
@@ -101,73 +110,107 @@ function AdminNotifications() {
     <AppShell role="admin" title="Announcements & Broadcasts" subtitle="Chamber-wide circulars and alerts">
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Broadcasts Desk" value="Active" icon={Megaphone} tone="primary" />
-          <StatCard label="Recent Alerts" value={String(notifications.length)} tone="success" />
+          <StatCard
+            label="All Alerts"
+            value={String(notifications.length)}
+            icon={Bell}
+            tone="primary"
+            active={filter === "all"}
+            onClick={() => setFilter("all")}
+          />
+          <StatCard
+            label="Unread / New"
+            value={String(unreadCount)}
+            icon={Eye}
+            tone="warning"
+            active={filter === "unread"}
+            onClick={() => setFilter(filter === "unread" ? "all" : "unread")}
+          />
+          <StatCard
+            label="Broadcasts"
+            value={String(broadcastCount)}
+            icon={Megaphone}
+            tone="brand"
+            active={filter === "broadcasts"}
+            onClick={() => setFilter(filter === "broadcasts" ? "all" : "broadcasts")}
+          />
+          <StatCard
+            label="Broadcast Desk"
+            value="Compose"
+            icon={Send}
+            tone="success"
+            onClick={() => {
+              const el = document.getElementById("compose-panel");
+              if (el) el.scrollIntoView({ behavior: "smooth" });
+            }}
+          />
         </div>
 
-        <Panel title="Compose announcement">
-          <form onSubmit={handleBroadcast} className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label>Audience</Label>
-                <Select value={audience} onValueChange={setAudience}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Registered Users</SelectItem>
-                    <SelectItem value="business_owner">Member Businesses</SelectItem>
-                    <SelectItem value="customer">Buyers</SelectItem>
-                    <SelectItem value="chapter">Specific Chapter Users</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {audience === "chapter" && (
+        <div id="compose-panel">
+          <Panel title="Compose announcement">
+            <form onSubmit={handleBroadcast} className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label>Select Chapter</Label>
-                  <Select value={selectedChapter} onValueChange={setSelectedChapter}>
+                  <Label>Audience</Label>
+                  <Select value={audience} onValueChange={setAudience}>
                     <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Choose a chapter..." />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {chapters.map((ch) => (
-                        <SelectItem key={ch._id || ch.name} value={ch.name}>
-                          {ch.name}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="all">All Registered Users</SelectItem>
+                      <SelectItem value="business_owner">Member Businesses</SelectItem>
+                      <SelectItem value="customer">Buyers</SelectItem>
+                      <SelectItem value="chapter">Specific Chapter Users</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label>Title</Label>
-              <Input
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Annual Chamber General Meeting & Expo"
-                className="h-11"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Message</Label>
-              <Textarea
-                required
-                rows={4}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Write the announcement body"
-              />
-            </div>
-            <Button type="submit" disabled={sending} className="w-full sm:w-auto">
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="mr-1 h-4 w-4" /> Send announcement</>}
-            </Button>
-          </form>
-        </Panel>
+                {audience === "chapter" && (
+                  <div className="space-y-1.5">
+                    <Label>Select Chapter</Label>
+                    <Select value={selectedChapter} onValueChange={setSelectedChapter}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Choose a chapter..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {chapters.map((ch) => (
+                          <SelectItem key={ch._id || ch.name} value={ch.name}>
+                            {ch.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Title</Label>
+                <Input
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Subject of the notification"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Message</Label>
+                <Textarea
+                  required
+                  rows={4}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Write the announcement body"
+                />
+              </div>
+              <Button type="submit" disabled={sending} className="w-full sm:w-auto">
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="mr-1 h-4 w-4" /> Send announcement</>}
+              </Button>
+            </form>
+          </Panel>
+        </div>
 
         <Panel 
-          title="Recently sent alerts" 
+          title={filter === "unread" ? "Unread alerts" : filter === "broadcasts" ? "Broadcast history" : "Recently sent alerts"} 
           bodyClassName="p-0 md:p-0"
           actions={
             notifications.length > 0 && (
@@ -177,11 +220,13 @@ function AdminNotifications() {
             )
           }
         >
-          {notifications.length === 0 ? (
-            <p className="p-6 text-center text-xs text-muted-foreground">No recent alerts.</p>
+          {displayedNotifications.length === 0 ? (
+            <p className="p-6 text-center text-xs text-muted-foreground">
+              {filter === "unread" ? "No unread alerts." : filter === "broadcasts" ? "No broadcasts sent." : "No recent alerts."}
+            </p>
           ) : (
             <ul className="divide-y divide-border">
-              {notifications.map((n) => (
+              {displayedNotifications.map((n) => (
                 <li key={n._id} className="p-4">
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                     <div className="flex items-center gap-2">

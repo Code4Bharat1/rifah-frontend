@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import { CreditCard, Download, FileSpreadsheet, Plus, Receipt } from "lucide-react";
 import { toast } from "sonner";
@@ -486,6 +487,7 @@ function handleDownloadPDF(payment) {
 function BizPayments() {
   const { data: paymentsData } = useMyPayments();
   const { data: membershipData } = useMyMembership();
+  const [filterStatus, setFilterStatus] = useState("all");
   const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || []);
   const backendSummary = paymentsData?.summary || {};
 
@@ -503,6 +505,12 @@ function BizPayments() {
   const pendingCount = backendSummary.pendingCount ?? payments.filter(
     (p) => p.status === "pending" || p.status === "Pending"
   ).length;
+
+  const filteredPayments = filterStatus === "pending"
+    ? payments.filter((p) => p.status === "pending" || p.status === "Pending")
+    : filterStatus === "completed"
+    ? payments.filter((p) => p.status === "completed" || p.status === "Paid")
+    : payments;
 
   // 3. Next renewal date
   let nextRenewalText = backendSummary.nextRenewal || null;
@@ -544,16 +552,21 @@ function BizPayments() {
             value={paidThisYearText}
             icon={Receipt}
             tone="success"
+            active={filterStatus === "completed"}
+            onClick={() => setFilterStatus(filterStatus === "completed" ? "all" : "completed")}
           />
           <StatCard
             label="Pending"
             value={String(pendingCount)}
             icon={CreditCard}
             tone="warning"
+            active={filterStatus === "pending"}
+            onClick={() => setFilterStatus(filterStatus === "pending" ? "all" : "pending")}
           />
           <StatCard
             label="Next renewal"
             value={nextRenewalText}
+            href="/biz/membership"
           />
           <StatCard
             label="Payment method"
@@ -562,26 +575,26 @@ function BizPayments() {
         </div>
 
         <Panel
-          title="Transaction history"
+          title={filterStatus === "pending" ? "Pending invoices" : filterStatus === "completed" ? "Paid invoices" : "Transaction history"}
           action={
             <Button
               variant="outline"
               size="sm"
               className="gap-2"
-              onClick={() => handleExportCSV(payments)}
+              onClick={() => handleExportCSV(filteredPayments)}
             >
               <FileSpreadsheet className="h-4 w-4" />
               Export CSV
             </Button>
           }
         >
-          {payments.length === 0 ? (
+          {filteredPayments.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               No transactions recorded yet.
             </p>
           ) : (
             <ResponsiveTable
-              rows={payments}
+              rows={filteredPayments}
               columns={[
                 { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{r.invoiceNumber}</span> },
                 { key: "purpose", header: "Purpose", cell: (r) => r.description || r.purpose || r.itemType || "Membership Subscription" },

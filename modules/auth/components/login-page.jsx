@@ -210,7 +210,9 @@ export default function LoginPage() {
       router.push("/biz");
     } else if (user.role === "chapter_admin") {
       router.push("/chapter-admin");
-    } else if (user.role === "super_admin" || user.role === "secretariat") {
+    } else if (user.role === "state_admin") {
+      router.push("/state-admin");
+    } else if (user.role === "super_admin") {
       router.push("/admin");
     } else {
       router.push("/me");

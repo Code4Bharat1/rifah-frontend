@@ -96,6 +96,15 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
       headers,
     });
   } catch (netErr) {
+    // If it's a transient connection failure (e.g. dev server reloading), retry once after a short delay
+    if (!isRetry) {
+      await new Promise((r) => setTimeout(r, 800));
+      try {
+        return await apiClient(endpoint, options, true);
+      } catch (retryErr) {
+        // Continue to logging if second attempt fails
+      }
+    }
     console.error(`[API Client Network Error] fetch failed for ${url}:`, netErr);
     throw new Error(`Unable to connect to the backend server (${url}). Please check if the server is running.`);
   }

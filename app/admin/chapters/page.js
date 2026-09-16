@@ -1,5 +1,5 @@
-import { AdminChapters } from "@modules/admin";
+import { redirect } from "next/navigation";
 
-export default function Page(props) {
-  return <AdminChapters {...props} />;
+export default function Page() {
+  redirect("/admin/states");
 }

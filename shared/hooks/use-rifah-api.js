@@ -21,6 +21,7 @@ import {
   auditApi,
   contactApi,
   settingsApi,
+  stateApi,
 } from "../lib/api-services";
 
 // ==================== BUSINESS HOOKS ====================
@@ -118,6 +119,28 @@ export function useChapterDetails(id) {
       return res?.data || res;
     },
     enabled: Boolean(id),
+  });
+}
+
+export function useStates() {
+  return useQuery({
+    queryKey: ["states"],
+    queryFn: async () => {
+      const res = await stateApi.list();
+      return res?.data?.states || res?.data || res;
+    },
+  });
+}
+
+export function useStateDetails(stateName) {
+  return useQuery({
+    queryKey: ["states", stateName],
+    queryFn: async () => {
+      if (!stateName) return null;
+      const res = await stateApi.getByName(stateName);
+      return res?.data || res;
+    },
+    enabled: Boolean(stateName),
   });
 }
 

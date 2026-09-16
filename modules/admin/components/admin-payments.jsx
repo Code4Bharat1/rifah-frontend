@@ -219,46 +219,50 @@ function AdminPayments() {
       subtitle="Chamber membership fee & event transaction records"
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <div onClick={() => setFilter("all")} className={`cursor-pointer transition-all duration-200 ${filter === 'all' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-            <StatCard
-              label="Total Revenue"
-              value={`₹ ${totalRevenue.toLocaleString("en-IN")}`}
-              icon={Wallet}
-              tone="success"
-            />
-          </div>
-          <div onClick={() => setFilter("all")} className={`cursor-pointer transition-all duration-200 ${filter === 'all' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-            <StatCard label="Transactions" value={String(payments.length)} tone="primary" />
-          </div>
-          <div onClick={() => setFilter("completed")} className={`cursor-pointer transition-all duration-200 ${filter === 'completed' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-            <StatCard
-              label="Completed"
-              value={String(payments.filter((p) => p.status === "completed" || p.status === "Paid").length)}
-              tone="success"
-            />
-          </div>
-          <div onClick={() => setFilter("pending")} className={`cursor-pointer transition-all duration-200 ${filter === 'pending' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-            <StatCard
-              label="Pending"
-              value={String(payments.filter((p) => p.status === "pending" || p.status === "Pending").length)}
-              tone="warning"
-            />
-          </div>
-          <div onClick={() => setFilter("events")} className={`cursor-pointer transition-all duration-200 ${filter === 'events' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-            <StatCard
-              label="Event Passes"
-              value={String(payments.filter((p) => p.itemType === "Event Pass").length)}
-              tone="primary"
-            />
-          </div>
-          <div onClick={() => setFilter("cash")} className={`cursor-pointer transition-all duration-200 ${filter === 'cash' ? 'ring-2 ring-primary ring-offset-2 rounded-2xl opacity-100' : 'opacity-70 hover:opacity-100'}`}>
-            <StatCard
-              label="Cash Registrations"
-              value={String(payments.filter((p) => p.method === "CASH" && p.itemType === "Membership").length)}
-              tone="success"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+          <StatCard
+            label="Total Revenue"
+            value={`₹ ${totalRevenue.toLocaleString("en-IN")}`}
+            icon={Wallet}
+            tone="success"
+            active={filter === "all"}
+            onClick={() => setFilter("all")}
+          />
+          <StatCard
+            label="Transactions"
+            value={String(payments.length)}
+            tone="primary"
+            active={filter === "all"}
+            onClick={() => setFilter("all")}
+          />
+          <StatCard
+            label="Completed"
+            value={String(payments.filter((p) => p.status === "completed" || p.status === "Paid").length)}
+            tone="success"
+            active={filter === "completed"}
+            onClick={() => setFilter("completed")}
+          />
+          <StatCard
+            label="Pending"
+            value={String(payments.filter((p) => p.status === "pending" || p.status === "Pending").length)}
+            tone="warning"
+            active={filter === "pending"}
+            onClick={() => setFilter("pending")}
+          />
+          <StatCard
+            label="Event Passes"
+            value={String(payments.filter((p) => p.itemType === "Event Pass").length)}
+            tone="primary"
+            active={filter === "events"}
+            onClick={() => setFilter("events")}
+          />
+          <StatCard
+            label="Cash Registrations"
+            value={String(payments.filter((p) => p.method === "CASH" && p.itemType === "Membership").length)}
+            tone="success"
+            active={filter === "cash"}
+            onClick={() => setFilter("cash")}
+          />
         </div>
 
         <Panel title={filter === "all" ? "Transaction ledger" : filter === "completed" ? "Completed Transactions" : filter === "events" ? "Event Payments" : filter === "cash" ? "Cash Business Registrations" : "Pending Transactions"}>

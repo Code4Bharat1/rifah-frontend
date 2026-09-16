@@ -126,17 +126,28 @@ function AdminEnquiries() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Enquiries" value={String(enquiries.length)} icon={Inbox} tone="primary" />
+          <StatCard
+            label="Enquiries"
+            value={String(enquiries.length)}
+            icon={Inbox}
+            tone="primary"
+            active={statusFilter === "all"}
+            onClick={() => setStatusFilter("all")}
+          />
           <StatCard
             label="Responded"
             value={String(enquiries.filter((e) => e.responses?.length > 0).length)}
             icon={MessageSquare}
             tone="success"
+            active={statusFilter === "Responded"}
+            onClick={() => setStatusFilter("Responded")}
           />
           <StatCard
             label="Unmatched"
             value={String(enquiries.filter((e) => !e.responses || e.responses.length === 0).length)}
             tone="warning"
+            active={statusFilter === "New"}
+            onClick={() => setStatusFilter("New")}
           />
           <StatCard label="Avg. first response" value="9.4 hrs" />
         </div>

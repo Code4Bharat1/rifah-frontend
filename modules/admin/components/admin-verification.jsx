@@ -541,65 +541,41 @@ function AdminVerification() {
 
         {/* Top Stat Cards / Tab Selectors */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div
+          <StatCard
+            label="Awaiting Review"
+            value={String(pending.length)}
+            icon={ShieldCheck}
+            tone="warning"
+            hint="Requires verification"
+            active={activeTab === "pending"}
             onClick={() => setActiveTab("pending")}
-            className={cn(
-              "cursor-pointer transition-transform active:scale-95 rounded-2xl",
-              activeTab === "pending" ? "ring-2 ring-primary ring-offset-1 bg-primary/5" : ""
-            )}
-          >
-            <StatCard
-              label="Awaiting Review"
-              value={String(pending.length)}
-              icon={ShieldCheck}
-              tone="warning"
-              hint="Requires verification"
-            />
-          </div>
-          <div
+          />
+          <StatCard
+            label="Changes Requested"
+            value={String(changesReq.length)}
+            icon={RotateCcw}
+            tone="primary"
+            hint="Waiting for owner resubmission"
+            active={activeTab === "changes"}
             onClick={() => setActiveTab("changes")}
-            className={cn(
-              "cursor-pointer transition-transform active:scale-95 rounded-2xl",
-              activeTab === "changes" ? "ring-2 ring-primary ring-offset-1 bg-primary/5" : ""
-            )}
-          >
-            <StatCard
-              label="Changes Requested"
-              value={String(changesReq.length)}
-              icon={RotateCcw}
-              tone="primary"
-              hint="Waiting for owner resubmission"
-            />
-          </div>
-          <div
+          />
+          <StatCard
+            label="Approved / Verified"
+            value={String(approved.length)}
+            icon={CheckCircle2}
+            tone="success"
+            hint="Live on directory"
+            active={activeTab === "approved"}
             onClick={() => setActiveTab("approved")}
-            className={cn(
-              "cursor-pointer transition-transform active:scale-95 rounded-2xl",
-              activeTab === "approved" ? "ring-2 ring-primary ring-offset-1 bg-primary/5" : ""
-            )}
-          >
-            <StatCard
-              label="Approved / Verified"
-              value={String(approved.length)}
-              icon={CheckCircle2}
-              tone="success"
-              hint="Live on directory"
-            />
-          </div>
-          <div
+          />
+          <StatCard
+            label="Total"
+            value={String(queue.length)}
+            icon={Building2}
+            hint="All submissions"
+            active={activeTab === "all"}
             onClick={() => setActiveTab("all")}
-            className={cn(
-              "cursor-pointer transition-transform active:scale-95 rounded-2xl",
-              activeTab === "all" ? "ring-2 ring-primary ring-offset-1 bg-primary/5" : ""
-            )}
-          >
-            <StatCard
-              label="Total"
-              value={String(queue.length)}
-              icon={Building2}
-              hint="All submissions"
-            />
-          </div>
+          />
         </div>
 
         {/* Tabbed Queue List */}

@@ -207,19 +207,22 @@ function LeadsPage() {
             value={newCount}
             icon={Target}
             tone="danger"
-            href="/biz/leads"
+            active={stage === "New"}
+            onClick={() => setStage(stage === "New" ? "All" : "New")}
           />
           <StatCard
             label="In progress"
             value={inProgressCount}
             tone="warning"
-            href="/biz/leads"
+            active={stage === "In progress"}
+            onClick={() => setStage(stage === "In progress" ? "All" : "In progress")}
           />
           <StatCard
             label="Won"
             value={wonCount}
             tone="success"
-            href="/biz/leads"
+            active={stage === "Won"}
+            onClick={() => setStage(stage === "Won" ? "All" : "Won")}
           />
           <StatCard
             label="Response rate"

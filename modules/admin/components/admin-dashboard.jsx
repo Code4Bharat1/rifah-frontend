@@ -133,7 +133,7 @@ function AdminHome() {
           </div>
           
           <div className="space-y-6">
-            <Panel title="Chapters" action={<MoreLink href="/admin/chapters" />}>
+            <Panel title="Chapters Distribution" action={<MoreLink href="/admin/states" />}>
               <div className="space-y-5 mt-2">
                 {chaptersDist.length === 0 ? (
                    <p className="text-xs text-muted-foreground">No chapters data available.</p>
@@ -251,7 +251,7 @@ function AdminHome() {
           <div className="space-y-4">
             {isSuperAdmin && (
               <>
-                <Panel title="Chapters & Units" action={<MoreLink href="/admin/chapters" />}>
+                <Panel title="Chapters & Units" action={<MoreLink href="/admin/states" />}>
                   <ul className="space-y-3">
                     {chapters.slice(0, 5).map((c) => (
                       <li key={c._id || c.name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">

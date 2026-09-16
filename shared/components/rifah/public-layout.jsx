@@ -51,7 +51,16 @@ export function PublicHeader() {
     router.push("/login");
   };
 
-  const dashboardPath = user?.role === "super_admin" || user?.role === "secretariat" ? "/admin" : user?.role === "business_owner" ? "/biz" : "/me";
+  const dashboardPath =
+    user?.role === "super_admin"
+      ? "/admin"
+      : user?.role === "state_admin"
+      ? "/state-admin"
+      : user?.role === "chapter_admin"
+      ? "/chapter-admin"
+      : user?.role === "business_owner"
+      ? "/biz"
+      : "/me";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
@@ -128,7 +137,16 @@ function MobileMenu() {
     router.push("/login");
   };
 
-  const dashboardPath = user?.role === "super_admin" || user?.role === "secretariat" ? "/admin" : user?.role === "business_owner" ? "/biz" : "/me";
+  const dashboardPath =
+    user?.role === "super_admin"
+      ? "/admin"
+      : user?.role === "state_admin"
+      ? "/state-admin"
+      : user?.role === "chapter_admin"
+      ? "/chapter-admin"
+      : user?.role === "business_owner"
+      ? "/biz"
+      : "/me";
 
   return (
     <Sheet>

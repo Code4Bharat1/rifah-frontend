@@ -94,6 +94,13 @@ export const chapterApi = {
   updateStatus: (id, status) => apiClient(`/chapters/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
 };
 
+export const stateApi = {
+  list: () => apiClient("/states"),
+  getByName: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}`),
+  assignAdmin: (data) => apiClient("/states/assign-admin", { method: "POST", body: JSON.stringify(data) }),
+  removeAdmin: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}/admin`, { method: "DELETE" }),
+};
+
 export const verificationApi = {
   getByBusinessId: (businessId) => apiClient(`/verification/business/${businessId}`),
   getQueue: (params = {}) => apiClient(`/verification/queue${toQueryString(params)}`),

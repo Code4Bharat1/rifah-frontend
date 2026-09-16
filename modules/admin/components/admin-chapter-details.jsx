@@ -146,18 +146,21 @@ export default function AdminChapterDetails({ chapterId }) {
             value={stats.businessesCount || 0} 
             icon={Building2} 
             tone="primary" 
+            href="/admin/businesses"
           />
           <StatCard 
             label="Verified Members" 
             value={stats.customersCount || 0} 
             icon={Users} 
             tone="success" 
+            href="/admin/users"
           />
           <StatCard 
             label="Specialised Units" 
             value={chapter.units?.length || 0} 
             icon={Briefcase} 
             tone="warning" 
+            href="/admin/units"
           />
         </div>
 
@@ -179,36 +182,22 @@ export default function AdminChapterDetails({ chapterId }) {
                   <Pill tone="primary">Chapter Admin</Pill>
                 </div>
                 
-                <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs border border-blue-100 flex gap-2">
+                <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs border border-blue-100 flex gap-2 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50">
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-600" />
-                  <p>This user has full access to manage businesses, units, and leads within this chapter.</p>
+                  <p>Appointed by the State Admin for {chapter.state} to manage businesses, units, and leads within this city chapter.</p>
                 </div>
-
-                {!isChapterAdmin && (
-                  <div className="pt-2">
-                    <Button variant="outline" className="w-full" onClick={() => setOpenAdminModal(true)}>
-                      <UserCog className="mr-2 h-4 w-4" /> Change Administrator
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : isChapterAdmin ? (
-              <div className="text-center py-8">
-                <UserCog className="h-10 w-10 text-muted-foreground opacity-20 mx-auto mb-3" />
-                <h3 className="font-semibold text-sm">No Administrator Assigned</h3>
-                <p className="text-xs text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
-                  Contact RIFAH Head Office to have an administrator assigned to this chapter.
-                </p>
               </div>
             ) : (
               <div className="text-center py-8">
                 <UserCog className="h-10 w-10 text-muted-foreground opacity-20 mx-auto mb-3" />
-                <h3 className="font-semibold text-sm">No Administrator Assigned</h3>
+                <h3 className="font-semibold text-sm">No Chapter Administrator Assigned</h3>
                 <p className="text-xs text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
-                  This chapter currently lacks an administrative lead. Assign one to manage operations.
+                  City Chapter Administrators are appointed and managed by the <strong>State Admin for {chapter.state}</strong>.
                 </p>
-                <Button onClick={() => setOpenAdminModal(true)}>
-                  Assign Administrator
+                <Button variant="outline" asChild>
+                  <Link href="/admin/states">
+                    View State Desks
+                  </Link>
                 </Button>
               </div>
             )}

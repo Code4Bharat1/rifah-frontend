@@ -159,15 +159,28 @@ function AdminLeads() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className={`cursor-pointer transition-all ${activeTab === 'total' ? 'ring-2 ring-primary rounded-xl' : 'opacity-80 hover:opacity-100'}`} onClick={() => setActiveTab('total')}>
-            <StatCard label="Total leads" value={String(enquiries.length)} icon={Target} tone="primary" />
-          </div>
-          <div className={`cursor-pointer transition-all ${activeTab === 'direct' ? 'ring-2 ring-primary rounded-xl' : 'opacity-80 hover:opacity-100'}`} onClick={() => setActiveTab('direct')}>
-            <StatCard label="Direct RFQs" value={String(enquiries.filter((e) => e.business).length)} tone="success" />
-          </div>
-          <div className={`cursor-pointer transition-all ${activeTab === 'broadcast' ? 'ring-2 ring-primary rounded-xl' : 'opacity-80 hover:opacity-100'}`} onClick={() => setActiveTab('broadcast')}>
-            <StatCard label="Broadcast RFQs" value={String(enquiries.filter((e) => !e.business).length)} tone="warning" />
-          </div>
+          <StatCard
+            label="Total leads"
+            value={String(enquiries.length)}
+            icon={Target}
+            tone="primary"
+            active={activeTab === "total"}
+            onClick={() => setActiveTab("total")}
+          />
+          <StatCard
+            label="Direct RFQs"
+            value={String(enquiries.filter((e) => e.business).length)}
+            tone="success"
+            active={activeTab === "direct"}
+            onClick={() => setActiveTab("direct")}
+          />
+          <StatCard
+            label="Broadcast RFQs"
+            value={String(enquiries.filter((e) => !e.business).length)}
+            tone="warning"
+            active={activeTab === "broadcast"}
+            onClick={() => setActiveTab("broadcast")}
+          />
           <StatCard label="Routing Desk" value="Active" />
         </div>
         <div className="flex flex-col sm:flex-row gap-3">

@@ -1,5 +1,5 @@
 "use client";
-import { Folder, Plus, Loader2, MoreHorizontal } from "lucide-react";
+import { Folder, Plus, Loader2, MoreHorizontal, FolderTree, Layers, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ function AdminCategories() {
   const mainCategories = categories.filter(c => !c.parent);
   const subCategories = categories.filter(c => c.parent);
 
+  const [filter, setFilter] = useState("all");
   const [name, setName] = useState("");
   const [parentName, setParentName] = useState("none");
   const [loading, setLoading] = useState(false);

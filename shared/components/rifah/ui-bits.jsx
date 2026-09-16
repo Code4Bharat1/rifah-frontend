@@ -12,6 +12,9 @@ export function StatCard({
   tone = "default",
   to,
   href,
+  onClick,
+  active = false,
+  className,
 }) {
   const tones = {
     default: "bg-muted text-muted-foreground",
@@ -24,27 +27,71 @@ export function StatCard({
     neutral: "bg-muted text-muted-foreground",
   };
   const destination = href ?? to;
-  const body = (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-surface p-4">
+  const isClickable = Boolean(destination || onClick);
+
+  const cardContent = (
+    <div
+      className={cn(
+        "group relative flex h-full flex-col rounded-2xl border transition-all duration-200 p-4 select-none cursor-pointer hover:shadow-md hover:-translate-y-0.5",
+        active
+          ? "border-primary/20 bg-primary/[0.04] dark:bg-primary/10 shadow-xs"
+          : "border-border/70 bg-surface hover:bg-muted/30 hover:border-border",
+        className
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 text-xs font-medium text-muted-foreground">{label}</p>
+        <p
+          className={cn(
+            "min-w-0 text-xs font-medium transition-colors",
+            active ? "font-semibold text-primary" : "text-muted-foreground"
+          )}
+        >
+          {label}
+        </p>
         {Icon && (
-          <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg", tones[tone])}>
+          <span
+            className={cn(
+              "grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-all duration-200 group-hover:scale-105",
+              active ? "bg-primary text-primary-foreground shadow-xs" : tones[tone]
+            )}
+          >
             <Icon className="h-4 w-4" />
           </span>
         )}
       </div>
-      <p className="mt-2 text-2xl font-bold tracking-tight tabular-nums text-foreground">{value}</p>
+      <p
+        className={cn(
+          "mt-2 text-2xl font-bold tracking-tight tabular-nums transition-colors",
+          active ? "text-primary" : "text-foreground"
+        )}
+      >
+        {value}
+      </p>
       {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   );
-  if (destination)
+
+  if (destination) {
     return (
-      <Link href={destination} className="block transition-colors hover:opacity-90">
-        {body}
+      <Link href={destination} className="block h-full transition-transform focus:outline-none">
+        {cardContent}
       </Link>
     );
-  return body;
+  }
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full h-full text-left transition-transform focus:outline-none"
+      >
+        {cardContent}
+      </button>
+    );
+  }
+
+  return cardContent;
 }
 
 export function SectionHeader({

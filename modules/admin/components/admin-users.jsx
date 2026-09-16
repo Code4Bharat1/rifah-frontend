@@ -1,5 +1,5 @@
 "use client";
-import { Search, UserPlus, Users, MoreHorizontal, Mail } from "lucide-react";
+import { Search, UserPlus, Users, MoreHorizontal, Mail, Building2, ShoppingBag, ShieldCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -55,15 +55,15 @@ function AdminUsers() {
   const totalCount = rows.length;
   const businessOwnersCount = rows.filter((u) => u.role === "business_owner").length;
   const buyersCount = rows.filter((u) => u.role === "customer").length;
-  const secretariatCount = rows.filter((u) => u.role === "super_admin" || u.role === "secretariat").length;
+  const adminCount = rows.filter((u) => ["super_admin", "state_admin", "chapter_admin", "secretariat"].includes(u.role)).length;
 
   let displayRows = rows;
   if (roleFilter === "business_owner") {
     displayRows = rows.filter((u) => u.role === "business_owner");
   } else if (roleFilter === "customer") {
     displayRows = rows.filter((u) => u.role === "customer");
-  } else if (roleFilter === "secretariat") {
-    displayRows = rows.filter((u) => u.role === "super_admin" || u.role === "secretariat");
+  } else if (roleFilter === "admin" || roleFilter === "secretariat") {
+    displayRows = rows.filter((u) => ["super_admin", "state_admin", "chapter_admin", "secretariat"].includes(u.role));
   }
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -121,18 +121,36 @@ function AdminUsers() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <button type="button" onClick={() => setRoleFilter("all")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${roleFilter === "all" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Total accounts" value={String(totalCount)} icon={Users} tone="primary" />
-          </button>
-          <button type="button" onClick={() => setRoleFilter("business_owner")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${roleFilter === "business_owner" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Business owners" value={String(businessOwnersCount)} />
-          </button>
-          <button type="button" onClick={() => setRoleFilter("customer")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${roleFilter === "customer" ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Buyers" value={String(buyersCount)} />
-          </button>
-          <button type="button" onClick={() => setRoleFilter("secretariat")} className={`text-left transition-all duration-200 focus:outline-none rounded-2xl ${roleFilter === "secretariat" ? "ring-2 ring-warning ring-offset-2 ring-offset-background shadow-md scale-[1.02]" : "opacity-75 hover:opacity-100 hover:scale-[1.01]"}`}>
-            <StatCard label="Secretariat admins" value={String(secretariatCount)} tone="warning" />
-          </button>
+          <StatCard
+            label="Total accounts"
+            value={String(totalCount)}
+            icon={Users}
+            tone="primary"
+            active={roleFilter === "all"}
+            onClick={() => setRoleFilter("all")}
+          />
+          <StatCard
+            label="Business owners"
+            value={String(businessOwnersCount)}
+            icon={Building2}
+            active={roleFilter === "business_owner"}
+            onClick={() => setRoleFilter("business_owner")}
+          />
+          <StatCard
+            label="Buyers"
+            value={String(buyersCount)}
+            icon={ShoppingBag}
+            active={roleFilter === "customer"}
+            onClick={() => setRoleFilter("customer")}
+          />
+          <StatCard
+            label="Administrators"
+            value={String(adminCount)}
+            icon={ShieldCheck}
+            tone="warning"
+            active={roleFilter === "admin"}
+            onClick={() => setRoleFilter("admin")}
+          />
         </div>
 
         <div className="relative">

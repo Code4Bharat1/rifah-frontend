@@ -75,6 +75,7 @@ function BizAnalytics() {
             hint={stats.totalLeadsReceived > 0 ? "Matched buyer enquiries" : "No leads yet"}
             icon={Target}
             tone="brand"
+            href="/biz/leads"
           />
           <StatCard
             label="Enquiries"
@@ -82,6 +83,7 @@ function BizAnalytics() {
             hint={stats.enquiries > 0 ? "Direct inquiries" : "No direct enquiries yet"}
             icon={MessageSquare}
             tone="success"
+            href="/biz/enquiries"
           />
           <StatCard
             label="Average rating"
@@ -99,6 +101,7 @@ function BizAnalytics() {
             }
             icon={Star}
             tone="warning"
+            href="/biz/reviews"
           />
         </div>
 
