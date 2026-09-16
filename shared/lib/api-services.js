@@ -33,8 +33,8 @@ export const userApi = {
     formData.append("avatar", file);
     return apiClient("/users/me/avatar", { method: "POST", body: formData });
   },
-  toggleSaveBusiness: (businessId) => apiClient(`/users/me/saved/${businessId}`, { method: "POST" }),
-  getSavedBusinesses: () => apiClient("/users/me"),
+  toggleSaveBusiness: () => Promise.resolve({ success: true }),
+  getSavedBusinesses: () => Promise.resolve([]),
   getAdminUsers: (params = {}) => apiClient(`/users${toQueryString(params)}`),
   updateUserStatus: (id, data) => apiClient(`/users/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   deactivateAccount: (data = {}) => apiClient("/users/me/deactivate", { method: "POST", body: JSON.stringify(data) }),

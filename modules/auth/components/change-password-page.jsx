@@ -45,12 +45,12 @@ export default function ChangePasswordPage() {
       // Redirect to correct dashboard based on role
       if (updatedUser?.role === "chapter_admin") {
         router.push("/chapter-admin");
+      } else if (updatedUser?.role === "state_admin") {
+        router.push("/state-admin");
       } else if (updatedUser?.role === "super_admin" || updatedUser?.role === "secretariat") {
         router.push("/admin");
-      } else if (updatedUser?.role === "business_owner") {
-        router.push("/biz");
       } else {
-        router.push("/me");
+        router.push("/biz");
       }
     } catch (err) {
       setError(err.message || "Failed to change password. Please try again.");

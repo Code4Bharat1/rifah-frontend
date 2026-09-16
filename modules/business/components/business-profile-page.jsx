@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   Award,
-  Bookmark,
   Building2,
   Clock,
   Globe,
@@ -85,13 +84,13 @@ function BusinessProfile() {
   });
 
   const queryClient = useQueryClient();
-  const { user, toggleSaveBusiness } = useAuth();
+  const { user } = useAuth();
   const ownerId = business?.owner?._id || business?.owner;
   const isMyOwnBusiness = Boolean(user?._id && ownerId && String(user._id) === String(ownerId));
 
-  const [saved, setSaved] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [reviewerName, setReviewerName] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewBody, setReviewBody] = useState("");
   const [reviewTitle, setReviewTitle] = useState("");
@@ -104,18 +103,6 @@ function BusinessProfile() {
     setCoverError(false);
     setLogoError(false);
   }, [businessId, business?._id]);
-
-  useEffect(() => {
-    if (user?.role === "customer" && Array.isArray(user?.savedBusinesses) && business?._id) {
-      const isSaved = user.savedBusinesses.some((b) => {
-        const id = typeof b === "object" && b !== null ? (b._id || b.id) : b;
-        return String(id) === String(business._id);
-      });
-      setSaved(Boolean(isSaved));
-    } else {
-      setSaved(false);
-    }
-  }, [user, business?._id]);
 
   const getShareUrl = () => {
     if (typeof window !== "undefined") {
@@ -218,38 +205,10 @@ function BusinessProfile() {
 
   const related = mergedRelated.slice(0, 3);
 
-  const handleToggleSave = async () => {
-    // Redirect guests to login preserving intended destination
-    if (!user) {
-      const redirectPath = `/login?redirect=/business/${business.slug || business._id}`;
-      window.location.href = redirectPath;
-      return;
-    }
-    // Only customers can save businesses
-    if (user.role !== 'customer') {
-      return; // silently ignore for non‑customers
-    }
-    try {
-      setSaved((s) => !s);
-      if (typeof toggleSaveBusiness === "function") {
-        await toggleSaveBusiness(business._id);
-      } else {
-        await userApi.toggleSaveBusiness(business._id);
-      }
-    } catch (err) {
-      // Log error for debugging without showing UI toast
-      console.error('Save business error:', err);
-    }
-  };
-
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
-    if (!user) {
-      alert("Please log in to submit a review.");
-      window.location.href = `/login?redirect=/business/${business.slug || business._id}`;
-      return;
-    }
     if (!reviewBody.trim()) return;
+    const authorName = user?.name || reviewerName.trim() || "Guest Reviewer";
     setReviewSubmitting(true);
     try {
       await reviewApi.submit({
@@ -257,10 +216,12 @@ function BusinessProfile() {
         rating: reviewRating,
         title: reviewTitle,
         body: reviewBody,
+        authorName,
       });
       setReviewSuccess(true);
       setReviewBody("");
       setReviewTitle("");
+      setReviewerName("");
       queryClient.invalidateQueries({ queryKey: ["reviews", business._id] });
       queryClient.invalidateQueries({ queryKey: ["business", businessId] });
       queryClient.invalidateQueries({ queryKey: ["business", business.slug] });
@@ -350,20 +311,8 @@ function BusinessProfile() {
                   </div>
                 </div>
 
-                {/* Profile actions (Save & Share) */}
+                {/* Profile actions (Share) */}
                 <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
-                  {(!user || user?.role === "customer") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleToggleSave}
-                      aria-pressed={saved}
-                      className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs"
-                    >
-                      <Bookmark className={cn("h-4 w-4", saved && "fill-primary text-primary")} />
-                      {saved ? "Saved" : "Save"}
-                    </Button>
-                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -653,28 +602,31 @@ function BusinessProfile() {
                   </div>
                 )}
 
-                <Panel title="Write a review" description="Share your feedback with other chamber members">
+                <Panel title="Write a review" description="Share your feedback with other chamber members and visitors">
                   {reviewSuccess ? (
                     <div className="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                      <span>Thank you! Your review has been published and is now visible on this profile.</span>
-                    </div>
-                  ) : !user ? (
-                    <div className="rounded-xl border border-dashed border-border p-6 text-center">
-                      <p className="text-sm font-medium text-foreground">Have you worked with {business.name}?</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Please log in to submit a verified member review.</p>
-                      <Button asChild size="sm" className="mt-3">
-                        <Link href={`/login?redirect=/business/${business.slug || business._id}`}>
-                          Log in to Review
-                        </Link>
-                      </Button>
+                      <span>Thank you! Your review has been submitted.</span>
                     </div>
                   ) : isMyOwnBusiness ? (
                     <div className="rounded-xl bg-muted/40 p-4 border border-border/60 text-xs text-muted-foreground">
-                      💡 This is your own business profile. Reviews submitted by other verified chamber members and buyers will appear above.
+                      💡 This is your own business profile. Reviews submitted by other members and buyers will appear above.
                     </div>
                   ) : (
                     <form onSubmit={handleReviewSubmit} className="space-y-3">
+                      {!user && (
+                        <div>
+                          <label className="text-xs font-medium text-foreground">Your Name *</label>
+                          <input
+                            type="text"
+                            value={reviewerName}
+                            onChange={(e) => setReviewerName(e.target.value)}
+                            required
+                            placeholder="e.g. John Doe"
+                            className="mt-1 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                      )}
                       <div>
                         <label className="text-xs font-medium text-foreground">Your Rating</label>
                         <div className="mt-1 flex gap-1.5">
@@ -707,7 +659,7 @@ function BusinessProfile() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-foreground">Review Comments</label>
+                        <label className="text-xs font-medium text-foreground">Review Comments *</label>
                         <textarea
                           value={reviewBody}
                           onChange={(e) => setReviewBody(e.target.value)}

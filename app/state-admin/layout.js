@@ -19,7 +19,7 @@ export default function StateAdminLayout({ children }) {
     } else if (user.role === "business_owner") {
       router.replace("/biz");
     } else if (user.role !== "state_admin") {
-      router.replace("/me");
+      router.replace("/biz");
     }
   }, [user, loading, router]);
 

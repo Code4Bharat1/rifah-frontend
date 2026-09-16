@@ -166,7 +166,6 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
         "/contact",
         "/membership",
         "/login",
-        "/register",
         "/register-business",
       ];
       const currentPath = window.location.pathname;

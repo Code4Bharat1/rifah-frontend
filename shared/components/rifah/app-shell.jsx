@@ -62,22 +62,6 @@ import {
 import { VerificationBadge } from "@shared/components/rifah/badges";
 
 const navs = {
-  customer: {
-    title: "My RIFAH",
-    primary: [
-      { label: "Home", to: "/me", icon: Gauge },
-      { label: "Discover", to: "/discover", icon: Search },
-      { label: "Enquiries", to: "/me/enquiries", icon: FileStack },
-      { label: "Saved", to: "/me/saved", icon: Bookmark },
-      { label: "Account", to: "/me/profile", icon: UserRound },
-    ],
-    more: [
-      { label: "Messages", to: "/me/messages", icon: MessageSquare },
-      { label: "My events", to: "/me/events", icon: CalendarDays },
-      { label: "Notifications", to: "/me/notifications", icon: Bell },
-      { label: "Membership plans", to: "/membership", icon: Star },
-    ],
-  },
   business: {
     title: "Business workspace",
     primary: [
@@ -169,7 +153,6 @@ const navs = {
 };
 
 const roleSwitcher = [
-  { role: "customer", label: "Customer", to: "/me" },
   { role: "business", label: "Business", to: "/biz" },
   { role: "admin", label: "Admin", to: "/admin" },
 ];
@@ -178,7 +161,7 @@ function useResolvedNav(role) {
   const { user } = useAuth();
   if (role === "state_admin" || user?.role === "state_admin") return navs.state_admin;
   if ((role === "admin" || role === "chapter_admin") && user?.role === "chapter_admin") return navs.chapter_admin;
-  return navs[role] || navs.admin || navs.customer;
+  return navs[role] || navs.business || navs.admin;
 }
 
 function toRoleAwarePath(path, role, user) {
@@ -337,7 +320,7 @@ export function AppShell({
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
+    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/discover"];
     if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };
@@ -438,9 +421,7 @@ export function AppShell({
           {user && (
             <Link
               href={
-                role === "customer"
-                  ? "/me/profile"
-                  : role === "business"
+                role === "business"
                   ? "/biz/profile"
                   : user?.role === "state_admin" || user?.role === "chapter_admin"
                   ? "/chapter-admin/settings"
@@ -464,7 +445,7 @@ export function AppShell({
                 await switchRole(user.previousRole);
                 if (user.previousRole === "chapter_admin") router.push("/chapter-admin");
                 else if (user.previousRole === "business_owner") router.push("/biz");
-                else router.push("/me");
+                else router.push("/biz");
               }}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
             >
@@ -509,7 +490,7 @@ export function AppShell({
               </Button>
               <Button asChild variant="ghost" size="icon" className="relative">
                 <Link
-                  href={toRoleAwarePath(role === "admin" ? "/admin/notifications" : role === "business" ? "/biz/notifications" : "/me/notifications", role, user)}
+                  href={toRoleAwarePath(role === "admin" ? "/admin/notifications" : "/biz/notifications", role, user)}
                   aria-label="Notifications"
                 >
                   <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -521,9 +502,9 @@ export function AppShell({
                   )}
                 </Link>
               </Button>
-              <Button asChild variant="ghost" size="icon" className="relative inline-flex">
+              <Button asChild variant="ghost" size="icon" className="relative">
                 <Link
-                  href={toRoleAwarePath(role === "business" ? (isBizVerified ? "/biz/messages" : "/biz/verification") : "/me/messages", role, user)}
+                  href={toRoleAwarePath(isBizVerified ? "/biz/messages" : "/biz/verification", role, user)}
                   aria-label="Messages"
                 >
                   <Mail className="h-4 w-4 sm:h-5 sm:w-5" />

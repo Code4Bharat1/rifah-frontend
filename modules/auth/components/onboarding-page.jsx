@@ -150,7 +150,7 @@ export function OnboardingPage() {
 
       setSubmitted(true);
       setTimeout(() => {
-        router.push("/me");
+        router.push("/biz");
       }, 1500);
     } catch (err) {
       setError(err.message || "Failed to complete buyer setup. Please try again.");
@@ -278,9 +278,7 @@ export function OnboardingPage() {
 
             <div className="mt-6 grid gap-2.5">
               <Button asChild size="lg" className="w-full font-semibold">
-                <Link href={role === "business_owner" ? "/biz" : "/me"}>
-                  {role === "business_owner" ? "Open Business Workspace" : "Go to Buyer Dashboard"}
-                </Link>
+                <Link href="/biz">Open Business Workspace</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="w-full">
                 <Link href="/discover">Browse RIFAH Directory</Link>
@@ -302,63 +300,11 @@ export function OnboardingPage() {
               <RifahLogo className="h-10" />
             </div>
             <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
-              Complete Your RIFAH Onboarding
+              Complete Your Business Profile
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
               Welcome to the RIFAH Chamber network. Finish setting up your account profile.
             </p>
-          </div>
-
-          {/* Account Role Selector Card */}
-          <div className="mt-8 rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-xs">
-            <Label className="text-sm font-semibold text-foreground">Select Account Type:</Label>
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setRole("business_owner");
-                  setError("");
-                }}
-                className={`flex flex-col text-left p-4 rounded-xl border transition-all ${role === "business_owner"
-                    ? "border-primary bg-primary-soft/40 shadow-xs ring-2 ring-primary/20"
-                    : "border-border bg-surface hover:border-primary/40 hover:bg-muted/30"
-                  }`}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-primary-soft text-primary">
-                    <Building2 className="h-5 w-5" />
-                  </span>
-                  {role === "business_owner" && <CheckCircle2 className="h-5 w-5 text-primary" />}
-                </div>
-                <span className="mt-3 font-semibold text-sm text-foreground">Business Owner / Supplier</span>
-                <span className="mt-1 text-xs text-muted-foreground">
-                  List your enterprise in the directory, showcase products, and receive verified buyer RFQs.
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setRole("customer");
-                  setError("");
-                }}
-                className={`flex flex-col text-left p-4 rounded-xl border transition-all ${role === "customer"
-                    ? "border-primary bg-primary-soft/40 shadow-xs ring-2 ring-primary/20"
-                    : "border-border bg-surface hover:border-primary/40 hover:bg-muted/30"
-                  }`}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-primary-soft text-primary">
-                    <UserRound className="h-5 w-5" />
-                  </span>
-                  {role === "customer" && <CheckCircle2 className="h-5 w-5 text-primary" />}
-                </div>
-                <span className="mt-3 font-semibold text-sm text-foreground">Buyer / Sourcing</span>
-                <span className="mt-1 text-xs text-muted-foreground">
-                  Post requirements, source verified materials, and request supplier quotations.
-                </span>
-              </button>
-            </div>
           </div>
 
           {error && (
@@ -369,189 +315,13 @@ export function OnboardingPage() {
           )}
 
           {/* ========================================================== */}
-          {/* PATHWAY A: BUYER ONBOARDING (Fast 1-Screen Setup)           */}
+          {/* BUSINESS OWNER 5-STAGE WIZARD                              */}
           {/* ========================================================== */}
-          {role === "customer" && (
-            <form onSubmit={handleBuyerSubmit} className="mt-6 rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-xs space-y-6">
-              <div>
-                <h2 className="text-lg font-bold text-foreground">Buyer Account Details</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Set up your sourcing profile to submit requirements to suppliers.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-primary/20 bg-primary-soft/30 p-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm font-semibold text-foreground">Google Account Verified</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Logged in with: <span className="font-semibold text-foreground">{user?.email || "Google Account"}</span>
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="buyer-name">Full Name *</Label>
-                  <Input
-                    id="buyer-name"
-                    required
-                    placeholder="Your Full Name"
-                    value={buyerName}
-                    onChange={(e) => setBuyerName(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="buyer-phone">Phone Number *</Label>
-                  <Input
-                    id="buyer-phone"
-                    type="tel"
-                    required
-                    placeholder="+91 98200 00000"
-                    value={buyerPhone}
-                    onChange={(e) => setBuyerPhone(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="buyer-sourcing">Primary Sourcing Interest</Label>
-                <Select value={buyerSourcingInterest} onValueChange={setBuyerSourcingInterest}>
-                  <SelectTrigger id="buyer-sourcing">
-                    <SelectValue placeholder="Select primary industry you source from" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mainCategories.length > 0 ? (
-                      <>
-                        {mainCategories.map(mc => {
-                          const subs = subCategories.filter(sc => sc.parent === mc.name);
-                          return (
-                            <SelectGroup key={mc.name}>
-                              <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
-                              <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
-                              {subs.map(sc => (
-                                <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
-                              ))}
-                            </SelectGroup>
-                          );
-                        })}
-                      </>
-                    ) : (
-                      industries.map((ind) => (
-                        <SelectItem key={ind} value={ind}>
-                          {ind}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="buyer-city">City</Label>
-                  <Select value={buyerCity} onValueChange={setBuyerCity}>
-                    <SelectTrigger id="buyer-city">
-                      <SelectValue placeholder="Select city" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cities.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="buyer-chapter">RIFAH Chapter</Label>
-                  <Select value={buyerChapter} onValueChange={setBuyerChapter}>
-                    <SelectTrigger id="buyer-chapter">
-                      <SelectValue placeholder="Select chapter" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {chapters.map((c) => (
-                        <SelectItem key={c._id || c.name} value={c.name}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="buyer-org">Organisation / Enterprise (Optional)</Label>
-                <Input
-                  id="buyer-org"
-                  placeholder="e.g. Apex Trading Corp"
-                  value={buyerOrg}
-                  onChange={(e) => setBuyerOrg(e.target.value)}
-                />
-              </div>
-
-              {/* Password Setup */}
-              <div className="pt-4 border-t border-border space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <Lock className="h-4 w-4 text-primary" /> Set Account Password
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Setting a password allows you to log in with your email & password or continue using Google OAuth anytime.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="buyer-pass">New Password *</Label>
-                    <Input
-                      id="buyer-pass"
-                      type="password"
-                      required
-                      placeholder="Min 6 characters"
-                      value={buyerPassword}
-                      onChange={(e) => setBuyerPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="buyer-confirm-pass">Confirm Password *</Label>
-                    <Input
-                      id="buyer-confirm-pass"
-                      type="password"
-                      required
-                      placeholder="Repeat password"
-                      value={buyerConfirmPassword}
-                      onChange={(e) => setBuyerConfirmPassword(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Profile & Setting Password...
-                  </>
-                ) : (
-                  <>
-                    Complete Setup & Enter Dashboard <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </form>
-          )}
-
-          {/* ========================================================== */}
-          {/* PATHWAY B: BUSINESS OWNER 5-STAGE WIZARD                   */}
-          {/* ========================================================== */}
-          {role === "business_owner" && (
-            <div className="mt-6">
-              {/* Steps Progress Indicator */}
-              <div className="mb-6">
-                <Steps steps={businessSteps} current={step} />
-              </div>
+          <div className="mt-6">
+            {/* Steps Progress Indicator */}
+            <div className="mb-6">
+              <Steps steps={businessSteps} current={step} />
+            </div>
 
               <form onSubmit={handleNextStep} className="space-y-6">
                 {/* STAGE 1: BUSINESS DETAILS */}
@@ -909,7 +679,6 @@ export function OnboardingPage() {
                 </div>
               </form>
             </div>
-          )}
         </div>
       </div>
     </PublicLayout>

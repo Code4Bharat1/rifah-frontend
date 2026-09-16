@@ -156,31 +156,8 @@ export function AuthProvider({ children }) {
     await fetchCurrentUser();
   };
 
-  const toggleSaveBusiness = async (businessId) => {
-    // Only customers are allowed to save/unsave businesses
-    if (user?.role !== 'customer') {
-      // Early exit with an error-like payload
-      return { error: 'Only customers can save businesses' };
-    }
-    if (!businessId) return null;
-    const res = await userApi.toggleSaveBusiness(businessId);
-    const payload = res?.data || res;
-    if (payload && Array.isArray(payload.savedBusinesses)) {
-      setUser((prev) => {
-        if (!prev) return prev;
-        const updated = { ...prev, savedBusinesses: payload.savedBusinesses };
-        try {
-          localStorage.setItem("rifah_user", JSON.stringify(updated));
-        } catch (e) {}
-        return updated;
-      });
-      try {
-        queryClient.invalidateQueries();
-      } catch (e) {}
-    } else {
-      await fetchCurrentUser();
-    }
-    return payload;
+  const toggleSaveBusiness = async () => {
+    return null;
   };
 
   return (

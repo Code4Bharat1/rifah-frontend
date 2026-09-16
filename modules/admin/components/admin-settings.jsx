@@ -423,5 +423,4 @@ export function AdminSettings() {
   );
 }
 
-export { AdminSettings };
 export default AdminSettings;
