@@ -555,7 +555,7 @@ function BizMessages() {
                 No active conversations yet. Messages will appear when buyers contact your business or when you message buyers from your Leads.
               </p>
               <Button asChild size="sm" variant="outline" className="mt-3">
-                <Link href="/biz/leads">View Leads</Link>
+                <Link href="/biz/enquiries">View Enquiries</Link>
               </Button>
             </div>
           ) : (
@@ -624,7 +624,7 @@ function BizMessages() {
                   Select a buyer conversation from your inbox or message buyers directly from your leads manager.
                 </p>
                 <Button asChild size="sm" className="mt-4">
-                  <Link href="/biz/leads">Go to Leads</Link>
+                  <Link href="/biz/enquiries">Go to Enquiries</Link>
                 </Button>
               </div>
             ) : messages.length === 0 ? (

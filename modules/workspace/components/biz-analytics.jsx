@@ -75,7 +75,7 @@ function BizAnalytics() {
             hint={stats.totalLeadsReceived > 0 ? "Matched buyer enquiries" : "No leads yet"}
             icon={Target}
             tone="brand"
-            href="/biz/leads"
+            href="/biz/enquiries"
           />
           <StatCard
             label="Enquiries"

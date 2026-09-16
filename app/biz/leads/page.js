@@ -1,5 +1,5 @@
-import { BizLeads } from "@modules/workspace";
+import { redirect } from "next/navigation";
 
-export default function Page(props) {
-  return <BizLeads {...props} />;
+export default function Page() {
+  redirect("/biz/enquiries");
 }

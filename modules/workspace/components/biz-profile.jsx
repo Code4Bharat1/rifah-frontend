@@ -1,6 +1,22 @@
 "use client";
 import Link from "next/link";
-import { Eye, FileBadge2, ImagePlus, Loader2, CheckCircle2, Trash2, X, ShieldCheck, ArrowRight } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import {
+  Eye,
+  FileBadge2,
+  ImagePlus,
+  Loader2,
+  CheckCircle2,
+  Trash2,
+  X,
+  ShieldCheck,
+  ArrowRight,
+  Package,
+  Building2,
+  UserRound,
+  Sparkles,
+  Plus,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -20,11 +36,13 @@ import {
   SelectGroup,
   SelectLabel
 } from "@shared/components/ui/select";
-import { useMyBusiness, useCategories } from "@shared/hooks/use-rifah-api";
+import { useMyBusiness, useCategories, useBusinessCatalogue } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
 import { businessApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@shared/lib/utils";
+import { BizCatalogueManager } from "./biz-catalogue";
 
 const B2B_INDUSTRIES = [
   "Industrial Machinery & Tools",
@@ -54,6 +72,18 @@ function BizProfile() {
   const { data: business, refetch } = useMyBusiness();
   const { user } = useAuth();
   const { data: categoriesData } = useCategories();
+  const { data: catalogueItems } = useBusinessCatalogue(business?._id);
+  const totalCatalogueCount = (catalogueItems || []).length;
+
+  const searchParams = useSearchParams();
+  const tabParam = searchParams?.get("tab");
+  const [activeTab, setActiveTab] = useState(tabParam === "catalogue" ? "catalogue" : "profile");
+
+  useEffect(() => {
+    if (tabParam === "catalogue") {
+      setActiveTab("catalogue");
+    }
+  }, [tabParam]);
 
   const rawCategories = Array.isArray(categoriesData)
     ? categoriesData
@@ -273,19 +303,72 @@ function BizProfile() {
   return (
     <AppShell
       role="business"
-      title="Business profile"
-      subtitle="How buyers see your enterprise"
+      title="My Profile"
+      subtitle={
+        activeTab === "catalogue"
+          ? `${totalCatalogueCount} published catalogue items`
+          : "Manage your enterprise profile, credentials & catalogue"
+      }
       actions={
-        <Button asChild variant="outline">
-          <Link href={`/business/${bizSlugOrId}`}>
-            <Eye className="h-4 w-4" /> Preview
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {bizSlugOrId && (
+            <Button asChild variant="outline" size="sm" className="rounded-xl shadow-xs">
+              <Link href={`/business/${bizSlugOrId}`} target="_blank">
+                <Eye className="h-4 w-4 mr-1.5" /> Public View
+              </Link>
+            </Button>
+          )}
+        </div>
       }
     >
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-4">
-          <Panel title="Company details">
+      {/* Top Segmented Navigation Switcher */}
+      <div className="flex items-center gap-2 border-b border-border pb-3 mb-6">
+        <button
+          type="button"
+          onClick={() => setActiveTab("profile")}
+          className={cn(
+            "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer",
+            activeTab === "profile"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-surface border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          <Building2 className="h-4 w-4" />
+          <span>Company Profile</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("catalogue")}
+          className={cn(
+            "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer",
+            activeTab === "catalogue"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-surface border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          <Package className="h-4 w-4" />
+          <span>Catalogue</span>
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors",
+              activeTab === "catalogue"
+                ? "bg-white/20 text-white"
+                : "bg-muted text-foreground"
+            )}
+          >
+            {totalCatalogueCount}
+          </span>
+        </button>
+      </div>
+
+      {activeTab === "catalogue" ? (
+        <div className="animate-in fade-in duration-200">
+          <BizCatalogueManager embedded={true} />
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] animate-in fade-in duration-200">
+          <div className="space-y-4">
+            <Panel title="Company details">
             {saveSuccess && (
               <div className="mb-4 flex items-center gap-2 rounded-xl bg-success-soft p-3 text-xs font-semibold text-success">
                 <CheckCircle2 className="h-4 w-4" /> Profile updated successfully!
@@ -469,6 +552,30 @@ function BizProfile() {
         </div>
 
         <div className="space-y-4">
+          {/* Catalogue & Offerings Card */}
+          <Panel title="Catalogue" description="Catalogue entries showcased to buyers">
+            <div className="rounded-xl border border-border bg-card/60 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-foreground">Catalogue items</span>
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
+                  {totalCatalogueCount} published
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Add products or services with pricing and MOQ so buyers and chamber members can send sourcing RFQs directly.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setActiveTab("catalogue")}
+                className="w-full text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Package className="h-3.5 w-3.5" />
+                <span>Create & Manage Catalogue →</span>
+              </Button>
+            </div>
+          </Panel>
+
           <Panel title="Logo Image">
             {business?.logo ? (
               <div className="relative inline-block group rounded-2xl overflow-hidden border border-border">
@@ -599,6 +706,7 @@ function BizProfile() {
           </Panel>
         </div>
       </div>
+      )}
     </AppShell>
   );
 }

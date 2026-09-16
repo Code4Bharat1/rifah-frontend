@@ -1,5 +1,6 @@
-import { BizCatalogue } from "@modules/workspace";
+import { redirect } from "next/navigation";
 
-export default function Page(props) {
-  return <BizCatalogue {...props} />;
+export default function Page() {
+  redirect("/biz/profile?tab=catalogue");
 }
+

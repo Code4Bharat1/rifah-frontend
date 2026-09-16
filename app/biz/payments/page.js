@@ -1,5 +1,5 @@
-import { BizPayments } from "@modules/workspace";
+import { redirect } from "next/navigation";
 
-export default function Page(props) {
-  return <BizPayments {...props} />;
+export default function Page() {
+  redirect("/biz/membership#payment-history");
 }

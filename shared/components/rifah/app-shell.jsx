@@ -1,12 +1,9 @@
 "use client";
+// App Shell Layout & Navigation (Updated)
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { resolveMediaUrl } from "@shared/lib/media";
-
-let globalSidebarScrollTop = typeof window !== "undefined"
-  ? Number(sessionStorage.getItem("rifah_sidebar_scroll_top") || 0)
-  : 0;
 import {
   Bell,
   Bookmark,
@@ -38,16 +35,6 @@ import {
   Users,
   MessageSquareText,
   RotateCcw,
-} from "lucide-react";
-
-
-import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
-import { Button } from "@shared/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
-import { cn } from "@shared/lib/utils";
-import { useAuth } from "@shared/providers/auth-provider";
-import { useNotifications, useConversations, useMyBusiness } from "@shared/hooks/use-rifah-api";
-import {
   Lock,
   Clock,
   Sparkles,
@@ -56,28 +43,33 @@ import {
   XCircle,
   ArrowRight,
   Shield,
-  FileCheck2,
 } from "lucide-react";
+import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
+import { Button } from "@shared/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
+import { cn } from "@shared/lib/utils";
+import { useAuth } from "@shared/providers/auth-provider";
+import { useNotifications, useConversations, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { VerificationBadge } from "@shared/components/rifah/badges";
+
+let globalSidebarScrollTop = typeof window !== "undefined"
+  ? Number(sessionStorage.getItem("rifah_sidebar_scroll_top") || 0)
+  : 0;
 
 const navs = {
   business: {
     title: "Business workspace",
     primary: [
       { label: "Dashboard", to: "/biz", icon: Gauge },
-      { label: "Leads", to: "/biz/leads", icon: Target },
       { label: "Enquiries", to: "/biz/enquiries", icon: FileStack },
       { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },
-      { label: "More", to: "/biz/catalogue", icon: LayoutGrid },
+      { label: "Messages", to: "/biz/messages", icon: MessageSquare },
+      { label: "More", to: "/biz/profile", icon: LayoutGrid },
     ],
     more: [
-      { label: "Messages", to: "/biz/messages", icon: MessageSquare },
-      { label: "Business", to: "/biz/profile", icon: Building2 },
-      { label: "Catalogue", to: "/biz/catalogue", icon: Package },
+      { label: "My Profile", to: "/biz/profile", icon: UserRound },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
       { label: "Membership", to: "/biz/membership", icon: Star },
-      { label: "Verification", to: "/biz/verification", icon: ShieldCheck },
-      { label: "Payments", to: "/biz/payments", icon: CreditCard },
       { label: "Notifications", to: "/biz/notifications", icon: Bell },
     ],
   },
@@ -105,54 +97,77 @@ const navs = {
       { label: "Settings", to: "/admin/settings", icon: Settings },
     ],
   },
-  state_admin: {
-    title: "State administration",
+};
+
+const roleNavs = {
+  chapter_admin: {
+    title: "Chapter admin",
     primary: [
-      { label: "Overview", to: "/state-admin", icon: Gauge },
-      { label: "Chapters", to: "/state-admin/chapters", icon: MapPin },
+      { label: "Dashboard", to: "/chapter-admin", icon: Gauge },
+      { label: "Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
-      { label: "Users", to: "/chapter-admin/users", icon: Users },
+      { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
+      { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
+      { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
+      { label: "Users", to: "/chapter-admin/users", icon: Users },
       { label: "Events", to: "/chapter-admin/events", icon: Ticket },
       { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
     ],
   },
-  chapter_admin: {
-    title: "Chapter administration",
+  state_admin: {
+    title: "State admin",
     primary: [
-      { label: "Overview", to: "/chapter-admin", icon: Gauge },
-      { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
-      { label: "Verify", to: "/chapter-admin/verification", icon: ShieldCheck },
-      { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
-      { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
+      { label: "Dashboard", to: "/state-admin", icon: Gauge },
+      { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
+      { label: "Members", to: "/state-admin/members", icon: Users },
+      { label: "Events", to: "/state-admin/events", icon: CalendarDays },
+      { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Users", to: "/chapter-admin/users", icon: Users },
-      { label: "Memberships", to: "/chapter-admin/memberships", icon: Star },
-      { label: "Queries", to: "/chapter-admin/queries", icon: MessageSquareText },
-      { label: "Reviews", to: "/chapter-admin/reviews", icon: MessageSquare },
-      { label: "My Chapter", to: "/chapter-admin/chapter", icon: MapPinned },
-      { label: "Units", to: "/chapter-admin/units", icon: Users },
-      { label: "Events", to: "/chapter-admin/events", icon: Ticket },
-      { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
-      { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
-      { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
-      { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
-      { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
+      { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
+      { label: "Announcements", to: "/state-admin/announcements", icon: Megaphone },
+      { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
+      { label: "Settings", to: "/state-admin/settings", icon: Settings },
     ],
+  },
+  secretariat: {
+    title: "Secretariat Desk",
+    primary: [
+      { label: "Overview", to: "/admin", icon: Gauge },
+      { label: "Businesses", to: "/admin/businesses", icon: Building2 },
+      { label: "Leads", to: "/admin/leads", icon: Target },
+      { label: "Users", to: "/admin/users", icon: Users },
+      { label: "More", to: "/admin/settings", icon: LayoutGrid },
+    ],
+    more: navs.admin.more,
   },
 };
 
+<<<<<<< Updated upstream
 const roleSwitcher = [
+=======
+function useResolvedNav(role) {
+  const { user } = useAuth();
+  if (user?.role && roleNavs[user.role]) {
+    return roleNavs[user.role];
+  }
+  return navs[role] || navs.customer;
+}
+
+const roleSwitcherItems = [
+  { role: "customer", label: "Personal", to: "/me" },
+>>>>>>> Stashed changes
   { role: "business", label: "Business", to: "/biz" },
   { role: "admin", label: "Admin", to: "/admin" },
 ];
 
+<<<<<<< Updated upstream
 function useResolvedNav(role) {
   const { user } = useAuth();
   if (role === "state_admin" || user?.role === "state_admin") return navs.state_admin;
@@ -160,20 +175,17 @@ function useResolvedNav(role) {
   return navs[role] || navs.business || navs.admin;
 }
 
+=======
+>>>>>>> Stashed changes
 function toRoleAwarePath(path, role, user) {
+  if (role === "admin" && (user?.role === "chapter_admin" || user?.role === "state_admin")) {
+    if (path.startsWith("/admin/notifications")) return `/${user.role.replace("_", "-")}/notifications`;
+  }
   if (user?.role === "state_admin") {
-    if (path === "/admin" || path === "/chapter-admin") {
-      return "/state-admin";
-    }
-    if (path === "/admin/chapters" || path === "/chapter-admin/chapter") {
-      return "/state-admin/chapters";
-    }
-    if (path === "/admin/leads" || path === "/chapter-admin/leads") {
-      return "/chapter-admin/enquiries";
-    }
-    if (path.startsWith("/admin/")) {
-      return path.replace(/^\/admin/, "/chapter-admin");
-    }
+    if (path === "/admin" || path === "/chapter-admin") return "/state-admin";
+    if (path === "/admin/chapters" || path === "/chapter-admin/chapter") return "/state-admin/chapters";
+    if (path === "/admin/leads" || path === "/chapter-admin/leads") return "/chapter-admin/enquiries";
+    if (path.startsWith("/admin/")) return path.replace(/^\/admin/, "/chapter-admin");
     return path;
   }
   if (role === "admin" && user?.role === "chapter_admin" && path.startsWith("/admin")) {
@@ -182,9 +194,9 @@ function toRoleAwarePath(path, role, user) {
   return path;
 }
 
-function isAccessibleUnverifiedPath(p) {
-  if (!p) return false;
-  const clean = p.replace(/\/$/, "");
+function isAccessibleUnverifiedPath(pathname) {
+  if (!pathname) return true;
+  const clean = pathname.split("?")[0];
   return (
     clean === "/biz/verification" ||
     clean.startsWith("/biz/verification/") ||
@@ -206,10 +218,20 @@ function useCurrentPath() {
 }
 
 function SidebarLink({ item, active, badge, isLocked, onSelect }) {
+  const linkRef = useRef(null);
+
+  useEffect(() => {
+    if (active && linkRef.current) {
+      linkRef.current.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }, [active]);
+
   return (
     <Link
+      ref={linkRef}
       href={item.to}
       scroll={false}
+      data-active={active ? "true" : "false"}
       onClick={onSelect}
       data-sidebar-active={active ? "true" : undefined}
       className={cn(
@@ -284,29 +306,23 @@ export function AppShell({
     }
   }, [user, loading, path, router]);
 
-  const { data: notificationsData } = useNotifications();
-  const { data: conversationsData } = useConversations();
+  const { data: notifData } = useNotifications();
+  const unreadNotifs = notifData?.unreadCount ?? 0;
+
+  const { data: convData } = useConversations();
+  const unreadMsgs = (convData || []).reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+
   const { data: businessData, isLoading: isBizLoading } = useMyBusiness();
-  const vStatus = (businessData?.verification || businessData?.verificationStatus || "").toLowerCase();
-  const hasEverBeenVerified =
-    businessData?.isVerified === true ||
-    vStatus === "verified" ||
-    vStatus === "approved" ||
-    (Array.isArray(businessData?.verificationHistory) &&
-      businessData.verificationHistory.some((h) => h.action === "verified" || h.action === "approved"));
+  const rawVerification = businessData?.verification || businessData?.verificationStatus;
+  const isBizVerified = (rawVerification || "").toLowerCase() === "verified";
+  const hasEverBeenVerified = businessData?.isVerified === true || isBizVerified;
 
-  // While business profile is loading, treat as verified to prevent flashing lock screen & lock icons on reload
-  const isBizVerified = role !== "business" || isBizLoading || !businessData || hasEverBeenVerified;
-  const isGatedPage = role === "business" && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(path);
-
-  const unreadNotifs = notificationsData?.unreadCount ?? (
-    Array.isArray(notificationsData)
-      ? notificationsData.filter((n) => !n.isRead && !n.readAt && n.type !== "Message").length
-      : 0
-  );
-
-  const rawConversations = Array.isArray(conversationsData) ? conversationsData : (conversationsData?.conversations || []);
-  const unreadMsgs = rawConversations.reduce((acc, c) => acc + (Number(c.unreadCount || c.unread) || 0), 0);
+  const isGatedPage =
+    role === "business" &&
+    !isBizLoading &&
+    Boolean(businessData) &&
+    !hasEverBeenVerified &&
+    !isAccessibleUnverifiedPath(path);
 
   let finalTitle = title;
   let finalSubtitle = subtitle;
@@ -320,6 +336,7 @@ export function AppShell({
     }
   }
 
+<<<<<<< Updated upstream
   const isActive = (to) => {
     if (path === to) return true;
     const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/discover"];
@@ -327,14 +344,19 @@ export function AppShell({
     return to !== "/" && path.startsWith(to + "/");
   };
 
+=======
+>>>>>>> Stashed changes
   const navRef = useRef(null);
 
   const handleNavScroll = (e) => {
-    const top = e.currentTarget.scrollTop;
-    globalSidebarScrollTop = top;
-    try {
-      sessionStorage.setItem("rifah_sidebar_scroll_top", String(top));
-    } catch {}
+    if (e?.currentTarget) {
+      const top = e.currentTarget.scrollTop;
+      globalSidebarScrollTop = top;
+      try {
+        sessionStorage.setItem(`rifah-sidebar-scroll-${role}`, String(top));
+        sessionStorage.setItem("rifah_sidebar_scroll_top", String(top));
+      } catch {}
+    }
   };
 
   const recordScroll = () => {
@@ -342,6 +364,7 @@ export function AppShell({
       const top = navRef.current.scrollTop;
       globalSidebarScrollTop = top;
       try {
+        sessionStorage.setItem(`rifah-sidebar-scroll-${role}`, String(top));
         sessionStorage.setItem("rifah_sidebar_scroll_top", String(top));
       } catch {}
     }
@@ -350,10 +373,13 @@ export function AppShell({
   const setNavRef = (node) => {
     navRef.current = node;
     if (node) {
-      if (globalSidebarScrollTop > 0) {
+      const saved = sessionStorage.getItem(`rifah-sidebar-scroll-${role}`) || sessionStorage.getItem("rifah_sidebar_scroll_top");
+      if (saved !== null && Number(saved) > 0) {
+        node.scrollTop = Number(saved);
+      } else if (globalSidebarScrollTop > 0) {
         node.scrollTop = globalSidebarScrollTop;
       } else {
-        const activeLink = node.querySelector('[data-sidebar-active="true"]');
+        const activeLink = node.querySelector('[data-sidebar-active="true"]') || node.querySelector('[data-active="true"]');
         if (activeLink) {
           activeLink.scrollIntoView({ block: "nearest", behavior: "instant" });
           globalSidebarScrollTop = node.scrollTop;
@@ -364,16 +390,26 @@ export function AppShell({
 
   useEffect(() => {
     if (navRef.current) {
-      if (globalSidebarScrollTop > 0) {
+      const saved = sessionStorage.getItem(`rifah-sidebar-scroll-${role}`) || sessionStorage.getItem("rifah_sidebar_scroll_top");
+      if (saved !== null && Number(saved) > 0) {
+        navRef.current.scrollTop = Number(saved);
+      } else if (globalSidebarScrollTop > 0) {
         navRef.current.scrollTop = globalSidebarScrollTop;
       } else {
-        const activeLink = navRef.current.querySelector('[data-sidebar-active="true"]');
+        const activeLink = navRef.current.querySelector('[data-sidebar-active="true"]') || navRef.current.querySelector('[data-active="true"]');
         if (activeLink) {
           activeLink.scrollIntoView({ block: "nearest", behavior: "instant" });
         }
       }
     }
-  }, [path]);
+  }, [path, role]);
+
+  const isActive = (to) => {
+    if (path === to) return true;
+    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
+    if (rootRoutes.includes(to)) return false;
+    return to !== "/" && path.startsWith(to + "/");
+  };
 
   const handleLogout = () => {
     logout();
@@ -677,39 +713,36 @@ function UnderApprovalAccessGate({ business, path }) {
           <span className="text-xs text-muted-foreground font-medium">4 Pages Accessible</span>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          {accessibleModules.map((mod) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {accessibleModules.map((m) => (
             <Link
-              key={mod.to}
-              href={mod.to}
-              className="group rounded-2xl border border-border/80 bg-card p-4 hover:border-primary/50 hover:shadow-xs transition-all flex flex-col justify-between gap-3"
+              key={m.to}
+              href={m.to}
+              className="flex flex-col justify-between p-4 rounded-2xl border border-border bg-card/60 hover:bg-card hover:border-primary/40 hover:shadow-xs transition-all group cursor-pointer"
             >
               <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      <mod.icon className="h-4 w-4" />
-                    </div>
-                    <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                      {mod.title}
-                    </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <m.icon className="h-5 w-5" />
                   </div>
-                  <span className="rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold">
-                    {mod.badge}
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    {m.badge}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {mod.description}
+                <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                  {m.title}
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  {m.description}
                 </p>
               </div>
-              <div className="flex items-center gap-1 text-xs font-semibold text-primary pt-2 border-t border-border/40">
-                <span>{mod.actionText}</span>
-              </div>
+              <span className="mt-3 text-xs font-semibold text-primary inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                {m.actionText}
+              </span>
             </Link>
           ))}
         </div>
       </div>
-
       {/* Locked Workspace Modules Notice */}
       <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-4 text-xs text-muted-foreground flex items-center gap-3">
         <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -721,23 +754,28 @@ function UnderApprovalAccessGate({ business, path }) {
   );
 }
 
-function MoreSheet({ role, isBizVerified = true }) {
+export function MoreSheet({ role, isBizVerified = true }) {
+  const [open, setOpen] = useState(false);
   const nav = useResolvedNav(role);
-  const items = [...nav.primary.filter((i) => i.label !== "More"), ...nav.more];
+  const items = nav.more;
+
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" aria-label="Open menu">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[86vw] max-w-sm p-0 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <SheetHeader className="border-b border-border px-4 py-4">
-          <SheetTitle className="text-left">
-            <RifahLogo />
+      <SheetContent side="left" className="w-72 p-4">
+        <SheetHeader className="text-left">
+          <SheetTitle className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
+              <LogoMark className="h-4" />
+            </span>
+            <span className="font-bold">RIFAH</span>
           </SheetTitle>
         </SheetHeader>
-        <nav className="grid gap-1 p-3">
+        <nav className="mt-6 flex flex-col gap-1">
           <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {nav.title}
           </p>
@@ -748,6 +786,7 @@ function MoreSheet({ role, isBizVerified = true }) {
                 key={i.to + i.label}
                 href={i.to}
                 scroll={false}
+                onClick={() => setOpen(false)}
                 className={cn(
                   "flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted",
                   isLocked && "opacity-75"
@@ -762,7 +801,7 @@ function MoreSheet({ role, isBizVerified = true }) {
             );
           })}
           <div className="mt-2 border-t border-border pt-3">
-            <Link href="/" className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted">
+            <Link href="/" scroll={false} className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted">
               Public website
             </Link>
             <MobileLogoutButton />
@@ -776,7 +815,6 @@ function MoreSheet({ role, isBizVerified = true }) {
 export function BottomNav({ role, isBizVerified = true }) {
   const path = useCurrentPath();
   const nav = useResolvedNav(role);
-
   const primary = nav.primary;
 
   return (
@@ -792,6 +830,7 @@ export function BottomNav({ role, isBizVerified = true }) {
             <li key={item.label}>
               <Link
                 href={item.to}
+                scroll={false}
                 className={cn(
                   "flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium text-muted-foreground relative",
                   active && "text-primary",

@@ -311,7 +311,7 @@ function BusinessHome() {
             hint="This week"
             icon={Target}
             tone="danger"
-            href="/biz/leads"
+            href="/biz/enquiries"
           />
           <StatCard
             label="Open enquiries"
@@ -335,7 +335,7 @@ function BusinessHome() {
             hint={`${catalogue.filter((i) => i.status === "draft").length} drafts`}
             icon={Package}
             tone="neutral"
-            href="/biz/catalogue"
+            href="/biz/profile?tab=catalogue"
           />
         </div>
 
@@ -344,16 +344,16 @@ function BusinessHome() {
           <div className="space-y-4">
             {/* Matched Leads Panel */}
             <Panel
-              title="Matched leads"
-              description="Buyer enquiries routed to your categories"
-              action={<MoreLink href="/biz/leads" label="View all →" />}
+              title="Member & buyer enquiries"
+              description="Buyer enquiries and RFQs routed to your business"
+              action={<MoreLink href="/biz/enquiries" label="View all →" />}
             >
               {rawLeads.length === 0 ? (
                 <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                   <Target className="mx-auto h-8 w-8 text-slate-300 mb-2" />
-                  <p className="text-xs font-bold text-slate-700">No matched leads yet</p>
+                  <p className="text-xs font-bold text-slate-700">No enquiries yet</p>
                   <p className="text-[11px] text-slate-400 max-w-xs mx-auto mt-0.5">
-                    New buyer enquiries matching your categories will appear here.
+                    When buyers post matching requirements, they will appear here.
                   </p>
                 </div>
               ) : (
@@ -419,7 +419,7 @@ function BusinessHome() {
                             size="sm"
                             className="rounded-full bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-5 shadow-2xs"
                           >
-                            <Link href="/biz/leads">Respond</Link>
+                            <Link href="/biz/enquiries">Respond & Quote</Link>
                           </Button>
                           <Button
                             asChild
@@ -427,7 +427,7 @@ function BusinessHome() {
                             variant="outline"
                             className="rounded-full border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                           >
-                            <Link href="/biz/leads">View details</Link>
+                            <Link href="/biz/enquiries">View details</Link>
                           </Button>
                         </div>
                       </div>

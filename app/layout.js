@@ -43,19 +43,21 @@ export default async function RootLayout({ children }) {
 
         {/* Google Translate Global Script */}
         <div id="google_translate_element" style={{ display: 'none' }}></div>
-        <Script 
-          id="google-translate-init" 
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              function googleTranslateElementInit() {
-                new google.translate.TranslateElement({pageLanguage: 'en', autoDisplay: false}, 'google_translate_element');
-              }
-            `
-          }}
-        />
         <Script
-          src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+          id="google-translate-init"
+          strategy="afterInteractive"
+        >
+          {`
+            function googleTranslateElementInit() {
+              if (window.google && window.google.translate) {
+                new window.google.translate.TranslateElement({pageLanguage: 'en', autoDisplay: false}, 'google_translate_element');
+              }
+            }
+          `}
+        </Script>
+        <Script
+          id="google-translate-script"
+          src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
           strategy="afterInteractive"
         />
       </body>

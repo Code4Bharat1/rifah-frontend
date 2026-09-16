@@ -154,8 +154,9 @@ function BusinessProfile() {
 
   if (!business) return <BusinessNotFound />;
 
-  const products = (catalogueItems || []).filter((i) => i.type === "Product");
-  const services = (catalogueItems || []).filter((i) => i.type === "Service");
+  const catalogue = catalogueItems || [];
+  const products = catalogue.filter((i) => i.type === "Product");
+  const services = catalogue.filter((i) => i.type === "Service");
   
   const rawReviews = reviewsData?.reviews || reviewsData?.data?.reviews || reviewsData?.data || reviewsData || [];
   const reviews = Array.isArray(rawReviews) ? rawReviews : [];
@@ -348,8 +349,7 @@ function BusinessProfile() {
             <Tabs defaultValue="about" className="mt-4">
               <TabsList className="w-full justify-start overflow-x-auto no-scrollbar">
                 <TabsTrigger value="about">About</TabsTrigger>
-                <TabsTrigger value="products">Products ({products.length})</TabsTrigger>
-                <TabsTrigger value="services">Services ({services.length})</TabsTrigger>
+                <TabsTrigger value="catalogue">Catalogue ({catalogue.length})</TabsTrigger>
                 <TabsTrigger value="gallery">Gallery</TabsTrigger>
                 <TabsTrigger value="info">Business info</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
@@ -379,64 +379,87 @@ function BusinessProfile() {
                 )}
               </TabsContent>
 
-              <TabsContent value="products" className="mt-4">
-                <Panel title="Products" description={`${products.length} published`}>
-                  {products.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      This business has not published standalone products yet.
-                    </p>
+              <TabsContent value="catalogue" className="mt-4">
+                <Panel title="Catalogue" description={`${catalogue.length} published ${catalogue.length === 1 ? "item" : "items"}`}>
+                  {catalogue.length === 0 ? (
+                    <div className="py-12 text-center text-sm text-muted-foreground border border-dashed rounded-2xl flex flex-col items-center justify-center gap-2">
+                      <Package className="h-8 w-8 text-muted-foreground/50" />
+                      <p>This business has not published any catalogue items yet.</p>
+                    </div>
                   ) : (
-                    <ul className="grid gap-3 sm:grid-cols-2">
-                      {products.map((p) => (
-                        <li key={p._id || p.slug} className="rounded-xl border border-border p-4 overflow-hidden">
-                          {p.images && p.images.length > 0 ? (
-                            <div className="relative mb-3 h-32 w-full overflow-hidden rounded-lg bg-muted border border-border">
-                              <img
-                                src={resolveMediaUrl(p.images[0])}
-                                alt={p.name}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary">
-                              <Package className="h-4 w-4" />
-                            </span>
-                          )}
-                          <p className="mt-2 text-sm font-semibold">{p.name}</p>
-                          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
-                          <p className="mt-2 text-xs font-medium text-foreground">{p.price || "On Request"}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </Panel>
-              </TabsContent>
+                    <ul className="grid gap-4 sm:grid-cols-2">
+                      {catalogue.map((item) => (
+                        <li key={item._id || item.slug} className="flex flex-col justify-between rounded-2xl border border-border p-4 bg-card/60 overflow-hidden hover:border-primary/40 transition-colors">
+                          <div>
+                            {item.images && item.images.length > 0 ? (
+                              <div className="relative mb-3 h-36 w-full overflow-hidden rounded-xl bg-muted border border-border">
+                                <img
+                                  src={resolveMediaUrl(item.images[0])}
+                                  alt={item.name}
+                                  className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                                />
+                                {item.images.length > 1 && (
+                                  <span className="absolute bottom-2 right-2 rounded-full bg-slate-900/75 backdrop-blur-xs px-2 py-0.5 text-[10px] font-medium text-white">
+                                    +{item.images.length - 1} photos
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="relative mb-3 h-24 w-full overflow-hidden rounded-xl bg-muted/60 flex items-center justify-center border border-border">
+                                {item.type === "Service" ? (
+                                  <Wrench className="h-6 w-6 text-muted-foreground/60" />
+                                ) : (
+                                  <Package className="h-6 w-6 text-muted-foreground/60" />
+                                )}
+                              </div>
+                            )}
 
-              <TabsContent value="services" className="mt-4">
-                <Panel title="Services" description={`${services.length} published`}>
-                  {services.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No standalone services listed.
-                    </p>
-                  ) : (
-                    <ul className="grid gap-3 sm:grid-cols-2">
-                      {services.map((s) => (
-                        <li key={s._id || s.slug} className="rounded-xl border border-border p-4 overflow-hidden">
-                          {s.images && s.images.length > 0 ? (
-                            <div className="relative mb-3 h-32 w-full overflow-hidden rounded-lg bg-muted border border-border">
-                              <img
-                                src={resolveMediaUrl(s.images[0])}
-                                alt={s.name}
-                                className="h-full w-full object-cover"
-                              />
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-bold text-foreground leading-snug">{item.name}</p>
+                              <span
+                                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                                  item.type === "Service"
+                                    ? "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300"
+                                    : "bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300"
+                                }`}
+                              >
+                                {item.type || "Product"}
+                              </span>
                             </div>
-                          ) : (
-                            <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-primary">
-                              <Wrench className="h-4 w-4" />
-                            </span>
-                          )}
-                          <p className="mt-2 text-sm font-semibold">{s.name}</p>
-                          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{s.description}</p>
+
+                            {item.category && (
+                              <p className="mt-1 text-[11px] font-medium text-primary">
+                                {item.category}
+                              </p>
+                            )}
+
+                            {item.description && (
+                              <p className="mt-2 line-clamp-3 text-xs text-muted-foreground leading-relaxed">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs">
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
+                                Price
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {item.price ? (item.price.startsWith("₹") ? item.price : `₹ ${item.price}`) : "On Request"}
+                              </span>
+                            </div>
+                            {item.moq && (
+                              <div className="text-right">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
+                                  MOQ
+                                </span>
+                                <span className="font-semibold text-muted-foreground">
+                                  {item.moq}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </li>
                       ))}
                     </ul>

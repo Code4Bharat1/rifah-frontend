@@ -28,7 +28,7 @@ import { useMyBusiness, useBusinessCatalogue } from "@shared/hooks/use-rifah-api
 import { catalogueApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
-function BizCatalogue() {
+export function BizCatalogueManager({ embedded = false }) {
   const queryClient = useQueryClient();
   const { data: business } = useMyBusiness();
   const { data: catalogueItems, refetch } = useBusinessCatalogue(business?._id);
@@ -217,24 +217,30 @@ function BizCatalogue() {
     }
   };
 
-  return (
-    <AppShell
-      role="business"
-      title="My catalogue"
-      subtitle={`${items.length} published products & services`}
-      actions={
-        <>
+  const content = (
+    <div className="space-y-4">
+      {embedded && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-foreground">
+              Products & Services Catalogue
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {items.length} {items.length === 1 ? "item" : "items"} published · Buyers and chamber members can discover and enquire directly
+            </p>
+          </div>
           <Button
             size="sm"
             onClick={() => setOpenAdd(true)}
-            className="rounded-xl px-2.5 sm:px-3 text-xs cursor-pointer shadow-xs"
+            className="rounded-xl px-3 text-xs font-semibold cursor-pointer shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 self-start sm:self-auto"
           >
-            <Plus className="h-3.5 w-3.5 sm:mr-1" />
-            <span className="hidden sm:inline">Add item</span>
-            <span className="sm:hidden">Add</span>
+            <Plus className="h-4 w-4" />
+            <span>Add Product / Service</span>
           </Button>
+        </div>
+      )}
 
-          <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+      <Dialog open={openAdd} onOpenChange={setOpenAdd}>
             <DialogContent className="w-[94vw] max-w-xl max-h-[90vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden rounded-3xl p-6 sm:p-7 bg-white border border-slate-200/80 shadow-2xl font-sans">
               <DialogHeader className="space-y-1 text-left pr-6">
                 <DialogTitle className="text-left text-xl font-bold text-[#0f172a] leading-tight font-sans">
@@ -382,10 +388,8 @@ function BizCatalogue() {
               </form>
             </DialogContent>
           </Dialog>
-        </>
-      }
-    >
-      {items.length === 0 ? (
+
+          {items.length === 0 ? (
         <EmptyState
           icon={Package}
           title="No catalogue items"
@@ -650,9 +654,36 @@ function BizCatalogue() {
           </form>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <AppShell
+      role="business"
+      title="My catalogue"
+      subtitle={`${items.length} published products & services`}
+      actions={
+        <Button
+          size="sm"
+          onClick={() => setOpenAdd(true)}
+          className="rounded-xl px-2.5 sm:px-3 text-xs cursor-pointer shadow-xs"
+        >
+          <Plus className="h-3.5 w-3.5 sm:mr-1" />
+          <span className="hidden sm:inline">Add item</span>
+          <span className="sm:hidden">Add</span>
+        </Button>
+      }
+    >
+      {content}
     </AppShell>
   );
 }
 
-export { BizCatalogue };
+export function BizCatalogue(props) {
+  return <BizCatalogueManager embedded={false} {...props} />;
+}
 export default BizCatalogue;
