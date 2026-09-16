@@ -149,34 +149,20 @@ const roleNavs = {
   },
 };
 
-<<<<<<< Updated upstream
-const roleSwitcher = [
-=======
+const roleSwitcherItems = [
+  { role: "customer", label: "Personal", to: "/me" },
+  { role: "business", label: "Business", to: "/biz" },
+  { role: "admin", label: "Admin", to: "/admin" },
+];
+
 function useResolvedNav(role) {
   const { user } = useAuth();
   if (user?.role && roleNavs[user.role]) {
     return roleNavs[user.role];
   }
-  return navs[role] || navs.customer;
-}
-
-const roleSwitcherItems = [
-  { role: "customer", label: "Personal", to: "/me" },
->>>>>>> Stashed changes
-  { role: "business", label: "Business", to: "/biz" },
-  { role: "admin", label: "Admin", to: "/admin" },
-];
-
-<<<<<<< Updated upstream
-function useResolvedNav(role) {
-  const { user } = useAuth();
-  if (role === "state_admin" || user?.role === "state_admin") return navs.state_admin;
-  if ((role === "admin" || role === "chapter_admin") && user?.role === "chapter_admin") return navs.chapter_admin;
   return navs[role] || navs.business || navs.admin;
 }
 
-=======
->>>>>>> Stashed changes
 function toRoleAwarePath(path, role, user) {
   if (role === "admin" && (user?.role === "chapter_admin" || user?.role === "state_admin")) {
     if (path.startsWith("/admin/notifications")) return `/${user.role.replace("_", "-")}/notifications`;
@@ -336,16 +322,6 @@ export function AppShell({
     }
   }
 
-<<<<<<< Updated upstream
-  const isActive = (to) => {
-    if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/discover"];
-    if (rootRoutes.includes(to)) return false;
-    return to !== "/" && path.startsWith(to + "/");
-  };
-
-=======
->>>>>>> Stashed changes
   const navRef = useRef(null);
 
   const handleNavScroll = (e) => {
