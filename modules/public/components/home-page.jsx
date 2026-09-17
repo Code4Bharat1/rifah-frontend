@@ -17,8 +17,17 @@ import {
   Ship,
   Target,
   Truck,
+  FileText,
+  CheckCircle2,
+  Send,
+  Loader2,
+  Phone,
+  Mail,
+  User,
+  MapPin,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Pill } from "@shared/components/rifah/badges";
 import { PremiumBusinessCard } from "@shared/components/rifah/business-card";
@@ -26,6 +35,14 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { MoreLink, SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@shared/components/ui/dialog";
+import { enquiryApi } from "@shared/lib/api-services";
 import { eventImage, resolveMediaUrl } from "@shared/lib/media";
 import { cn } from "@shared/lib/utils";
 import {
@@ -112,6 +129,68 @@ function HomePage() {
           : [])
     : [];
 
+  // Home Page RFQ Modal State
+  const [rfqOpen, setRfqOpen] = useState(false);
+  const [rfqSubmitting, setRfqSubmitting] = useState(false);
+  const [rfqSuccess, setRfqSuccess] = useState(false);
+  const [rfqError, setRfqError] = useState("");
+  const [rfqForm, setRfqForm] = useState({
+    guestName: "",
+    guestEmail: "",
+    guestPhone: "",
+    category: "Manufacturing",
+    title: "",
+    quantity: "",
+    location: "",
+    description: "",
+  });
+
+  const handleRfqSubmit = async (e) => {
+    e.preventDefault();
+    setRfqError("");
+    setRfqSubmitting(true);
+    try {
+      await enquiryApi.create({
+        targetType: "all",
+        title: rfqForm.title.trim(),
+        category: rfqForm.category || "Manufacturing",
+        quantity: rfqForm.quantity.trim() || "Flexible",
+        location: rfqForm.location.trim() || "Mumbai",
+        requiredBy: "Flexible",
+        description: rfqForm.description.trim(),
+        guestName: rfqForm.guestName.trim(),
+        guestEmail: rfqForm.guestEmail.trim(),
+        guestPhone: rfqForm.guestPhone.trim(),
+      });
+      setRfqSuccess(true);
+      setRfqForm({
+        guestName: "",
+        guestEmail: "",
+        guestPhone: "",
+        category: "Manufacturing",
+        title: "",
+        quantity: "",
+        location: "",
+        description: "",
+      });
+      toast.success("RFQ broadcasted to verified chamber businesses!");
+    } catch (err) {
+      setRfqError(err?.message || "Failed to submit RFQ. Please check your details and try again.");
+    } finally {
+      setRfqSubmitting(false);
+    }
+  };
+
+  const handleRfqClose = (open) => {
+    setRfqOpen(open);
+    if (!open) {
+      setTimeout(() => {
+        setRfqSuccess(false);
+        setRfqError("");
+      }, 300);
+    }
+  };
+
   return (
     <PublicLayout>
       {/* Hero */}
@@ -146,6 +225,13 @@ function HomePage() {
               </Button>
               <Button asChild size="lg" variant="outline" className="border-slate-700 bg-slate-900/60 text-white hover:bg-slate-800 hover:text-white font-semibold">
                 <Link href="/register-business">Join RIFAH</Link>
+              </Button>
+              <Button
+                size="lg"
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold gap-2 shadow-xs transition-all cursor-pointer"
+                onClick={() => setRfqOpen(true)}
+              >
+                <FileText className="h-4 w-4" /> Post RFQ
               </Button>
             </div>
             
@@ -424,6 +510,214 @@ function HomePage() {
           })}
         </div>
       </section>
+
+      {/* Home Page RFQ Modal */}
+      <Dialog open={rfqOpen} onOpenChange={handleRfqClose}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Request for Quotation (RFQ)
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+              Broadcast your commercial sourcing requirement to verified suppliers and businesses across the chamber network.
+            </DialogDescription>
+          </DialogHeader>
+
+          {rfqSuccess ? (
+            <div className="py-6 text-center space-y-4">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-8 w-8" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base sm:text-lg font-bold text-foreground">RFQ Broadcasted Successfully!</h4>
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
+                  Your sourcing enquiry has been registered. Verified chamber businesses matching your requirement will review your details and contact you directly.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Button className="w-full sm:w-auto" onClick={() => handleRfqClose(false)}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleRfqSubmit} className="space-y-3 pt-1">
+              {rfqError && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive">
+                  {rfqError}
+                </div>
+              )}
+
+              {/* Guest Contact Information */}
+              <div className="rounded-xl border border-border bg-surface-raised p-3 space-y-2.5">
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-primary" />
+                  Your Contact Information (Directly shared with suppliers)
+                </span>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
+                      Full Name <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Rahul Patil"
+                      value={rfqForm.guestName}
+                      onChange={(e) => setRfqForm((prev) => ({ ...prev, guestName: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
+                      Phone / WhatsApp <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="+91 98765 43210"
+                      value={rfqForm.guestPhone}
+                      onChange={(e) => setRfqForm((prev) => ({ ...prev, guestPhone: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
+                    Email Address <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@company.com"
+                    value={rfqForm.guestEmail}
+                    onChange={(e) => setRfqForm((prev) => ({ ...prev, guestEmail: e.target.value }))}
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Requirement Details */}
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
+                      Industry Category <span className="text-destructive">*</span>
+                    </label>
+                    <select
+                      required
+                      value={rfqForm.category}
+                      onChange={(e) => setRfqForm((prev) => ({ ...prev, category: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="Manufacturing">Manufacturing</option>
+                      <option value="Information Technology">Information Technology</option>
+                      <option value="Trading & Export">Trading & Export</option>
+                      <option value="Food & Spices">Food & Spices / FMCG</option>
+                      <option value="Logistics & Supply Chain">Logistics & Supply Chain</option>
+                      <option value="Construction & Real Estate">Construction</option>
+                      <option value="Chemicals & Materials">Chemicals & Materials</option>
+                      <option value="Healthcare & Pharma">Healthcare & Pharma</option>
+                      <option value="Security & SOC">Security & SOC</option>
+                      <option value="General Products & Services">General Products & Services</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
+                      Target City / Location <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Mumbai, Navi Mumbai"
+                      value={rfqForm.location}
+                      onChange={(e) => setRfqForm((prev) => ({ ...prev, location: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
+                      Requirement Title <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Need 500 Hydraulic Valves"
+                      value={rfqForm.title}
+                      onChange={(e) => setRfqForm((prev) => ({ ...prev, title: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
+                      Quantity / Volume <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 500 pcs / 10 tons / Flexible"
+                      value={rfqForm.quantity}
+                      onChange={(e) => setRfqForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
+                    Specifications & Details <span className="text-destructive">*</span>
+                  </label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Describe material grade, sizes, standards, certification required, or delivery urgency..."
+                    value={rfqForm.description}
+                    onChange={(e) => setRfqForm((prev) => ({ ...prev, description: e.target.value }))}
+                    className="w-full rounded-lg border border-border bg-surface p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-border">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRfqClose(false)}
+                  disabled={rfqSubmitting}
+                  className="w-full sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={rfqSubmitting}
+                  className="w-full sm:w-auto gap-2 bg-primary hover:bg-primary/90"
+                >
+                  {rfqSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Broadcasting RFQ...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Submit & Broadcast RFQ
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </PublicLayout>
   );
 }
