@@ -14,6 +14,8 @@ import {
   Handshake,
   Loader2,
   Sparkles,
+  Share2,
+  CheckCircle2,
 } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -24,6 +26,7 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Textarea } from "@shared/components/ui/textarea";
+import { Checkbox } from "@shared/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@shared/components/ui/tabs";
 import {
@@ -35,8 +38,14 @@ import {
   DialogFooter,
 } from "@shared/components/ui/dialog";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useMyBusiness, useMyOneToOnes, useMyThankYouNotes, useMyThankYouSummary } from "@shared/hooks/use-rifah-api";
-import { oneToOneApi, thankYouNoteApi } from "@shared/lib/api-services";
+import {
+  useMyBusiness,
+  useMyOneToOnes,
+  useMyThankYouNotes,
+  useMyThankYouSummary,
+  useMyReferrals,
+} from "@shared/hooks/use-rifah-api";
+import { oneToOneApi, thankYouNoteApi, referralApi } from "@shared/lib/api-services";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -50,6 +59,13 @@ const emptyMeetingForm = {
   location: "",
   description: "",
   initiatedBy: "",
+};
+
+const emptyReferralForm = {
+  leadName: "",
+  leadContact: "",
+  leadIsMember: false,
+  description: "",
 };
 
 function BizNetworking() {
@@ -67,6 +83,9 @@ function BizNetworking() {
   const totalGiven = summary?.totalGiven || 0;
   const totalReceived = summary?.totalReceived || 0;
 
+  const { data: referralsData, isLoading: referralsLoading } = useMyReferrals();
+  const referrals = Array.isArray(referralsData) ? referralsData : [];
+
   const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [meetingForm, setMeetingForm] = useState(emptyMeetingForm);
@@ -78,6 +97,16 @@ function BizNetworking() {
   const [thankYouNote, setThankYouNote] = useState("");
   const [isSavingThankYou, setIsSavingThankYou] = useState(false);
 
+  const [isReferralDialogOpen, setIsReferralDialogOpen] = useState(false);
+  const [referralMember, setReferralMember] = useState(null);
+  const [referralForm, setReferralForm] = useState(emptyReferralForm);
+  const [isSavingReferral, setIsSavingReferral] = useState(false);
+
+  const [closingReferral, setClosingReferral] = useState(null);
+  const [closeAmount, setCloseAmount] = useState("");
+  const [closeNote, setCloseNote] = useState("");
+  const [isClosingReferral, setIsClosingReferral] = useState(false);
+
   const resetMeetingDialog = () => {
     setSelectedMember(null);
     setMeetingForm(emptyMeetingForm);
@@ -87,6 +116,17 @@ function BizNetworking() {
     setThankYouMember(null);
     setThankYouAmount("");
     setThankYouNote("");
+  };
+
+  const resetReferralDialog = () => {
+    setReferralMember(null);
+    setReferralForm(emptyReferralForm);
+  };
+
+  const resetCloseReferralDialog = () => {
+    setClosingReferral(null);
+    setCloseAmount("");
+    setCloseNote("");
   };
 
   const handleSaveMeeting = async () => {
@@ -165,10 +205,69 @@ function BizNetworking() {
     }
   };
 
+  const handleSaveReferral = async () => {
+    if (!referralMember) {
+      toast.error("Please select the member you're referring business to.");
+      return;
+    }
+    if (!referralForm.leadName.trim()) {
+      toast.error("Please enter the name of the person you're referring.");
+      return;
+    }
+    if (!referralForm.description.trim()) {
+      toast.error("Please describe the requirement you're referring.");
+      return;
+    }
+
+    setIsSavingReferral(true);
+    try {
+      await referralApi.create({
+        referredBusinessId: referralMember._id,
+        leadName: referralForm.leadName.trim(),
+        leadContact: referralForm.leadContact.trim(),
+        leadIsMember: referralForm.leadIsMember,
+        description: referralForm.description.trim(),
+      });
+      toast.success("Referral recorded successfully");
+      setIsReferralDialogOpen(false);
+      resetReferralDialog();
+      queryClient.invalidateQueries({ queryKey: ["referrals"] });
+    } catch (error) {
+      toast.error(error.message || "Failed to record the referral");
+    } finally {
+      setIsSavingReferral(false);
+    }
+  };
+
+  const handleCloseReferral = async () => {
+    if (!closingReferral) return;
+    const amount = Number(closeAmount);
+    if (!amount || amount <= 0) {
+      toast.error("Please enter a valid amount.");
+      return;
+    }
+
+    setIsClosingReferral(true);
+    try {
+      await referralApi.close(closingReferral._id, { amount, note: closeNote.trim() });
+      toast.success("Referral closed — thank you note sent");
+      resetCloseReferralDialog();
+      queryClient.invalidateQueries({ queryKey: ["referrals"] });
+      queryClient.invalidateQueries({ queryKey: ["thank-you-notes"] });
+    } catch (error) {
+      toast.error(error.message || "Failed to close the referral");
+    } finally {
+      setIsClosingReferral(false);
+    }
+  };
+
   const myUserId = user?._id || user?.id;
 
   const givenNotes = notes.filter((n) => String(n.giverUser?._id || n.giverUser) === String(myUserId));
   const receivedNotes = notes.filter((n) => String(n.receiverUser?._id || n.receiverUser) === String(myUserId));
+
+  const referralsMade = referrals.filter((r) => String(r.referrerUser?._id || r.referrerUser) === String(myUserId));
+  const referralsReceived = referrals.filter((r) => String(r.referredUser?._id || r.referredUser) === String(myUserId));
 
   const renderNotesList = (list, counterpartKey, emptyLabel) => {
     if (list.length === 0) {
@@ -333,13 +432,110 @@ function BizNetworking() {
             </Panel>
           </TabsContent>
 
-          <TabsContent value="referrals">
-            <Panel title="Referrals">
-              <EmptyState
-                icon={Sparkles}
-                title="Referrals — coming soon"
-                description="Tracking referral slips between members is on the way. One to One meetings are ready to use today."
-              />
+          <TabsContent value="referrals" className="space-y-4">
+            <Panel
+              title="Referrals I've Made"
+              description="Businesses you've referred your contacts to"
+              action={
+                <Button size="sm" onClick={() => setIsReferralDialogOpen(true)}>
+                  <Plus className="mr-1.5 h-4 w-4" /> New Referral
+                </Button>
+              }
+            >
+              {referralsLoading ? (
+                <div className="flex items-center justify-center py-10 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading referrals...
+                </div>
+              ) : referralsMade.length === 0 ? (
+                <EmptyState
+                  icon={Share2}
+                  title="No referrals made yet"
+                  description="Know someone who needs what a fellow member offers? Refer their business and track it here."
+                  action={
+                    <Button onClick={() => setIsReferralDialogOpen(true)}>
+                      <Plus className="mr-1.5 h-4 w-4" /> New Referral
+                    </Button>
+                  }
+                />
+              ) : (
+                <div className="space-y-3">
+                  {referralsMade.map((r) => (
+                    <div key={r._id} className="rounded-xl border border-border p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">Referred to {r.referredBusiness?.name || "a member"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {r.leadName}
+                            {r.leadContact ? ` · ${r.leadContact}` : ""}
+                            {r.leadIsMember ? " · RIFAH member" : ""}
+                          </p>
+                        </div>
+                        {r.status === "Closed" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success bg-success-soft px-2 py-1 rounded-md">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Closed · {currencyFormatter.format(r.thankYouNote?.amount || 0)}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                            Awaiting outcome
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-2.5 text-sm text-foreground/90">{r.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Panel>
+
+            <Panel title="Referrals Made To Me" description="Leads fellow members have referred to your business">
+              {referralsLoading ? (
+                <div className="flex items-center justify-center py-10 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading referrals...
+                </div>
+              ) : referralsReceived.length === 0 ? (
+                <EmptyState
+                  icon={Sparkles}
+                  title="No referrals received yet"
+                  description="When a fellow member refers a lead to your business, it will show up here."
+                />
+              ) : (
+                <div className="space-y-3">
+                  {referralsReceived.map((r) => (
+                    <div key={r._id} className="rounded-xl border border-border p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">Referred by {r.referrerBusiness?.name || "a member"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {r.leadName}
+                            {r.leadContact ? ` · ${r.leadContact}` : ""}
+                            {r.leadIsMember ? " · RIFAH member" : ""}
+                          </p>
+                        </div>
+                        {r.status === "Closed" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success bg-success-soft px-2 py-1 rounded-md">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Closed · {currencyFormatter.format(r.thankYouNote?.amount || 0)}
+                          </span>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setClosingReferral(r);
+                              setCloseAmount("");
+                              setCloseNote("");
+                            }}
+                          >
+                            <Handshake className="mr-1.5 h-3.5 w-3.5" /> Give Thank You Note
+                          </Button>
+                        )}
+                      </div>
+                      <p className="mt-2.5 text-sm text-foreground/90">{r.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </TabsContent>
         </Tabs>
@@ -495,6 +691,136 @@ function BizNetworking() {
             </Button>
             <Button onClick={handleSaveThankYou} disabled={isSavingThankYou}>
               {isSavingThankYou ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save Thank You Note
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Referral Dialog */}
+      <Dialog
+        open={isReferralDialogOpen}
+        onOpenChange={(open) => {
+          setIsReferralDialogOpen(open);
+          if (!open) resetReferralDialog();
+        }}
+      >
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Refer a Business</DialogTitle>
+            <DialogDescription>
+              Select the fellow member whose business you're referring your contact to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <MemberPicker
+              idPrefix="referral"
+              excludeBusinessId={myBusiness?._id}
+              onChange={setReferralMember}
+              disabled={isSavingReferral}
+            />
+            <div className="space-y-1.5">
+              <Label htmlFor="referral-lead-name">Your contact's name *</Label>
+              <Input
+                id="referral-lead-name"
+                placeholder="e.g. Rajesh Kumar"
+                value={referralForm.leadName}
+                onChange={(e) => setReferralForm((f) => ({ ...f, leadName: e.target.value }))}
+                disabled={isSavingReferral}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="referral-lead-contact">Contact's phone / email (optional)</Label>
+              <Input
+                id="referral-lead-contact"
+                placeholder="e.g. 98765 43210"
+                value={referralForm.leadContact}
+                onChange={(e) => setReferralForm((f) => ({ ...f, leadContact: e.target.value }))}
+                disabled={isSavingReferral}
+              />
+            </div>
+            <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+              <Checkbox
+                checked={referralForm.leadIsMember}
+                onCheckedChange={(c) => setReferralForm((f) => ({ ...f, leadIsMember: Boolean(c) }))}
+                disabled={isSavingReferral}
+              />
+              This contact is a RIFAH member
+            </label>
+            <div className="space-y-1.5">
+              <Label htmlFor="referral-description">Requirement / what you're referring *</Label>
+              <Textarea
+                id="referral-description"
+                rows={3}
+                placeholder="e.g. Needs 500kg of copper wire for a new project"
+                value={referralForm.description}
+                onChange={(e) => setReferralForm((f) => ({ ...f, description: e.target.value }))}
+                disabled={isSavingReferral}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReferralDialogOpen(false)} disabled={isSavingReferral}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveReferral} disabled={isSavingReferral}>
+              {isSavingReferral ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save Referral
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Close Referral (Give Thank You Note) Dialog */}
+      <Dialog
+        open={Boolean(closingReferral)}
+        onOpenChange={(open) => {
+          if (!open) resetCloseReferralDialog();
+        }}
+      >
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Give a Thank You Note</DialogTitle>
+            <DialogDescription>
+              Thank {closingReferral?.referrerBusiness?.name || "the referrer"} for referring {closingReferral?.leadName} —
+              this records the business as "Given" on their account and "Received" on yours.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="close-referral-amount">Business amount (₹) *</Label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="close-referral-amount"
+                  type="number"
+                  min="1"
+                  className="pl-9"
+                  placeholder="e.g. 100000"
+                  value={closeAmount}
+                  onChange={(e) => setCloseAmount(e.target.value)}
+                  disabled={isClosingReferral}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="close-referral-note">Note (optional)</Label>
+              <Textarea
+                id="close-referral-note"
+                rows={2}
+                placeholder="e.g. Thanks for the referral, closed the wire order!"
+                value={closeNote}
+                onChange={(e) => setCloseNote(e.target.value)}
+                disabled={isClosingReferral}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetCloseReferralDialog} disabled={isClosingReferral}>
+              Cancel
+            </Button>
+            <Button onClick={handleCloseReferral} disabled={isClosingReferral}>
+              {isClosingReferral ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save Thank You Note
             </Button>
           </DialogFooter>

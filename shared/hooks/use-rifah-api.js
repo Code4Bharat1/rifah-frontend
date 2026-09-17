@@ -24,6 +24,8 @@ import {
   stateApi,
   oneToOneApi,
   thankYouNoteApi,
+  referralApi,
+  networkingAnalyticsApi,
 } from "../lib/api-services";
 
 // ==================== BUSINESS HOOKS ====================
@@ -193,6 +195,67 @@ export function useMyThankYouSummary() {
     queryKey: ["thank-you-notes", "summary", "me"],
     queryFn: async () => {
       const res = await thankYouNoteApi.summaryMine();
+      return res?.data || res;
+    },
+  });
+}
+
+export function useMyReferrals(params = {}) {
+  return useQuery({
+    queryKey: ["referrals", "me", params],
+    queryFn: async () => {
+      const res = await referralApi.listMine(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function useAdminReferrals(params = {}) {
+  return useQuery({
+    queryKey: ["referrals", "admin", params],
+    queryFn: async () => {
+      const res = await referralApi.listAdmin(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function useNetworkingOverview() {
+  return useQuery({
+    queryKey: ["networking-analytics", "overview"],
+    queryFn: async () => {
+      const res = await networkingAnalyticsApi.overview();
+      return res?.data || res;
+    },
+  });
+}
+
+export function useNetworkingLeaderboard(params = {}) {
+  return useQuery({
+    queryKey: ["networking-analytics", "leaderboard", params],
+    queryFn: async () => {
+      const res = await networkingAnalyticsApi.leaderboard(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function useNetworkingBreakdown(params = {}) {
+  return useQuery({
+    queryKey: ["networking-analytics", "breakdown", params],
+    queryFn: async () => {
+      const res = await networkingAnalyticsApi.breakdown(params);
+      return res?.data || res;
+    },
+    enabled: Boolean(params.level),
+  });
+}
+
+export function usePublicStateRevenue() {
+  return useQuery({
+    queryKey: ["networking-analytics", "public-states"],
+    queryFn: async () => {
+      const res = await networkingAnalyticsApi.publicStateTotals();
       return res?.data || res;
     },
   });

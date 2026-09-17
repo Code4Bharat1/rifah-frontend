@@ -44,6 +44,7 @@ import {
   ArrowRight,
   Shield,
   Handshake,
+  TrendingUp,
 } from "lucide-react";
 import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
 import { Button } from "@shared/components/ui/button";
@@ -86,6 +87,7 @@ const navs = {
     ],
     more: [
       { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
+      { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
       { label: "Memberships", to: "/admin/memberships", icon: Star },
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
       { label: "States", to: "/admin/states", icon: MapPin },
@@ -114,6 +116,7 @@ const roleNavs = {
     ],
     more: [
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
+      { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
       { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
       { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
@@ -133,6 +136,7 @@ const roleNavs = {
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
       { label: "Events", to: "/state-admin/events", icon: CalendarDays },
       { label: "Announcements", to: "/state-admin/announcements", icon: Megaphone },

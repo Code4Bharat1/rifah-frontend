@@ -5,6 +5,7 @@ export { AdminChapters } from "./components/admin-chapters.jsx";
 export { AdminEnquiries } from "./components/admin-enquiries.jsx";
 export { AdminEvents } from "./components/admin-events.jsx";
 export { AdminMemberships } from "./components/admin-memberships.jsx";
+export { AdminNetworkingAnalytics } from "./components/admin-networking-analytics.jsx";
 export { AdminNotifications } from "./components/admin-notifications.jsx";
 export { AdminPayments } from "./components/admin-payments.jsx";
 export { AdminReports } from "./components/admin-reports.jsx";

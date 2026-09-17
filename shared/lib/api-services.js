@@ -116,6 +116,21 @@ export const thankYouNoteApi = {
   getById: (id) => apiClient(`/thank-you-notes/${id}`),
 };
 
+export const referralApi = {
+  create: (data) => apiClient("/referrals", { method: "POST", body: JSON.stringify(data) }),
+  close: (id, data) => apiClient(`/referrals/${id}/close`, { method: "POST", body: JSON.stringify(data) }),
+  listMine: (params = {}) => apiClient(`/referrals/me${toQueryString(params)}`),
+  listAdmin: (params = {}) => apiClient(`/referrals${toQueryString(params)}`),
+  getById: (id) => apiClient(`/referrals/${id}`),
+};
+
+export const networkingAnalyticsApi = {
+  overview: () => apiClient("/networking/analytics/overview"),
+  leaderboard: (params = {}) => apiClient(`/networking/analytics/leaderboard${toQueryString(params)}`),
+  breakdown: (params = {}) => apiClient(`/networking/analytics/breakdown${toQueryString(params)}`),
+  publicStateTotals: () => apiClient("/networking/analytics/public/states"),
+};
+
 export const verificationApi = {
   getByBusinessId: (businessId) => apiClient(`/verification/business/${businessId}`),
   getQueue: (params = {}) => apiClient(`/verification/queue${toQueryString(params)}`),
