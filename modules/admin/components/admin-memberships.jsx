@@ -14,8 +14,12 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { useMembershipPlans, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { businessApi, membershipApi, paymentApi } from "@shared/lib/api-services";
 import { useState, useEffect } from "react";
+import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminMemberships() {
+  const { user } = useAuth();
+  const canManagePlans = user?.role !== "chapter_admin";
+
   const { data: plansData, refetch: refetchPlans } = useMembershipPlans();
   const { data: businessesData, refetch: refetchBusinesses } = useBusinesses();
 
@@ -141,9 +145,11 @@ function AdminMemberships() {
       title="Memberships" 
       subtitle="Tiers, subscription plans and member allocations"
       actions={
-        <Button onClick={() => openModal()} className="gap-2 shadow-sm" size="sm">
-          <Plus className="h-4 w-4" /> Create Plan
-        </Button>
+        canManagePlans && (
+          <Button onClick={() => openModal()} className="gap-2 shadow-sm" size="sm">
+            <Plus className="h-4 w-4" /> Create Plan
+          </Button>
+        )
       }
     >
       <div className="space-y-4">
@@ -178,49 +184,51 @@ function AdminMemberships() {
           />
         </div>
 
-        <Panel 
-          title="Membership Tier Structure" 
-        >
-          <div className="grid gap-3 md:grid-cols-3">
-            {Object.entries(plans).map(([key, p]) => (
-              <div key={key} className="rounded-xl border border-border p-4 relative group">
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openModal({ planId: key, ...p })}>
-                        Edit Plan
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10" onClick={() => { setDeletePlanId(key); setIsDeleteDialogOpen(true); }}>
-                        Delete Plan
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{p.name}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">₹ {p.price?.toLocaleString("en-IN")} / year</p>
+        {canManagePlans && (
+          <Panel 
+            title="Membership Tier Structure" 
+          >
+            <div className="grid gap-3 md:grid-cols-3">
+              {Object.entries(plans).map(([key, p]) => (
+                <div key={key} className="rounded-xl border border-border p-4 relative group">
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openModal({ planId: key, ...p })}>
+                          Edit Plan
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:bg-destructive/10" onClick={() => { setDeletePlanId(key); setIsDeleteDialogOpen(true); }}>
+                          Delete Plan
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <Pill tone="brand">Annual</Pill>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{p.name}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">₹ {p.price?.toLocaleString("en-IN")} / year</p>
+                    </div>
+                    <Pill tone="brand">Annual</Pill>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">{p.summary}</p>
+                  <ul className="mt-3 space-y-1.5">
+                    {p.features?.map((f, i) => (
+                      <li key={i} className="text-xs text-muted-foreground">
+                        · {f}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">{p.summary}</p>
-                <ul className="mt-3 space-y-1.5">
-                  {p.features?.map((f, i) => (
-                    <li key={i} className="text-xs text-muted-foreground">
-                      · {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </Panel>
+              ))}
+            </div>
+          </Panel>
+        )}
 
         <Panel title={filter === "all" ? "Member subscriptions" : filter === "premium" ? "Premium/Enterprise Subscriptions" : filter === "basic" ? "Basic Subscriptions" : "Verified Members"}>
           <ResponsiveTable

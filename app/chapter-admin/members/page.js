@@ -1,4 +1,4 @@
-import { AdminUsers } from "@modules/admin";
+import { AdminMemberships } from "@modules/admin";
 
 export const metadata = {
   title: "Members | Chapter Admin | RIFAH Connect",
@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function ChapterAdminMembersPage(props) {
-  return <AdminUsers {...props} />;
+  return <AdminMemberships {...props} />;
 }
