@@ -33,7 +33,14 @@ import {
   useCatalogue,
   useEvents,
   useMembershipPlans,
+  usePublicStateRevenue,
 } from "@shared/hooks/use-rifah-api";
+
+const currencyFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
 
 const topCategories = [
   { label: "Manufacturing", icon: Factory },
@@ -85,6 +92,8 @@ function HomePage() {
   const { data: catalogueData } = useCatalogue({ limit: 4 });
   const { data: eventsData } = useEvents({ status: "Upcoming", limit: 3 });
   const { data: plansData } = useMembershipPlans();
+  const { data: stateRevenueData } = usePublicStateRevenue();
+  const stateRevenue = Array.isArray(stateRevenueData) ? stateRevenueData : [];
 
   const featured = Array.isArray(businessesData)
     ? businessesData
@@ -207,6 +216,31 @@ function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* State-wise business generated (builds trust & encourages new members to join) */}
+      {stateRevenue.length > 0 && (
+        <section className="border-t border-border bg-muted/20 py-10 md:py-14">
+          <div className="rifah-container">
+            <SectionHeader
+              title="Business Generated Across States"
+              description="Real business value RIFAH members have generated for each other through referrals and one-to-one introductions."
+            />
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {stateRevenue.slice(0, 6).map((s) => (
+                <div key={s.state} className="rounded-2xl border border-border bg-surface p-4.5">
+                  <p className="text-sm font-semibold text-foreground">{s.state}</p>
+                  <p className="mt-1 text-2xl font-bold tracking-tight text-primary">
+                    {currencyFormatter.format(s.totalBusinessGenerated)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {s.transactionCount} {s.transactionCount === 1 ? "deal" : "deals"} closed among members
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Featured businesses (only shown when verified businesses exist) */}
       {featured.length > 0 && (
