@@ -83,6 +83,7 @@ const navs = {
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
       { label: "Memberships", to: "/admin/memberships", icon: Star },
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
       { label: "States", to: "/admin/states", icon: MapPin },
@@ -110,6 +111,7 @@ const roleNavs = {
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
       { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
       { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
