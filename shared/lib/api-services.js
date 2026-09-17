@@ -265,6 +265,7 @@ export const reportApi = {
   getRevenue: (params) => apiClient(`/reports/admin/export/revenue${toQueryString({ ...params, format: 'json' })}`),
   getMemberships: (params) => apiClient(`/reports/admin/export/memberships${toQueryString({ ...params, format: 'json' })}`),
   getLeads: (params) => apiClient(`/reports/admin/export/leads${toQueryString({ ...params, format: 'json' })}`),
+  getEventsAnalytics: (params) => apiClient(`/reports/admin/events-analytics${toQueryString(params)}`),
 };
 
 // Helper for authenticated file downloads

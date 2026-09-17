@@ -9,8 +9,127 @@ import { reportApi } from "@shared/lib/api-services";
 import { toast } from "sonner";
 import { FileDown, Receipt, Users, Megaphone, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@shared/providers/auth-provider";
+import { Pill } from "@shared/components/rifah/badges";
+import { ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
+import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
+import { useStates, useChapters } from "@shared/hooks/use-rifah-api";
+
+function EventAnalyticsTab() {
+  const { user } = useAuth();
+  const [filters, setFilters] = useState({ state: "All", chapter: "All", status: "All" });
+
+  const { data: statesData } = useStates();
+  const { data: chaptersData } = useChapters();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["event_analytics", filters],
+    queryFn: async () => {
+      const res = await reportApi.getEventsAnalytics(filters);
+      return res.data;
+    }
+  });
+
+  const kpis = data?.kpis || { totalEvents: 0, totalRegisteredOverall: 0, overallAttendanceRate: 0 };
+  const events = data?.events || [];
+
+  const stateOptions = ["All", ...(statesData?.map(s => s.state || s.name || s).filter(Boolean) || [])];
+  
+  // Filter chapters based on selected state if needed, or just show all
+  let filteredChapters = chaptersData || [];
+  if (filters.state !== "All" && filters.state) {
+    filteredChapters = filteredChapters.filter(c => c.state === filters.state);
+  }
+  const chapterOptions = ["All", ...filteredChapters.map(c => c.name || c).filter(Boolean)];
+
+  const leaderboard = data?.leaderboard || [];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard title="Total Events" value={kpis.totalEvents} />
+        <StatCard title="Total Registrations" value={kpis.totalRegisteredOverall} />
+        <StatCard title="Avg Attendance Rate" value={`${kpis.overallAttendanceRate}%`} trend={kpis.overallAttendanceRate > 75 ? "up" : kpis.overallAttendanceRate < 50 ? "down" : "neutral"} trendLabel="Overall" />
+      </div>
+
+      {leaderboard.length > 0 && (
+        <Panel title="Top Performing Chapters" icon={<span className="text-amber-500">🏆</span>}>
+          <div className="space-y-4 pt-2">
+            {leaderboard.map((ch, idx) => (
+              <div key={ch.name} className="flex items-center justify-between p-3 rounded-md bg-muted/30 border">
+                <div className="flex items-center gap-3">
+                  <span className={`text-sm font-bold flex items-center justify-center w-6 h-6 rounded-full ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-200 text-slate-600' : idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-muted text-muted-foreground'}`}>
+                    {idx + 1}
+                  </span>
+                  <div>
+                    <p className="font-medium text-sm">{ch.name}</p>
+                    <p className="text-xs text-muted-foreground">{ch.totalEvents} Events</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold">{ch.attendanceRate}%</p>
+                  <p className="text-xs text-muted-foreground">Attendance</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
+
+      <Panel title="Events Attendance Breakdown">
+        <div className="flex gap-4 mb-4 flex-wrap">
+          {user?.role === "super_admin" && (
+            <div className="w-64">
+              <Label className="text-xs mb-1 block">State Filter</Label>
+              <CreatableCombobox 
+                options={stateOptions}
+                value={filters.state}
+                onValueChange={(val) => setFilters(prev => ({ ...prev, state: val || "All", chapter: "All" }))}
+                placeholder="Search state..."
+              />
+            </div>
+          )}
+          {["super_admin", "state_admin"].includes(user?.role) && (
+            <div className="w-64">
+              <Label className="text-xs mb-1 block">Chapter Filter</Label>
+              <CreatableCombobox 
+                options={chapterOptions}
+                value={filters.chapter}
+                onValueChange={(val) => setFilters(prev => ({ ...prev, chapter: val || "All" }))}
+                placeholder="Search chapter..."
+              />
+            </div>
+          )}
+        </div>
+        
+        {isLoading ? (
+          <div className="p-8 text-center"><p className="text-muted-foreground animate-pulse">Loading Analytics...</p></div>
+        ) : (
+          <ResponsiveTable 
+            rows={events}
+            columns={[
+              { key: "title", header: "Event Title", cell: r => <div className="font-medium max-w-[200px] truncate">{r.title}</div> },
+              { key: "chapter", header: "Chapter", cell: r => r.chapter },
+              { key: "metrics", header: "Registered / Capacity", cell: r => `${r.registeredCount} / ${r.capacity || '∞'}` },
+              { key: "attended", header: "Attended", cell: r => r.attendedCount },
+              { key: "rate", header: "Attendance Rate", cell: r => `${r.attendanceRate}%` },
+              { key: "health", header: "Health", cell: r => (
+                <div className="flex items-center gap-2">
+                  <span className={`h-3 w-3 rounded-full ${r.health === 'Green' ? 'bg-emerald-500' : r.health === 'Yellow' ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                  <span className="text-xs font-medium">{r.health}</span>
+                </div>
+              )}
+            ]}
+          />
+        )}
+      </Panel>
+    </div>
+  );
+}
 
 export function AdminReports() {
+  const [activeTab, setActiveTab] = useState("exports");
   const [revenueDates, setRevenueDates] = useState({ start: "", end: "" });
   const [memberDates, setMemberDates] = useState({ start: "", end: "" });
   const [leadDates, setLeadDates] = useState({ start: "", end: "" });
@@ -83,11 +202,30 @@ export function AdminReports() {
   return (
     <AppShell
       role="admin"
-      title="Data Export & Reports"
-      subtitle="Download CSV reports for analysis"
+      title="Reports & Analytics"
+      subtitle="Download CSV reports or view real-time event analytics"
     >
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Revenue Report */}
+      <div className="border-b mb-6">
+        <div className="flex gap-4">
+          <button 
+            className={`pb-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'exports' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            onClick={() => setActiveTab('exports')}
+          >
+            Data Exports
+          </button>
+          <button 
+            className={`pb-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'events' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            onClick={() => setActiveTab('events')}
+          >
+            Event Analytics
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'exports' ? (
+        <>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Revenue Report */}
         <Panel 
           title="Revenue & Payments" 
           icon={<Receipt className="h-5 w-5 text-primary" />}
@@ -236,6 +374,10 @@ export function AdminReports() {
           </div>
         </DialogContent>
       </Dialog>
+      </>
+      ) : (
+        <EventAnalyticsTab />
+      )}
     </AppShell>
   );
 }
