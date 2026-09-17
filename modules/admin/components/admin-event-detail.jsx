@@ -164,7 +164,7 @@ export function AdminEventDetail() {
               </div>
             </Panel>
 
-            {canEdit && (
+            {canEdit ? (
               <Panel title="Registrations">
                 <div className="space-y-3">
                   <div className="text-center">
@@ -173,6 +173,17 @@ export function AdminEventDetail() {
                   </div>
                   <Button className="w-full" onClick={() => setRegistrationsModal(true)}>
                     View All Registrations
+                  </Button>
+                </div>
+              </Panel>
+            ) : (
+              <Panel title="Registration">
+                <div className="space-y-3 text-center">
+                  <p className="text-sm text-muted-foreground">Register to attend this event.</p>
+                  <Button asChild className="w-full">
+                    <Link href={`/events/${event.slug || event._id}`}>
+                      RSVP / Register
+                    </Link>
                   </Button>
                 </div>
               </Panel>
