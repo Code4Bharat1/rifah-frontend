@@ -9,6 +9,7 @@ import {
   Mail,
   MapPin,
   MessageSquare,
+  MessageSquarePlus,
   Package,
   Phone,
   Share2,
@@ -20,6 +21,9 @@ import {
   Check,
   Smartphone,
   Image as ImageIcon,
+  Loader2,
+  Send,
+  AlertCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,7 +52,7 @@ import {
   useBusinessReviews,
   useBusinesses,
 } from "@shared/hooks/use-rifah-api";
-import { reviewApi, userApi } from "@shared/lib/api-services";
+import { reviewApi, userApi, enquiryApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
 
 function BusinessNotFound() {
@@ -98,6 +102,59 @@ function BusinessProfile() {
   const [reviewSuccess, setReviewSuccess] = useState(false);
   const [coverError, setCoverError] = useState(false);
   const [logoError, setLogoError] = useState(false);
+
+  // Enquiry modal state
+  const [enquiryOpen, setEnquiryOpen] = useState(false);
+  const [enquirySubmitting, setEnquirySubmitting] = useState(false);
+  const [enquirySuccess, setEnquirySuccess] = useState(false);
+  const [enquiryError, setEnquiryError] = useState("");
+  const [enquiryForm, setEnquiryForm] = useState({
+    guestName: "",
+    guestEmail: "",
+    guestPhone: "",
+    title: "",
+    description: "",
+    quantity: "",
+    location: "",
+  });
+
+  const handleEnquirySubmit = async (e) => {
+    e.preventDefault();
+    setEnquiryError("");
+    setEnquirySubmitting(true);
+    try {
+      await enquiryApi.create({
+        targetType: "business",
+        targetBusiness: business._id,
+        title: enquiryForm.title,
+        category: business.industry || business.categories?.[0] || "General",
+        quantity: enquiryForm.quantity || "As discussed",
+        location: enquiryForm.location || business.city || "Not specified",
+        requiredBy: "Flexible",
+        description: enquiryForm.description,
+        guestName: enquiryForm.guestName,
+        guestEmail: enquiryForm.guestEmail,
+        guestPhone: enquiryForm.guestPhone,
+      });
+      setEnquirySuccess(true);
+      setEnquiryForm({ guestName: "", guestEmail: "", guestPhone: "", title: "", description: "", quantity: "", location: "" });
+    } catch (err) {
+      setEnquiryError(err.message || "Failed to submit enquiry. Please try again.");
+    } finally {
+      setEnquirySubmitting(false);
+    }
+  };
+
+  const handleEnquiryClose = (open) => {
+    setEnquiryOpen(open);
+    if (!open) {
+      // Reset on close
+      setTimeout(() => {
+        setEnquirySuccess(false);
+        setEnquiryError("");
+      }, 300);
+    }
+  };
 
   useEffect(() => {
     setCoverError(false);
@@ -312,8 +369,17 @@ function BusinessProfile() {
                   </div>
                 </div>
 
-                {/* Profile actions (Share) */}
+                {/* Profile actions (Share + Enquiry) */}
                 <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
+                  <Button
+                    size="sm"
+                    onClick={() => setEnquiryOpen(true)}
+                    aria-label="Send enquiry to this business"
+                    title="Send enquiry to this business"
+                    className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs"
+                  >
+                    <MessageSquarePlus className="h-4 w-4" /> Send Enquiry
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -515,22 +581,6 @@ function BusinessProfile() {
                   <dl className="mt-2">
                     <FieldRow label="Address" value={`${business.address || ""}, ${business.city}, ${business.state}`} />
                     <FieldRow
-                      label="Phone"
-                      value={
-                        <span className="inline-flex items-center gap-1.5">
-                          <Phone className="h-4 w-4 text-muted-foreground" /> {business.phone}
-                        </span>
-                      }
-                    />
-                    <FieldRow
-                      label="Email"
-                      value={
-                        <span className="inline-flex items-center gap-1.5">
-                          <Mail className="h-4 w-4 text-muted-foreground" /> {business.email}
-                        </span>
-                      }
-                    />
-                    <FieldRow
                       label="Website"
                       value={
                         <span className="inline-flex items-center gap-1.5">
@@ -539,6 +589,17 @@ function BusinessProfile() {
                       }
                     />
                   </dl>
+                  <div className="mt-4 pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground mb-2">Want to reach this business directly?</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEnquiryOpen(true)}
+                      className="rounded-xl gap-1.5 font-semibold"
+                    >
+                      <MessageSquarePlus className="h-4 w-4" /> Send Enquiry
+                    </Button>
+                  </div>
                 </Panel>
               </TabsContent>
 
@@ -923,6 +984,158 @@ function BusinessProfile() {
                 <Smartphone className="h-3.5 w-3.5" /> Share via phone / other apps
               </Button>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Enquiry Modal */}
+      <Dialog open={enquiryOpen} onOpenChange={handleEnquiryClose}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <MessageSquarePlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </div>
+              Send Enquiry
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+              Send your requirement directly to <strong className="text-foreground">{business.name}</strong>. They will receive your enquiry and respond.
+            </DialogDescription>
+          </DialogHeader>
+
+          {enquirySuccess ? (
+            <div className="py-6 sm:py-8 text-center">
+              <span className="mx-auto grid h-12 w-12 sm:h-14 sm:w-14 place-items-center rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
+                <CheckCircle2 className="h-6 w-6 sm:h-7 sm:w-7" />
+              </span>
+              <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-bold text-foreground">Enquiry Sent!</h3>
+              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-muted-foreground max-w-xs mx-auto">
+                Your enquiry has been submitted to <strong>{business.name}</strong>. They will get back to you via the contact details you provided.
+              </p>
+              <Button
+                className="mt-4 sm:mt-5 rounded-xl w-full sm:w-auto"
+                onClick={() => handleEnquiryClose(false)}
+              >
+                Done
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleEnquirySubmit} className="space-y-3">
+              {enquiryError && (
+                <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-2.5 sm:p-3 text-xs text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{enquiryError}</span>
+                </div>
+              )}
+
+              <div className="grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">Your Name <span className="text-destructive">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={enquiryForm.guestName}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, guestName: e.target.value })}
+                    placeholder="Full name"
+                    className="w-full rounded-lg sm:rounded-xl border border-border bg-transparent px-3 py-2 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">Your Email <span className="text-destructive">*</span></label>
+                  <input
+                    type="email"
+                    required
+                    value={enquiryForm.guestEmail}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, guestEmail: e.target.value })}
+                    placeholder="you@example.com"
+                    className="w-full rounded-lg sm:rounded-xl border border-border bg-transparent px-3 py-2 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2.5 sm:gap-3 grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">Phone <span className="text-muted-foreground font-normal text-[10px]">(optional)</span></label>
+                  <input
+                    type="tel"
+                    value={enquiryForm.guestPhone}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, guestPhone: e.target.value })}
+                    placeholder="Mobile number"
+                    className="w-full rounded-lg sm:rounded-xl border border-border bg-transparent px-3 py-2 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">City / Location</label>
+                  <input
+                    type="text"
+                    value={enquiryForm.location}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, location: e.target.value })}
+                    placeholder="e.g. Mumbai"
+                    className="w-full rounded-lg sm:rounded-xl border border-border bg-transparent px-3 py-2 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] sm:text-xs font-semibold text-foreground">Requirement <span className="text-destructive">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={enquiryForm.title}
+                  onChange={(e) => setEnquiryForm({ ...enquiryForm, title: e.target.value })}
+                  placeholder="e.g. Need 500 units of custom packaging"
+                  className="w-full rounded-lg sm:rounded-xl border border-border bg-transparent px-3 py-2 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                />
+              </div>
+
+              <div className="grid gap-2.5 sm:gap-3 grid-cols-2 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">Quantity</label>
+                  <input
+                    type="text"
+                    value={enquiryForm.quantity}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, quantity: e.target.value })}
+                    placeholder="e.g. 500 units"
+                    className="w-full rounded-lg sm:rounded-xl border border-border bg-transparent px-3 py-2 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] sm:text-xs font-semibold text-foreground">Additional Details <span className="text-muted-foreground font-normal text-[10px]">(optional)</span></label>
+                <textarea
+                  value={enquiryForm.description}
+                  onChange={(e) => setEnquiryForm({ ...enquiryForm, description: e.target.value })}
+                  rows={2}
+                  placeholder="Specifications, delivery expectations, any other details..."
+                  className="w-full rounded-lg sm:rounded-xl border border-border bg-transparent px-3 py-2 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors resize-none"
+                />
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEnquiryClose(false)}
+                  className="rounded-xl"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={enquirySubmitting}
+                  className="rounded-xl gap-1.5 font-semibold sm:min-w-[140px]"
+                >
+                  {enquirySubmitting ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Sending...</>
+                  ) : (
+                    <><Send className="h-4 w-4" /> Send Enquiry</>
+                  )}
+                </Button>
+              </div>
+            </form>
           )}
         </DialogContent>
       </Dialog>

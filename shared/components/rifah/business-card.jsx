@@ -50,8 +50,6 @@ export function BusinessCard({
 }) {
   const { user } = useAuth();
   const bizId = business.slug || business._id || business.id || "";
-  const phone = business.phone || business.owner?.phone || "";
-  const email = business.email || business.owner?.email || "";
   const rating = (Number(business.rating) || 0).toFixed(1);
   const reviewsCount = business.reviewsCount ?? business.reviews ?? 0;
   const tags = [
@@ -104,38 +102,6 @@ export function BusinessCard({
         </span>
       </div>
 
-      {/* Businessman Contact Info */}
-      {(phone || email) && (
-        <div className="mt-3 flex flex-col gap-1.5 rounded-xl border border-border/60 bg-muted/30 p-2.5 text-xs text-muted-foreground">
-          {phone && (
-            <a
-              href={`tel:${phone}`}
-              onClick={(e) => e.stopPropagation()}
-              className="group/link inline-flex items-center gap-2 truncate transition-colors hover:text-primary"
-              title={`Call: ${phone}`}
-            >
-              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                <Phone className="h-3 w-3" />
-              </span>
-              <span className="truncate font-medium text-foreground/90 group-hover/link:text-primary">{phone}</span>
-            </a>
-          )}
-          {email && (
-            <a
-              href={`mailto:${email}`}
-              onClick={(e) => e.stopPropagation()}
-              className="group/link inline-flex items-center gap-2 truncate transition-colors hover:text-primary"
-              title={`Email: ${email}`}
-            >
-              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                <Mail className="h-3 w-3" />
-              </span>
-              <span className="truncate font-medium text-foreground/90 group-hover/link:text-primary">{email}</span>
-            </a>
-          )}
-        </div>
-      )}
-
       {tags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {tags.slice(0, 2).map((t, idx) => (
@@ -160,8 +126,6 @@ export function BusinessCard({
 /** Premium card — larger visual area, cover band, used for featured placements. */
 export function PremiumBusinessCard({ business }) {
   const bizId = business.slug || business._id || business.id || "";
-  const phone = business.phone || business.owner?.phone || "";
-  const email = business.email || business.owner?.email || "";
   const tags = [
     ...(business.products || business.productsSummary || []),
     ...(business.services || business.servicesSummary || []),
@@ -229,38 +193,6 @@ export function PremiumBusinessCard({ business }) {
           <div className="min-h-[12px]" />
         )}
 
-        {/* Businessman Contact Info */}
-        {(phone || email) && (
-          <div className="mt-2.5 flex flex-col gap-1.5 rounded-xl border border-border/60 bg-muted/30 p-2.5 text-xs text-muted-foreground">
-            {phone && (
-              <a
-                href={`tel:${phone}`}
-                onClick={(e) => e.stopPropagation()}
-                className="group/link inline-flex items-center gap-2 truncate transition-colors hover:text-primary"
-                title={`Call: ${phone}`}
-              >
-                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                  <Phone className="h-3 w-3" />
-                </span>
-                <span className="truncate font-medium text-foreground/90 group-hover/link:text-primary">{phone}</span>
-              </a>
-            )}
-            {email && (
-              <a
-                href={`mailto:${email}`}
-                onClick={(e) => e.stopPropagation()}
-                className="group/link inline-flex items-center gap-2 truncate transition-colors hover:text-primary"
-                title={`Email: ${email}`}
-              >
-                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                  <Mail className="h-3 w-3" />
-                </span>
-                <span className="truncate font-medium text-foreground/90 group-hover/link:text-primary">{email}</span>
-              </a>
-            )}
-          </div>
-        )}
-
         {/* Tags */}
         {tags.length > 0 && (
           <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -292,8 +224,6 @@ export function CompactBusinessCard({
   onToggleSave,
 }) {
   const bizId = business.slug || business._id || business.id || "";
-  const phone = business.phone || business.owner?.phone || "";
-  const email = business.email || business.owner?.email || "";
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3">
@@ -308,30 +238,6 @@ export function CompactBusinessCard({
         <p className="truncate text-xs text-muted-foreground">
           {business.industry} · {business.city}
         </p>
-        {(phone || email) && (
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-            {phone && (
-              <a
-                href={`tel:${phone}`}
-                className="inline-flex items-center gap-1 hover:text-primary transition-colors"
-                title={`Call: ${phone}`}
-              >
-                <Phone className="h-3 w-3 text-primary/70" />
-                <span>{phone}</span>
-              </a>
-            )}
-            {email && (
-              <a
-                href={`mailto:${email}`}
-                className="inline-flex items-center gap-1 hover:text-primary transition-colors"
-                title={`Email: ${email}`}
-              >
-                <Mail className="h-3 w-3 text-primary/70" />
-                <span className="truncate max-w-[160px]">{email}</span>
-              </a>
-            )}
-          </div>
-        )}
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           <VerificationBadge status={business.verification} compact />
         </div>
