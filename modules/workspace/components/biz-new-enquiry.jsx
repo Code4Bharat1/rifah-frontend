@@ -257,8 +257,8 @@ export function BizNewEnquiry() {
                 type="button"
                 onClick={() => setTargetType("all")}
                 className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "all"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                    : "border-border hover:border-muted-foreground/30"
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                  : "border-border hover:border-muted-foreground/30"
                   }`}
               >
                 <div className="flex w-full items-center justify-between">
@@ -280,8 +280,8 @@ export function BizNewEnquiry() {
                 type="button"
                 onClick={() => setTargetType("chamber")}
                 className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "chamber"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                    : "border-border hover:border-muted-foreground/30"
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                  : "border-border hover:border-muted-foreground/30"
                   }`}
               >
                 <div className="flex w-full items-center justify-between">
@@ -303,8 +303,8 @@ export function BizNewEnquiry() {
                 type="button"
                 onClick={() => setTargetType("business")}
                 className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "business"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                    : "border-border hover:border-muted-foreground/30"
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                  : "border-border hover:border-muted-foreground/30"
                   }`}
               >
                 <div className="flex w-full items-center justify-between">

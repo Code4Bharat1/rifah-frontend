@@ -105,6 +105,7 @@ function BizProfile() {
     state: "",
     address: "",
     phone: "",
+    whatsapp: "",
     email: "",
     website: "",
     about: "",
@@ -151,6 +152,7 @@ function BizProfile() {
         state: business.state || "",
         address: business.address || "",
         phone: business.phone || "",
+        whatsapp: business.whatsapp || business.whatsappNumber || "",
         email: business.email || "",
         website: business.website || "",
         about: business.about || "",
@@ -163,6 +165,7 @@ function BizProfile() {
         name: prev.name || user.organization || `${user.name}'s Enterprise`,
         email: prev.email || user.email || "",
         phone: prev.phone || user.phone || "",
+        whatsapp: prev.whatsapp || user.whatsapp || user.phone || "",
         city: prev.city || user.city || "",
         state: prev.state || "",
       }));
@@ -484,8 +487,23 @@ function BizProfile() {
                   id="biz-phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="e.g. +91 9876543210"
                   className="h-11"
                 />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="biz-whatsapp" className="flex items-center gap-1.5">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>WhatsApp Number</span>
+                </Label>
+                <Input
+                  id="biz-whatsapp"
+                  value={formData.whatsapp}
+                  onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                  placeholder="e.g. +91 9876543210"
+                  className="h-11"
+                />
+                <p className="text-[10px] text-muted-foreground">Used for direct buyer chat, quotation alerts & instant WhatsApp messages.</p>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="biz-email">Public Business Email</Label>

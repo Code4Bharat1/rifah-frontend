@@ -300,8 +300,6 @@ function BusinessProfile() {
   const logoUrl = hasLogo ? resolveMediaUrl(business.logo) : null;
   const initial = (business?.name || "B").charAt(0).toUpperCase();
 
-  const phone = business?.phone || business?.owner?.phone || "";
-  const email = business?.email || business?.ownerEmail || business?.owner?.email || "";
   const subCategory = business?.subCategory || business?.categories?.[1] || "";
 
   return (
@@ -782,54 +780,6 @@ function BusinessProfile() {
 
           {/* Sticky side rail */}
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            {/* Contact Details Panel */}
-            <Panel title="Contact details">
-              <div className="space-y-2.5 text-sm">
-                {phone ? (
-                  <a
-                    href={`tel:${phone}`}
-                    className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 hover:bg-primary/5 hover:border-primary/40 transition-all group"
-                  >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                      <Phone className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block tracking-wider">Phone</span>
-                      <span className="font-bold text-slate-900 dark:text-white truncate block group-hover:text-primary transition-colors">
-                        {phone}
-                      </span>
-                    </div>
-                  </a>
-                ) : null}
-
-                {email ? (
-                  <a
-                    href={`mailto:${email}`}
-                    className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 hover:bg-primary/5 hover:border-primary/40 transition-all group"
-                  >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                      <Mail className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block tracking-wider">Email</span>
-                      <span className="font-bold text-slate-900 dark:text-white truncate block group-hover:text-primary transition-colors">
-                        {email}
-                      </span>
-                    </div>
-                  </a>
-                ) : null}
-
-                <div className="pt-1">
-                  <Button asChild className="w-full rounded-xl bg-primary hover:bg-primary/90 text-white font-bold gap-2 shadow-xs">
-                    <Link href={`/enquiry/new?businessId=${business._id}&businessName=${encodeURIComponent(business.name)}`}>
-                      <Send className="h-4 w-4" />
-                      <span>Send Enquiry</span>
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </Panel>
-
             <Panel title="Membership & trust">
               <ul className="space-y-2.5 text-sm">
                 <li className="flex items-center justify-between gap-3">

@@ -221,8 +221,8 @@ export function BizMyEnquiries() {
                   {selectedEnquiry?.targetType === "business"
                     ? "Direct Vendor"
                     : selectedEnquiry?.targetType === "chamber"
-                    ? selectedEnquiry?.chapter
-                    : "Pan-Chamber"}
+                      ? selectedEnquiry?.chapter
+                      : "Pan-Chamber"}
                 </p>
               </div>
             </div>

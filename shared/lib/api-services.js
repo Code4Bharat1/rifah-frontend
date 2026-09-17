@@ -199,6 +199,7 @@ export const paymentApi = {
 export const messageApi = {
   getConversations: () => apiClient("/messages/conversations"),
   getMessages: (otherUserId) => apiClient(`/messages/conversation/${otherUserId}`),
+  getUserContact: (userId) => apiClient(`/messages/contact-info/${userId}`),
   sendMessage: (data) => apiClient("/messages", { method: "POST", body: JSON.stringify(data) }),
   uploadAttachment: (file) => {
     const formData = new FormData();
