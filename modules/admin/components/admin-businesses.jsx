@@ -21,7 +21,11 @@ import {
 import { useBusinesses, useCategories } from "@shared/hooks/use-rifah-api";
 import { businessApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
+import { useAuth } from "@shared/providers/auth-provider";
+
 function AdminBusinesses() {
+  const { user } = useAuth();
+  const basePath = user?.role === "chapter_admin" ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
   const [q, setQ] = useState("");
   const [industry, setIndustry] = useState("all");
   
@@ -56,7 +60,7 @@ function AdminBusinesses() {
         <div className="flex items-center gap-3">
           <Button variant="outline" className="rounded-full">Export directory</Button>
           <Button asChild className="rounded-full bg-blue-600 hover:bg-blue-700">
-            <Link href="/admin/businesses/new">Add Business</Link>
+            <Link href={`${basePath}/businesses/new`}>Add Business</Link>
           </Button>
         </div>
       }
@@ -111,7 +115,7 @@ function AdminBusinesses() {
                 key: "act",
                 header: "",
                 cell: (r) => (
-                  <Link href={`/admin/businesses/${r._id}`} className="text-sm font-medium text-primary hover:underline">
+                  <Link href={`${basePath}/businesses/${r._id}`} className="text-sm font-medium text-primary hover:underline">
                     View
                   </Link>
                 ),
@@ -134,7 +138,7 @@ function AdminBusinesses() {
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button asChild size="sm" variant="outline">
-                    <Link href={`/admin/businesses/${r._id}`}>
+                    <Link href={`${basePath}/businesses/${r._id}`}>
                       View Details
                     </Link>
                   </Button>

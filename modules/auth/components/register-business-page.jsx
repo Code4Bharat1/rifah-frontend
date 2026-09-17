@@ -97,7 +97,7 @@ function RegisterBusiness({ isAdmin = false }) {
   const searchParams = useSearchParams();
   const convertEmail = searchParams.get("convertEmail") || "";
   
-  const { registerBusiness } = useAuth();
+  const { registerBusiness, user } = useAuth();
   const { data: chaptersData } = useChapters();
   const { data: plansData } = useMembershipPlans();
 
@@ -500,7 +500,8 @@ function RegisterBusiness({ isAdmin = false }) {
          // Notify admin and redirect
          setLoading(false);
          alert("Business registered successfully! An email with login credentials has been sent to the owner.");
-         router.push("/admin/businesses");
+         const basePath = user?.role === "chapter_admin" ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
+         router.push(`${basePath}/businesses`);
          return;
       }
 
