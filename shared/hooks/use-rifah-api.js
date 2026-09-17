@@ -22,6 +22,8 @@ import {
   contactApi,
   settingsApi,
   stateApi,
+  oneToOneApi,
+  thankYouNoteApi,
 } from "../lib/api-services";
 
 // ==================== BUSINESS HOOKS ====================
@@ -141,6 +143,58 @@ export function useStateDetails(stateName) {
       return res?.data || res;
     },
     enabled: Boolean(stateName),
+  });
+}
+
+// ==================== NETWORKING ====================
+
+export function useMyOneToOnes(params = {}) {
+  return useQuery({
+    queryKey: ["one-to-ones", "me", params],
+    queryFn: async () => {
+      const res = await oneToOneApi.listMine(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function useAdminOneToOnes(params = {}) {
+  return useQuery({
+    queryKey: ["one-to-ones", "admin", params],
+    queryFn: async () => {
+      const res = await oneToOneApi.listAdmin(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function useMyThankYouNotes(params = {}) {
+  return useQuery({
+    queryKey: ["thank-you-notes", "me", params],
+    queryFn: async () => {
+      const res = await thankYouNoteApi.listMine(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function useAdminThankYouNotes(params = {}) {
+  return useQuery({
+    queryKey: ["thank-you-notes", "admin", params],
+    queryFn: async () => {
+      const res = await thankYouNoteApi.listAdmin(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function useMyThankYouSummary() {
+  return useQuery({
+    queryKey: ["thank-you-notes", "summary", "me"],
+    queryFn: async () => {
+      const res = await thankYouNoteApi.summaryMine();
+      return res?.data || res;
+    },
   });
 }
 
