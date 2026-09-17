@@ -13,12 +13,14 @@ import { useEventDetail } from "@shared/hooks/use-rifah-api";
 import { eventApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { eventImage } from "@shared/lib/media";
+import { useAuth } from "@shared/providers/auth-provider";
 import { EventRegistrationsModal } from "./event-registrations-modal";
 
 export function AdminEventDetail() {
   const params = useParams();
   const router = useRouter();
   const eventId = params?.id;
+  const { user } = useAuth();
 
   const { data: event, isLoading } = useEventDetail(eventId);
   const [registrationsModal, setRegistrationsModal] = useState(false);
@@ -33,16 +35,24 @@ export function AdminEventDetail() {
     );
   }
 
+  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
+
   if (!event) {
     return (
       <AppShell role="admin" title="Event Not Found">
         <div className="p-12 text-center">
           <p className="text-muted-foreground">This event could not be found.</p>
-          <Button asChild className="mt-4"><Link href="/admin/events">← Back to Events</Link></Button>
+          <Button asChild className="mt-4"><Link href={basePath}>← Back to Events</Link></Button>
         </div>
       </AppShell>
     );
   }
+
+  const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
+  // Safely compare user._id (or id) with event.createdBy
+  const userIdStr = String(user?._id || user?.id);
+  const createdByStr = String(event.createdBy?._id || event.createdBy);
+  const canEdit = isSuperAdmin || createdByStr === userIdStr;
 
   const coverUrl = event.coverImage ? resolveMediaUrl(event.coverImage) : eventImage;
   const seatsRemaining = Math.max(0, (event.seats || 100) - (event.registeredCount || 0));
@@ -62,11 +72,13 @@ export function AdminEventDetail() {
               <Eye className="h-4 w-4 mr-2" /> Public View
             </Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/admin/events/${event._id}/edit`}>
-              <Edit className="h-4 w-4 mr-2" /> Edit
-            </Link>
-          </Button>
+          {canEdit && (
+            <Button variant="outline" asChild>
+              <Link href={`${basePath}/${event._id}/edit`}>
+                <Edit className="h-4 w-4 mr-2" /> Edit
+              </Link>
+            </Button>
+          )}
         </div>
       }
     >
@@ -152,17 +164,19 @@ export function AdminEventDetail() {
               </div>
             </Panel>
 
-            <Panel title="Registrations">
-              <div className="space-y-3">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-primary">{event.registeredCount || 0}</p>
-                  <p className="text-xs text-muted-foreground">people registered</p>
+            {canEdit && (
+              <Panel title="Registrations">
+                <div className="space-y-3">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-primary">{event.registeredCount || 0}</p>
+                    <p className="text-xs text-muted-foreground">people registered</p>
+                  </div>
+                  <Button className="w-full" onClick={() => setRegistrationsModal(true)}>
+                    View All Registrations
+                  </Button>
                 </div>
-                <Button className="w-full" onClick={() => setRegistrationsModal(true)}>
-                  View All Registrations
-                </Button>
-              </div>
-            </Panel>
+              </Panel>
+            )}
           </aside>
         </div>
       </div>
