@@ -140,7 +140,7 @@ export const verificationApi = {
     formData.append("document", file);
     return apiClient("/verification/upload", { method: "POST", body: formData });
   },
-  review: (id, data) => apiClient(`/verification/${id}/review`, { method: "PATCH", body: JSON.stringify(data) }),
+  review: (id, data) => apiClient(`/verification/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
 };
 
 export const catalogueApi = {

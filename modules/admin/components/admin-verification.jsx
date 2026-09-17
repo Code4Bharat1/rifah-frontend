@@ -191,6 +191,16 @@ function AdminVerification() {
       );
 
       setDecisionModal({ open: false, type: null, item: null, reason: "", submitting: false });
+      
+      // Auto-switch to the target tab
+      if (type === "approve") {
+        setActiveTab("approved");
+      } else if (type === "changes_required") {
+        setActiveTab("changes");
+      } else if (type === "reject") {
+        setActiveTab("rejected");
+      }
+
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to submit verification review.");
@@ -366,13 +376,9 @@ function AdminVerification() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {isVerified ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                            <ShieldCheck className="h-3.5 w-3.5" /> Viewed
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
-                            Not viewed
+                        {isVerified && (
+                          <span className="inline-flex items-center justify-center h-5 w-5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 rounded border border-emerald-200 dark:border-emerald-800" title="Viewed">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
                           </span>
                         )}
                         {d.fileUrl ? (
