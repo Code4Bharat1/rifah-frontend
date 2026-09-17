@@ -91,7 +91,6 @@ const navs = {
       { label: "Memberships", to: "/admin/memberships", icon: Star },
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
       { label: "States", to: "/admin/states", icon: MapPin },
-      { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
       { label: "Units", to: "/admin/units", icon: Users },
       { label: "Events", to: "/admin/events", icon: Ticket },
       { label: "Payments", to: "/admin/payments", icon: CreditCard },

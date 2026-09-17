@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, Phone, MoreHorizontal, UserCheck, Trash2, Building2 } from "lucide-react";
+import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, Phone, MoreHorizontal, UserCheck, Trash2, Building2, Edit2, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -10,7 +10,7 @@ import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bi
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useStates } from "@shared/hooks/use-rifah-api";
 import { stateApi } from "@shared/lib/api-services";
@@ -30,6 +30,11 @@ export function AdminStates() {
     email: "",
     phone: "",
   });
+
+  // Edit State Modal
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ oldState: "", newState: "" });
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const totalStates = states.length;
   const statesWithAdmin = states.filter((s) => s.hasAdmin).length;
@@ -74,6 +79,36 @@ export function AdminStates() {
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to revoke State Admin.");
+    }
+  };
+
+  const handleDeleteState = async (stateName) => {
+    if (!confirm(`Are you sure you want to completely delete the state: ${stateName}?\n\nThis will safely detach all its Chapters, Members, and Businesses and move them to 'Unassigned'.`)) return;
+    try {
+      await stateApi.deleteState(stateName);
+      toast.success(`State ${stateName} deleted successfully`);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete State.");
+    }
+  };
+
+  const handleRenameState = async (e) => {
+    e.preventDefault();
+    if (!editForm.newState) {
+      toast.error("New state name is required");
+      return;
+    }
+    setEditSubmitting(true);
+    try {
+      await stateApi.renameState(editForm.oldState, editForm.newState);
+      toast.success(`State renamed to ${editForm.newState}`);
+      setOpenEditModal(false);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to rename State.");
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -187,20 +222,35 @@ export function AdminStates() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/states/${r.state}`}>
+                            <Eye className="mr-2 h-4 w-4" /> View Details
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleOpenAllocate(r.state)}>
                           {r.hasAdmin ? "Reallocate State Admin" : "Allocate State Admin"}
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setEditForm({ oldState: r.state, newState: r.state });
+                          setOpenEditModal(true);
+                        }}>
+                          <Edit2 className="mr-2 h-4 w-4" /> Edit State Name
+                        </DropdownMenuItem>
                         {r.hasAdmin && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-red-600 focus:bg-red-50 dark:focus:bg-red-950/50"
-                              onClick={() => handleRemoveAdmin(r.state)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Revoke State Admin
-                            </DropdownMenuItem>
-                          </>
+                          <DropdownMenuItem
+                            className="text-orange-600 focus:bg-orange-50 dark:focus:bg-orange-950/50"
+                            onClick={() => handleRemoveAdmin(r.state)}
+                          >
+                            <UserCheck className="mr-2 h-4 w-4" /> Revoke State Admin
+                          </DropdownMenuItem>
                         )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600 focus:bg-red-50 dark:focus:bg-red-950/50"
+                          onClick={() => handleDeleteState(r.state)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete State
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ) : null,
@@ -264,6 +314,37 @@ export function AdminStates() {
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {submitting ? "Allocating..." : "Allocate & Send Credentials"}
             </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit State Name Dialog */}
+      <Dialog open={openEditModal} onOpenChange={setOpenEditModal}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit State Name</DialogTitle>
+            <DialogDescription>
+              Rename this state across all Chapters, Members, and Businesses.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRenameState} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-st-name">State / Region Name *</Label>
+              <Input
+                id="new-st-name"
+                required
+                value={editForm.newState}
+                onChange={(e) => setEditForm({ ...editForm, newState: e.target.value })}
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setOpenEditModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={editSubmitting}>
+                {editSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

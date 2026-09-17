@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
+  Send,
+  ExternalLink,
   Award,
   Building2,
   Clock,
@@ -22,7 +24,6 @@ import {
   Smartphone,
   Image as ImageIcon,
   Loader2,
-  Send,
   AlertCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -299,6 +300,8 @@ function BusinessProfile() {
   const logoUrl = hasLogo ? resolveMediaUrl(business.logo) : null;
   const initial = (business?.name || "B").charAt(0).toUpperCase();
 
+  const subCategory = business?.subCategory || business?.categories?.[1] || "";
+
   return (
     <PublicLayout>
       {/* Cover + identity Banner */}
@@ -360,6 +363,16 @@ function BusinessProfile() {
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <VerificationBadge status={business.verification} />
                       <MembershipBadge tier={business.membership} />
+                      {business.industry && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                          {business.industry}
+                        </span>
+                      )}
+                      {subCategory && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          {subCategory}
+                        </span>
+                      )}
                       {business.chapter && (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           {business.chapter}
@@ -397,8 +410,10 @@ function BusinessProfile() {
               <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
                   { icon: Building2, label: "Industry", value: business.industry || "General" },
+                  ...(subCategory
+                    ? [{ icon: Package, label: "Sub Category", value: subCategory }]
+                    : [{ icon: Users, label: "Team size", value: business.employees || "10–50" }]),
                   { icon: MapPin, label: "Location", value: `${business.city || ""}${business.state ? `, ${business.state}` : ""}`.trim() || "Not specified" },
-                  { icon: Users, label: "Team size", value: business.employees || "10–50" },
                   { icon: Star, label: "Rating", value: hasReviews ? `${avgRating} (${totalReviews})` : "No ratings yet" },
                 ].map((s) => (
                   <div key={s.label} className="min-w-0 bg-slate-50 dark:bg-slate-800/40 p-3 sm:p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">

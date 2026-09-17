@@ -99,6 +99,8 @@ export const stateApi = {
   getByName: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}`),
   assignAdmin: (data) => apiClient("/states/assign-admin", { method: "POST", body: JSON.stringify(data) }),
   removeAdmin: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}/admin`, { method: "DELETE" }),
+  renameState: (stateName, newStateName) => apiClient(`/states/${encodeURIComponent(stateName)}`, { method: "PUT", body: JSON.stringify({ newStateName }) }),
+  deleteState: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}`, { method: "DELETE" }),
 };
 
 export const oneToOneApi = {
@@ -199,6 +201,7 @@ export const paymentApi = {
 export const messageApi = {
   getConversations: () => apiClient("/messages/conversations"),
   getMessages: (otherUserId) => apiClient(`/messages/conversation/${otherUserId}`),
+  getUserContact: (userId) => apiClient(`/messages/contact-info/${userId}`),
   sendMessage: (data) => apiClient("/messages", { method: "POST", body: JSON.stringify(data) }),
   uploadAttachment: (file) => {
     const formData = new FormData();
@@ -230,6 +233,7 @@ export const eventApi = {
   getByIdOrSlug: (idOrSlug) => apiClient(`/events/detail/${idOrSlug}`),
   register: (id) => apiClient(`/events/${id}/register`, { method: "POST", body: JSON.stringify({}) }),
   registerPaid: (id, data) => apiClient(`/events/${id}/register-paid`, { method: "POST", body: JSON.stringify(data) }),
+  markAttendance: (id) => apiClient(`/events/${id}/attend`, { method: "POST", body: JSON.stringify({}) }),
   create: (data) => apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/events/${id}`, { method: "DELETE" }),

@@ -118,7 +118,7 @@ function AdminEvents() {
   const router = useRouter();
   const { user } = useAuth();
   const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
-  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : "/admin/events";
+  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
   const { data: eventsData, refetch } = useEvents();
   const events = Array.isArray(eventsData) ? eventsData : [];
 
@@ -325,9 +325,11 @@ function AdminEvents() {
                         <DropdownMenuItem asChild>
                           <Link href={`${basePath}/${r._id}`}>View Event Page</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setRegistrationsModal({ open: true, eventId: r._id, eventTitle: r.title })}>
-                          View Registrations
-                        </DropdownMenuItem>
+                        {(isSuperAdmin || r.createdBy === user?._id) && (
+                          <DropdownMenuItem onClick={() => setRegistrationsModal({ open: true, eventId: r._id, eventTitle: r.title })}>
+                            View Registrations
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         {isSuperAdmin && r.status === "Pending Approval" && (
                           <DropdownMenuItem onClick={async () => {
@@ -343,27 +345,31 @@ function AdminEvents() {
                           </DropdownMenuItem>
                         )}
 
-                      <DropdownMenuItem onClick={async () => {
-                        try {
-                          await eventApi.update(r._id, { mode: r.mode === "In-person" ? "Online" : "In-person" });
-                          toast.success("Event mode updated");
-                          refetch();
-                        } catch(e) {
-                          toast.error("Failed to update event");
-                        }
-                      }}>
-                        Toggle Mode (Online/In-person)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`${basePath}/${r._id}/edit`}>Edit Event Details</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => {
-                        setDeleteId(r._id);
-                        setIsDeleteDialogOpen(true);
-                      }}>
-                        Delete Event
-                      </DropdownMenuItem>
+                        {(isSuperAdmin || r.createdBy === user?._id) && (
+                          <>
+                            <DropdownMenuItem onClick={async () => {
+                              try {
+                                await eventApi.update(r._id, { mode: r.mode === "In-person" ? "Online" : "In-person" });
+                                toast.success("Event mode updated");
+                                refetch();
+                              } catch(e) {
+                                toast.error("Failed to update event");
+                              }
+                            }}>
+                              Toggle Mode (Online/In-person)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`${basePath}/${r._id}/edit`}>Edit Event Details</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => {
+                              setDeleteId(r._id);
+                              setIsDeleteDialogOpen(true);
+                            }}>
+                              Delete Event
+                            </DropdownMenuItem>
+                          </>
+                        )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

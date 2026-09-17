@@ -30,12 +30,49 @@ function EventDetail() {
   const [registered, setRegistered] = useState(false);
   const [registering, setRegistering] = useState(false);
 
-  const isUserRegistered = Boolean(
-    registered ||
-    (user?._id && Array.isArray(event?.registeredUsers) && event.registeredUsers.some(
-      (u) => String(u?.user?._id || u?.user || u?._id || u) === String(user._id)
-    ))
-  );
+  const userRegistration = user?._id && Array.isArray(event?.registeredUsers) 
+    ? event.registeredUsers.find(u => String(u?.user?._id || u?.user || u?._id || u) === String(user._id)) 
+    : null;
+
+  const isUserRegistered = Boolean(registered || userRegistration);
+  
+  const [attended, setAttended] = useState(false);
+  const [marking, setMarking] = useState(false);
+
+  const isUserAttended = Boolean(attended || userRegistration?.attendanceStatus === "Present");
+
+  const isEventToday = event?.date === new Date().toISOString().split("T")[0];
+
+  const canRegisterUser = () => {
+    if (!user) return true; // Let them click and redirect to login
+    
+    // All admins can see the button
+    if (["super_admin", "secretariat", "state_admin", "chapter_admin"].includes(user.role)) return true;
+    
+    const roleDisplay = user.role === "business_owner" ? "Businesses" : "Consumers";
+    
+    const audiences = (event.targetAudience || []).map(a => a.trim().toLowerCase());
+    const audienceMatch = audiences.length === 0 || audiences.includes("all") || audiences.includes(roleDisplay.toLowerCase());
+    if (!audienceMatch) return false;
+
+    if (event.targetStates && event.targetStates.length > 0) {
+      const states = event.targetStates.map(s => s.trim().toLowerCase());
+      if (!states.includes("all") && user.state) {
+        if (!states.includes(user.state.trim().toLowerCase())) return false;
+      }
+    }
+
+    if (event.targetChapters && event.targetChapters.length > 0) {
+      const chapters = event.targetChapters.map(c => c.trim().toLowerCase());
+      if (!chapters.includes("all") && user.chapter) {
+        if (!chapters.includes(user.chapter.trim().toLowerCase())) return false;
+      }
+    }
+
+    return true;
+  };
+
+  const isEligibleToRegister = canRegisterUser();
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -164,6 +201,22 @@ const loadRazorpayScript = () => {
     }
   };
 
+  const handleMarkAttendance = async () => {
+    if (!user) return;
+    setMarking(true);
+    try {
+      await eventApi.markAttendance(event._id);
+      setAttended(true);
+      toast.success("Attendance marked successfully!");
+      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+    } catch (err) {
+      console.error("Attendance error:", err);
+      toast.error(err.message || "Failed to mark attendance.");
+    } finally {
+      setMarking(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <PublicLayout>
@@ -266,16 +319,23 @@ const loadRazorpayScript = () => {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            {["super_admin", "secretariat", "chapter_admin"].includes(user?.role) ? (
+            {["super_admin", "secretariat", "chapter_admin", "state_admin"].includes(user?.role) && (
               <Panel title="Admin View">
                 <div className="space-y-3 text-center">
                   <p className="text-sm text-muted-foreground">You are viewing this event as an admin.</p>
                   <Button asChild className="w-full" variant="outline">
-                    <Link href={user?.role === "chapter_admin" ? `/chapter-admin/events/${event._id}` : `/admin/events/${event._id}`}>Open in Admin Panel</Link>
+                    <Link href={
+                      user?.role === "chapter_admin" ? `/chapter-admin/events/${event._id}` 
+                      : user?.role === "state_admin" ? `/state-admin/events/${event._id}` 
+                      : `/admin/events/${event._id}`
+                    }>
+                      Open in Admin Panel
+                    </Link>
                   </Button>
                 </div>
               </Panel>
-            ) : (
+            )}
+
             <Panel title="Registration">
               {isUserRegistered ? (
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
@@ -290,8 +350,25 @@ const loadRazorpayScript = () => {
                     <span>Status</span>
                     <span className="font-semibold text-emerald-600">RSVP Confirmed</span>
                   </div>
+                  {isEventToday && (
+                    <div className="mt-4 pt-3 border-t border-border">
+                      {isUserAttended ? (
+                        <div className="flex items-center justify-center gap-2 text-sm font-semibold text-emerald-600">
+                          <CheckCircle2 className="h-4 w-4" /> Attendance Marked
+                        </div>
+                      ) : (
+                        <Button 
+                          className="w-full" 
+                          onClick={handleMarkAttendance} 
+                          disabled={marking}
+                        >
+                          {marking ? "Marking..." : "Mark Attendance"}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ) : (
+              ) : isEligibleToRegister ? (
                 <div className="space-y-3">
                   <div>
                     <p className="text-2xl font-bold tracking-tight">{Boolean(event.isPaid && Number(event.ticketPrice) > 0) ? `₹${event.ticketPrice}` : (event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")}</p>
@@ -308,9 +385,15 @@ const loadRazorpayScript = () => {
                     {registering ? "Registering..." : "RSVP / Register"}
                   </Button>
                 </div>
+              ) : (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
+                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Restricted Event</p>
+                  <p className="mt-1 text-xs text-amber-600/80 dark:text-amber-400/80">
+                    This event is exclusively for targeted members and chapters. Your profile does not match the event's audience.
+                  </p>
+                </div>
               )}
             </Panel>
-            )}
 
             {others.length > 0 && (
               <Panel title="Other upcoming events">

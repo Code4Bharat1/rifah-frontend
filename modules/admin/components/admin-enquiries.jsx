@@ -12,12 +12,12 @@ import { enquiryApi } from "@shared/lib/api-services";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
-import { 
-  DropdownMenu, 
-  DropdownMenuTrigger, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuLabel,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
@@ -31,14 +31,14 @@ function AdminEnquiries() {
   const currentRole = user?.role === "state_admin"
     ? "state_admin"
     : user?.role === "chapter_admin"
-    ? "chapter_admin"
-    : "admin";
+      ? "chapter_admin"
+      : "admin";
 
   const subtitle = user?.role === "state_admin"
     ? `State Enquiry Desk · Buyer sourcing RFQs routed across ${user?.state ? user.state + " " : ""}chapters`
     : user?.role === "chapter_admin"
-    ? "Chapter Enquiry Desk · Buyer sourcing RFQs for your chapter"
-    : "Buyer sourcing RFQs routed across chamber network";
+      ? "Chapter Enquiry Desk · Buyer sourcing RFQs for your chapter"
+      : "Buyer sourcing RFQs routed across chamber network";
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -57,8 +57,8 @@ function AdminEnquiries() {
   const chapters = Array.isArray(chaptersData) ? chaptersData : [];
 
   const { data: adminUsersData } = useAdminUsers({ limit: 100 });
-  const adminUsers = Array.isArray(adminUsersData) 
-    ? adminUsersData.filter(u => ["super_admin", "secretariat", "state_admin", "chapter_admin"].includes(u.role)) 
+  const adminUsers = Array.isArray(adminUsersData)
+    ? adminUsersData.filter(u => ["super_admin", "secretariat", "state_admin", "chapter_admin"].includes(u.role))
     : [];
 
   const { data: statesData } = useStates();
@@ -170,7 +170,7 @@ function AdminEnquiries() {
       setIsSubmittingAssign(false);
     }
   };
-  
+
   const handleUpdateStatus = async (id, newStatus) => {
     if (newStatus === "Closed" || newStatus === "Won" || newStatus === "Rejected") {
       setResolvingId(id);
@@ -190,8 +190,8 @@ function AdminEnquiries() {
 
   const handleResolveSubmit = async () => {
     try {
-      await enquiryApi.updateStatus(resolvingId, { 
-        status: resolveStatus, 
+      await enquiryApi.updateStatus(resolvingId, {
+        status: resolveStatus,
         resolutionNote: resolutionNote,
         timelineUpdate: { label: `Marked as ${resolveStatus}`, at: new Date().toISOString() }
       });
@@ -214,9 +214,9 @@ function AdminEnquiries() {
   };
 
   return (
-    <AppShell 
-      role={currentRole} 
-      title="Enquiries" 
+    <AppShell
+      role={currentRole}
+      title="Enquiries"
       subtitle={subtitle}
       actions={
         <Button variant="outline" disabled={isExporting} onClick={async () => {
@@ -280,11 +280,11 @@ function AdminEnquiries() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Input 
-            placeholder="Search enquiries by title or buyer..." 
+          <Input
+            placeholder="Search enquiries by title or buyer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="sm:max-w-[300px]" 
+            className="sm:max-w-[300px]"
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="sm:max-w-[180px]">
@@ -473,42 +473,42 @@ function AdminEnquiries() {
               </div>
             </div>
             <div>
-               <p className="text-xs font-medium text-muted-foreground mb-2">Current Status & Routing</p>
-               <div className="flex flex-wrap items-center gap-3">
-                 <StatusBadge status={selectedEnquiry?.status} />
-                 {selectedEnquiry?.assignedTo ? (
-                   <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-md border border-border flex items-center gap-1.5">
-                     <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                     Assigned to: <span className="font-semibold text-foreground">{selectedEnquiry.assignedTo.name}</span>
-                     {selectedEnquiry.assignedTo.state && (
-                       <span className="text-[10px] text-muted-foreground">({selectedEnquiry.assignedTo.state})</span>
-                     )}
-                   </span>
-                 ) : (
-                   <span className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-md border border-amber-200 dark:border-amber-800">
-                     Not assigned to any admin
-                   </span>
-                 )}
-                 <Button
-                   size="sm"
-                   variant="outline"
-                   className="h-7 text-xs gap-1.5 ml-auto"
-                   onClick={() => {
-                     const enq = selectedEnquiry;
-                     setSelectedEnquiry(null);
-                     handleOpenAssignModal(enq);
-                   }}
-                 >
-                   <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Assign to State Admin
-                 </Button>
-               </div>
-               
-               {selectedEnquiry?.resolutionNote && (
-                 <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border">
-                   <p className="text-xs font-semibold mb-1 text-primary">Routing / Resolution Note</p>
-                   <p className="text-sm text-muted-foreground italic">"{selectedEnquiry.resolutionNote}"</p>
-                 </div>
-               )}
+              <p className="text-xs font-medium text-muted-foreground mb-2">Current Status & Routing</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <StatusBadge status={selectedEnquiry?.status} />
+                {selectedEnquiry?.assignedTo ? (
+                  <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-md border border-border flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                    Assigned to: <span className="font-semibold text-foreground">{selectedEnquiry.assignedTo.name}</span>
+                    {selectedEnquiry.assignedTo.state && (
+                      <span className="text-[10px] text-muted-foreground">({selectedEnquiry.assignedTo.state})</span>
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-md border border-amber-200 dark:border-amber-800">
+                    Not assigned to any admin
+                  </span>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1.5 ml-auto"
+                  onClick={() => {
+                    const enq = selectedEnquiry;
+                    setSelectedEnquiry(null);
+                    handleOpenAssignModal(enq);
+                  }}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Assign to State Admin
+                </Button>
+              </div>
+
+              {selectedEnquiry?.resolutionNote && (
+                <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border">
+                  <p className="text-xs font-semibold mb-1 text-primary">Routing / Resolution Note</p>
+                  <p className="text-sm text-muted-foreground italic">"{selectedEnquiry.resolutionNote}"</p>
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>
@@ -625,7 +625,7 @@ function AdminEnquiries() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Input 
+            <Input
               autoFocus
               placeholder="e.g. Deal closed for 5 tons of packaging material."
               value={resolutionNote}

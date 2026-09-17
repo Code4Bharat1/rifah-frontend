@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeft, Send, Loader2, MessageSquare, Paperclip, FileText, Image as ImageIcon, Film, Download, X, Building2, Package, IndianRupee, FileSpreadsheet, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Send, Loader2, MessageSquare, FileText, Image as ImageIcon, Film, Download, X, Building2, Package, IndianRupee, FileSpreadsheet, ChevronDown, ChevronUp, Mail, Phone, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -398,6 +398,7 @@ function BizMessages() {
   const conversations = useMemo(() => convData || [], [convData]);
 
   const [activeOtherUser, setActiveOtherUser] = useState(null);
+  const [contactDetails, setContactDetails] = useState(null);
   const [openOnMobile, setOpenOnMobile] = useState(false);
   const [inputText, setInputText] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
@@ -431,6 +432,46 @@ function BizMessages() {
   }, [targetUserId, targetName, conversations, activeOtherUser]);
 
   const selectedUserId = activeOtherUser?._id;
+
+  // Fetch recipient contact info (Email, Phone, WhatsApp from business profile)
+  useEffect(() => {
+    if (!selectedUserId) {
+      setContactDetails(null);
+      return;
+    }
+
+    let isMounted = true;
+    setContactDetails({
+      email: activeOtherUser?.email || "",
+      phone: activeOtherUser?.phone || "",
+      whatsapp: activeOtherUser?.whatsapp || activeOtherUser?.whatsappNumber || "",
+      businessName: activeOtherUser?.businessName || "",
+    });
+
+    messageApi
+      .getUserContact(selectedUserId)
+      .then((res) => {
+        if (!isMounted) return;
+        const data = res?.data || res;
+        if (data) {
+          setContactDetails((prev) => ({
+            ...prev,
+            email: data.email || prev?.email || "",
+            phone: data.phone || prev?.phone || "",
+            whatsapp: data.whatsapp || data.whatsappNumber || prev?.whatsapp || "",
+            businessName: data.businessName || prev?.businessName || "",
+          }));
+        }
+      })
+      .catch((err) => {
+        console.warn("Failed to fetch user contact info:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedUserId, activeOtherUser]);
+
   const { data: messagesData, refetch: refetchMessages } = useMessages(selectedUserId);
   const messages = messagesData || [];
 
@@ -598,20 +639,97 @@ function BizMessages() {
         </Panel>
 
         <Panel className={cn(!openOnMobile && "hidden lg:block")} bodyClassName="p-0 md:p-0">
-          <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b border-border p-3.5">
-            <button
-              type="button"
-              onClick={() => setOpenOnMobile(false)}
-              aria-label="Back to inbox"
-              className="grid h-9 w-9 place-items-center rounded-lg border border-border lg:hidden"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{activeOtherUser?.name || "Select a conversation"}</p>
-              <p className="truncate text-xs text-muted-foreground">{activeOtherUser?.email || ""}</p>
-            </div>
-          </header>
+          {(() => {
+            const effectiveEmail = contactDetails?.email || activeOtherUser?.email || "";
+            const effectivePhone = contactDetails?.phone || activeOtherUser?.phone || "";
+            const effectiveWhatsapp = contactDetails?.whatsapp || activeOtherUser?.whatsapp || activeOtherUser?.whatsappNumber || "";
+            const cleanWhatsappNumber = effectiveWhatsapp ? effectiveWhatsapp.replace(/[^0-9]/g, "") : "";
+            const effectiveBizName = contactDetails?.businessName || activeOtherUser?.businessName || "";
+
+            return (
+              <header className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between border-b border-border p-3.5 bg-surface">
+                <div className="flex items-start gap-3 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setOpenOnMobile(false)}
+                    aria-label="Back to inbox"
+                    className="mt-0.5 grid h-8 w-8 place-items-center rounded-lg border border-border lg:hidden shrink-0"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="truncate text-sm font-bold text-foreground">
+                        {activeOtherUser?.name || "Select a conversation"}
+                      </p>
+                      {effectiveBizName && effectiveBizName !== activeOtherUser?.name && (
+                        <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground truncate max-w-[200px]">
+                          {effectiveBizName}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Email, Phone & WhatsApp Row */}
+                    {selectedUserId && (
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        {effectiveEmail ? (
+                          <a
+                            href={`mailto:${effectiveEmail}`}
+                            className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                            title="Send email"
+                          >
+                            <Mail className="h-3 w-3 text-muted-foreground/70 shrink-0" />
+                            <span className="truncate max-w-[190px]">{effectiveEmail}</span>
+                          </a>
+                        ) : null}
+
+                        {effectivePhone ? (
+                          <a
+                            href={`tel:${effectivePhone}`}
+                            className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary transition-colors"
+                            title="Call Phone"
+                          >
+                            <Phone className="h-3 w-3 text-muted-foreground/70 shrink-0" />
+                            <span>{effectivePhone}</span>
+                          </a>
+                        ) : null}
+
+                        {effectiveWhatsapp ? (
+                          <a
+                            href={`https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent("Hello from RIFAH Connect, regarding your requirement/quotation.")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-full bg-[#25D366]/10 px-2 py-0.5 text-[11px] font-semibold text-[#128C7E] dark:text-[#25D366] hover:bg-[#25D366]/20 transition"
+                            title="Chat on WhatsApp"
+                          >
+                            <svg className="h-3 w-3 fill-current shrink-0" viewBox="0 0 24 24">
+                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                            </svg>
+                            <span>WhatsApp: {effectiveWhatsapp}</span>
+                          </a>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Action WhatsApp button for desktop */}
+                {selectedUserId && effectiveWhatsapp ? (
+                  <a
+                    href={`https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent("Hello from RIFAH Connect, regarding your requirement/quotation.")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white px-3 py-1.5 text-xs font-bold transition shadow-2xs shrink-0 cursor-pointer"
+                  >
+                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
+                    <span>WhatsApp</span>
+                  </a>
+                ) : null}
+              </header>
+            );
+          })()}
 
           <div className="flex min-h-[300px] max-h-[55vh] flex-col gap-3 overflow-y-auto p-4">
             {!selectedUserId ? (
@@ -722,24 +840,6 @@ function BizMessages() {
             )}
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!selectedUserId || sending || uploadingFile}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
-                title="Attach PDF, Image, Video, Document"
-              >
-                <Paperclip className="h-4 w-4" />
-              </button>
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar"
-                className="hidden"
-              />
-
               <Input
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}

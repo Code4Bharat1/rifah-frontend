@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@shared/components/ui/select";
 import { eventApi } from "@shared/lib/api-services";
+import { useStates, useChapters } from "@shared/hooks/use-rifah-api";
 
 import { useAuth } from "@shared/providers/auth-provider";
 
@@ -68,9 +69,9 @@ function MultiSelectDropdown({ options, selected, toggleOption, placeholder = "S
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
+              {options.map((option, index) => (
                 <CommandItem
-                  key={option}
+                  key={`${option}-${index}`}
                   value={option}
                   onSelect={() => toggleOption(option)}
                 >
@@ -95,9 +96,22 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const router = useRouter();
   const { user } = useAuth();
   const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
-  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : "/admin/events";
+  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+
+  const { data: statesData } = useStates();
+  const { data: chaptersData } = useChapters();
+
+  const stateOptions = Array.from(new Set(["All", ...(statesData || []).map(s => s.state || s.name || s)]));
+  
+  let chapterOptions = ["All"];
+  if (user?.role === "state_admin" && user?.state) {
+    const userState = user.state.toLowerCase();
+    chapterOptions = Array.from(new Set(["All", ...(chaptersData || []).filter(c => c.state?.toLowerCase() === userState).map(c => c.name || c.city || c)]));
+  } else {
+    chapterOptions = Array.from(new Set(["All", ...(chaptersData || []).map(c => c.name || c.city || c)]));
+  }
 
   // Helper to parse "10:00 AM - 01:00 PM" into { start: "10:00", end: "13:00" }
   const parseTimeString = (timeStr) => {
@@ -139,6 +153,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     city: "Mumbai",
     chapter: "Mumbai Chapter",
     targetAudience: ["All"],
+    targetStates: ["All"],
     targetChapters: ["All"],
     cover: null,
     scheduledDate: "",
@@ -205,6 +220,20 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     });
   };
 
+  const toggleState = (state) => {
+    setFormData((prev) => {
+      const current = prev.targetStates || [];
+      if (state === "All") {
+        return { ...prev, targetStates: current.includes("All") ? [] : ["All"] };
+      }
+      const withoutAll = current.filter(a => a !== "All");
+      if (withoutAll.includes(state)) {
+        return { ...prev, targetStates: withoutAll.filter((a) => a !== state) };
+      }
+      return { ...prev, targetStates: [...withoutAll, state] };
+    });
+  };
+
   const formatTimeStr = (start, end) => {
     const to12h = (time24h) => {
       if (!time24h) return "10:00 AM";
@@ -220,14 +249,17 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const handleSave = async (targetStatus) => {
     if (!formData.title && !formData.date) {
       toast.error("Title and Date are required");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
     if (!formData.title) {
       toast.error("Event Title is required");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
     if (!formData.date) {
       toast.error("Event Date is required");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
     
@@ -266,6 +298,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       const priceNum = Number(formData.ticketPrice);
       if (!formData.ticketPrice || isNaN(priceNum) || priceNum <= 0) {
         toast.error("Please enter a valid ticket price greater than 0 for paid events");
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
     }
@@ -523,7 +556,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               </div>
               <div className="flex flex-wrap gap-6 mt-4">
                 <MultiSelectDropdown 
-                  options={["All", "Consumers", "Businesses", "Chapter Admins"]} 
+                  options={["All", "Businesses", "Chapter Admins"]} 
                   selected={formData.targetAudience || []} 
                   toggleOption={toggleAudience} 
                   placeholder="Select Target Audience..." 
@@ -531,22 +564,45 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               </div>
             </div>
 
-            <div className="space-y-3 pt-6 border-t">
-              <div>
-                <Label className="text-base">Target Chapters</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Select which chapters this event should be visible to.
-                </p>
+
+
+            {isSuperAdmin && (
+              <div className="space-y-3 pt-6 border-t">
+                <div>
+                  <Label className="text-base">Target States</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Select which states this event should be visible to.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-6 mt-4">
+                  <MultiSelectDropdown 
+                    options={stateOptions} 
+                    selected={formData.targetStates || []} 
+                    toggleOption={toggleState} 
+                    placeholder="Select Target States..." 
+                  />
+                </div>
               </div>
-              <div className="flex flex-wrap gap-6 mt-4">
-                <MultiSelectDropdown 
-                  options={["All", "Mumbai Chapter", "Pune Chapter", "Delhi Chapter", "Bangalore Chapter"]} 
-                  selected={formData.targetChapters || []} 
-                  toggleOption={toggleChapter} 
-                  placeholder="Select Target Chapters..." 
-                />
+            )}
+
+            {!["chapter_admin"].includes(user?.role) && (
+              <div className="space-y-3 pt-6 border-t">
+                <div>
+                  <Label className="text-base">Target Chapters</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Select which chapters this event should be visible to.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-6 mt-4">
+                  <MultiSelectDropdown 
+                    options={chapterOptions} 
+                    selected={formData.targetChapters || []} 
+                    toggleOption={toggleChapter} 
+                    placeholder="Select Target Chapters..." 
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-4 pt-6 border-t bg-muted/30 -mx-6 px-6 pb-6 rounded-b-xl">
               <div>
