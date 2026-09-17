@@ -17,7 +17,7 @@ import {
   Sparkles,
   Plus,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -36,6 +36,8 @@ import {
   SelectGroup,
   SelectLabel
 } from "@shared/components/ui/select";
+import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
+import { getMainCategories, getSubCategoriesFor } from "@shared/lib/categories-data";
 import { useMyBusiness, useCategories, useBusinessCatalogue } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
 import { businessApi } from "@shared/lib/api-services";
@@ -98,16 +100,40 @@ function BizProfile() {
     name: "",
     tagline: "",
     industry: "",
+    subCategory: "",
     city: "",
     state: "",
     address: "",
     phone: "",
+    whatsapp: "",
     email: "",
     website: "",
     about: "",
     founded: "",
     employees: "",
   });
+
+  const { availableMainCategories, availableSubCategories } = React.useMemo(() => {
+    const cats = Array.isArray(categoriesData) ? categoriesData : [];
+    const dbMain = cats.filter((c) => !c.parent).map((c) => c.name);
+    const staticMain = getMainCategories();
+    const allMain = Array.from(new Set([...dbMain, ...staticMain]));
+
+    let matchedSubs = [];
+    if (formData.industry) {
+      const chosenCat = (formData.industry || "").trim();
+      const dbSubs = cats
+        .filter((c) => c.parent && c.parent.trim().toLowerCase() === chosenCat.toLowerCase())
+        .map((c) => c.name);
+      const staticSubs = getSubCategoriesFor(chosenCat) || [];
+      matchedSubs = Array.from(new Set([...dbSubs, ...staticSubs]));
+    }
+
+    return {
+      availableMainCategories: allMain,
+      availableSubCategories: matchedSubs,
+    };
+  }, [categoriesData, formData.industry]);
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -121,10 +147,12 @@ function BizProfile() {
         name: business.name || "",
         tagline: business.tagline || "",
         industry: business.industry || business.categories?.[0] || business.category || "",
+        subCategory: business.subCategory || business.categories?.[1] || "",
         city: business.city || "",
         state: business.state || "",
         address: business.address || "",
         phone: business.phone || "",
+        whatsapp: business.whatsapp || business.whatsappNumber || "",
         email: business.email || "",
         website: business.website || "",
         about: business.about || "",
@@ -137,6 +165,7 @@ function BizProfile() {
         name: prev.name || user.organization || `${user.name}'s Enterprise`,
         email: prev.email || user.email || "",
         phone: prev.phone || user.phone || "",
+        whatsapp: prev.whatsapp || user.whatsapp || user.phone || "",
         city: prev.city || user.city || "",
         state: prev.state || "",
       }));
@@ -149,7 +178,8 @@ function BizProfile() {
     try {
       const payload = {
         ...formData,
-        categories: formData.industry ? [formData.industry] : [],
+        subCategory: formData.subCategory,
+        categories: [formData.industry, formData.subCategory].filter(Boolean),
       };
 
       if (business?._id) {
@@ -404,48 +434,32 @@ function BizProfile() {
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="biz-industry">Industry Category</Label>
-                <Select
+                <Label htmlFor="biz-industry">Industry Category *</Label>
+                <CreatableCombobox
+                  id="biz-industry"
                   value={formData.industry}
-                  onValueChange={(v) => setFormData({ ...formData, industry: v })}
-                >
-                  <SelectTrigger id="biz-industry" className="h-11">
-                    <SelectValue placeholder="Select industry" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {formData.industry &&
-                      !categories.some((c) => c.name === formData.industry) &&
-                      !B2B_INDUSTRIES.includes(formData.industry) && (
-                        <SelectItem value={formData.industry}>{formData.industry}</SelectItem>
-                      )}
-                    {mainCategories.length > 0 ? (
-                      <>
-                        {mainCategories.map((mc) => {
-                          const subs = subCategories.filter((sc) => sc.parent === mc.name);
-                          return subs.length > 0 ? (
-                            <SelectGroup key={mc.name}>
-                              <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
-                              <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
-                              {subs.map((sc) => (
-                                <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
-                              ))}
-                            </SelectGroup>
-                          ) : (
-                            <SelectItem key={mc._id || mc.name} value={mc.name}>
-                              {mc.name}
-                            </SelectItem>
-                          );
-                        })}
-                      </>
-                    ) : (
-                      <>
-                        {B2B_INDUSTRIES.map((ind) => (
-                          <SelectItem key={ind} value={ind}>{ind}</SelectItem>
-                        ))}
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, industry: v, subCategory: "" }))}
+                  options={availableMainCategories}
+                  placeholder="Select or search category"
+                  emptyText="No category found. Type to add a new one."
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="biz-subcategory">Sub Category</Label>
+                <CreatableCombobox
+                  id="biz-subcategory"
+                  value={formData.subCategory}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, subCategory: v }))}
+                  options={availableSubCategories}
+                  placeholder={formData.industry ? "Select or search sub category" : "First select an Industry Category"}
+                  emptyText={formData.industry ? "No sub category found. Type to add a custom one." : "Please select an Industry Category first."}
+                  disabled={!formData.industry}
+                />
+                {formData.industry && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {availableSubCategories.length} sub-categories available for {formData.industry}
+                  </p>
+                )}
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="biz-city">City</Label>
@@ -473,8 +487,23 @@ function BizProfile() {
                   id="biz-phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="e.g. +91 9876543210"
                   className="h-11"
                 />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="biz-whatsapp" className="flex items-center gap-1.5">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>WhatsApp Number</span>
+                </Label>
+                <Input
+                  id="biz-whatsapp"
+                  value={formData.whatsapp}
+                  onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                  placeholder="e.g. +91 9876543210"
+                  className="h-11"
+                />
+                <p className="text-[10px] text-muted-foreground">Used for direct buyer chat, quotation alerts & instant WhatsApp messages.</p>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="biz-email">Public Business Email</Label>
