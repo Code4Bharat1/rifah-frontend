@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Building2, Search, SlidersHorizontal, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Building2, Search, SlidersHorizontal, X, Package, Tag } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { CATEGORIES_DATA, getMainCategories, getSubCategoriesFor } from "@shared/lib/categories-data";
 
 import { BusinessCard, CompactBusinessCard } from "@shared/components/rifah/business-card";
 import { EmptyState, SkeletonCard } from "@shared/components/rifah/empty-state";
@@ -26,7 +27,20 @@ function DiscoverPage() {
   const search = Object.fromEntries(searchParams ? searchParams.entries() : []);
   const router = useRouter();
   const [query, setQuery] = useState(search.q || search.search || "");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchContainerRef = useRef(null);
   const t = useTranslations("Discover");
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Keep query input in sync with URL search params
   const currentSearchTerm = search.q || search.search || "";
@@ -37,6 +51,7 @@ function DiscoverPage() {
   const { data: businessesData, isLoading } = useBusinesses({
     search: search.q || search.search,
     industry: search.industry,
+    subCategory: search.subCategory,
     state: search.state,
     chapter: search.chapter,
     membership: search.membership,
@@ -63,12 +78,65 @@ function DiscoverPage() {
 
   const { data: categoriesData } = useCategories();
   const categories = Array.isArray(categoriesData) ? categoriesData : [];
-  const mainCategories = categories.filter(c => !c.parent);
-  const subCategories = categories.filter(c => c.parent);
+
+  const allMainCategories = React.useMemo(() => {
+    const dbMain = categories.filter((c) => !c.parent).map((c) => c.name);
+    const staticMain = getMainCategories();
+    return Array.from(new Set([...dbMain, ...staticMain]));
+  }, [categories]);
+
+  const filteredSubCategories = React.useMemo(() => {
+    if (!search.industry || search.industry === "all") return [];
+    const chosenCat = search.industry.trim();
+    const dbSubs = categories
+      .filter((c) => c.parent && c.parent.trim().toLowerCase() === chosenCat.toLowerCase())
+      .map((c) => c.name);
+    const staticSubs = getSubCategoriesFor(chosenCat) || [];
+    return Array.from(new Set([...dbSubs, ...staticSubs]));
+  }, [categories, search.industry]);
 
   const results = Array.isArray(businessesData)
     ? businessesData
     : (businessesData?.businesses || []);
+
+  const searchSuggestions = React.useMemo(() => {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return { categories: [], subCategories: [], businesses: [], hasAny: false };
+
+    // 1. Matching Categories (max 4)
+    const matchingCats = allMainCategories
+      .filter((cat) => cat.toLowerCase().includes(q))
+      .slice(0, 4);
+
+    // 2. Matching Sub-categories (max 6)
+    const matchingSubs = [];
+    for (const [parentCat, subs] of Object.entries(CATEGORIES_DATA)) {
+      for (const sub of subs) {
+        if (sub.toLowerCase().includes(q)) {
+          matchingSubs.push({ name: sub, parent: parentCat });
+          if (matchingSubs.length >= 6) break;
+        }
+      }
+      if (matchingSubs.length >= 6) break;
+    }
+
+    // 3. Matching Businesses (max 4)
+    const matchingBiz = results
+      .filter(
+        (b) =>
+          (b.name || "").toLowerCase().includes(q) ||
+          (b.industry || "").toLowerCase().includes(q) ||
+          (b.tagline || "").toLowerCase().includes(q)
+      )
+      .slice(0, 4);
+
+    return {
+      categories: matchingCats,
+      subCategories: matchingSubs,
+      businesses: matchingBiz,
+      hasAny: matchingCats.length > 0 || matchingSubs.length > 0 || matchingBiz.length > 0,
+    };
+  }, [query, allMainCategories, results]);
 
   const setParam = (patch) => {
     const current = new URLSearchParams(searchParams ? searchParams.toString() : "");
@@ -84,7 +152,8 @@ function DiscoverPage() {
   };
 
   const activeChips = [
-    search.industry && { label: search.industry, clear: () => setParam({ industry: undefined }) },
+    search.industry && { label: `Industry: ${search.industry}`, clear: () => setParam({ industry: undefined, subCategory: undefined }) },
+    search.subCategory && { label: `Sub-category: ${search.subCategory}`, clear: () => setParam({ subCategory: undefined }) },
     search.state && { label: search.state, clear: () => setParam({ state: undefined }) },
     search.chapter && { label: search.chapter, clear: () => setParam({ chapter: undefined }) },
     search.membership && { label: search.membership, clear: () => setParam({ membership: undefined }) },
@@ -95,36 +164,47 @@ function DiscoverPage() {
     <div className="space-y-5">
       <div>
         <Label htmlFor="f-industry" className="font-semibold text-xs text-foreground uppercase tracking-wider">{t("industry")}</Label>
-        <Select value={search.industry || "all"} onValueChange={(v) => setParam({ industry: v === "all" ? undefined : v })}>
+        <Select
+          value={search.industry || "all"}
+          onValueChange={(v) => setParam({ industry: v === "all" ? undefined : v, subCategory: undefined })}
+        >
           <SelectTrigger id="f-industry" className="mt-1.5 h-10 rounded-xl bg-background">
             <SelectValue placeholder={t("allIndustries")} />
           </SelectTrigger>
           <SelectContent className="max-h-72">
             <SelectItem value="all">{t("allIndustries")}</SelectItem>
-            {mainCategories.length > 0 ? (
-              <>
-                {mainCategories.map(mc => {
-                  const subs = subCategories.filter(sc => sc.parent === mc.name);
-                  return (
-                    <SelectGroup key={mc.name}>
-                      <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
-                      <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">All {mc.name}</SelectItem>
-                      {subs.map(sc => (
-                        <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
-                      ))}
-                    </SelectGroup>
-                  );
-                })}
-              </>
-            ) : (
-              industries.map((i) => (
-                <SelectItem key={i} value={i}>
-                  {i}
-                </SelectItem>
-              ))
-            )}
+            {allMainCategories.map((cat) => (
+              <SelectItem key={cat} value={cat}>
+                {cat}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
+      </div>
+      <div>
+        <Label htmlFor="f-subcategory" className="font-semibold text-xs text-foreground uppercase tracking-wider">Sub Category</Label>
+        <Select
+          value={search.subCategory || "all"}
+          onValueChange={(v) => setParam({ subCategory: v === "all" ? undefined : v })}
+          disabled={!search.industry || search.industry === "all"}
+        >
+          <SelectTrigger id="f-subcategory" className="mt-1.5 h-10 rounded-xl bg-background">
+            <SelectValue placeholder={search.industry ? "All sub-categories" : "Select industry first"} />
+          </SelectTrigger>
+          <SelectContent className="max-h-72">
+            <SelectItem value="all">All sub-categories</SelectItem>
+            {filteredSubCategories.map((sub) => (
+              <SelectItem key={sub} value={sub}>
+                {sub}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {search.industry && search.industry !== "all" && (
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            {filteredSubCategories.length} sub-categories for {search.industry}
+          </p>
+        )}
       </div>
       <div>
         <Label htmlFor="f-state" className="font-semibold text-xs text-foreground uppercase tracking-wider">{t("state")}</Label>
@@ -214,22 +294,134 @@ function DiscoverPage() {
           <h1 className="text-3xl font-bold tracking-tight text-foreground lg:text-4xl">{t("title")}</h1>
           <p className="mt-2 max-w-2xl text-base text-muted-foreground">{t("subtitle")}</p>
           <form
-            className="mt-4 flex gap-2"
+            className="mt-4 flex gap-2 relative z-30"
             role="search"
             onSubmit={(e) => {
               e.preventDefault();
+              setShowSuggestions(false);
               setParam({ q: query || undefined });
             }}
           >
-            <div className="relative min-w-0 flex-1">
+            <div className="relative min-w-0 flex-1" ref={searchContainerRef}>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t("searchPlaceholder")}
-                className="h-11 pl-9"
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                placeholder="Search businesses, categories (e.g. IT, Manufacturing), or sub-categories (e.g. Web, CNC, Solar)..."
+                className="h-11 pl-9 pr-8"
                 aria-label={t("searchPlaceholder")}
               />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    setParam({ q: undefined });
+                    setShowSuggestions(false);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+
+              {/* Autocomplete Suggestions Popup */}
+              {showSuggestions && query.trim() && searchSuggestions.hasAny && (
+                <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-96 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-2 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-2">
+                  {/* Category Matches */}
+                  {searchSuggestions.categories.length > 0 && (
+                    <div className="pb-2">
+                      <p className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Categories ({searchSuggestions.categories.length})
+                      </p>
+                      {searchSuggestions.categories.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => {
+                            setParam({ industry: cat, subCategory: undefined, q: undefined });
+                            setQuery("");
+                            setShowSuggestions(false);
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-left text-xs font-semibold text-slate-800 dark:text-slate-200 transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Building2 className="h-3.5 w-3.5 text-primary" />
+                            {cat}
+                          </span>
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full font-bold">
+                            Filter Industry
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Sub-Category Matches */}
+                  {searchSuggestions.subCategories.length > 0 && (
+                    <div className="py-2">
+                      <p className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Sub-Categories ({searchSuggestions.subCategories.length})
+                      </p>
+                      {searchSuggestions.subCategories.map((sub) => (
+                        <button
+                          key={`${sub.parent}-${sub.name}`}
+                          type="button"
+                          onClick={() => {
+                            setParam({ industry: sub.parent, subCategory: sub.name, q: undefined });
+                            setQuery("");
+                            setShowSuggestions(false);
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/30 text-left text-xs transition-colors"
+                        >
+                          <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <Tag className="h-3.5 w-3.5 text-blue-500" />
+                            {sub.name}
+                          </span>
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium truncate max-w-[200px]">
+                            in {sub.parent}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Business Matches */}
+                  {searchSuggestions.businesses.length > 0 && (
+                    <div className="pt-2">
+                      <p className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Businesses ({searchSuggestions.businesses.length})
+                      </p>
+                      {searchSuggestions.businesses.map((b) => (
+                        <Link
+                          key={b._id || b.id}
+                          href={`/business/${b.slug || b._id || b.id}`}
+                          onClick={() => setShowSuggestions(false)}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left text-xs transition-colors"
+                        >
+                          <div>
+                            <span className="font-bold text-slate-900 dark:text-white block">
+                              {b.name}
+                            </span>
+                            {b.tagline && (
+                              <span className="text-[11px] text-muted-foreground line-clamp-1">
+                                {b.tagline}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-semibold text-primary px-2 py-0.5 rounded-md bg-primary/10">
+                            {b.industry || b.city || "View"}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <Button type="submit" className="shrink-0">
               {t("searchButton")}

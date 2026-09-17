@@ -30,6 +30,7 @@ import {
 import { Textarea } from "@shared/components/ui/textarea";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 import { cities, industries } from "@shared/lib/mock-data";
+import { getMainCategories, getSubCategoriesFor } from "@shared/lib/categories-data";
 import { useChapters, useMembershipPlans, useCategories } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
 import { authApi, paymentApi, businessApi, verificationApi } from "@shared/lib/api-services";
@@ -113,14 +114,6 @@ function RegisterBusiness({ isAdmin = false }) {
   }, [plansData]);
 
   const { data: categoriesData } = useCategories();
-  
-  const { mainCategories, subCategories } = React.useMemo(() => {
-    const cats = Array.isArray(categoriesData) ? categoriesData : [];
-    return {
-      mainCategories: cats.filter(c => !c.parent),
-      subCategories: cats.filter(c => c.parent)
-    };
-  }, [categoriesData]);
 
   const [step, setStep] = useState(0);
   const [tier, setTier] = useState("premium");
@@ -181,6 +174,32 @@ function RegisterBusiness({ isAdmin = false }) {
     chapter: "",
     region: "national",
   });
+
+  const { availableMainCategories, availableSubCategories } = React.useMemo(() => {
+    const cats = Array.isArray(categoriesData) ? categoriesData : [];
+    const dbMain = cats.filter(c => !c.parent).map(c => c.name);
+    const dbSubs = cats.filter(c => c.parent);
+
+    // Merge DB main categories with static comprehensive taxonomy
+    const staticMain = getMainCategories();
+    const allMain = Array.from(new Set([...dbMain, ...staticMain]));
+
+    // Strictly filter subcategories related to chosen category
+    let matchedSubs = [];
+    if (formData.industry) {
+      const chosenCat = (formData.industry || "").trim();
+      const dbMatchedSubs = dbSubs
+        .filter(c => c.parent && c.parent.trim().toLowerCase() === chosenCat.toLowerCase())
+        .map(c => c.name);
+      const staticMatchedSubs = getSubCategoriesFor(chosenCat) || [];
+      matchedSubs = Array.from(new Set([...dbMatchedSubs, ...staticMatchedSubs]));
+    }
+
+    return {
+      availableMainCategories: allMain,
+      availableSubCategories: matchedSubs
+    };
+  }, [categoriesData, formData.industry]);
 
   const chaptersForSelectedState = React.useMemo(() => {
     if (!formData.state) return chapters;
@@ -717,14 +736,14 @@ function RegisterBusiness({ isAdmin = false }) {
                   National (India)
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                  For businesses registered & operating within India with 15-digit GSTIN number.
+                  For businesses operating within India. Auto-fetch via GSTIN or fill details manually.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-1">
                   <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
-                    ✓ GSTIN Verification
+                    ✓ Optional GSTIN Auto-fill
                   </span>
                   <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
-                    ✓ Instant Auto-fill
+                    ✓ Manual Entry Supported
                   </span>
                 </div>
               </div>
@@ -757,14 +776,14 @@ function RegisterBusiness({ isAdmin = false }) {
                   International
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                  For overseas enterprises worldwide. No GST required — upload your Business Certificate.
+                  For overseas enterprises worldwide. Certificate upload is optional or fill details manually.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-1">
                   <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
-                    ✓ Certificate Upload
+                    ✓ Optional Certificate Upload
                   </span>
                   <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
-                    ✓ Global Network
+                    ✓ Manual Entry Supported
                   </span>
                 </div>
               </div>
@@ -804,27 +823,20 @@ function RegisterBusiness({ isAdmin = false }) {
               if (step === 0) {
                 if (formData.region === "national") {
                   const gst = (formData.taxId || "").trim().toUpperCase();
-                  if (!gst) {
-                    setError("GSTIN / GST Number is mandatory for Indian entities. Please enter your 15-character GST number and click Verify.");
-                    return;
-                  }
-                  if (gst.length !== 15) {
-                    setError("Please enter a complete 15-character GST Number (GSTIN).");
-                    return;
-                  }
-                  const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-                  if (!gstRegex.test(gst)) {
-                    setError("Invalid GSTIN format. Example format: 27AAAAA0000A1Z5 (15 characters).");
-                    return;
-                  }
-                  if (!gstVerified) {
-                    setError("Please click 'Verify GSTIN' to verify your tax identifier before proceeding.");
-                    return;
-                  }
-                } else if (formData.region === "international") {
-                  if (!certFile) {
-                    setError("Official Business Certificate (Trade License / Incorporation Certificate) is required for International entities. Please upload your document.");
-                    return;
+                  if (gst) {
+                    if (gst.length !== 15) {
+                      setError("Please enter a complete 15-character GST Number (GSTIN) or clear the field to proceed manually.");
+                      return;
+                    }
+                    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+                    if (!gstRegex.test(gst)) {
+                      setError("Invalid GSTIN format. Example format: 27AAAAA0000A1Z5 (15 characters) or leave blank.");
+                      return;
+                    }
+                    if (!gstVerified) {
+                      setError("Please click 'Verify GSTIN' to verify your entered GST number, or clear the field to proceed manually.");
+                      return;
+                    }
                   }
                 }
                 if (!formData.businessName || formData.businessName.trim().length < 2) {
@@ -974,14 +986,14 @@ function RegisterBusiness({ isAdmin = false }) {
 
                   {/* NATIONAL ONLY: 15-digit GSTIN Verification Box */}
                   {formData.region === "national" && (
-                    <div className="space-y-2 sm:col-span-2 rounded-2xl border border-emerald-200/80 bg-emerald-50/30 dark:bg-emerald-950/20 dark:border-emerald-900/50 p-4 animate-in fade-in duration-200">
+                    <div className="space-y-2 sm:col-span-2 rounded-2xl border border-slate-200/90 bg-slate-50/50 dark:bg-slate-800/40 dark:border-slate-800 p-4 animate-in fade-in duration-200">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Label htmlFor="bgst" className="font-bold text-sm text-slate-900 dark:text-white">
-                            GSTIN / GST Number <span className="text-destructive">*</span>
+                            GSTIN / GST Number <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
                           </Label>
-                          <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
-                            Mandatory (India)
+                          <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            Optional (India)
                           </span>
                         </div>
                         <span className="text-[11px] font-mono text-muted-foreground font-semibold">
@@ -993,7 +1005,6 @@ function RegisterBusiness({ isAdmin = false }) {
                         <div className="relative flex-1">
                           <FastInput
                             id="bgst"
-                            required
                             maxLength={15}
                             value={formData.taxId}
                             onValueChange={(val) => {
@@ -1047,7 +1058,7 @@ function RegisterBusiness({ isAdmin = false }) {
                         )}
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Enter official 15-character Goods and Services Tax Identification Number (GSTIN) to auto-fetch business details.
+                        Optional: Enter 15-character GSTIN to auto-fetch business details, or leave empty to enter details manually below.
                       </p>
 
                       {/* Error message */}
@@ -1072,19 +1083,19 @@ function RegisterBusiness({ isAdmin = false }) {
 
                   {/* INTERNATIONAL ONLY: Business Certificate Upload Section (NO GST/TAX FIELD) */}
                   {formData.region === "international" && (
-                    <div className="space-y-3 sm:col-span-2 rounded-2xl border border-blue-200/80 bg-blue-50/30 dark:bg-blue-950/20 dark:border-blue-900/50 p-4 animate-in fade-in duration-200">
+                    <div className="space-y-3 sm:col-span-2 rounded-2xl border border-slate-200/90 bg-slate-50/50 dark:bg-slate-800/40 dark:border-slate-800 p-4 animate-in fade-in duration-200">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Label className="font-bold text-sm text-slate-900 dark:text-white">
-                            Official Business Certificate / License <span className="text-destructive">*</span>
+                            Official Business Certificate / License <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
                           </Label>
-                          <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300">
-                            International (USD)
+                          <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            Optional (USD)
                           </span>
                         </div>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Upload your official Trade License, Certificate of Incorporation, Commercial Register, or Chamber Certificate.
+                        Optional: Upload your official Trade License, Certificate of Incorporation, Commercial Register, or Chamber Certificate, or enter details manually below.
                       </p>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -1156,7 +1167,7 @@ function RegisterBusiness({ isAdmin = false }) {
                             <div className="flex flex-col items-center justify-center pt-2 pb-2 text-center px-4">
                               <Upload className="h-6 w-6 text-blue-500 mb-1" />
                               <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                Click to upload Business Certificate / Trade License *
+                                Click to upload Business Certificate / Trade License (Optional)
                               </p>
                               <p className="text-[10px] text-slate-400 mt-0.5">
                                 PDF, PNG, JPG up to 15MB
@@ -1216,8 +1227,8 @@ function RegisterBusiness({ isAdmin = false }) {
                     <CreatableCombobox
                       id="bind"
                       value={formData.industry}
-                      onValueChange={(v) => setFormData({ ...formData, industry: v, subCategory: "" })}
-                      options={mainCategories.length > 0 ? mainCategories.map((c) => c.name) : industries}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, industry: v, subCategory: "" }))}
+                      options={availableMainCategories}
                       placeholder="Select or type a category"
                       emptyText="No category found. Type to add a new one."
                     />
@@ -1230,14 +1241,17 @@ function RegisterBusiness({ isAdmin = false }) {
                     <CreatableCombobox
                       id="bsubcat"
                       value={formData.subCategory}
-                      onValueChange={(v) => setFormData({ ...formData, subCategory: v })}
-                      options={subCategories
-                        .filter((sc) => sc.parent === formData.industry)
-                        .map((sc) => sc.name)}
-                      placeholder="Select or type a sub category"
-                      emptyText="No sub category found. Type to add a new one."
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, subCategory: v }))}
+                      options={availableSubCategories}
+                      placeholder={formData.industry ? "Select or type a sub category" : "First select a Category above"}
+                      emptyText={formData.industry ? "No sub category found. Type to add a custom one." : "Please select a Category first."}
                       disabled={!formData.industry}
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      {formData.industry
+                        ? `Showing ${availableSubCategories.length} sub-categories for ${formData.industry}`
+                        : "Select a category above to view its related sub-categories."}
+                    </p>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="byear">Year established</Label>
