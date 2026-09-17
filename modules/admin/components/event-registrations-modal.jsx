@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Pill } from "@shared/components/rifah/badges";
-import { Loader2 } from "lucide-react";
+import { Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { eventApi } from "@shared/lib/api-services";
+import { Button } from "@shared/components/ui/button";
 
 export function EventRegistrationsModal({ eventId, eventTitle, open, onOpenChange }) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const { data: registrations, isLoading } = useQuery({
     queryKey: ["event_registrations", eventId],
     queryFn: async () => {
@@ -20,9 +24,23 @@ export function EventRegistrationsModal({ eventId, eventTitle, open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+      <DialogContent 
+        className={isFullscreen 
+          ? "max-w-full h-screen max-h-screen sm:w-screen sm:h-screen sm:max-h-screen sm:rounded-none sm:max-w-none overflow-y-auto" 
+          : "max-w-4xl max-h-[85vh] overflow-y-auto"
+        }
+      >
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="absolute right-12 top-2 h-8 w-8 rounded-sm opacity-70 hover:opacity-100 hidden sm:flex"
+          onClick={() => setIsFullscreen(!isFullscreen)}
+        >
+          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          <span className="sr-only">Toggle Fullscreen</span>
+        </Button>
         <DialogHeader>
-          <DialogTitle>Registrations: {eventTitle}</DialogTitle>
+          <DialogTitle className="pr-16">Registrations: {eventTitle}</DialogTitle>
           <DialogDescription>
             List of users who have registered for this event.
             <span className="mt-2 block font-medium text-foreground">
