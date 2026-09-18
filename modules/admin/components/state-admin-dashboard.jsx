@@ -3,30 +3,49 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   MapPin,
+  MapPinned,
   Building2,
   Users,
   Plus,
   Loader2,
   ShieldCheck,
   UserPlus,
-  Mail,
-  MoreHorizontal,
-  CheckCircle2,
-  Ticket,
-  FileCheck2,
   Search,
+  CheckCircle2,
+  CalendarDays,
+  FileStack,
+  Activity,
+  ScrollText,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from "recharts";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
-import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
+import { MoreLink, Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
+import { Progress } from "@shared/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
-import { useChapters } from "@shared/hooks/use-rifah-api";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@shared/components/ui/select";
+import {
+  useChapters,
+  useAdminOverview,
+  useAllEnquiries,
+  useEvents,
+  useAuditLogs,
+  useBusinesses,
+} from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 
@@ -34,8 +53,30 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
   const { user } = useAuth();
   const stateName = user?.state || "State Region";
 
-  const { data: chaptersData, refetch, isLoading } = useChapters();
-  const chapters = Array.isArray(chaptersData) ? chaptersData : [];
+  const { data: chaptersData, refetch: refetchChapters, isLoading: isChaptersLoading } = useChapters();
+  const { data: overviewData } = useAdminOverview();
+  const { data: enquiriesData } = useAllEnquiries({ limit: 6 });
+  const { data: eventsData } = useEvents({ limit: 5 });
+  const { data: auditData } = useAuditLogs({ limit: 4 });
+
+  const chapters = Array.isArray(chaptersData) ? chaptersData : (chaptersData?.chapters || []);
+  const kpi = overviewData?.kpi || {};
+  const membershipGrowth = overviewData?.membershipGrowth || [];
+  const chaptersDist = overviewData?.chaptersDistribution || [];
+  const mix = overviewData?.membershipMix || { Basic: 0, Premium: 0, Enterprise: 0 };
+  const totalMembers = Object.values(mix).reduce((a, b) => a + b, 0) || 1;
+
+  const enquiries = Array.isArray(enquiriesData)
+    ? enquiriesData
+    : (enquiriesData?.enquiries || enquiriesData?.data || []);
+
+  const events = Array.isArray(eventsData)
+    ? eventsData
+    : (eventsData?.events || eventsData?.data || []);
+
+  const auditLogs = Array.isArray(auditData)
+    ? auditData
+    : (auditData?.logs || auditData?.auditLogs || []);
 
   // Add Chapter Modal State
   const [openAddChapter, setOpenAddChapter] = useState(false);
@@ -47,12 +88,53 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
     status: "Active",
   });
 
+  const { data: businessesData } = useBusinesses({ limit: 150 });
+  const rawBusinesses = Array.isArray(businessesData)
+    ? businessesData
+    : (businessesData?.businesses || businessesData?.data || []);
+
   // Assign Chapter Admin Modal State
   const [adminModalChapter, setAdminModalChapter] = useState(null);
   const [assigningAdmin, setAssigningAdmin] = useState(false);
+  const [selectedBusinessId, setSelectedBusinessId] = useState("");
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "" });
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const chapterBizList = rawBusinesses.filter((b) => {
+    if (!adminModalChapter) return false;
+    const bChapter = String(b.chapter || "").toLowerCase().trim();
+    const targetChapter = String(adminModalChapter.name || "").toLowerCase().trim();
+    const bChapterId = String(b.chapterId || "");
+    const targetId = String(adminModalChapter._id || adminModalChapter.id || "");
+    return (bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter);
+  });
+
+  const otherBizList = rawBusinesses.filter((b) => {
+    if (!adminModalChapter) return true;
+    const bChapter = String(b.chapter || "").toLowerCase().trim();
+    const targetChapter = String(adminModalChapter.name || "").toLowerCase().trim();
+    const bChapterId = String(b.chapterId || "");
+    const targetId = String(adminModalChapter._id || adminModalChapter.id || "");
+    return !((bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter));
+  });
+
+  const handleSelectBusinessOwner = (bizId) => {
+    setSelectedBusinessId(bizId);
+    if (!bizId || bizId === "custom") {
+      setNewAdmin({ name: "", email: "" });
+      return;
+    }
+    const biz = rawBusinesses.find((b) => String(b._id) === String(bizId));
+    if (biz) {
+      const ownerName = biz.owner?.name || biz.contactPerson || biz.name || "";
+      const ownerEmail = biz.owner?.email || biz.ownerEmail || biz.email || "";
+      setNewAdmin({
+        name: ownerName,
+        email: ownerEmail,
+      });
+    }
+  };
 
   const totalChapters = chapters.length;
   const activeChapters = chapters.filter((c) => c.status === "Active").length;
@@ -70,6 +152,15 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
     );
   });
 
+  // Chapters distribution list with fallbacks
+  const displayedChaptersDist = chaptersDist.length > 0
+    ? chaptersDist
+    : chapters.slice(0, 6).map((c) => ({
+        name: c.name,
+        members: c.businessesCount || c.membersCount || 0,
+      }));
+  const maxDistributionMembers = Math.max(...displayedChaptersDist.map((c) => c.members), 1);
+
   const handleCreateChapter = async (e) => {
     e.preventDefault();
     if (!newChapter.name || !newChapter.city) {
@@ -80,14 +171,14 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
     try {
       await chapterApi.create({
         ...newChapter,
-        state: stateName, // Lock to state admin's state
+        state: stateName,
       });
-      toast.success(`Chapter Admin "${newChapter.name}" created successfully!`);
+      toast.success(`Chapter "${newChapter.name}" created successfully!`);
       setOpenAddChapter(false);
       setNewChapter({ name: "", city: "", state: stateName, status: "Active" });
-      refetch();
+      refetchChapters();
     } catch (err) {
-      toast.error(err.message || "Failed to create chapter admin.");
+      toast.error(err.message || "Failed to create chapter.");
     } finally {
       setCreatingChapter(false);
     }
@@ -105,8 +196,9 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
       await chapterApi.assignAdmin(chapterId, newAdmin);
       toast.success(`Chapter Admin appointed for ${adminModalChapter.name}! Invitation sent.`);
       setAdminModalChapter(null);
+      setSelectedBusinessId("");
       setNewAdmin({ name: "", email: "" });
-      refetch();
+      refetchChapters();
     } catch (err) {
       toast.error(err.message || "Failed to assign Chapter Admin.");
     } finally {
@@ -123,6 +215,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
           ? `City chapters and appointed Chapter Admins across ${stateName}`
           : `State Executive Desk · Appoint chapter admins and oversee regional growth`
       }
+     
     >
       <div className="space-y-6">
         {/* Executive Authority Banner */}
@@ -132,46 +225,264 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
             <span>{stateName} Regional Executive Authority</span>
           </div>
           <p className="mt-1 text-muted-foreground">
-            You are the appointed State Admin for <strong>{stateName}</strong>. You hold sole executive responsibility for appointing and managing <strong>Chapter Admins</strong> for all city desks in your state (such as Mumbai, Pune, Nagpur), launching new municipal branches, and overseeing regional business growth.
+            You are the appointed State Admin for <strong>{stateName}</strong>. You hold sole executive responsibility for appointing and managing <strong>Chapter Admins</strong> for all municipal desks in your state (such as {chapters.slice(0, 3).map((c) => c.city).filter(Boolean).join(", ") || "city branches"}), launching new chapters, and overseeing regional business growth.
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/* Stats Grid - STRICTLY STATE ADMIN SIDEBAR FIELDS */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
-            label="Chapters"
-            value={String(totalChapters)}
-            icon={MapPin}
-            tone="primary"
-            active={statusFilter === "all"}
-            onClick={() => setStatusFilter("all")}
-          />
-          <StatCard
-            label="Active City Desks"
-            value={String(activeChapters)}
-            icon={CheckCircle2}
-            tone="success"
-            active={statusFilter === "active"}
-            onClick={() => setStatusFilter(statusFilter === "active" ? "all" : "active")}
-          />
-          <StatCard
-            label="Specialised Units"
-            value={String(totalUnits)}
-            icon={Users}
-            href="/chapter-admin/units"
-          />
-          <StatCard
-            label="State Businesses"
-            value={String(totalBusinesses)}
+            label="Member businesses"
+            value={String(kpi.totalBusinesses ?? totalBusinesses)}
+            hint={`+${membershipGrowth[membershipGrowth.length - 1]?.new || 0} this month`}
             icon={Building2}
-            tone="warning"
-            href="/chapter-admin/businesses"
+            tone="primary"
+            href="/state-admin/businesses"
+          />
+          <StatCard
+            label="State chapters"
+            value={String(totalChapters)}
+            hint={`${activeChapters} active city desks`}
+            icon={MapPinned}
+            tone="default"
+            href="/state-admin/chapters"
+          />
+          <StatCard
+            label="Registered members"
+            value={String(kpi.totalUsers || 0)}
+            hint="Statewide membership base"
+            icon={Users}
+            tone="default"
+            href="/state-admin/members"
+          />
+          <StatCard
+            label="Regional enquiries"
+            value={String(kpi.totalEnquiries ?? enquiries.length)}
+            hint={`${enquiries.length} recent leads`}
+            icon={FileStack}
+            tone="success"
+            href="/state-admin/enquiries"
           />
         </div>
 
+        {!isChaptersOnly && (
+          <>
+            {/* Charts & Distribution Panels Row */}
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+              {/* Membership Growth Bar Chart */}
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold tracking-tight">Membership growth</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Total members and new registrations in {stateName}
+                  </p>
+                </div>
+                <div className="h-[280px] w-full border-b border-border/40 pb-4">
+                  {membershipGrowth.length === 0 || membershipGrowth.every((d) => d.total === 0) ? (
+                    <div className="flex flex-col h-full items-center justify-center text-muted-foreground">
+                      <Activity className="h-8 w-8 mb-2 opacity-20" />
+                      <p className="text-sm">No membership growth data recorded yet.</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={membershipGrowth} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                        <XAxis
+                          dataKey="name"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 13, fill: "#888888" }}
+                          dy={10}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "transparent" }}
+                          contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }}
+                        />
+                        <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={60}>
+                          {membershipGrowth.map((entry, index) => (
+                            <Cell key={`cell-${index}`} className="fill-primary" />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+                <div className="mt-4 grid grid-cols-3 divide-x divide-border/40 text-center">
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {membershipGrowth[membershipGrowth.length - 1]?.new || 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">New registrations</p>
+                    <p className="text-[10px] text-green-600 font-medium mt-0.5">↗ Registrations up</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">91%</p>
+                    <p className="text-xs text-muted-foreground mt-1">Renewal rate</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {Math.round(((mix.Premium + mix.Enterprise) / totalMembers) * 100) || 0}%
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Premium share</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Panels: Chapters Distribution & Membership Mix */}
+              <div className="space-y-6">
+                <Panel title="Chapters Distribution" action={<MoreLink href="/state-admin/chapters" />}>
+                  <div className="space-y-5 mt-2">
+                    {displayedChaptersDist.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No chapters data available in {stateName}.</p>
+                    ) : (
+                      displayedChaptersDist.map((c, idx) => {
+                        const pct = Math.round((c.members / maxDistributionMembers) * 100);
+                        return (
+                          <div key={c.name || idx} className="space-y-1.5">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-medium">{c.name}</span>
+                              <span className="font-semibold">{c.members}</span>
+                            </div>
+                            <Progress value={pct} className="h-2" />
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </Panel>
+
+                <Panel title="Membership mix">
+                  <div className="space-y-3 mt-2">
+                    <div className="flex items-center justify-between bg-primary text-primary-foreground p-3 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4" />
+                        <span className="text-sm font-medium">Enterprise member</span>
+                      </div>
+                      <span className="text-sm font-bold">{mix.Enterprise}</span>
+                    </div>
+                    <div className="flex items-center justify-between bg-red-50 text-red-700 p-3 rounded-lg border border-red-100">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4" />
+                        <span className="text-sm font-medium">Premium member</span>
+                      </div>
+                      <span className="text-sm font-bold">{mix.Premium}</span>
+                    </div>
+                    <div className="flex items-center justify-between bg-blue-50 text-blue-700 p-3 rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <span className="text-sm font-medium">Basic member</span>
+                      </div>
+                      <span className="text-sm font-bold">{mix.Basic}</span>
+                    </div>
+                  </div>
+                </Panel>
+              </div>
+            </div>
+
+            {/* Enquiries & Regional Modules Row */}
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+              {/* Recent enquiries */}
+              <Panel
+                title="Recent enquiries"
+                description={`Lead flow across ${stateName} chapters`}
+                action={<MoreLink href="/state-admin/enquiries" />}
+              >
+                {enquiries.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-muted-foreground">
+                    No recent enquiries in {stateName}.
+                  </p>
+                ) : (
+                  <ul className="space-y-3">
+                    {enquiries.slice(0, 5).map((e, idx) => (
+                      <li
+                        key={e._id || e.id || idx}
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border pb-2.5 last:border-0 last:pb-0"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{e.title || "Buyer Requirement"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {e.buyerName || e.requesterName || "Buyer"} · {e.city || e.chapter || stateName} ·{" "}
+                            {e.createdAt ? new Date(e.createdAt).toLocaleDateString() : "Recent"}
+                          </p>
+                        </div>
+                        <Pill tone={(e.responses?.length || 0) > 0 ? "success" : "warning"}>
+                          {e.responses?.length || 0} resp.
+                        </Pill>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
+
+              {/* Right Column: Chapters & Events */}
+              <div className="space-y-6">
+                <Panel title="Chapters & Units" action={<MoreLink href="/state-admin/chapters" />}>
+                  {chapters.length === 0 ? (
+                    <p className="py-4 text-xs text-muted-foreground">No chapters found.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {chapters.slice(0, 5).map((c, idx) => (
+                        <li key={c._id || c.id || c.name || idx} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{c.name}</p>
+                            <p className="text-xs text-muted-foreground">{c.city}, {c.state}</p>
+                          </div>
+                          <span className="text-xs font-semibold tabular-nums">{c.units?.length || 0} units</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Panel>
+
+                <Panel title="Upcoming Events" action={<MoreLink href="/state-admin/events" />}>
+                  {events.length === 0 ? (
+                    <p className="py-4 text-xs text-muted-foreground">No scheduled events in {stateName}.</p>
+                  ) : (
+                    <ul className="space-y-2.5">
+                      {events.slice(0, 4).map((evt, idx) => (
+                        <li key={evt._id || evt.id || idx} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{evt.title}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {evt.chapter || evt.city || stateName} · {evt.startDate ? new Date(evt.startDate).toLocaleDateString() : "Upcoming"}
+                            </p>
+                          </div>
+                          <Pill tone={evt.status === "published" || evt.status === "Active" ? "success" : "default"}>
+                            {evt.status || "Upcoming"}
+                          </Pill>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Panel>
+
+                <Panel title="State Audit log" action={<MoreLink href="/state-admin/audit" />}>
+                  {auditLogs.length === 0 ? (
+                    <p className="py-4 text-xs text-muted-foreground">No recent state audit records.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {auditLogs.slice(0, 4).map((a, idx) => (
+                        <li key={a._id || a.id || idx} className="min-w-0">
+                          <p className="truncate text-sm font-medium">{a.action}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {a.entity} · {a.user?.name || "Admin"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {a.createdAt ? new Date(a.createdAt).toLocaleString() : ""}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Panel>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Chapters & Chapter Admins Management Table */}
         <Panel
-          title={`Chapters in ${stateName}${statusFilter === "active" ? " (Active)" : ""}`}
+          title={isChaptersOnly ? `Chapters in ${stateName}` : `Municipal Chapter Desks in ${stateName}`}
+          description="Manage municipal branches and appoint Chapter Admins"
           action={
             <div className="flex items-center gap-2">
               <div className="relative w-48 sm:w-64">
@@ -192,7 +503,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
         >
           <ResponsiveTable
             rows={filteredChapters}
-            isLoading={isLoading}
+            isLoading={isChaptersLoading}
             emptyTitle={`No chapters established in ${stateName} yet`}
             emptyDescription="Click 'Add Chapter' to establish your first municipal branch."
             columns={[
@@ -249,9 +560,13 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                   <div className="flex items-center justify-end gap-2">
                     <Button
                       size="sm"
-                      variant="default"
+                      variant="outline"
                       className="h-8 text-xs gap-1.5"
-                      onClick={() => setAdminModalChapter(r)}
+                      onClick={() => {
+                        setAdminModalChapter(r);
+                        setSelectedBusinessId("");
+                        setNewAdmin({ name: "", email: "" });
+                      }}
                     >
                       <UserPlus className="h-3.5 w-3.5" />
                       Appoint Chapter Admin
@@ -270,7 +585,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
           <DialogHeader>
             <DialogTitle>Establish New Chapter</DialogTitle>
             <DialogDescription>
-              Establish a new city chapter within your allocated state of {stateName}.
+              Establish a new municipal chapter within your allocated state of {stateName}.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateChapter} className="space-y-4 pt-2">
@@ -319,7 +634,16 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
       </Dialog>
 
       {/* Assign / Change Chapter Admin Dialog */}
-      <Dialog open={!!adminModalChapter} onOpenChange={(open) => !open && setAdminModalChapter(null)}>
+      <Dialog
+        open={!!adminModalChapter}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAdminModalChapter(null);
+            setSelectedBusinessId("");
+            setNewAdmin({ name: "", email: "" });
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Appoint Chapter Admin</DialogTitle>
@@ -336,6 +660,66 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                 <li>They will manage member KYC and local networking events.</li>
               </ul>
             </div>
+
+            {/* Business Owner Selection Dropdown */}
+            <div className="space-y-1.5">
+              <Label htmlFor="biz-owner-select">Select Business Owner (Auto-fill)</Label>
+              <Select
+                value={selectedBusinessId || undefined}
+                onValueChange={handleSelectBusinessOwner}
+              >
+                <SelectTrigger id="biz-owner-select" className="w-full">
+                  <SelectValue placeholder="Choose a registered business owner..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="custom">-- Enter details manually --</SelectItem>
+                  {chapterBizList.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-primary">
+                        {adminModalChapter?.name} Owners
+                      </SelectLabel>
+                      {chapterBizList.map((b) => {
+                        const oName = b.owner?.name || b.contactPerson || b.name;
+                        const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                        return (
+                          <SelectItem key={b._id} value={b._id}>
+                            <div className="flex flex-col text-left py-0.5">
+                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                              <span className="text-[11px] text-muted-foreground">{oEmail}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  )}
+                  {otherBizList.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground">
+                        {chapterBizList.length > 0 ? "Other State Business Owners" : "Registered Business Owners"}
+                      </SelectLabel>
+                      {otherBizList.map((b) => {
+                        const oName = b.owner?.name || b.contactPerson || b.name;
+                        const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                        return (
+                          <SelectItem key={b._id} value={b._id}>
+                            <div className="flex flex-col text-left py-0.5">
+                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {b.chapter ? `${b.chapter} · ` : ""}{oEmail}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Selecting a business owner automatically fetches and populates their full name and email.
+              </p>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="adm-name">Chapter Admin Full Name *</Label>
               <Input

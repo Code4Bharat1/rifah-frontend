@@ -12,9 +12,14 @@ import { Button } from "@shared/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
 import { businessApi, verificationApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
+import { useAuth } from "@shared/providers/auth-provider";
 
 export function AdminBusinessDetail({ id }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const basePath = user?.role === "chapter_admin" ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
+  const shellRole = user?.role === "state_admin" ? "state_admin" : "admin";
+
   const [business, setBusiness] = useState(null);
   const [verificationRecord, setVerificationRecord] = useState(null);
   const [selectedDoc, setSelectedDoc] = useState(null);
@@ -39,13 +44,13 @@ export function AdminBusinessDetail({ id }) {
         }
       } catch (error) {
         toast.error("Failed to load business details");
-        router.push("/admin/businesses");
+        router.push(`${basePath}/businesses`);
       } finally {
         setLoading(false);
       }
     };
     if (id) fetchBusiness();
-  }, [id, router]);
+  }, [id, router, basePath]);
 
   const handleToggleStatus = async () => {
     try {
@@ -60,7 +65,7 @@ export function AdminBusinessDetail({ id }) {
 
   if (loading) {
     return (
-      <AppShell role="admin" title="Loading..." backTo="/admin/businesses">
+      <AppShell role={shellRole} title="Loading..." backTo={`${basePath}/businesses`}>
         <div className="flex items-center justify-center h-[50vh]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
@@ -72,10 +77,10 @@ export function AdminBusinessDetail({ id }) {
 
   return (
     <AppShell 
-      role="admin" 
+      role={shellRole} 
       title={business.name} 
       subtitle={`${business.industry} · ${business.city}`}
-      backTo="/admin/businesses"
+      backTo={`${basePath}/businesses`}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
