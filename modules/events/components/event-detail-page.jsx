@@ -247,33 +247,44 @@ const loadRazorpayScript = () => {
 
   return (
     <PublicLayout>
-      <div className="rifah-container py-6 sm:py-10">
-        <Link href="/events" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-          ← All events
-        </Link>
+      {/* Immersive Hero Header */}
+      <section className="relative w-full bg-slate-950 overflow-hidden border-b border-border">
+        <div className="absolute inset-0 z-0">
+          <img
+            src={coverUrl}
+            alt={`${event.title} — RIFAH event`}
+            className="h-full w-full object-cover opacity-50"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+        </div>
 
-        <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div>
-            <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-              <div className="w-full h-48 sm:h-64 lg:h-72 overflow-hidden bg-muted/20">
-                <img
-                  src={coverUrl}
-                  alt={`${event.title} — RIFAH event`}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div className="p-4 sm:p-6">
-                <div className="flex flex-wrap gap-1.5">
-                  <Pill tone={event.mode === "Online" ? "primary" : "neutral"}>{event.mode}</Pill>
-                  <Pill>{event.chapter}</Pill>
-                  <Pill tone={event.status === "Upcoming" ? "success" : "neutral"}>{event.status}</Pill>
-                </div>
-                <h1 className="mt-3 text-xl font-bold leading-tight tracking-tight sm:text-3xl">{event.title}</h1>
-                <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-                  {event.summary || event.description || "Join this chamber event to connect with members and businesses."}
-                </p>
+        <div className="rifah-container relative z-10 pt-16 pb-12 sm:pt-24 sm:pb-16 lg:pt-32 lg:pb-20">
+          <Link href="/events" className="inline-flex items-center text-sm font-medium text-slate-300 hover:text-white transition-colors mb-6">
+            ← Back to all events
+          </Link>
+          
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Pill tone={event.mode === "Online" ? "primary" : "neutral"} className="bg-white/10 text-white border-white/20 backdrop-blur-md shadow-sm">{event.mode}</Pill>
+            <Pill className="bg-white/10 text-white border-white/20 backdrop-blur-md shadow-sm">{event.chapter}</Pill>
+            <Pill tone={event.status === "Upcoming" ? "success" : "neutral"} className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 backdrop-blur-md shadow-sm">{event.status}</Pill>
+          </div>
+          
+          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl max-w-4xl leading-[1.15]">
+            {event.title}
+          </h1>
+          <p className="mt-4 text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
+            {event.summary || event.description || "Join this chamber event to connect with members and businesses."}
+          </p>
+        </div>
+      </section>
 
-                <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-4">
+      <div className="rifah-container py-8 sm:py-12">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+          {/* Main Details */}
+          <div className="space-y-8">
+            {/* Metadata Grid */}
+            <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+              <dl className="grid grid-cols-2 gap-y-6 gap-x-4 sm:grid-cols-4">
                   {[
                     { icon: CalendarDays, label: "Date", value: event.date ? new Date(event.date).toLocaleDateString() : "TBA" },
                     { icon: Clock, label: "Time", value: event.time },
@@ -281,27 +292,34 @@ const loadRazorpayScript = () => {
                     { icon: Users, label: "Capacity", value: `${event.seats} seats` },
                   ].map((s) => (
                     <div key={s.label} className="min-w-0">
-                      <dt className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        <s.icon className="h-3.5 w-3.5" /> {s.label}
+                      <dt className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <s.icon className="h-4 w-4" />
+                        </span>
+                        {s.label}
                       </dt>
-                      <dd className="mt-0.5 truncate text-sm font-semibold">{s.value}</dd>
+                      <dd className="mt-2 text-sm font-semibold text-foreground sm:text-base">{s.value}</dd>
                     </div>
                   ))}
                 </dl>
               </div>
-            </div>
 
             <div className="mt-4 space-y-4">
               {event.agenda && event.agenda.length > 0 && (
                 <Panel title="Agenda">
-                  <ol className="space-y-3">
+                  <div className="relative border-l-2 border-primary/20 ml-3 space-y-6">
                     {event.agenda.map((a, i) => (
-                      <li key={i} className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 border-b border-border pb-3 last:border-0 last:pb-0">
-                        <span className="text-sm font-semibold text-primary">{a.time}</span>
-                        <span className="text-sm">{a.item}</span>
-                      </li>
+                      <div key={i} className="relative pl-6">
+                        <span className="absolute -left-[9px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary shadow-[0_0_0_4px_rgba(var(--primary-rgb),0.1)]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-white"></span>
+                        </span>
+                        <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3">
+                          <span className="text-sm font-bold text-primary sm:w-24 shrink-0">{a.time}</span>
+                          <span className="text-sm font-medium text-foreground">{a.item}</span>
+                        </div>
+                      </div>
                     ))}
-                  </ol>
+                  </div>
                 </Panel>
               )}
               <Panel title="Event details">
@@ -335,53 +353,64 @@ const loadRazorpayScript = () => {
               </Panel>
             )}
 
-            <Panel title="Registration">
+            <Panel 
+              title="Registration" 
+              className="border-primary/20 bg-surface/80 backdrop-blur-xl shadow-lg ring-1 ring-primary/10"
+            >
               {isUserRegistered ? (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
-                  <div className="mx-auto w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center mb-2">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center shadow-inner">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">You are registered!</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="text-base font-bold text-emerald-700 dark:text-emerald-300">You are registered!</p>
+                  <p className="mt-1.5 text-xs text-emerald-600/80 dark:text-emerald-400/80 leading-relaxed">
                     Confirmation has been recorded. Joining details will be shared prior to the session.
                   </p>
-                  <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground flex justify-between">
-                    <span>Status</span>
-                    <span className="font-semibold text-emerald-600">RSVP Confirmed</span>
+                  <div className="mt-4 pt-4 border-t border-emerald-500/20 text-xs flex justify-between items-center">
+                    <span className="font-medium text-emerald-700/70 dark:text-emerald-300/70">Status</span>
+                    <span className="font-bold text-emerald-600 px-2 py-1 bg-emerald-500/10 rounded-md">RSVP Confirmed</span>
                   </div>
                   {isEventToday && (
-                    <div className="mt-4 pt-3 border-t border-border">
+                    <div className="mt-4 pt-4 border-t border-emerald-500/20">
                       {isUserAttended ? (
-                        <div className="flex items-center justify-center gap-2 text-sm font-semibold text-emerald-600">
+                        <div className="flex items-center justify-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-500/10 py-2.5 rounded-lg">
                           <CheckCircle2 className="h-4 w-4" /> Attendance Marked
                         </div>
                       ) : (
                         <Button 
-                          className="w-full" 
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-all hover:shadow-lg" 
                           onClick={handleMarkAttendance} 
                           disabled={marking}
                         >
-                          {marking ? "Marking..." : "Mark Attendance"}
+                          {marking ? "Marking..." : "Mark Attendance Now"}
                         </Button>
                       )}
                     </div>
                   )}
                 </div>
               ) : isEligibleToRegister ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-2xl font-bold tracking-tight">{Boolean(event.isPaid && Number(event.ticketPrice) > 0) ? `₹${event.ticketPrice}` : (event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {Math.max(0, (event.seats || 100) - (event.registeredCount || 0))} seats remaining
-                    </p>
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between border-b border-border pb-4">
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Pass Price</p>
+                      <p className="text-3xl font-extrabold tracking-tight text-foreground">
+                        {Boolean(event.isPaid && Number(event.ticketPrice) > 0) ? `₹${event.ticketPrice}` : (event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Availability</p>
+                      <p className="text-sm font-bold text-primary">
+                        {Math.max(0, (event.seats || 100) - (event.registeredCount || 0))} seats left
+                      </p>
+                    </div>
                   </div>
                   <Button
-                    className="w-full"
+                    className="w-full text-base font-bold shadow-md transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
                     size="lg"
                     disabled={registering}
                     onClick={handleRegister}
                   >
-                    {registering ? "Registering..." : "RSVP / Register"}
+                    {registering ? "Processing..." : "RSVP / Register Now"}
                   </Button>
                 </div>
               ) : (
