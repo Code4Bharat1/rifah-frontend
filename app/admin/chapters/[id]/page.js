@@ -1,5 +1,13 @@
-import { redirect } from "next/navigation";
+import AdminChapterDetails from "@modules/admin/components/admin-chapter-details";
 
-export default function Page() {
-  redirect("/admin/states");
+export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "Chapter Details | RIFAH Admin",
+  description: "View and manage chapter details",
+};
+
+export default async function ChapterDetailsPage(props) {
+  const params = await props.params;
+  return <AdminChapterDetails chapterId={params.id} />;
 }
