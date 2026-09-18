@@ -255,12 +255,10 @@ const loadRazorpayScript = () => {
         <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div>
             <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-              <div className="h-28 overflow-hidden sm:h-40">
+              <div className="w-full h-48 sm:h-64 lg:h-72 overflow-hidden bg-muted/20">
                 <img
                   src={coverUrl}
                   alt={`${event.title} — RIFAH event`}
-                  width={1024}
-                  height={640}
                   className="h-full w-full object-cover"
                 />
               </div>

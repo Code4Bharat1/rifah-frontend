@@ -83,10 +83,9 @@ export function AdminEventDetail() {
       }
     >
       <div className="space-y-4">
-        {/* Cover Image - only show if uploaded */}
         {event.coverImage && (
           <div className="overflow-hidden rounded-2xl border border-border">
-            <div className="h-32 sm:h-48 overflow-hidden">
+            <div className="w-full h-48 sm:h-64 lg:h-72 overflow-hidden bg-muted/20">
               <img
                 src={coverUrl}
                 alt={event.title}
