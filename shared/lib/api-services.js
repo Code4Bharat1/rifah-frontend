@@ -349,3 +349,20 @@ export const anniversaryApi = {
   triggerEmails: () => apiClient("/anniversaries/trigger-emails", { method: "POST" }),
 };
 
+export const powerNetworkingApi = {
+  getStats: () => apiClient("/power-networking/stats"),
+  getMyNetwork: (params = {}) => apiClient(`/power-networking/my-network${toQueryString(params)}`),
+  removeFromNetwork: (id) => apiClient(`/power-networking/my-network/${id}/remove`, { method: "POST" }),
+  requestQuote: (data) => apiClient("/power-networking/request-quote", { method: "POST", body: JSON.stringify(data) }),
+  getRequirements: (params = {}) => apiClient(`/power-networking/requirements${toQueryString(params)}`),
+  getRequirementById: (id) => apiClient(`/power-networking/requirements/${id}`),
+  createRequirement: (data) => apiClient("/power-networking/requirements", { method: "POST", body: JSON.stringify(data) }),
+  getRequirementMatches: (id, params = {}) => apiClient(`/power-networking/requirements/${id}/matches${toQueryString(params)}`),
+  discoverBusinesses: (params = {}) => apiClient(`/power-networking/discover${toQueryString(params)}`),
+  sendConnectionRequest: (data) => apiClient("/power-networking/connections", { method: "POST", body: JSON.stringify(data) }),
+  getConnections: (params = {}) => apiClient(`/power-networking/connections${toQueryString(params)}`),
+  getRequests: (params = {}) => apiClient(`/power-networking/requests${toQueryString(params)}`),
+  respondToRequest: (id, action) => apiClient(`/power-networking/requests/${id}/respond`, { method: "POST", body: JSON.stringify({ action }) }),
+  cancelRequest: (id) => apiClient(`/power-networking/requests/${id}/cancel`, { method: "POST" }),
+};
+

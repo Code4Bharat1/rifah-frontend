@@ -47,6 +47,7 @@ import {
   Handshake,
   TrendingUp,
   GraduationCap,
+  Zap,
 } from "lucide-react";
 import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
 import { Button } from "@shared/components/ui/button";
@@ -70,6 +71,7 @@ const navs = {
       { label: "Enquiries", to: "/biz/enquiries", icon: FileStack },
       { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },
       { label: "Networking", to: "/biz/networking", icon: Handshake },
+      { label: "Power Networking", to: "/biz/power-networking", icon: Zap },
       { label: "More", to: "/biz/profile", icon: LayoutGrid },
     ],
     more: [
@@ -318,7 +320,8 @@ export function AppShell({
   const nav = useResolvedNav(role) || navs.admin || navs.customer;
   const primary = nav?.primary || [];
   const more = nav?.more || [];
-  const all = [...primary.filter((i) => i.label !== "More"), ...more];
+  const rawAll = [...primary.filter((i) => i.label !== "More"), ...more];
+  const all = Array.from(new Map(rawAll.map((item) => [item.to, item])).values());
 
   useEffect(() => {
     if (!loading && !user) {
@@ -448,14 +451,14 @@ export function AppShell({
           onScroll={handleNavScroll}
           className="mt-2 flex-1 space-y-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-4"
         >
-          {all.map((item) => {
+          {all.map((item, index) => {
             let badge = null;
             if (item.label === "Messages") badge = unreadMsgs;
             if (item.label === "Notifications") badge = unreadNotifs;
             const isItemLocked = role === "business" && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to);
             return (
               <SidebarLink
-                key={item.to + item.label}
+                key={`sidebar-${item.to}-${item.label}-${index}`}
                 item={item}
                 active={isActive(item.to)}
                 badge={badge}
@@ -792,11 +795,11 @@ export function MoreSheet({ role, isBizVerified = true }) {
           <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {nav.title}
           </p>
-          {items.map((i) => {
+          {items.map((i, idx) => {
             const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
             return (
               <Link
-                key={i.to + i.label}
+                key={`moresheet-${i.to}-${i.label}-${idx}`}
                 href={i.to}
                 scroll={false}
                 onClick={() => setOpen(false)}
@@ -835,7 +838,7 @@ export function BottomNav({ role, isBizVerified = true }) {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
       aria-label="Primary"
     >
-      <ul className="grid grid-cols-5">
+      <ul className={cn("grid", primary.length === 6 ? "grid-cols-6" : "grid-cols-5")}>
         {primary.map((item) => {
           const active = path === item.to;
           const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(item.to);

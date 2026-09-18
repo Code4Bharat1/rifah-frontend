@@ -29,6 +29,7 @@ import {
   courseApi,
   birthdayApi,
   anniversaryApi,
+  powerNetworkingApi,
 } from "../lib/api-services";
 
 // ==================== BUSINESS HOOKS ====================
@@ -672,6 +673,156 @@ export function useNewChapterMembers(options = {}) {
     staleTime: 2 * 60 * 1000, // 2 mins
     refetchOnWindowFocus: false,
     ...options,
+  });
+}
+
+// ==================== POWER NETWORKING HOOKS ====================
+
+export function usePowerNetworkingStats() {
+  return useQuery({
+    queryKey: ["power-networking", "stats"],
+    queryFn: async () => {
+      const res = await powerNetworkingApi.getStats();
+      return res?.data || res;
+    },
+    refetchInterval: 30000,
+  });
+}
+
+export function usePowerRequirements(params = {}) {
+  return useQuery({
+    queryKey: ["power-networking", "requirements", params],
+    queryFn: async () => {
+      const res = await powerNetworkingApi.getRequirements(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function usePowerRequirement(id) {
+  return useQuery({
+    queryKey: ["power-networking", "requirement", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const res = await powerNetworkingApi.getRequirementById(id);
+      return res?.data || res;
+    },
+    enabled: Boolean(id),
+  });
+}
+
+export function usePowerRequirementMatches(id, params = {}) {
+  return useQuery({
+    queryKey: ["power-networking", "requirement-matches", id, params],
+    queryFn: async () => {
+      if (!id) return null;
+      const res = await powerNetworkingApi.getRequirementMatches(id, params);
+      return res?.data || res;
+    },
+    enabled: Boolean(id),
+  });
+}
+
+export function usePowerDiscoverBusinesses(params = {}) {
+  return useQuery({
+    queryKey: ["power-networking", "discover", params],
+    queryFn: async () => {
+      const res = await powerNetworkingApi.discoverBusinesses(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function usePowerConnections(params = {}) {
+  return useQuery({
+    queryKey: ["power-networking", "connections", params],
+    queryFn: async () => {
+      const res = await powerNetworkingApi.getConnections(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function usePowerRequests(params = {}) {
+  return useQuery({
+    queryKey: ["power-networking", "requests", params],
+    queryFn: async () => {
+      const res = await powerNetworkingApi.getRequests(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function useCreatePowerRequirement() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => powerNetworkingApi.createRequirement(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["power-networking"] });
+    },
+  });
+}
+
+export function useSendPowerConnection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => powerNetworkingApi.sendConnectionRequest(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["power-networking"] });
+    },
+  });
+}
+
+export function useRespondPowerConnection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, action }) => powerNetworkingApi.respondToRequest(id, action),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["power-networking"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+}
+
+export function useMyPowerNetwork(params = {}) {
+  return useQuery({
+    queryKey: ["power-networking", "my-network", params],
+    queryFn: async () => {
+      const res = await powerNetworkingApi.getMyNetwork(params);
+      return res?.data || res;
+    },
+  });
+}
+
+export function useRemoveFromPowerNetwork() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => powerNetworkingApi.removeFromNetwork(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["power-networking"] });
+    },
+  });
+}
+
+export function useSendPowerQuoteRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => powerNetworkingApi.requestQuote(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["power-networking"] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+}
+
+export function useCancelPowerConnection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => powerNetworkingApi.cancelRequest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["power-networking"] });
+    },
   });
 }
 
