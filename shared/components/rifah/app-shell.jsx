@@ -92,12 +92,14 @@ const navs = {
     title: "RIFAH administration",
     primary: [
       { label: "Overview", to: "/admin", icon: Gauge },
+      { label: "Operations Center", to: "/chapter-admin/event-setup", icon: Radio },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
       { label: "Users", to: "/admin/users", icon: Users },
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Operations Center Hub", to: "/chapter-admin/event-setup", icon: Radio },
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
@@ -145,12 +147,14 @@ const roleNavs = {
     title: "State admin",
     primary: [
       { label: "Dashboard", to: "/state-admin", icon: Gauge },
+      { label: "Operations Center", to: "/chapter-admin/event-setup", icon: Radio },
       { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
       { label: "Members", to: "/state-admin/members", icon: Users },
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Operations Center Hub", to: "/chapter-admin/event-setup", icon: Radio },
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
@@ -166,6 +170,7 @@ const roleNavs = {
     title: "Secretariat Desk",
     primary: [
       { label: "Overview", to: "/admin", icon: Gauge },
+      { label: "Operations Center", to: "/chapter-admin/event-setup", icon: Radio },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Leads", to: "/admin/leads", icon: Target },
       { label: "Users", to: "/admin/users", icon: Users },
