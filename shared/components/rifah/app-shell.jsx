@@ -79,6 +79,7 @@ const navs = {
       { label: "Membership", to: "/biz/membership", icon: Star },
       { label: "Notifications", to: "/biz/notifications", icon: Bell },
       { label: "LMS", to: "/biz/lms", icon: GraduationCap },
+      { label: "Events", to: "/biz/events", icon: CalendarDays },
     ],
   },
   admin: {
@@ -224,7 +225,11 @@ function isAccessibleUnverifiedPath(pathname) {
     clean === "/biz/profile" ||
     clean.startsWith("/biz/profile/") ||
     clean === "/biz/business" ||
-    clean.startsWith("/biz/business/")
+    clean.startsWith("/biz/business/") ||
+    clean === "/biz/lms" ||
+    clean.startsWith("/biz/lms/") ||
+    clean === "/biz/events" ||
+    clean.startsWith("/biz/events/")
   );
 }
 
