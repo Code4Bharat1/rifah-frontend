@@ -171,7 +171,13 @@ const navRoles = [
 
 function useResolvedNav(role) {
   const { user } = useAuth();
-  if (user?.role && roleNavs[user.role]) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (mounted && user?.role && roleNavs[user.role]) {
     return roleNavs[user.role];
   }
   return navs[role] || navs.business || navs.admin;
