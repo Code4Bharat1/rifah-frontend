@@ -111,7 +111,7 @@ function EventAnalyticsTab() {
             columns={[
               { key: "title", header: "Event Title", cell: r => <div className="font-medium max-w-[200px] truncate">{r.title}</div> },
               { key: "chapter", header: "Chapter", cell: r => r.chapter },
-              { key: "metrics", header: "Registered / Capacity", cell: r => `${r.registeredCount} / ${r.capacity || '∞'}` },
+              { key: "metrics", header: "Registered / Audience Size", cell: r => `${r.registeredCount} / ${r.capacity || '∞'}` },
               { key: "attended", header: "Attended", cell: r => r.attendedCount },
               { key: "rate", header: "Attendance Rate", cell: r => `${r.attendanceRate}%` },
               { key: "health", header: "Health", cell: r => (

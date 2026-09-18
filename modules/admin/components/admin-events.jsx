@@ -308,7 +308,7 @@ function AdminEvents() {
               },
               { key: "mode", header: "Mode", cell: (r) => r.mode },
               { key: "city", header: "Location", cell: (r) => r.city || "Online" },
-              { key: "att", header: "Registered", cell: (r) => <span className="font-semibold">{r.registeredCount || 0}</span> },
+              { key: "att", header: "Registered / Audience Size", cell: (r) => <span className="font-semibold">{r.registeredCount || 0} / {r.seats || '∞'}</span> },
               {
                 key: "act",
                 header: "",
