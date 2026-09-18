@@ -105,8 +105,9 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
         // Continue to logging if second attempt fails
       }
     }
-    console.error(`[API Client Network Error] fetch failed for ${url}:`, netErr);
-    throw new Error(`Unable to connect to the backend server (${url}). Please check if the server is running.`);
+    // Use warn (not error) — polling hooks cause transient failures that are handled gracefully
+    console.warn(`[API] Network unreachable for ${endpoint}. Backend may be starting up.`);
+    throw new Error(`Unable to connect to the backend server. Please check if the server is running.`);
   }
 
   let data = null;

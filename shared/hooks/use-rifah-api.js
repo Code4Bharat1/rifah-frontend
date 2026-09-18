@@ -488,15 +488,18 @@ export function useConversations() {
       try {
         const res = await messageApi.getConversations();
         return res?.data?.conversations || res?.data || res || [];
-      } catch (err) {
+      } catch {
         // Return empty array on temporary network/auth hiccups during polling
         return [];
       }
     },
     refetchInterval: 6000,
-    retry: 1,
+    retry: 0,              // already handled inside queryFn — no React Query retries needed
+    throwOnError: false,   // never bubble to error boundary for polling failures
+    refetchOnWindowFocus: false,
   });
 }
+
 
 export function useMessages(otherUserId) {
   return useQuery({
