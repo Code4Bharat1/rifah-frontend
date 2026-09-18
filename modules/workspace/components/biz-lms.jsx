@@ -61,22 +61,47 @@ function getCourseProgress(course) {
   return { percent, completed, total, status };
 }
 
+// ── Direct certificate download helper
+async function triggerCertificateDownload(url, filename) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Fetch failed");
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+    toast.success("Certificate downloaded!");
+  } catch {
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+}
+
 // ── Certificate download
 async function downloadCert(course, setLoading) {
   setLoading(true);
   try {
-    const certUrl = course?.certificate?.pdfUrl || course?.certificate?.fileUrl;
-    if (certUrl) {
-      window.open(resolveMediaUrl(certUrl), "_blank");
-      return;
+    let certUrl = course?.certificate?.pdfUrl || course?.certificate?.fileUrl;
+    if (!certUrl) {
+      const res = await courseApi.getCertificates({ courseId: course._id });
+      const certs = res?.data || res;
+      const list = Array.isArray(certs) ? certs : (Array.isArray(certs?.data) ? certs.data : []);
+      const target = list.find(c => String(c.courseId?._id || c.courseId) === String(course._id)) || list[0];
+      certUrl = target?.pdfUrl || target?.fileUrl || target?.url;
     }
-    const res = await courseApi.getCertificates({ courseId: course._id });
-    const certs = res?.data || res;
-    const list = Array.isArray(certs) ? certs : (Array.isArray(certs?.data) ? certs.data : []);
-    const target = list.find(c => String(c.courseId?._id || c.courseId) === String(course._id)) || list[0];
-    const url = target?.pdfUrl || target?.fileUrl || target?.url;
-    if (url) {
-      window.open(resolveMediaUrl(url), "_blank");
+
+    if (certUrl) {
+      const cleanTitle = (course.title || "Course").replace(/[^a-zA-Z0-9_-]/g, "_");
+      await triggerCertificateDownload(resolveMediaUrl(certUrl), `${cleanTitle}_Certificate.pdf`);
     } else {
       toast.error("Certificate is being generated. Please try again in a moment.");
     }
@@ -208,11 +233,12 @@ function CertCard({ cert }) {
   const scopeLabel = SCOPE_LABEL[scopeStr] || "📚 Training";
   const certUrl = cert?.pdfUrl || cert?.fileUrl || cert?.url;
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!certUrl) { toast.error("Certificate URL not found"); return; }
     setCertLoading(true);
-    window.open(resolveMediaUrl(certUrl), "_blank");
-    setTimeout(() => setCertLoading(false), 1000);
+    const cleanTitle = courseTitle.replace(/[^a-zA-Z0-9_-]/g, "_");
+    await triggerCertificateDownload(resolveMediaUrl(certUrl), `${cleanTitle}_Certificate.pdf`);
+    setCertLoading(false);
   };
 
   return (

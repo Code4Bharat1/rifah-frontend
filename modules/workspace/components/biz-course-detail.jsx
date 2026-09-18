@@ -1,6 +1,6 @@
 "use client";
 import {
-  ArrowLeft, PlayCircle, FileText, CheckCircle2, Download,
+  ArrowLeft, PlayCircle, Play, FileText, CheckCircle2, Download,
   Video, Loader2, ChevronLeft, ChevronRight, Award, BookOpen, Trophy
 } from "lucide-react";
 import Link from "next/link";
@@ -85,22 +85,45 @@ export function BizCourseDetail() {
   const handleDownloadCertificate = async () => {
     setDownloadingCert(true);
     try {
-      // First try the certificate returned directly in course details
-      const certUrl = certificate?.pdfUrl || certificate?.fileUrl || certificate?.url;
-      if (certUrl) {
-        window.open(resolveMediaUrl(certUrl), "_blank");
+      let targetUrl = certificate?.pdfUrl || certificate?.fileUrl || certificate?.url;
+      if (!targetUrl) {
+        const res = await courseApi.getCertificates({ courseId: course._id });
+        const certs = res?.data || res;
+        const certList = Array.isArray(certs) ? certs : (Array.isArray(certs?.data) ? certs.data : []);
+        const target = certList.find(c => String(c.courseId?._id || c.courseId) === String(course._id)) || certList[0];
+        targetUrl = target?.pdfUrl || target?.fileUrl || target?.url;
+      }
+
+      if (!targetUrl) {
+        toast.error("Certificate is being generated. Please try again in a moment.");
         return;
       }
-      // Fallback: fetch from certificates endpoint
-      const res = await courseApi.getCertificates({ courseId: course._id });
-      const certs = res?.data || res;
-      const certList = Array.isArray(certs) ? certs : (Array.isArray(certs?.data) ? certs.data : []);
-      const target = certList.find(c => String(c.courseId?._id || c.courseId) === String(course._id)) || certList[0];
-      const url = target?.pdfUrl || target?.fileUrl || target?.url;
-      if (url) {
-        window.open(resolveMediaUrl(url), "_blank");
-      } else {
-        toast.error("Certificate is being generated. Please try again in a moment.");
+
+      const cleanTitle = (course.title || "Course").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const filename = `${cleanTitle}_Certificate.pdf`;
+      const fullUrl = resolveMediaUrl(targetUrl);
+
+      // Perform direct download without navigating away
+      try {
+        const res = await fetch(fullUrl);
+        if (!res.ok) throw new Error("Direct fetch failed");
+        const blob = await res.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+        toast.success("Certificate downloaded!");
+      } catch {
+        const link = document.createElement("a");
+        link.href = fullUrl;
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
     } catch {
       toast.error("Failed to download certificate");
@@ -188,20 +211,20 @@ export function BizCourseDetail() {
 
               if (contentType === "pdf") {
                 return (
-                  <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex flex-col items-center justify-center text-white p-6 gap-4">
-                    <div className="bg-white/10 rounded-2xl p-5">
-                      <FileText className="h-16 w-16 text-white/80" />
+                  <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 flex flex-col items-center justify-center text-white p-6 gap-4">
+                    <div className="bg-white/10 rounded-2xl p-5 shadow-inner">
+                      <PlayCircle className="h-16 w-16 text-white/90" />
                     </div>
                     <p className="font-semibold text-lg">{activeContent.title}</p>
-                    <p className="text-sm text-white/60">PDF Document</p>
+                    <p className="text-sm text-white/60">Course Material</p>
                     <Button
-                      className="bg-white text-slate-900 hover:bg-white/90"
+                      className="bg-white text-slate-900 hover:bg-white/90 font-medium shadow-md"
                       onClick={() => {
                         window.open(resolveMediaUrl(mediaUrl), "_blank");
                         handleMarkWatched(activeContent._id);
                       }}
                     >
-                      <FileText className="h-4 w-4 mr-2" /> Open PDF
+                      <Play className="h-4 w-4 mr-2 fill-current" /> Open PDF
                     </Button>
                   </div>
                 );
@@ -254,19 +277,7 @@ export function BizCourseDetail() {
                       </p>
                     )}
                   </div>
-                  {!completedIds.includes(String(activeContent._id)) ? (
-                    <Button
-                      onClick={() => handleMarkWatched(activeContent._id)}
-                      disabled={marking}
-                      size="sm"
-                      className="shrink-0"
-                    >
-                      {marking
-                        ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                      Mark Complete
-                    </Button>
-                  ) : (
+                  {completedIds.includes(String(activeContent._id)) && (
                     <div className="shrink-0 flex items-center gap-1.5 text-emerald-600 font-medium bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full text-sm">
                       <CheckCircle2 className="h-4 w-4" /> Completed
                     </div>
@@ -379,19 +390,20 @@ export function BizCourseDetail() {
                                     ? "bg-primary/15 text-primary"
                                     : "bg-muted text-muted-foreground"
                                 }`}>
-                                  {isDone ? <CheckCircle2 className="h-3.5 w-3.5" /> : (
-                                    (item.type === "video" || item.contentType === "video")
-                                      ? <Video className="h-3 w-3" />
-                                      : <FileText className="h-3 w-3" />
+                                  {isDone ? (
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Play className="h-2.5 w-2.5 fill-current ml-0.5" />
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-xs font-medium leading-tight truncate ${isActive ? "text-primary" : "text-foreground"}`}>
                                     {chapIdx + 1}.{index + 1} {item.title}
                                   </p>
-                                  <p className="text-[10px] text-muted-foreground capitalize mt-0.5">
-                                    {(item.type === "video" || item.contentType === "video") ? "🎬 Video" : "📄 PDF"}
-                                  </p>
+                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
+                                    <PlayCircle className="h-2.5 w-2.5" />
+                                    <span>Lesson</span>
+                                  </div>
                                 </div>
                               </button>
                             );
@@ -423,19 +435,20 @@ export function BizCourseDetail() {
                             ? "bg-primary/15 text-primary"
                             : "bg-muted text-muted-foreground"
                         }`}>
-                          {isDone ? <CheckCircle2 className="h-3.5 w-3.5" /> : (
-                            (item.type === "video" || item.contentType === "video")
-                              ? <Video className="h-3 w-3" />
-                              : <FileText className="h-3 w-3" />
+                          {isDone ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <Play className="h-2.5 w-2.5 fill-current ml-0.5" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className={`text-xs font-medium leading-tight truncate ${isActive ? "text-primary" : "text-foreground"}`}>
                             {index + 1}. {item.title}
                           </p>
-                          <p className="text-[10px] text-muted-foreground capitalize mt-0.5">
-                            {(item.type === "video" || item.contentType === "video") ? "🎬 Video" : "📄 PDF"}
-                          </p>
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
+                            <PlayCircle className="h-2.5 w-2.5" />
+                            <span>Lesson</span>
+                          </div>
                         </div>
                       </button>
                     );
