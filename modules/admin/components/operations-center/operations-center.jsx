@@ -75,6 +75,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@shared/components/ui/dialog";
 import { DynamicQrCode } from "@shared/components/rifah/dynamic-qr";
 import { cn } from "@shared/lib/utils";
+import { StatCard } from "@shared/components/rifah/ui-bits";
+import { Pill } from "@shared/components/rifah/badges";
 
 // 16 Default Chapter Agenda Items
 const DEFAULT_AGENDA = [
@@ -1047,30 +1049,37 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {/* ========================================================================= */}
       {/* 1. TOP HEADER & DASHBOARD KPI SECTION                                      */}
       {/* ========================================================================= */}
-      <div className="rounded-2xl border border-cyan-500/20 bg-[#0B1F33] p-5 sm:p-6 shadow-xl text-white">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700/60 pb-5">
+      <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-5">
           <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-xs uppercase tracking-wider border border-cyan-500/30">
-                CHAPTER ADMIN
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold text-xs tracking-wider border border-slate-700">
-                {chapterName.toUpperCase()}
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Pill tone="brand">CHAPTER ADMIN</Pill>
+              <Pill tone="neutral">{chapterName.toUpperCase()}</Pill>
+              <Pill tone={socketConnected ? "success" : "warning"}>
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full mr-1 inline-block",
+                    socketConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                  )}
+                />
                 Live Sync: {socketConnected ? "Connected" : "Standby"}
-              </span>
+              </Pill>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-2 flex items-center gap-2">
-              RIFAH OPERATIONS CENTER ADMIN PANEL
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight mt-2 flex items-center gap-2">
+              RIFAH Operations Center Admin Panel
             </h1>
-            <div className="flex items-center gap-2 flex-wrap text-xs text-slate-300 mt-1">
-              <span><strong className="text-cyan-300 font-semibold">Current Chapter:</strong> {chapterName}</span>
-              <span className="text-slate-600">|</span>
-              <span><strong className="text-emerald-300 font-semibold">Current Event:</strong> {activeEvent?.title || "Upcoming Chapter Meet"}</span>
-              <span className="text-slate-600">|</span>
-              <span><strong className="text-amber-300 font-semibold">Current Admin:</strong> {user?.name || user?.email || "Chapter Admin"}</span>
+            <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground mt-1">
+              <span>
+                <span className="font-semibold text-foreground">Current Chapter:</span> {chapterName}
+              </span>
+              <span className="text-border">|</span>
+              <span>
+                <span className="font-semibold text-foreground">Current Event:</span> {activeEvent?.title || "Upcoming Chapter Meet"}
+              </span>
+              <span className="text-border">|</span>
+              <span>
+                <span className="font-semibold text-foreground">Current Admin:</span> {user?.name || user?.email || "Chapter Admin"}
+              </span>
             </div>
           </div>
 
@@ -1085,12 +1094,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     if (ev) setActiveEvent(ev);
                   }}
                 >
-                  <SelectTrigger className="w-44 sm:w-52 h-9 text-xs bg-slate-900 border-slate-700 text-white">
+                  <SelectTrigger className="w-44 sm:w-52 h-9 text-xs bg-background border-border text-foreground">
                     <SelectValue placeholder="Select Event" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                  <SelectContent className="bg-card border-border text-foreground">
                     {events.map((e) => (
-                      <SelectItem key={e._id} value={e._id} className="text-xs hover:bg-slate-800">
+                      <SelectItem key={e._id} value={e._id} className="text-xs">
                         {e.title}
                       </SelectItem>
                     ))}
@@ -1103,10 +1112,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               variant="outline"
               size="sm"
               asChild
-              className="border-slate-700 text-white hover:bg-slate-800 h-9 gap-1.5"
+              className="border-border text-foreground hover:bg-muted h-9 rounded-xl gap-1.5 font-medium"
             >
               <Link href={projectorUrl} target="_blank">
-                <Radio className="h-4 w-4 text-cyan-400" />
+                <Radio className="h-4 w-4 text-primary" />
                 <span>Open Projector</span>
               </Link>
             </Button>
@@ -1115,7 +1124,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               variant="destructive"
               size="sm"
               onClick={() => setResetModalOpen(true)}
-              className="bg-rose-600 hover:bg-rose-500 text-white font-semibold h-9 gap-1.5 shadow-sm"
+              className="h-9 rounded-xl gap-1.5 font-medium shadow-xs"
             >
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Reset for Next Event</span>
@@ -1123,79 +1132,73 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
           </div>
         </div>
 
-        {/* 4 Core Dynamic KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mt-5">
-          <div className="rounded-xl border border-slate-700/80 bg-slate-900/80 p-4 relative overflow-hidden group hover:border-cyan-500/40 transition-all">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider">REGISTERED</span>
-              <Ticket className="h-4 w-4 text-cyan-400" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-black text-white mt-1 tabular-nums">
-              {kpiStats.registered}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1">Total attendee registrations</p>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-cyan-500"></div>
-          </div>
+        {/* 4 Core Dynamic KPI Cards using site's native StatCard component */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Registered"
+            value={String(kpiStats.registered)}
+            hint="Total attendee registrations"
+            icon={Ticket}
+            tone="primary"
+            active={currentTab === "attendees"}
+            onClick={() => setTab("attendees")}
+          />
 
-          <div className="rounded-xl border border-slate-700/80 bg-slate-900/80 p-4 relative overflow-hidden group hover:border-emerald-500/40 transition-all">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider">APPROVED</span>
-              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1 tabular-nums">
-              {kpiStats.approved}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1">Confirmed & allowed entry</p>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-emerald-500"></div>
-          </div>
+          <StatCard
+            label="Approved"
+            value={String(kpiStats.approved)}
+            hint="Confirmed & allowed entry"
+            icon={CheckCircle2}
+            tone="success"
+            active={currentTab === "attendees"}
+            onClick={() => setTab("attendees")}
+          />
 
-          <div className="rounded-xl border border-slate-700/80 bg-slate-900/80 p-4 relative overflow-hidden group hover:border-blue-500/40 transition-all">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider">MEMBERS</span>
-              <Users className="h-4 w-4 text-blue-400" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-black text-blue-400 mt-1 tabular-nums">
-              {kpiStats.members}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1">Active RIFAH chamber members</p>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-500"></div>
-          </div>
+          <StatCard
+            label="Members"
+            value={String(kpiStats.members)}
+            hint="Active RIFAH chamber members"
+            icon={Users}
+            tone="brand"
+            active={currentTab === "my-team"}
+            onClick={() => setTab("my-team")}
+          />
 
-          <div className="rounded-xl border border-slate-700/80 bg-slate-900/80 p-4 relative overflow-hidden group hover:border-amber-500/40 transition-all">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider">FEES ₹</span>
-              <CreditCard className="h-4 w-4 text-amber-400" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-black text-amber-400 mt-1 tabular-nums">
-              ₹{kpiStats.fees.toLocaleString("en-IN")}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1">Total revenue collected</p>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-amber-500"></div>
-          </div>
+          <StatCard
+            label="Fees ₹"
+            value={`₹${kpiStats.fees.toLocaleString("en-IN")}`}
+            hint="Total revenue collected"
+            icon={CreditCard}
+            tone="warning"
+            active={currentTab === "finance"}
+            onClick={() => setTab("finance")}
+          />
         </div>
 
         {/* Horizontal Module Navigation Buttons Directly Below Header & KPIs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin border-t border-slate-700/60 pt-4 mt-5">
-          {HORIZONTAL_MODULE_TABS.map((tab) => {
-            const isActive = currentTab === tab.key;
-            const TabIcon = tab.icon;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setTab(tab.key)}
-                className={cn(
-                  "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 cursor-pointer",
-                  isActive
-                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
-                    : "bg-slate-800/80 text-slate-300 hover:bg-slate-700/90 hover:text-white border border-slate-700/60"
-                )}
-              >
-                <TabIcon className={cn("h-3.5 w-3.5", isActive ? "text-slate-950" : "text-cyan-400")} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+        <div className="border-t border-border/60 pt-4">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pb-1">
+            {HORIZONTAL_MODULE_TABS.map((tab) => {
+              const isActive = currentTab === tab.key;
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setTab(tab.key)}
+                  className={cn(
+                    "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs whitespace-nowrap transition-all duration-150 cursor-pointer shrink-0",
+                    isActive
+                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                      : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/70 font-medium"
+                  )}
+                >
+                  <TabIcon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -1207,21 +1210,21 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {(currentTab === "overview" || currentTab === "chapter-overview") && (
         <div className="space-y-6">
           {/* Executive Top Banner */}
-          <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-slate-900 via-[#0B1F33] to-slate-900 p-6 text-white shadow-lg">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs text-foreground">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-wider uppercase bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
-                    <Radio className="h-3 w-3 animate-pulse" />
+                  <Pill tone="primary">
+                    <Radio className="h-3 w-3 animate-pulse mr-1" />
                     EXECUTIVE OPERATIONS DESK
-                  </span>
-                  <span className="text-xs text-slate-400">·</span>
-                  <span className="text-xs font-semibold text-slate-300">{chapterName}</span>
+                  </Pill>
+                  <span className="text-xs text-muted-foreground">·</span>
+                  <span className="text-xs font-semibold text-foreground">{chapterName}</span>
                 </div>
-                <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                   {activeEvent ? activeEvent.title : "RIFAH Operations Command Center"}
                 </h2>
-                <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                <p className="mt-1 text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
                   Real-time command and telemetry desk for chapter meetings, registrations, live slide projection, gate entry, and post-event attendee conversions.
                 </p>
               </div>
@@ -1229,7 +1232,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                 <Button
                   onClick={() => setTab("live-control")}
-                  className="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black shadow-md gap-2"
+                  className="font-semibold shadow-xs gap-2"
                 >
                   <Radio className="h-4 w-4" />
                   <span>Stage Live Control</span>
@@ -1237,44 +1240,44 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <Button
                   onClick={() => setTab("attendees")}
                   variant="outline"
-                  className="border-slate-600 bg-slate-800/80 text-white hover:bg-slate-700 gap-2"
+                  className="border-border text-foreground hover:bg-muted gap-2 font-medium"
                 >
-                  <Ticket className="h-4 w-4 text-cyan-400" />
+                  <Ticket className="h-4 w-4 text-primary" />
                   <span>Gate Check-in</span>
                 </Button>
                 <Button
                   onClick={() => window.open(projectorUrl, "_blank")}
                   variant="outline"
-                  className="border-slate-600 bg-slate-800/80 text-white hover:bg-slate-700 gap-2"
+                  className="border-border text-foreground hover:bg-muted gap-2 font-medium"
                 >
-                  <ExternalLink className="h-4 w-4 text-amber-400" />
+                  <ExternalLink className="h-4 w-4 text-amber-500" />
                   <span>Launch Projector</span>
                 </Button>
               </div>
             </div>
 
             {/* Quick Status Bar */}
-            <div className="mt-6 pt-4 border-t border-slate-700/60 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+            <div className="mt-6 pt-4 border-t border-border/60 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Stage State</span>
+                <span className="text-muted-foreground block text-[10px] uppercase font-bold">Stage State</span>
                 <span className={cn(
-                  "font-black uppercase tracking-wider",
-                  liveEventStatus === "LIVE" ? "text-emerald-400" : "text-amber-400"
+                  "font-bold uppercase tracking-wider",
+                  liveEventStatus === "LIVE" ? "text-emerald-600" : "text-amber-600"
                 )}>
                   ● {liveEventStatus}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Slide Deck</span>
-                <span className="font-bold text-white">Slide {currentSlideIndex + 1} of {agenda.length}</span>
+                <span className="text-muted-foreground block text-[10px] uppercase font-bold">Slide Deck</span>
+                <span className="font-bold text-foreground">Slide {currentSlideIndex + 1} of {agenda.length}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Venue & Date</span>
-                <span className="font-bold text-white truncate block">{activeEvent?.venue || "Grand Hall"} · {activeEvent?.date || "Today"}</span>
+                <span className="text-muted-foreground block text-[10px] uppercase font-bold">Venue & Date</span>
+                <span className="font-bold text-foreground truncate block">{activeEvent?.venue || "Grand Hall"} · {activeEvent?.date || "Today"}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Collections</span>
-                <span className="font-bold text-emerald-400">₹{kpiStats.fees.toLocaleString("en-IN")}</span>
+                <span className="text-muted-foreground block text-[10px] uppercase font-bold">Total Collections</span>
+                <span className="font-bold text-emerald-600">₹{kpiStats.fees.toLocaleString("en-IN")}</span>
               </div>
             </div>
           </div>
@@ -1348,7 +1351,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <p className="text-xs text-muted-foreground mt-1">Role assignments for President, Gate Incharge, Stage Manager, and Treasurer.</p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-blue-500">
-                  <span>5 Active Team Leads</span>
+                  <span>{teamMembers.length} Appointed Roles</span>
                   <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -1356,19 +1359,19 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               {/* Card 4: Live Control */}
               <div
                 onClick={() => setTab("live-control")}
-                className="group rounded-2xl border border-border bg-card p-5 hover:border-cyan-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-500/10 text-cyan-500 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <Radio className="h-5 w-5" />
                     </div>
                     <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 04</span>
                   </div>
-                  <h4 className="font-bold text-sm text-foreground group-hover:text-cyan-500 transition-colors">Live Stage Control</h4>
+                  <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">Live Stage Control</h4>
                   <p className="text-xs text-muted-foreground mt-1">16-item agenda slide manager synchronized in real time with the hall projector.</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-cyan-500">
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-primary">
                   <span>{liveEventStatus} · Slide {currentSlideIndex + 1}/16</span>
                   <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </div>
@@ -1482,21 +1485,21 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               {/* Card 10: My Links */}
               <div
                 onClick={() => setTab("my-links")}
-                className="group rounded-2xl border border-border bg-card p-5 hover:border-cyan-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between sm:col-span-2 lg:col-span-3"
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between sm:col-span-2 lg:col-span-3"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-500/15 text-cyan-400">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <Link2 className="h-6 w-6" />
                     </div>
                     <div>
                       <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 10</span>
-                      <h4 className="font-bold text-base text-foreground mt-0.5 group-hover:text-cyan-400 transition-colors">My Links & Dynamic QR Generator</h4>
+                      <h4 className="font-bold text-base text-foreground mt-0.5 group-hover:text-primary transition-colors">My Links & Dynamic QR Generator</h4>
                       <p className="text-xs text-muted-foreground mt-0.5">Visitor registration link, live projector presentation URL, and branded PNG QR code download.</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-cyan-400 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                    <span className="text-xs font-semibold text-primary group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
                       Open Links Desk <ChevronRight className="h-4 w-4" />
                     </span>
                   </div>
@@ -1683,7 +1686,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <Button
                     onClick={handleSaveEventSetup}
                     disabled={savingEventSetup}
-                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold gap-2"
+                    className="gap-2 font-semibold shadow-xs"
                   >
                     <Save className="h-4 w-4" />
                     <span>{savingEventSetup ? "Saving to MongoDB..." : "Save Event Setup"}</span>
@@ -1760,7 +1763,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                       <tr key={a.id} className="hover:bg-muted/30 transition-colors">
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="h-8 w-8 rounded-full bg-cyan-500/20 text-cyan-400 font-bold flex items-center justify-center shrink-0">
+                            <div className="h-8 w-8 rounded-full bg-primary-soft text-primary font-bold flex items-center justify-center shrink-0">
                               {a.name.slice(0, 1).toUpperCase()}
                             </div>
                             <div>
@@ -1900,7 +1903,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             <div className="mt-6 flex justify-end">
               <Button
                 onClick={handleSaveTeamRoles}
-                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold gap-2"
+                className="gap-2 font-semibold shadow-xs"
               >
                 <Save className="h-4 w-4" />
                 <span>Save Team Assignments</span>
@@ -1914,18 +1917,18 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {currentTab === "live-control" && (
         <div className="space-y-6">
           {/* Executive Command Header */}
-          <div className="rounded-2xl border border-slate-800 bg-[#070b14] p-6 shadow-2xl text-slate-100">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-5 mb-6">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs text-foreground">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/60 pb-5 mb-6">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shadow-sm">
+                  <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary shadow-xs">
                     <Radio className="h-5 w-5 animate-pulse" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-white tracking-tight">
+                    <h2 className="text-xl font-bold text-foreground tracking-tight">
                       Live Stage & Projector Command Center
                     </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Real-time AV synchronization · Stage speaker countdown clock · Live audience ticker
                     </p>
                   </div>
@@ -1938,19 +1941,19 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   size="sm"
                   variant="outline"
                   onClick={handlePlayStageChime}
-                  className="bg-slate-900/90 border-slate-700 text-amber-300 hover:bg-amber-500/10 hover:border-amber-400 text-xs h-9 gap-1.5 shadow-sm"
+                  className="border-border text-foreground hover:bg-muted text-xs h-9 gap-1.5 shadow-xs"
                 >
-                  <Bell className="h-3.5 w-3.5 text-amber-400" /> Ring Stage Chime
+                  <Bell className="h-3.5 w-3.5 text-amber-500" /> Ring Stage Chime
                 </Button>
 
                 {/* Status Selector */}
-                <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status:</span>
+                <div className="flex items-center gap-2 bg-muted/60 px-3 py-1.5 rounded-xl border border-border">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Status:</span>
                   <Select value={liveEventStatus} onValueChange={(val) => handleStageStatusChange(val)}>
-                    <SelectTrigger className="w-28 h-7 text-xs bg-slate-950 border-slate-700 text-white font-bold">
+                    <SelectTrigger className="w-28 h-7 text-xs bg-background border-border text-foreground font-bold">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-950 border-slate-800 text-white">
+                    <SelectContent className="bg-card border-border text-foreground">
                       <SelectItem value="LIVE">🟢 LIVE</SelectItem>
                       <SelectItem value="PAUSED">🟡 PAUSED</SelectItem>
                       <SelectItem value="IDLE">⚪ IDLE</SelectItem>
@@ -1963,7 +1966,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <Button
                   size="sm"
                   asChild
-                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 gap-1.5 shadow-lg shadow-cyan-500/20"
+                  className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
                 >
                   <Link href={projectorUrl} target="_blank">
                     <ExternalLink className="h-3.5 w-3.5" /> Open Projector Screen
@@ -1973,10 +1976,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             </div>
 
             {/* Projector Display Mode Selector */}
-            <div className="mb-6 p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="mb-6 p-3 rounded-xl bg-muted/40 border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Tv className="h-4 w-4 text-cyan-400" />
-                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                <Tv className="h-4 w-4 text-primary" />
+                <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
                   Projector Screen Mode:
                 </span>
               </div>
@@ -1991,15 +1994,15 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     key={m.key}
                     onClick={() => handleSwitchProjectorMode(m.key)}
                     className={cn(
-                      "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
+                      "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer",
                       projectorMode === m.key
-                        ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
-                        : "bg-slate-950/80 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-card border border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted"
                     )}
                   >
                     <span>{m.label}</span>
                     {projectorMode === m.key && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-ping" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-ping" />
                     )}
                   </button>
                 ))}
@@ -2012,18 +2015,18 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               <div className="lg:col-span-2 space-y-5">
                 {/* Confidence Monitor Box */}
                 <div className="p-6 rounded-2xl bg-[#040711] border border-slate-800/90 text-white shadow-2xl flex flex-col justify-between min-h-[360px] relative overflow-hidden">
-                  <div className="absolute top-0 left-1/4 right-1/4 h-[2px] bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent" />
+                  <div className="absolute top-0 left-1/4 right-1/4 h-[2px] bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
 
                   {/* Monitor Top Meta */}
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 border-b border-slate-800/80 pb-3">
                     <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                      <span className="font-mono font-bold text-cyan-400 uppercase tracking-widest text-[11px]">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="font-mono font-bold text-slate-200 uppercase tracking-widest text-[11px]">
                         LIVE STAGE MONITOR · SLIDE {currentSlideIndex + 1} OF {agenda.length}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-[10px] uppercase font-bold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-primary font-mono text-[10px] uppercase font-bold">
                         MODE: {projectorMode}
                       </span>
                       <span className={cn(
@@ -2039,14 +2042,14 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <div className="py-6 space-y-4">
                     {/* Current on Stage */}
                     <div className="text-center space-y-1.5">
-                      <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[2px]">
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-[2px]">
                         CURRENT ON STAGE
                       </span>
                       <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
                         {agenda[currentSlideIndex]?.title}
                       </h3>
                       <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs">
-                        <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-cyan-300 font-bold">
+                        <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-sky-200 font-bold">
                           Speaker: {agenda[currentSlideIndex]?.speaker}
                         </span>
                         <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-400 font-mono">
@@ -2067,7 +2070,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                             ? "text-rose-400 bg-rose-500/10 border border-rose-500/30 animate-pulse"
                             : stageTimerSeconds <= 120
                             ? "text-amber-400 bg-amber-500/10 border border-amber-500/30"
-                            : "text-cyan-400 bg-cyan-500/10 border border-cyan-500/20"
+                            : "text-primary bg-primary/10 border border-primary/20"
                         )}>
                           {formatTimerDisplay(stageTimerSeconds)}
                         </div>
@@ -2105,7 +2108,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                             size="sm"
                             variant="outline"
                             onClick={() => handleAdjustTimer(60)}
-                            className="border-slate-700 text-cyan-300 hover:bg-slate-800 text-xs h-7 px-2"
+                            className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-7 px-2"
                           >
                             +1m
                           </Button>
@@ -2114,7 +2117,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                             size="sm"
                             variant="outline"
                             onClick={() => handleAdjustTimer(300)}
-                            className="border-slate-700 text-cyan-300 hover:bg-slate-800 text-xs h-7 px-2"
+                            className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-7 px-2"
                           >
                             +5m
                           </Button>
@@ -2155,7 +2158,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                       size="sm"
                       disabled={currentSlideIndex === agenda.length - 1}
                       onClick={handleNextSlide}
-                      className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 gap-1.5"
+                      className="font-semibold text-xs h-9 gap-1.5"
                     >
                       Next Slide <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -2163,17 +2166,17 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 </div>
 
                 {/* Live Hall Announcements & Breaking Ticker */}
-                <div className="p-5 rounded-2xl bg-slate-950/70 border border-slate-800 shadow-sm space-y-3">
+                <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Megaphone className="h-4 w-4 text-cyan-400" />
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                      <Megaphone className="h-4 w-4 text-primary" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
                         Live Projector Ticker & Stage Announcements
                       </h4>
                     </div>
                     {activeTicker && (
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                         Ticker Active
                       </span>
                     )}
@@ -2185,13 +2188,13 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                       value={liveAnnouncement}
                       onChange={(e) => setLiveAnnouncement(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleBroadcastAnnouncement()}
-                      className="text-xs h-9 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 flex-1"
+                      className="text-xs h-9 bg-background border-border text-foreground placeholder:text-muted-foreground flex-1"
                     />
                     <div className="flex items-center gap-1.5 w-full sm:w-auto">
                       <Button
                         size="sm"
                         onClick={() => handleBroadcastAnnouncement()}
-                        className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 px-3 gap-1 flex-1 sm:flex-none"
+                        className="font-semibold text-xs h-9 px-3 gap-1 flex-1 sm:flex-none"
                       >
                         <Send className="h-3.5 w-3.5" /> Broadcast
                       </Button>
@@ -2200,7 +2203,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                           size="sm"
                           variant="outline"
                           onClick={handleClearAnnouncement}
-                          className="border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 text-xs h-9 px-3"
+                          className="border-border text-muted-foreground hover:text-foreground hover:bg-muted text-xs h-9 px-3"
                         >
                           Clear
                         </Button>
@@ -2210,7 +2213,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
                   {/* Quick Preset Announcement Chips */}
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase mr-1">Presets:</span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase mr-1">Presets:</span>
                     {[
                       "☕ High Tea is being served in Banquet Hall",
                       "📵 Please turn mobile phones to silent mode",
@@ -2224,7 +2227,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                           setLiveAnnouncement(preset);
                           handleBroadcastAnnouncement(preset);
                         }}
-                        className="px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-slate-300 transition-all truncate max-w-[240px]"
+                        className="px-2.5 py-1 rounded-md bg-muted/60 hover:bg-muted border border-border text-[11px] text-muted-foreground hover:text-foreground transition-all truncate max-w-[240px] cursor-pointer"
                       >
                         {preset}
                       </button>
@@ -2233,8 +2236,8 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
                   {/* Active Ticker Preview */}
                   {activeTicker && (
-                    <div className="p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-500/30 flex items-center gap-2 text-xs text-cyan-300">
-                      <span className="font-mono font-black text-[10px] px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 uppercase">
+                    <div className="p-2.5 rounded-xl bg-primary-soft border border-primary/20 flex items-center gap-2 text-xs text-primary">
+                      <span className="font-mono font-black text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground uppercase">
                         ON SCREEN
                       </span>
                       <span className="font-semibold truncate">{activeTicker}</span>
@@ -2247,17 +2250,17 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <Button
                     variant="outline"
                     onClick={handleRefreshProjector}
-                    className="flex-1 text-xs h-9 gap-1.5 bg-slate-900/60 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800"
+                    className="flex-1 text-xs h-9 gap-1.5 border-border text-foreground hover:bg-muted"
                   >
                     <RefreshCw className="h-3.5 w-3.5" /> Refresh Projector Screen
                   </Button>
                   <Button
                     variant="outline"
                     asChild
-                    className="flex-1 text-xs h-9 gap-1.5 bg-slate-900/60 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800"
+                    className="flex-1 text-xs h-9 gap-1.5 border-border text-foreground hover:bg-muted"
                   >
                     <Link href={projectorUrl} target="_blank">
-                      <ExternalLink className="h-3.5 w-3.5 text-cyan-400" /> Open Screen in New Window
+                      <ExternalLink className="h-3.5 w-3.5 text-primary" /> Open Screen in New Window
                     </Link>
                   </Button>
                 </div>
@@ -2266,16 +2269,16 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               {/* Right Col: Agenda Schedule & Stage Notes */}
               <div className="space-y-4">
                 {/* Agenda List Card */}
-                <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                <div className="p-4 rounded-2xl bg-card border border-border shadow-xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
                       Agenda Schedule ({agenda.length})
                     </h4>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setAddSlideModalOpen(true)}
-                      className="border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 text-[11px] h-7 px-2.5 gap-1"
+                      className="border-border text-foreground hover:bg-muted text-[11px] h-7 px-2.5 gap-1"
                     >
                       <Plus className="h-3 w-3" /> Add Slide
                     </Button>
@@ -2287,27 +2290,27 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                         key={item.id || idx}
                         onClick={() => broadcastSlide(idx)}
                         className={cn(
-                          "w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between gap-2",
+                          "w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between gap-2 cursor-pointer",
                           idx === currentSlideIndex
-                            ? "bg-cyan-500/15 border-cyan-500/50 text-cyan-300 font-bold shadow-sm"
-                            : "border-slate-800/80 bg-slate-900/40 hover:bg-slate-800/60 text-slate-400"
+                            ? "bg-primary/10 border-primary text-primary font-bold shadow-xs"
+                            : "border-border/70 bg-card hover:bg-muted/60 text-muted-foreground hover:text-foreground"
                         )}
                       >
                         <div className="truncate">
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono text-[10px] opacity-70">{idx + 1}.</span>
-                            <span className="font-semibold text-slate-200">{item.title}</span>
+                            <span className="font-semibold text-foreground">{item.title}</span>
                           </div>
-                          <div className="text-[10px] text-slate-500 pl-4 truncate">
+                          <div className="text-[10px] text-muted-foreground pl-4 truncate">
                             {item.speaker || "General Session"}
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[10px] font-mono opacity-80 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                          <span className="text-[10px] font-mono opacity-80 bg-muted px-2 py-0.5 rounded border border-border">
                             {item.duration}
                           </span>
                           {idx === currentSlideIndex && (
-                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950">
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-primary text-primary-foreground">
                               LIVE
                             </span>
                           )}
@@ -2318,16 +2321,16 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 </div>
 
                 {/* Moderator / MC Teleprompter Stage Notes */}
-                <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 shadow-sm space-y-3">
+                <div className="p-4 rounded-2xl bg-card border border-border shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
                       Anchor & Moderator Notes
                     </h4>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={handleSaveModeratorNotes}
-                      className="border-slate-700 text-xs h-6 px-2 text-cyan-400 hover:bg-slate-800"
+                      className="border-border text-xs h-6 px-2 text-primary hover:bg-muted"
                     >
                       Save Notes
                     </Button>
@@ -2337,9 +2340,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     value={moderatorNotes}
                     onChange={(e) => setModeratorNotes(e.target.value)}
                     rows={4}
-                    className="text-xs bg-slate-900 border-slate-800 text-white placeholder:text-slate-500"
+                    className="text-xs bg-background border-border text-foreground placeholder:text-muted-foreground"
                   />
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-muted-foreground">
                     Notes are persisted to MongoDB and visible to stage coordinators.
                   </p>
                 </div>
@@ -2367,7 +2370,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               <div className="flex items-center gap-2">
                 <Button
                   onClick={() => setFinanceDialogOpen(true)}
-                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 gap-1.5 shadow-sm"
+                  className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add Transaction</span>
@@ -2405,11 +2408,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   ₹{(financeRecords.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0).toLocaleString("en-IN")}
                 </span>
               </div>
-              <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 block">
+              <div className="p-4 rounded-xl bg-primary-soft border border-primary/20">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-primary block">
                   Net Event Balance
                 </span>
-                <span className="text-2xl font-black text-cyan-600 font-mono mt-1 block">
+                <span className="text-2xl font-black text-primary font-mono mt-1 block">
                   ₹{(
                     (financeRecords.moneyIn || []).reduce((s, i) => s + (Number(i.amount) || 0), 0) -
                     (financeRecords.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0)
@@ -2633,7 +2636,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <Button
                     type="submit"
                     disabled={submittingFinance}
-                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
+                    className="font-semibold text-xs shadow-xs"
                   >
                     {submittingFinance ? "Saving..." : "Record Transaction"}
                   </Button>
@@ -2661,7 +2664,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
               <Button
                 onClick={() => setSpeakerDialogOpen(true)}
-                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 gap-1.5"
+                className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
               >
                 <Plus className="h-4 w-4" />
                 <span>Add Dignitary / Speaker</span>
@@ -2679,7 +2682,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     key={s.id}
                     className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all flex items-start gap-3.5"
                   >
-                    <div className="h-12 w-12 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center font-black text-lg shrink-0">
+                    <div className="h-12 w-12 rounded-xl bg-primary-soft text-primary flex items-center justify-center font-black text-lg shrink-0">
                       {(s.name || "S").slice(0, 1)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -2829,7 +2832,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <Button
                     type="submit"
                     disabled={savingSpeaker}
-                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
+                    className="font-semibold text-xs shadow-xs"
                   >
                     {savingSpeaker ? "Saving..." : "Save Speaker"}
                   </Button>
@@ -2840,57 +2843,57 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
           {/* Add Custom Agenda Slide Dialog */}
           <Dialog open={addSlideModalOpen} onOpenChange={setAddSlideModalOpen}>
-            <DialogContent className="sm:max-w-md bg-slate-950 border-slate-800 text-white">
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                  <Plus className="h-4 w-4 text-cyan-400" /> Add Agenda Item / Slide
+                <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                  <Plus className="h-4 w-4 text-primary" /> Add Agenda Item / Slide
                 </DialogTitle>
-                <DialogDescription className="text-xs text-slate-400">
+                <DialogDescription className="text-xs text-muted-foreground">
                   Insert a custom presentation slide into the meeting agenda in real-time.
                 </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleAddCustomSlide} className="space-y-3.5 py-2">
                 <div>
-                  <Label className="text-xs font-semibold text-slate-300">Slide / Session Title *</Label>
+                  <Label className="text-xs font-semibold text-foreground">Slide / Session Title *</Label>
                   <Input
                     placeholder="e.g. Special Felicitation & MOU Signing"
                     value={newSlideForm.title}
                     onChange={(e) => setNewSlideForm((prev) => ({ ...prev, title: e.target.value }))}
-                    className="mt-1 bg-slate-900 border-slate-700 text-white text-xs h-8"
+                    className="mt-1 text-xs h-8"
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs font-semibold text-slate-300">Allocated Duration</Label>
+                    <Label className="text-xs font-semibold text-foreground">Allocated Duration</Label>
                     <Input
                       placeholder="e.g. 15 min"
                       value={newSlideForm.duration}
                       onChange={(e) => setNewSlideForm((prev) => ({ ...prev, duration: e.target.value }))}
-                      className="mt-1 bg-slate-900 border-slate-700 text-white text-xs h-8"
+                      className="mt-1 text-xs h-8"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-semibold text-slate-300">Speaker / In-Charge</Label>
+                    <Label className="text-xs font-semibold text-foreground">Speaker / In-Charge</Label>
                     <Input
                       placeholder="e.g. Guest Speaker"
                       value={newSlideForm.speaker}
                       onChange={(e) => setNewSlideForm((prev) => ({ ...prev, speaker: e.target.value }))}
-                      className="mt-1 bg-slate-900 border-slate-700 text-white text-xs h-8"
+                      className="mt-1 text-xs h-8"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-xs font-semibold text-slate-300">Stage / Anchor Notes</Label>
+                  <Label className="text-xs font-semibold text-foreground">Stage / Anchor Notes</Label>
                   <Textarea
                     placeholder="Cue notes or instructions for the stage coordinator..."
                     value={newSlideForm.notes}
                     onChange={(e) => setNewSlideForm((prev) => ({ ...prev, notes: e.target.value }))}
                     rows={2}
-                    className="mt-1 bg-slate-900 border-slate-700 text-white text-xs"
+                    className="mt-1 text-xs"
                   />
                 </div>
 
@@ -2899,13 +2902,13 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     type="button"
                     variant="outline"
                     onClick={() => setAddSlideModalOpen(false)}
-                    className="text-xs border-slate-700 text-slate-300 hover:bg-slate-800"
+                    className="text-xs"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
+                    className="font-semibold text-xs shadow-xs"
                   >
                     Add Slide
                   </Button>
@@ -2921,12 +2924,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {/* ========================================================================= */}
       {currentTab === "follow-up" && (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-cyan-500/20 bg-card p-6 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
             {/* Mode Selector Toggle */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
               <div>
                 <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  <MessageSquareText className="h-5 w-5 text-cyan-500" />
+                  <MessageSquareText className="h-5 w-5 text-primary" />
                   Follow-up Operations Command Desk
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -2940,9 +2943,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   type="button"
                   onClick={() => setFollowupMode("event")}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                     followupMode === "event"
-                      ? "bg-cyan-500 text-slate-950 shadow-xs"
+                      ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -2952,9 +2955,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   type="button"
                   onClick={() => setFollowupMode("membership")}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                     followupMode === "membership"
-                      ? "bg-cyan-500 text-slate-950 shadow-xs"
+                      ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -2980,9 +2983,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                       {followupStats.event.pending || 0}
                     </p>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-500">CONTACTED</p>
-                    <p className="text-xl font-black text-cyan-500 mt-0.5 tabular-nums">
+                  <div className="p-3.5 rounded-xl bg-primary-soft border border-primary/20 text-center">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary">CONTACTED</p>
+                    <p className="text-xl font-black text-primary mt-0.5 tabular-nums">
                       {followupStats.event.contacted || 0}
                     </p>
                   </div>
@@ -3001,10 +3004,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 </div>
 
                 {/* Follow-up Message Composer */}
-                <div className="p-4 rounded-xl border border-cyan-500/30 bg-[#0B1F33]/40 space-y-3">
+                <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5" /> Follow-up Message Composer
+                    <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" /> Follow-up Message Composer
                     </h4>
                     <span className="text-[10px] text-muted-foreground font-mono">
                       Placeholders: {"{name}"}, {"{company}"}, {"{event}"}, {"{chapter}"}
@@ -3015,7 +3018,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     rows={2}
                     value={customFollowupMessage}
                     onChange={(e) => setCustomFollowupMessage(e.target.value)}
-                    className="text-xs"
+                    className="text-xs bg-background"
                   />
 
                   <div className="flex items-center justify-between text-xs pt-1">
@@ -3028,7 +3031,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                         navigator.clipboard.writeText(customFollowupMessage);
                         toast.success("Message template copied!");
                       }}
-                      className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold h-7 text-xs gap-1"
+                      className="font-semibold h-7 text-xs gap-1 shadow-xs"
                     >
                       <Copy className="h-3 w-3" /> Copy Template
                     </Button>
@@ -3078,7 +3081,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                           toast.error("Sync failed");
                         }
                       }}
-                      className="h-9 text-xs gap-1.5 text-cyan-600 border-cyan-500/30 font-semibold"
+                      className="h-9 text-xs gap-1.5 text-primary border-primary/30 hover:bg-primary/10 font-semibold"
                     >
                       <RefreshCw className="h-3.5 w-3.5" /> Sync Attendees
                     </Button>
@@ -3100,11 +3103,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     return (
                       <div
                         key={item._id}
-                        className="p-4 rounded-xl border border-border bg-card hover:border-cyan-500/30 transition-all space-y-3"
+                        className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all space-y-3"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-cyan-500/10 text-cyan-500 font-bold flex items-center justify-center shrink-0 text-sm">
+                            <div className="h-10 w-10 rounded-full bg-primary-soft text-primary font-bold flex items-center justify-center shrink-0 text-sm">
                               {name ? name.slice(0, 1).toUpperCase() : "P"}
                             </div>
                             <div>
@@ -3119,7 +3122,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                               item.status === "completed"
                                 ? "bg-emerald-500/15 text-emerald-500"
                                 : item.status === "contacted"
-                                ? "bg-cyan-500/15 text-cyan-500"
+                                ? "bg-primary-soft text-primary"
                                 : item.status === "interested"
                                 ? "bg-blue-500/15 text-blue-500"
                                 : "bg-amber-500/15 text-amber-500"
@@ -3145,7 +3148,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                             </div>
                           )}
                           {item.history && item.history.length > 0 && (
-                            <div className="col-span-2 text-[10px] text-cyan-500 bg-cyan-500/10 p-1.5 rounded border border-cyan-500/20">
+                            <div className="col-span-2 text-[10px] text-primary bg-primary-soft p-1.5 rounded border border-primary/20">
                               Latest: {item.history[item.history.length - 1].method?.toUpperCase()} on{" "}
                               {new Date(item.history[item.history.length - 1].contactedAt).toLocaleDateString()}
                               {item.history[item.history.length - 1].notes && ` - "${item.history[item.history.length - 1].notes}"`}
@@ -3188,7 +3191,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                                 });
                                 setHistoryModalOpen(true);
                               }}
-                              className="h-7 text-xs px-2 gap-1 text-cyan-600 border-cyan-500/30 font-semibold"
+                              className="h-7 text-xs px-2 gap-1 text-primary border-border font-semibold"
                             >
                               <PhoneCall className="h-3 w-3" /> Log
                             </Button>
@@ -3249,10 +3252,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 </div>
 
                 {/* Membership Follow-up Message Composer */}
-                <div className="p-4 rounded-xl border border-blue-500/30 bg-[#0B1F33]/40 space-y-3">
+                <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5" /> Membership Conversion Composer
+                    <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" /> Membership Conversion Composer
                     </h4>
                     <span className="text-[10px] text-muted-foreground font-mono">
                       Placeholders: {"{name}"}, {"{status}"}, {"{expiry}"}
@@ -3263,7 +3266,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     rows={2}
                     value={membershipCustomMessage}
                     onChange={(e) => setMembershipCustomMessage(e.target.value)}
-                    className="text-xs"
+                    className="text-xs bg-background"
                   />
 
                   <div className="flex items-center justify-end gap-2 pt-1">
@@ -3273,7 +3276,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                         navigator.clipboard.writeText(membershipCustomMessage);
                         toast.success("Membership template copied!");
                       }}
-                      className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold h-7 text-xs gap-1"
+                      className="font-semibold h-7 text-xs gap-1 shadow-xs"
                     >
                       <Copy className="h-3 w-3" /> Copy
                     </Button>
@@ -3317,14 +3320,14 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                       return (
                         <div
                           key={item._id}
-                          className="p-4 rounded-xl border border-border bg-card hover:border-blue-500/30 transition-all space-y-2.5"
+                          className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all space-y-2.5"
                         >
                           <div className="flex items-start justify-between">
                             <div>
                               <h4 className="font-bold text-sm text-foreground">{name}</h4>
                               <p className="text-xs text-muted-foreground">{company}</p>
                             </div>
-                            <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-bold">
+                            <span className="px-2 py-0.5 rounded bg-primary-soft text-primary text-[10px] font-bold">
                               {membershipStatus}
                             </span>
                           </div>
@@ -3342,7 +3345,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                               Status: <span className="font-bold text-foreground capitalize">{item.status}</span>
                             </div>
                             {item.history && item.history.length > 0 && (
-                              <div className="col-span-2 text-[10px] text-cyan-500 bg-cyan-500/10 p-1.5 rounded border border-cyan-500/20">
+                              <div className="col-span-2 text-[10px] text-primary bg-primary-soft p-1.5 rounded border border-primary/20">
                                 Latest: {item.history[item.history.length - 1].method?.toUpperCase()} on{" "}
                                 {new Date(item.history[item.history.length - 1].contactedAt).toLocaleDateString()}
                               </div>
@@ -3384,7 +3387,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                                   });
                                   setHistoryModalOpen(true);
                                 }}
-                                className="h-7 text-xs px-2 gap-1 text-cyan-600 border-cyan-500/30 font-semibold"
+                                className="h-7 text-xs px-2 gap-1 text-primary border-border font-semibold"
                               >
                                 <PhoneCall className="h-3 w-3" /> Log
                               </Button>
@@ -3508,7 +3511,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <Button
                     type="submit"
                     disabled={submittingHistory}
-                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
+                    className="font-semibold text-xs shadow-xs"
                   >
                     {submittingHistory ? "Saving..." : "Save to History"}
                   </Button>
@@ -3566,7 +3569,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <Button
                       size="sm"
                       onClick={() => toast.success(`Downloaded ${doc.title}`)}
-                      className="flex-1 text-xs h-8 gap-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold"
+                      className="flex-1 text-xs h-8 gap-1 font-semibold shadow-xs"
                     >
                       <Download className="h-3.5 w-3.5" /> Download
                     </Button>
@@ -3629,11 +3632,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {/* ========================================================================= */}
       {currentTab === "my-links" && (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-cyan-500/20 bg-card p-6 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
               <div>
                 <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  <Link2 className="h-5 w-5 text-cyan-500" />
+                  <Link2 className="h-5 w-5 text-primary" />
                   MY CHAPTER LINKS
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -3643,7 +3646,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
               <Button
                 onClick={handleCopyAllLinks}
-                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 gap-1.5 shadow-sm"
+                className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
               >
                 <Copy className="h-3.5 w-3.5" />
                 <span>Copy All My Links</span>
@@ -3654,11 +3657,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               {/* Left 2 Columns: The Links */}
               <div className="lg:col-span-2 space-y-4">
                 {/* 1. Chapter Member Link */}
-                <div className="p-5 rounded-xl border border-border bg-card/60 space-y-2 hover:border-cyan-500/30 transition-all">
+                <div className="p-5 rounded-xl border border-border bg-card/60 space-y-2 hover:border-primary/40 transition-all">
                   <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-500 text-[10px] font-bold uppercase">
-                      PUBLIC REGISTRATION LINK
-                    </span>
+                    <Pill tone="primary">PUBLIC REGISTRATION LINK</Pill>
                     <span className="text-[11px] text-muted-foreground">Everyone — members & guests</span>
                   </div>
                   <h4 className="font-bold text-sm text-foreground">Chapter Registration & Event Details</h4>
@@ -3707,18 +3708,16 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 </div>
 
                 {/* 2. Projector Link */}
-                <div className="p-5 rounded-xl border border-border bg-card/60 space-y-2 hover:border-cyan-500/30 transition-all">
+                <div className="p-5 rounded-xl border border-border bg-card/60 space-y-2 hover:border-primary/40 transition-all">
                   <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-bold uppercase">
-                      PROJECTOR LINK
-                    </span>
+                    <Pill tone="neutral">PROJECTOR LINK</Pill>
                     <span className="text-[11px] text-muted-foreground">Projector — open on the hall screen</span>
                   </div>
                   <h4 className="font-bold text-sm text-foreground">Live Presentation & Stage Screen</h4>
                   <p className="text-xs text-muted-foreground">
                     Dedicated 1920x1080 stage view synced in real-time via Socket.IO. Read-only presentation.
                   </p>
-                  <p className="font-mono text-xs text-blue-500 bg-muted p-2 rounded truncate">
+                  <p className="font-mono text-xs text-primary bg-muted p-2 rounded truncate">
                     {projectorUrl}
                   </p>
                   <div className="flex items-center gap-2 pt-2">
@@ -3798,7 +3797,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             <Button variant="outline" size="sm" onClick={() => setEditingNoteItem(null)}>
               Cancel
             </Button>
-            <Button size="sm" onClick={handleSaveNote} className="bg-cyan-500 text-slate-950 font-bold">
+            <Button size="sm" onClick={handleSaveNote} className="font-semibold shadow-xs">
               Save Note
             </Button>
           </DialogFooter>
