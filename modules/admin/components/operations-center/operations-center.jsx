@@ -15,6 +15,7 @@ import {
   FileStack,
   ChartNoAxesColumn,
   Link2,
+  Gauge,
   Phone,
   PhoneCall,
   Mail,
