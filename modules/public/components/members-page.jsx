@@ -7,6 +7,7 @@ import { roleApi, stateApi, chapterApi } from "@shared/lib/api-services";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Award, Building2, ShieldCheck, MapPin } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { Button } from "@shared/components/ui/button";
 
 export function MembersDirectoryPage() {
   const [levelFilter, setLevelFilter] = useState("all");
