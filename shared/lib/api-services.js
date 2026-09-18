@@ -23,6 +23,11 @@ export const authApi = {
   completeOnboarding: (data) => apiClient("/auth/complete-onboarding", { method: "POST", body: JSON.stringify(data) }),
   sendRegisterOtp: (email) => apiClient("/auth/register-otp/send", { method: "POST", body: JSON.stringify({ email }) }),
   verifyRegisterOtp: (email, otp) => apiClient("/auth/register-otp/verify", { method: "POST", body: JSON.stringify({ email, otp }) }),
+  uploadPhoto: (file) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    return apiClient("/auth/upload-photo", { method: "POST", body: formData });
+  },
 };
 
 export const userApi = {

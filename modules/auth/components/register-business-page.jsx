@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe, FileText, X, Copy } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe, FileText, X, Copy, Camera, Image as ImageIcon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -141,6 +141,18 @@ function RegisterBusiness({ isAdmin = false }) {
   const [certDocNumber, setCertDocNumber] = useState("");
   const [certPreview, setCertPreview] = useState(null);
 
+  // 1. Business Logo Upload States
+  const [businessLogoFile, setBusinessLogoFile] = useState(null);
+  const [businessLogoPreview, setBusinessLogoPreview] = useState(null);
+  const [businessLogoUploading, setBusinessLogoUploading] = useState(false);
+  const businessLogoInputRef = useRef(null);
+
+  // 2. Businessman / Owner Profile Photo Upload States
+  const [ownerPhotoFile, setOwnerPhotoFile] = useState(null);
+  const [ownerPhotoPreview, setOwnerPhotoPreview] = useState(null);
+  const [ownerPhotoUploading, setOwnerPhotoUploading] = useState(false);
+  const ownerPhotoInputRef = useRef(null);
+
   // OTP Verification States (Forgot Password theme)
   const [otpSent, setOtpSent] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
@@ -161,6 +173,8 @@ function RegisterBusiness({ isAdmin = false }) {
     founded: "",
     employees: "11–50",
     about: "",
+    logo: "",
+    avatar: "",
     contactPerson: "",
     phone: "",
     businessEmail: "",
@@ -177,6 +191,88 @@ function RegisterBusiness({ isAdmin = false }) {
     timezone: typeof window !== "undefined" ? (Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata") : "Asia/Kolkata",
     region: "national",
   });
+
+  const handleBusinessLogoUpload = async (file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file (.jpg, .jpeg, .png, .webp, .svg).");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Business logo size must be less than 10 MB.");
+      return;
+    }
+
+    setBusinessLogoFile(file);
+    const localUrl = URL.createObjectURL(file);
+    setBusinessLogoPreview(localUrl);
+    setError("");
+
+    setBusinessLogoUploading(true);
+    try {
+      const res = await authApi.uploadPhoto(file);
+      const serverUrl = res?.data?.url || res?.data?.fileUrl || res?.url || res?.fileUrl;
+      if (serverUrl) {
+        setFormData((prev) => ({ ...prev, logo: serverUrl }));
+      }
+    } catch (uploadErr) {
+      console.warn("Logo upload warning (will retry on submit):", uploadErr);
+    } finally {
+      setBusinessLogoUploading(false);
+    }
+  };
+
+  const handleRemoveBusinessLogo = () => {
+    setBusinessLogoFile(null);
+    setBusinessLogoPreview(null);
+    setFormData((prev) => ({ ...prev, logo: "" }));
+    if (businessLogoInputRef.current) {
+      businessLogoInputRef.current.value = "";
+    }
+  };
+
+  const handleOwnerPhotoUpload = async (file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file (.jpg, .jpeg, .png, .webp).");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Personal photo size must be less than 10 MB.");
+      return;
+    }
+
+    setOwnerPhotoFile(file);
+    const localUrl = URL.createObjectURL(file);
+    setOwnerPhotoPreview(localUrl);
+    setError("");
+
+    setOwnerPhotoUploading(true);
+    try {
+      const res = await authApi.uploadPhoto(file);
+      const serverUrl = res?.data?.url || res?.data?.fileUrl || res?.url || res?.fileUrl;
+      if (serverUrl) {
+        setFormData((prev) => ({ ...prev, avatar: serverUrl }));
+      }
+    } catch (uploadErr) {
+      console.warn("Owner photo upload warning (will retry on submit):", uploadErr);
+    } finally {
+      setOwnerPhotoUploading(false);
+    }
+  };
+
+  const handleRemoveOwnerPhoto = () => {
+    setOwnerPhotoFile(null);
+    setOwnerPhotoPreview(null);
+    setFormData((prev) => ({ ...prev, avatar: "" }));
+    if (ownerPhotoInputRef.current) {
+      ownerPhotoInputRef.current.value = "";
+    }
+  };
 
   const { availableMainCategories, availableSubCategories } = React.useMemo(() => {
     const cats = Array.isArray(categoriesData) ? categoriesData : [];
@@ -474,6 +570,33 @@ function RegisterBusiness({ isAdmin = false }) {
         }
       }
 
+      // Ensure Business Logo and Owner Personal Photo are uploaded if selected
+      let finalLogoUrl = formData.logo || "";
+      if (businessLogoFile && !finalLogoUrl) {
+        try {
+          const logoRes = await authApi.uploadPhoto(businessLogoFile);
+          finalLogoUrl = logoRes?.data?.url || logoRes?.data?.fileUrl || logoRes?.url || logoRes?.fileUrl || "";
+          if (finalLogoUrl) {
+            setFormData((prev) => ({ ...prev, logo: finalLogoUrl }));
+          }
+        } catch (logoErr) {
+          console.warn("Logo upload notice during final submit:", logoErr);
+        }
+      }
+
+      let finalAvatarUrl = formData.avatar || "";
+      if (ownerPhotoFile && !finalAvatarUrl) {
+        try {
+          const avatarRes = await authApi.uploadPhoto(ownerPhotoFile);
+          finalAvatarUrl = avatarRes?.data?.url || avatarRes?.data?.fileUrl || avatarRes?.url || avatarRes?.fileUrl || "";
+          if (finalAvatarUrl) {
+            setFormData((prev) => ({ ...prev, avatar: finalAvatarUrl }));
+          }
+        } catch (avatarErr) {
+          console.warn("Owner personal photo upload notice during final submit:", avatarErr);
+        }
+      }
+
       // If Admin and Cash Payment
       if (isAdmin && paymentMethod === "cash") {
          await businessApi.createAdmin({
@@ -497,6 +620,8 @@ function RegisterBusiness({ isAdmin = false }) {
             region: formData.region || "national",
             membershipTier: tier,
             about: formData.about,
+            logo: finalLogoUrl,
+            avatar: finalAvatarUrl,
             amountCollected: planAmount
          });
          
@@ -528,6 +653,9 @@ function RegisterBusiness({ isAdmin = false }) {
         chapter: formData.chapter,
         membership: tier,
         about: formData.about,
+        logo: finalLogoUrl,
+        avatar: finalAvatarUrl,
+        ownerPhoto: finalAvatarUrl,
         taxId: isInternational ? (certDocNumber || "") : (formData.taxId || "").trim().toUpperCase(),
         dob: formData.dob || undefined,
         timezone: formData.timezone || (typeof window !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "Asia/Kolkata"),
@@ -1197,6 +1325,120 @@ function RegisterBusiness({ isAdmin = false }) {
                     </div>
                   )}
 
+                  {/* 1. Business Logo Upload (Optional) */}
+                  <div className="sm:col-span-2 space-y-2 rounded-2xl border border-slate-200/90 bg-slate-50/50 dark:bg-slate-800/40 dark:border-slate-800 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Label className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <Building2 className="h-4 w-4 text-primary" />
+                          Business Logo <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
+                        </Label>
+                      </div>
+                      {businessLogoPreview && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                          <CheckCircle2 className="h-3 w-3" /> Logo Attached
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      {businessLogoPreview ? (
+                        <div className="flex items-center gap-4 w-full bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+                          <div className="relative h-16 w-16 shrink-0 rounded-xl overflow-hidden border-2 border-primary/30 bg-muted grid place-items-center">
+                            <img
+                              src={businessLogoPreview}
+                              alt="Business Logo Preview"
+                              className="h-full w-full object-contain p-1"
+                            />
+                            {businessLogoUploading && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <Loader2 className="h-5 w-5 animate-spin text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                              {businessLogoFile?.name || "Business Logo"}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {businessLogoUploading
+                                ? "Uploading logo..."
+                                : businessLogoFile?.size
+                                ? `${(businessLogoFile.size / 1024).toFixed(1)} KB · Ready`
+                                : "Ready"}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => businessLogoInputRef.current?.click()}
+                                disabled={businessLogoUploading}
+                                className="h-7 text-xs px-2.5 font-medium border-border"
+                              >
+                                Change Logo
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleRemoveBusinessLogo}
+                                disabled={businessLogoUploading}
+                                className="h-7 text-xs px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <X className="h-3.5 w-3.5 mr-1" />
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => businessLogoInputRef.current?.click()}
+                          className="w-full flex items-center gap-3.5 p-3.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
+                        >
+                          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                            {businessLogoUploading ? (
+                              <Loader2 className="h-6 w-6 animate-spin" />
+                            ) : (
+                              <Building2 className="h-6 w-6" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">
+                              Click to upload Company / Enterprise Logo
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              PNG, JPG, WEBP, SVG up to 10 MB (Displayed on your public business page)
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-8 text-xs px-3 shrink-0 pointer-events-none group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                          >
+                            <Upload className="h-3.5 w-3.5 mr-1" />
+                            Browse Logo
+                          </Button>
+                        </div>
+                      )}
+
+                      <input
+                        ref={businessLogoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleBusinessLogoUpload(file);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="bname">Business name *</Label>
                     <FastInput
@@ -1304,6 +1546,120 @@ function RegisterBusiness({ isAdmin = false }) {
             {step === 1 && (
               <Panel title="Contact & location">
                 <div className="grid gap-4 sm:grid-cols-2">
+                  {/* 2. Businessman / Owner Profile Photo (Personal Photo) */}
+                  <div className="sm:col-span-2 space-y-2 rounded-2xl border border-slate-200/90 bg-slate-50/50 dark:bg-slate-800/40 dark:border-slate-800 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Label className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <Camera className="h-4 w-4 text-primary" />
+                          Businessman / Owner Profile Photo <span className="text-muted-foreground font-normal text-xs">(Personal Photo - Optional)</span>
+                        </Label>
+                      </div>
+                      {ownerPhotoPreview && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                          <CheckCircle2 className="h-3 w-3" /> Photo Attached
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      {ownerPhotoPreview ? (
+                        <div className="flex items-center gap-4 w-full bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+                          <div className="relative h-16 w-16 shrink-0 rounded-full overflow-hidden border-2 border-primary/30 bg-muted grid place-items-center">
+                            <img
+                              src={ownerPhotoPreview}
+                              alt="Owner Profile Photo Preview"
+                              className="h-full w-full object-cover"
+                            />
+                            {ownerPhotoUploading && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <Loader2 className="h-5 w-5 animate-spin text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                              {ownerPhotoFile?.name || "Owner Profile Photo"}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {ownerPhotoUploading
+                                ? "Uploading personal photo..."
+                                : ownerPhotoFile?.size
+                                ? `${(ownerPhotoFile.size / 1024).toFixed(1)} KB · Ready`
+                                : "Ready"}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => ownerPhotoInputRef.current?.click()}
+                                disabled={ownerPhotoUploading}
+                                className="h-7 text-xs px-2.5 font-medium border-border"
+                              >
+                                Change Photo
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleRemoveOwnerPhoto}
+                                disabled={ownerPhotoUploading}
+                                className="h-7 text-xs px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <X className="h-3.5 w-3.5 mr-1" />
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => ownerPhotoInputRef.current?.click()}
+                          className="w-full flex items-center gap-3.5 p-3.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
+                        >
+                          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                            {ownerPhotoUploading ? (
+                              <Loader2 className="h-6 w-6 animate-spin" />
+                            ) : (
+                              <Camera className="h-6 w-6" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">
+                              Click to upload Businessman / Owner Personal Photo
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              PNG, JPG, WEBP up to 10 MB (Used for member avatar, directory badge, and chapter networking)
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-8 text-xs px-3 shrink-0 pointer-events-none group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                          >
+                            <Upload className="h-3.5 w-3.5 mr-1" />
+                            Browse Photo
+                          </Button>
+                        </div>
+                      )}
+
+                      <input
+                        ref={ownerPhotoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleOwnerPhotoUpload(file);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-1.5">
                     <Label htmlFor="cperson">Contact person *</Label>
                     <FastInput
