@@ -92,14 +92,12 @@ const navs = {
     title: "RIFAH administration",
     primary: [
       { label: "Overview", to: "/admin", icon: Gauge },
-      { label: "Operations Center", to: "/chapter-admin/event-setup", icon: Radio },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
       { label: "Users", to: "/admin/users", icon: Users },
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Operations Center Hub", to: "/admin/operations", icon: Radio },
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },

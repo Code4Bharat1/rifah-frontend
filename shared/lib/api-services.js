@@ -256,6 +256,8 @@ export const eventApi = {
     formData.append("cover", file);
     return apiClient(`/events/${id}/cover`, { method: "POST", body: formData });
   },
+  addFinanceTransaction: (id, data) =>
+    apiClient(`/events/${id}/finance`, { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const followupApi = {
@@ -267,6 +269,7 @@ export const followupApi = {
   updateStatus: (id, status, note) => apiClient(`/followups/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) }),
   addNote: (id, content) => apiClient(`/followups/${id}/note`, { method: "POST", body: JSON.stringify({ content }) }),
   logMessage: (id, channel, message) => apiClient(`/followups/${id}/message`, { method: "POST", body: JSON.stringify({ channel, message }) }),
+  addHistory: (id, data) => apiClient(`/followups/${id}/history`, { method: "POST", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/followups/${id}`, { method: "DELETE" }),
   syncFromEvent: (eventId) => apiClient(`/followups/sync-event/${eventId}`, { method: "POST" }),
   syncFromMembers: (chapter) => apiClient("/followups/sync/members", { method: "POST", body: JSON.stringify({ chapter }) }),

@@ -89,20 +89,45 @@ const DEFAULT_AGENDA = [
   { id: 16, title: "Event End / Networking & High Tea", duration: "30 min", speaker: "All Members" },
 ];
 
+const HORIZONTAL_MODULE_TABS = [
+  { key: "event-setup", label: "Event Setup", icon: CalendarPlus },
+  { key: "attendees", label: "Attendees", icon: Ticket },
+  { key: "my-team", label: "My Team", icon: ShieldCheck },
+  { key: "live-control", label: "Live Control", icon: Radio },
+  { key: "finance", label: "Finance", icon: CreditCard },
+  { key: "speakers-guests", label: "Speakers & Guests", icon: Mic },
+  { key: "follow-up", label: "Follow-up", icon: MessageSquareText },
+  { key: "documents", label: "Documents", icon: FileStack },
+  { key: "data", label: "Data", icon: ChartNoAxesColumn },
+  { key: "my-links", label: "My Links", icon: Link2 },
+  { key: "overview", label: "Chapter Overview", icon: Gauge },
+];
+
 export function OperationsCenter({ initialTab = "event-setup" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, logout } = useAuth();
 
-  // Active Tab: synchronized with URL param or prop
-  const currentTab = searchParams.get("tab") || initialTab;
+  // Active Tab: synchronized with URL param or prop + instant state update
+  const [activeTabState, setActiveTabState] = useState(initialTab || "event-setup");
+  useEffect(() => {
+    const urlTab = searchParams?.get("tab");
+    if (urlTab) {
+      setActiveTabState(urlTab);
+    } else if (initialTab) {
+      setActiveTabState(initialTab);
+    }
+  }, [initialTab, searchParams]);
+
   const setTab = (tabName) => {
-    if (tabName === "overview") {
+    setActiveTabState(tabName);
+    if (tabName === "overview" || tabName === "chapter-overview") {
       router.push("/chapter-admin");
     } else {
       router.push(`/chapter-admin/${tabName}`);
     }
   };
+  const currentTab = activeTabState;
 
   // Chapter Name
   const chapterName = user?.chapter || "Mumbai Chapter";
@@ -122,6 +147,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const [selectedEventId, setSelectedEventId] = useState("");
   const [activeEvent, setActiveEvent] = useState(null);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [backendKpis, setBackendKpis] = useState(null);
 
   // Follow-up State
   const [followupMode, setFollowupMode] = useState("event"); // "event" | "membership"
@@ -151,45 +177,53 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const [editingNoteItem, setEditingNoteItem] = useState(null);
   const [noteText, setNoteText] = useState("");
 
+  // History / Contact Modal State for Follow-ups
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyTarget, setHistoryTarget] = useState(null);
+  const [historyForm, setHistoryForm] = useState({
+    method: "call",
+    notes: "",
+    message: "",
+    status: "contacted",
+    nextFollowUpAt: "",
+  });
+  const [submittingHistory, setSubmittingHistory] = useState(false);
+
   // Agenda List
   const [agenda, setAgenda] = useState(DEFAULT_AGENDA);
 
   // Finance State
   const [financeRecords, setFinanceRecords] = useState({
-    moneyIn: [
-      { id: "in-1", desc: "Member Registrations", amount: 18500, from: "Event Gateway", method: "Online", date: "2026-09-18" },
-      { id: "in-2", desc: "Main Sponsorship", amount: 25000, from: "Al-Burooj Tech", method: "Bank Transfer", date: "2026-09-17" },
-    ],
-    moneyOut: [
-      { id: "out-1", desc: "Auditorium & Sound Hall", amount: 20000, to: "Grand Hall Venue", invoice: "INV-892", date: "2026-09-18" },
-      { id: "out-2", desc: "High Tea & Refreshments", amount: 7500, to: "Catering Desk", invoice: "INV-893", date: "2026-09-18" },
-    ],
-    treasurerNotes: "All early registrations reconciled with bank statements. Accounts in order.",
+    moneyIn: [],
+    moneyOut: [],
+    treasurerNotes: "All event collections and disbursements reconciled with bank statements.",
   });
+  const [financeDialogOpen, setFinanceDialogOpen] = useState(false);
+  const [financeForm, setFinanceForm] = useState({
+    type: "moneyIn",
+    desc: "",
+    amount: "",
+    from: "",
+    to: "",
+    method: "Online",
+    invoice: "",
+    date: new Date().toISOString().split("T")[0],
+  });
+  const [submittingFinance, setSubmittingFinance] = useState(false);
 
   // Speakers & Guests
-  const [speakers, setSpeakers] = useState([
-    {
-      id: "sp-1",
-      name: "Dr. Farhan Qureshi",
-      mobile: "9820123456",
-      type: "Guest Speaker",
-      org: "Islamic Chamber Institute",
-      designation: "Keynote Speaker",
-      topic: "Ethical Business Growth in Digital Era",
-      email: "farhan@example.com",
-    },
-    {
-      id: "sp-2",
-      name: "Irfan Merchant",
-      mobile: "9820987654",
-      type: "Hero of Event",
-      org: "Merchant Global Logistics",
-      designation: "Managing Director",
-      topic: "Supply Chain Excellence",
-      email: "irfan@example.com",
-    },
-  ]);
+  const [speakers, setSpeakers] = useState([]);
+  const [speakerDialogOpen, setSpeakerDialogOpen] = useState(false);
+  const [newSpeaker, setNewSpeaker] = useState({
+    name: "",
+    mobile: "",
+    email: "",
+    org: "",
+    designation: "",
+    type: "Guest Speaker",
+    topic: "",
+  });
+  const [savingSpeaker, setSavingSpeaker] = useState(false);
 
   // Team Roles
   const [teamRoles, setTeamRoles] = useState({
@@ -199,6 +233,22 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     treasurer: "Sameer Joshi",
     guestManager: "Ayesha Siddiqui",
   });
+
+  // Event Setup Form State
+  const [eventSetupForm, setEventSetupForm] = useState({
+    title: "",
+    summary: "",
+    date: "",
+    time: "",
+    venue: "",
+    memberFee: 0,
+    nonMemberFee: 500,
+    signatory1: "Mohammad Zaid",
+    signatory2: "Rashid Kamal",
+    theme: "gold",
+    scriptLanguage: "en",
+  });
+  const [savingEventSetup, setSavingEventSetup] = useState(false);
 
   // Load Events on Mount
   useEffect(() => {
@@ -274,17 +324,38 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     if (!eventId) return;
     try {
       const res = await eventApi.getOperations(eventId);
-      if (res?.data?.event) {
-        const ev = res.data.event;
-        setActiveEvent(ev);
-        if (ev.stageStatus) setLiveEventStatus(ev.stageStatus);
-        if (ev.currentSlideIndex !== undefined) setCurrentSlideIndex(ev.currentSlideIndex);
-        if (ev.speakers?.length) setSpeakers(ev.speakers);
-        if (ev.finance?.moneyIn?.length || ev.finance?.moneyOut?.length) {
-          setFinanceRecords({
-            moneyIn: ev.finance.moneyIn || [],
-            moneyOut: ev.finance.moneyOut || [],
-            treasurerNotes: ev.finance.treasurerNotes || "",
+      if (res?.data) {
+        if (res.data.kpis) {
+          setBackendKpis(res.data.kpis);
+        }
+        if (res.data.event) {
+          const ev = res.data.event;
+          setActiveEvent(ev);
+          if (ev.stageStatus) setLiveEventStatus(ev.stageStatus);
+          if (ev.currentSlideIndex !== undefined) setCurrentSlideIndex(ev.currentSlideIndex);
+          if (ev.speakers?.length) setSpeakers(ev.speakers);
+          if (ev.teamAssignments) {
+            setTeamRoles((prev) => ({ ...prev, ...ev.teamAssignments }));
+          }
+          if (ev.finance?.moneyIn?.length || ev.finance?.moneyOut?.length) {
+            setFinanceRecords({
+              moneyIn: ev.finance.moneyIn || [],
+              moneyOut: ev.finance.moneyOut || [],
+              treasurerNotes: ev.finance.treasurerNotes || "All event collections and disbursements reconciled with bank statements.",
+            });
+          }
+          setEventSetupForm({
+            title: ev.title || "",
+            summary: ev.summary || ev.slogan || "",
+            date: ev.date ? ev.date.split("T")[0] : "",
+            time: ev.time || "",
+            venue: ev.venue || "",
+            memberFee: ev.memberFee !== undefined ? ev.memberFee : 0,
+            nonMemberFee: ev.nonMemberFee !== undefined ? ev.nonMemberFee : 500,
+            signatory1: ev.signatories?.[0]?.name || "Mohammad Zaid",
+            signatory2: ev.signatories?.[1]?.name || "Rashid Kamal",
+            theme: ev.theme || "gold",
+            scriptLanguage: ev.scriptLanguage || "en",
           });
         }
       }
@@ -298,6 +369,173 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       fetchOperationsData(selectedEventId);
     }
   }, [selectedEventId]);
+
+  // Handlers for persisting state to MongoDB
+  const handleSaveEventSetup = async () => {
+    if (!selectedEventId) {
+      toast.error("Please select an active event first.");
+      return;
+    }
+    try {
+      setSavingEventSetup(true);
+      const payload = {
+        title: eventSetupForm.title,
+        summary: eventSetupForm.summary,
+        slogan: eventSetupForm.summary,
+        date: eventSetupForm.date,
+        time: eventSetupForm.time,
+        venue: eventSetupForm.venue,
+        memberFee: Number(eventSetupForm.memberFee) || 0,
+        nonMemberFee: Number(eventSetupForm.nonMemberFee) || 0,
+        signatories: [
+          { role: "Chapter President", name: eventSetupForm.signatory1 },
+          { role: "Secretary", name: eventSetupForm.signatory2 },
+        ],
+        theme: eventSetupForm.theme,
+        scriptLanguage: eventSetupForm.scriptLanguage,
+      };
+      await eventApi.updateOperations(selectedEventId, payload);
+      toast.success("Event setup updated and saved to MongoDB!");
+      fetchOperationsData(selectedEventId);
+    } catch (err) {
+      toast.error("Failed to save event setup: " + (err.message || "Unknown error"));
+    } finally {
+      setSavingEventSetup(false);
+    }
+  };
+
+  const handleSaveTeamRoles = async () => {
+    if (!selectedEventId) {
+      toast.error("Please select an active event first.");
+      return;
+    }
+    try {
+      await eventApi.updateOperations(selectedEventId, { teamAssignments: teamRoles });
+      toast.success("Team assignments saved to MongoDB!");
+    } catch (err) {
+      toast.error("Failed to save team assignments: " + (err.message || "Unknown error"));
+    }
+  };
+
+  const handleAddFinanceTransaction = async (e) => {
+    e?.preventDefault();
+    if (!selectedEventId) {
+      toast.error("No active event selected.");
+      return;
+    }
+    if (!financeForm.desc || !financeForm.amount) {
+      toast.error("Please enter a description and amount.");
+      return;
+    }
+    try {
+      setSubmittingFinance(true);
+      const payload = {
+        type: financeForm.type,
+        desc: financeForm.desc,
+        amount: Number(financeForm.amount),
+        from: financeForm.from,
+        to: financeForm.to,
+        method: financeForm.method,
+        invoice: financeForm.invoice,
+        date: financeForm.date,
+      };
+      const res = await eventApi.addFinanceTransaction(selectedEventId, payload);
+      if (res?.data) {
+        setFinanceRecords({
+          moneyIn: res.data.finance?.moneyIn || [],
+          moneyOut: res.data.finance?.moneyOut || [],
+          treasurerNotes: res.data.finance?.treasurerNotes || financeRecords.treasurerNotes,
+        });
+        toast.success(
+          `${financeForm.type === "moneyIn" ? "Collection" : "Expense"} of ₹${payload.amount} saved to MongoDB!`
+        );
+        setFinanceDialogOpen(false);
+        setFinanceForm({
+          type: "moneyIn",
+          desc: "",
+          amount: "",
+          from: "",
+          to: "",
+          method: "Online",
+          invoice: "",
+          date: new Date().toISOString().split("T")[0],
+        });
+        fetchOperationsData(selectedEventId);
+      }
+    } catch (err) {
+      toast.error("Failed to save transaction: " + (err.message || "Unknown error"));
+    } finally {
+      setSubmittingFinance(false);
+    }
+  };
+
+  const handleAddSpeaker = async (e) => {
+    e?.preventDefault();
+    if (!newSpeaker.name) {
+      toast.error("Please enter the speaker's name.");
+      return;
+    }
+    try {
+      setSavingSpeaker(true);
+      const updatedSpeakers = [
+        ...speakers,
+        {
+          id: `sp-${Date.now()}`,
+          ...newSpeaker,
+        },
+      ];
+      setSpeakers(updatedSpeakers);
+      if (selectedEventId) {
+        await eventApi.updateOperations(selectedEventId, { speakers: updatedSpeakers });
+      }
+      toast.success(`Speaker ${newSpeaker.name} saved to MongoDB!`);
+      setSpeakerDialogOpen(false);
+      setNewSpeaker({
+        name: "",
+        mobile: "",
+        email: "",
+        org: "",
+        designation: "",
+        type: "Guest Speaker",
+        topic: "",
+      });
+    } catch (err) {
+      toast.error("Failed to save speaker: " + (err.message || "Unknown error"));
+    } finally {
+      setSavingSpeaker(false);
+    }
+  };
+
+  const handleSaveFollowupHistory = async (e) => {
+    e?.preventDefault();
+    if (!historyTarget?._id) return;
+    try {
+      setSubmittingHistory(true);
+      await followupApi.addHistory(historyTarget._id, {
+        method: historyForm.method,
+        notes: historyForm.notes,
+        message: historyForm.message,
+        status: historyForm.status,
+        nextFollowUpAt: historyForm.nextFollowUpAt || undefined,
+        contactedBy: user?.name || "Chapter Admin",
+      });
+      toast.success(`Follow-up history logged for ${historyTarget.name || "participant"}!`);
+      setHistoryModalOpen(false);
+      setHistoryTarget(null);
+      setHistoryForm({
+        method: "call",
+        notes: "",
+        message: "",
+        status: "contacted",
+        nextFollowUpAt: "",
+      });
+      fetchFollowups();
+    } catch (err) {
+      toast.error("Failed to log history: " + (err.message || "Unknown error"));
+    } finally {
+      setSubmittingHistory(false);
+    }
+  };
 
   // Projector Controller Broadcaster with Backend Persistence
   const broadcastSlide = async (newIndex) => {
@@ -493,14 +731,15 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
   // Dynamic interpolated message
   const interpolateMessage = (template, item) => {
-    const name = item.contactDetails?.name || "Esteemed Colleague";
-    const company = item.contactDetails?.company || "Your Company";
-    const status = item.contactDetails?.membershipStatus || "Member";
-    const expiry = item.contactDetails?.membershipExpiryDate
-      ? new Date(item.contactDetails.membershipExpiryDate).toLocaleDateString()
+    const d = item?.contactDetails || item || {};
+    const name = item?.name || d.name || "Esteemed Colleague";
+    const company = item?.company || d.company || "Your Company";
+    const status = item?.category || d.membershipStatus || "Member";
+    const expiry = d.membershipExpiryDate
+      ? new Date(d.membershipExpiryDate).toLocaleDateString()
       : "Active";
 
-    return template
+    return (template || "")
       .replace(/{name}/g, name)
       .replace(/{company}/g, company)
       .replace(/{event}/g, activeEvent?.title || "RIFAH Chapter Meet")
@@ -530,14 +769,42 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-2 flex items-center gap-2">
-              RIFAH Operations Center
+              RIFAH OPERATIONS CENTER ADMIN PANEL
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
-              Chapter Event Operations & Member Conversion Command Hub · {user?.email}
-            </p>
+            <div className="flex items-center gap-2 flex-wrap text-xs text-slate-300 mt-1">
+              <span><strong className="text-cyan-300 font-semibold">Current Chapter:</strong> {chapterName}</span>
+              <span className="text-slate-600">|</span>
+              <span><strong className="text-emerald-300 font-semibold">Current Event:</strong> {activeEvent?.title || "Upcoming Chapter Meet"}</span>
+              <span className="text-slate-600">|</span>
+              <span><strong className="text-amber-300 font-semibold">Current Admin:</strong> {user?.name || user?.email || "Chapter Admin"}</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {events.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Select
+                  value={selectedEventId}
+                  onValueChange={(val) => {
+                    setSelectedEventId(val);
+                    const ev = events.find((e) => e._id === val);
+                    if (ev) setActiveEvent(ev);
+                  }}
+                >
+                  <SelectTrigger className="w-44 sm:w-52 h-9 text-xs bg-slate-900 border-slate-700 text-white">
+                    <SelectValue placeholder="Select Event" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                    {events.map((e) => (
+                      <SelectItem key={e._id} value={e._id} className="text-xs hover:bg-slate-800">
+                        {e.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <Button
               variant="outline"
               size="sm"
@@ -611,6 +878,30 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             <p className="text-[11px] text-slate-400 mt-1">Total revenue collected</p>
             <div className="absolute inset-x-0 bottom-0 h-0.5 bg-amber-500"></div>
           </div>
+        </div>
+
+        {/* Horizontal Module Navigation Buttons Directly Below Header & KPIs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin border-t border-slate-700/60 pt-4 mt-5">
+          {HORIZONTAL_MODULE_TABS.map((tab) => {
+            const isActive = currentTab === tab.key;
+            const TabIcon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setTab(tab.key)}
+                className={cn(
+                  "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 cursor-pointer",
+                  isActive
+                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
+                    : "bg-slate-800/80 text-slate-300 hover:bg-slate-700/90 hover:text-white border border-slate-700/60"
+                )}
+              >
+                <TabIcon className={cn("h-3.5 w-3.5", isActive ? "text-slate-950" : "text-cyan-400")} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -970,7 +1261,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <div>
                   <Label className="text-xs font-semibold">Event Name</Label>
                   <Input
-                    defaultValue={activeEvent?.title || "RIFAH Business Connect Meet"}
+                    value={eventSetupForm.title}
+                    onChange={(e) => setEventSetupForm((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="RIFAH Business Connect Meet"
                     className="mt-1"
                   />
                 </div>
@@ -978,7 +1271,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <div>
                   <Label className="text-xs font-semibold">Custom Event Subtitle / Slogan</Label>
                   <Input
-                    defaultValue={activeEvent?.summary || "Synergy, Scale & Ethical Prosperity"}
+                    value={eventSetupForm.summary}
+                    onChange={(e) => setEventSetupForm((prev) => ({ ...prev, summary: e.target.value }))}
+                    placeholder="Synergy, Scale & Ethical Prosperity"
                     className="mt-1"
                   />
                 </div>
@@ -988,14 +1283,17 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <Label className="text-xs font-semibold">Event Date</Label>
                     <Input
                       type="date"
-                      defaultValue={activeEvent?.date ? activeEvent.date.split("T")[0] : "2026-09-25"}
+                      value={eventSetupForm.date}
+                      onChange={(e) => setEventSetupForm((prev) => ({ ...prev, date: e.target.value }))}
                       className="mt-1"
                     />
                   </div>
                   <div>
                     <Label className="text-xs font-semibold">Event Time</Label>
                     <Input
-                      defaultValue={activeEvent?.time || "10:00 AM - 01:30 PM"}
+                      value={eventSetupForm.time}
+                      onChange={(e) => setEventSetupForm((prev) => ({ ...prev, time: e.target.value }))}
+                      placeholder="10:00 AM - 01:30 PM"
                       className="mt-1"
                     />
                   </div>
@@ -1004,7 +1302,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <div>
                   <Label className="text-xs font-semibold">Venue & City</Label>
                   <Input
-                    defaultValue={activeEvent?.venue || "Grand Convention Hall, Mumbai"}
+                    value={eventSetupForm.venue}
+                    onChange={(e) => setEventSetupForm((prev) => ({ ...prev, venue: e.target.value }))}
+                    placeholder="Grand Convention Hall, Mumbai"
                     className="mt-1"
                   />
                 </div>
@@ -1012,11 +1312,21 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs font-semibold">Member Fee (₹)</Label>
-                    <Input type="number" defaultValue="0" className="mt-1" />
+                    <Input
+                      type="number"
+                      value={eventSetupForm.memberFee}
+                      onChange={(e) => setEventSetupForm((prev) => ({ ...prev, memberFee: e.target.value }))}
+                      className="mt-1"
+                    />
                   </div>
                   <div>
                     <Label className="text-xs font-semibold">Non-Member Fee (₹)</Label>
-                    <Input type="number" defaultValue="500" className="mt-1" />
+                    <Input
+                      type="number"
+                      value={eventSetupForm.nonMemberFee}
+                      onChange={(e) => setEventSetupForm((prev) => ({ ...prev, nonMemberFee: e.target.value }))}
+                      className="mt-1"
+                    />
                   </div>
                 </div>
               </div>
@@ -1024,17 +1334,28 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               <div className="space-y-4">
                 <div>
                   <Label className="text-xs font-semibold">Signatory 1 (Chapter President)</Label>
-                  <Input defaultValue="Mohammad Zaid" className="mt-1" />
+                  <Input
+                    value={eventSetupForm.signatory1}
+                    onChange={(e) => setEventSetupForm((prev) => ({ ...prev, signatory1: e.target.value }))}
+                    className="mt-1"
+                  />
                 </div>
 
                 <div>
                   <Label className="text-xs font-semibold">Signatory 2 (Secretary)</Label>
-                  <Input defaultValue="Rashid Kamal" className="mt-1" />
+                  <Input
+                    value={eventSetupForm.signatory2}
+                    onChange={(e) => setEventSetupForm((prev) => ({ ...prev, signatory2: e.target.value }))}
+                    className="mt-1"
+                  />
                 </div>
 
                 <div>
                   <Label className="text-xs font-semibold">Certificate Accent Theme</Label>
-                  <Select defaultValue="gold">
+                  <Select
+                    value={eventSetupForm.theme}
+                    onValueChange={(val) => setEventSetupForm((prev) => ({ ...prev, theme: val }))}
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
@@ -1049,7 +1370,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
                 <div>
                   <Label className="text-xs font-semibold">Script & Presentation Language</Label>
-                  <Select defaultValue="en">
+                  <Select
+                    value={eventSetupForm.scriptLanguage}
+                    onValueChange={(val) => setEventSetupForm((prev) => ({ ...prev, scriptLanguage: val }))}
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
@@ -1063,11 +1387,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
                 <div className="pt-2 flex justify-end">
                   <Button
-                    onClick={() => toast.success("Event setup updated successfully!")}
+                    onClick={handleSaveEventSetup}
+                    disabled={savingEventSetup}
                     className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold gap-2"
                   >
                     <Save className="h-4 w-4" />
-                    <span>Save Event Setup</span>
+                    <span>{savingEventSetup ? "Saving to MongoDB..." : "Save Event Setup"}</span>
                   </Button>
                 </div>
               </div>
@@ -1280,7 +1605,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
             <div className="mt-6 flex justify-end">
               <Button
-                onClick={() => toast.success("Team assignments saved successfully!")}
+                onClick={handleSaveTeamRoles}
                 className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold gap-2"
               >
                 <Save className="h-4 w-4" />
@@ -1435,21 +1760,62 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   Chapter Event Financial Ledger
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Track collections, expenses, vendor invoices, and statement reports
+                  Track collections, expenses, vendor invoices, and statement reports backed by MongoDB
                 </p>
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  toast.success("Statement PDF report generated and downloaded!");
-                }}
-                className="text-xs h-9 gap-1.5"
-              >
-                <Download className="h-3.5 w-3.5 text-primary" />
-                <span>Export Statement PDF</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setFinanceDialogOpen(true)}
+                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 gap-1.5 shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Transaction</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    toast.success("Statement PDF report generated and downloaded!");
+                  }}
+                  className="text-xs h-9 gap-1.5"
+                >
+                  <Download className="h-3.5 w-3.5 text-primary" />
+                  <span>Export Statement PDF</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* 3 Summary Ledger KPI Badges */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">
+                  Total Collections (Money In)
+                </span>
+                <span className="text-2xl font-black text-emerald-600 font-mono mt-1 block">
+                  ₹{(financeRecords.moneyIn || []).reduce((s, i) => s + (Number(i.amount) || 0), 0).toLocaleString("en-IN")}
+                </span>
+              </div>
+              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 block">
+                  Total Expenses (Money Out)
+                </span>
+                <span className="text-2xl font-black text-rose-500 font-mono mt-1 block">
+                  ₹{(financeRecords.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0).toLocaleString("en-IN")}
+                </span>
+              </div>
+              <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 block">
+                  Net Event Balance
+                </span>
+                <span className="text-2xl font-black text-cyan-600 font-mono mt-1 block">
+                  ₹{(
+                    (financeRecords.moneyIn || []).reduce((s, i) => s + (Number(i.amount) || 0), 0) -
+                    (financeRecords.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0)
+                  ).toLocaleString("en-IN")}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1459,27 +1825,33 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <h4 className="font-bold text-emerald-600 flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4" /> Money In (Collections)
                   </h4>
-                  <span className="font-black text-emerald-600 text-sm">
-                    ₹{financeRecords.moneyIn.reduce((s, i) => s + i.amount, 0).toLocaleString()}
+                  <span className="font-black text-emerald-600 text-sm font-mono">
+                    ₹{(financeRecords.moneyIn || []).reduce((s, i) => s + (Number(i.amount) || 0), 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {financeRecords.moneyIn.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <p className="font-bold text-foreground">{item.desc}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          From: {item.from} · {item.method} · {item.date}
-                        </p>
-                      </div>
-                      <span className="font-black text-emerald-500 font-mono">
-                        +₹{item.amount.toLocaleString()}
-                      </span>
+                  {(financeRecords.moneyIn || []).length === 0 ? (
+                    <div className="p-4 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
+                      No collections recorded yet. Click &ldquo;Add Transaction&rdquo; above.
                     </div>
-                  ))}
+                  ) : (
+                    (financeRecords.moneyIn || []).map((item, idx) => (
+                      <div
+                        key={item.id || item._id || idx}
+                        className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between text-xs"
+                      >
+                        <div>
+                          <p className="font-bold text-foreground">{item.desc}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            From: {item.from || "Attendee / Sponsor"} · {item.method || "Online"} · {item.date ? String(item.date).split("T")[0] : ""}
+                          </p>
+                        </div>
+                        <span className="font-black text-emerald-500 font-mono">
+                          +₹{Number(item.amount || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -1489,46 +1861,186 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <h4 className="font-bold text-rose-500 flex items-center gap-1.5">
                     <AlertCircle className="h-4 w-4" /> Money Out (Expenses)
                   </h4>
-                  <span className="font-black text-rose-500 text-sm">
-                    ₹{financeRecords.moneyOut.reduce((s, i) => s + i.amount, 0).toLocaleString()}
+                  <span className="font-black text-rose-500 text-sm font-mono">
+                    ₹{(financeRecords.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {financeRecords.moneyOut.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <p className="font-bold text-foreground">{item.desc}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          To: {item.to} · {item.invoice} · {item.date}
-                        </p>
-                      </div>
-                      <span className="font-black text-rose-500 font-mono">
-                        -₹{item.amount.toLocaleString()}
-                      </span>
+                  {(financeRecords.moneyOut || []).length === 0 ? (
+                    <div className="p-4 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
+                      No expenses recorded yet. Click &ldquo;Add Transaction&rdquo; above.
                     </div>
-                  ))}
+                  ) : (
+                    (financeRecords.moneyOut || []).map((item, idx) => (
+                      <div
+                        key={item.id || item._id || idx}
+                        className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between text-xs"
+                      >
+                        <div>
+                          <p className="font-bold text-foreground">{item.desc}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            To: {item.to || "Vendor"} · Ref: {item.invoice || "N/A"} · {item.date ? String(item.date).split("T")[0] : ""}
+                          </p>
+                        </div>
+                        <span className="font-black text-rose-500 font-mono">
+                          -₹{Number(item.amount || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Ledger Summary */}
-            <div className="mt-6 p-4 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
+            <div className="mt-6 p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-bold text-foreground">Net Event Balance</p>
+                <p className="text-xs font-bold text-foreground">Treasurer Notes</p>
                 <p className="text-[11px] text-muted-foreground">{financeRecords.treasurerNotes}</p>
               </div>
-              <p className="text-xl font-black text-primary font-mono">
-                ₹
-                {(
-                  financeRecords.moneyIn.reduce((s, i) => s + i.amount, 0) -
-                  financeRecords.moneyOut.reduce((s, i) => s + i.amount, 0)
-                ).toLocaleString()}
-              </p>
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Net Event Balance</span>
+                <span className="text-xl font-black text-primary font-mono">
+                  ₹
+                  {(
+                    (financeRecords.moneyIn || []).reduce((s, i) => s + (Number(i.amount) || 0), 0) -
+                    (financeRecords.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0)
+                  ).toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
+
+          {/* Add Finance Transaction Dialog */}
+          <Dialog open={financeDialogOpen} onOpenChange={setFinanceDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Add Ledger Transaction</DialogTitle>
+                <DialogDescription>
+                  Record income collection or venue/catering expense directly into the chapter ledger in MongoDB.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleAddFinanceTransaction} className="space-y-4 py-2">
+                <div>
+                  <Label className="text-xs font-semibold">Transaction Type</Label>
+                  <Select
+                    value={financeForm.type}
+                    onValueChange={(val) => setFinanceForm((prev) => ({ ...prev, type: val }))}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="moneyIn">Money In (Collection / Ticket / Sponsor)</SelectItem>
+                      <SelectItem value="moneyOut">Money Out (Expense / Venue / Catering)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Description</Label>
+                  <Input
+                    placeholder="e.g. Venue Hall Advance or Sponsor Contribution"
+                    value={financeForm.desc}
+                    onChange={(e) => setFinanceForm((prev) => ({ ...prev, desc: e.target.value }))}
+                    className="mt-1"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Amount (₹)</Label>
+                    <Input
+                      type="number"
+                      placeholder="5000"
+                      value={financeForm.amount}
+                      onChange={(e) => setFinanceForm((prev) => ({ ...prev, amount: e.target.value }))}
+                      className="mt-1"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">
+                      {financeForm.type === "moneyIn" ? "Received From" : "Paid To"}
+                    </Label>
+                    <Input
+                      placeholder={financeForm.type === "moneyIn" ? "Payer / Sponsor" : "Vendor Name"}
+                      value={financeForm.type === "moneyIn" ? financeForm.from : financeForm.to}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (financeForm.type === "moneyIn") {
+                          setFinanceForm((prev) => ({ ...prev, from: val }));
+                        } else {
+                          setFinanceForm((prev) => ({ ...prev, to: val }));
+                        }
+                      }}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Payment Method</Label>
+                    <Select
+                      value={financeForm.method}
+                      onValueChange={(val) => setFinanceForm((prev) => ({ ...prev, method: val }))}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Online">Online / Gateway</SelectItem>
+                        <SelectItem value="UPI">UPI</SelectItem>
+                        <SelectItem value="Bank Transfer">Bank Transfer (NEFT/IMPS)</SelectItem>
+                        <SelectItem value="Cash">Cash</SelectItem>
+                        <SelectItem value="Cheque">Cheque</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Invoice / Reference No.</Label>
+                    <Input
+                      placeholder="INV-102 or UPI Ref"
+                      value={financeForm.invoice}
+                      onChange={(e) => setFinanceForm((prev) => ({ ...prev, invoice: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Date</Label>
+                  <Input
+                    type="date"
+                    value={financeForm.date}
+                    onChange={(e) => setFinanceForm((prev) => ({ ...prev, date: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+
+                <DialogFooter className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setFinanceDialogOpen(false)}
+                    className="text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={submittingFinance}
+                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
+                  >
+                    {submittingFinance ? "Saving..." : "Record Transaction"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
@@ -1548,7 +2060,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </div>
 
               <Button
-                onClick={() => toast.info("New speaker dialog triggered")}
+                onClick={() => setSpeakerDialogOpen(true)}
                 className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 gap-1.5"
               >
                 <Plus className="h-4 w-4" />
@@ -1556,47 +2068,175 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {speakers.map((s) => (
-                <div
-                  key={s.id}
-                  className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all flex items-start gap-3.5"
-                >
-                  <div className="h-12 w-12 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center font-black text-lg shrink-0">
-                    {s.name.slice(0, 1)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
-                        {s.type}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-mono">{s.mobile}</span>
+            {speakers.length === 0 ? (
+              <div className="p-8 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
+                No speakers or dignitaries configured yet. Click &ldquo;Add Dignitary / Speaker&rdquo; above to add.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {speakers.map((s) => (
+                  <div
+                    key={s.id}
+                    className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all flex items-start gap-3.5"
+                  >
+                    <div className="h-12 w-12 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center font-black text-lg shrink-0">
+                      {(s.name || "S").slice(0, 1)}
                     </div>
-                    <h4 className="font-bold text-sm text-foreground mt-1 truncate">{s.name}</h4>
-                    <p className="text-xs text-muted-foreground">
-                      {s.designation} · {s.org}
-                    </p>
-                    <p className="text-xs text-primary font-medium mt-1.5 bg-muted/40 px-2 py-1 rounded">
-                      Topic: &ldquo;{s.topic}&rdquo;
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
+                          {s.type || "Guest Speaker"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{s.mobile}</span>
+                      </div>
+                      <h4 className="font-bold text-sm text-foreground mt-1 truncate">{s.name}</h4>
+                      <p className="text-xs text-muted-foreground">
+                        {s.designation || ""} {s.org ? `· ${s.org}` : ""}
+                      </p>
+                      {s.topic && (
+                        <p className="text-xs text-primary font-medium mt-1.5 bg-muted/40 px-2 py-1 rounded">
+                          Topic: &ldquo;{s.topic}&rdquo;
+                        </p>
+                      )}
 
-                    <div className="flex items-center gap-2 mt-3">
-                      <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
-                        <a href={`tel:${s.mobile}`}>
-                          <Phone className="h-3 w-3" /> Call
-                        </a>
-                      </Button>
-                      <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1 text-emerald-600">
-                        <a href={`https://api.whatsapp.com/send?phone=91${s.mobile}`} target="_blank">
-                          WhatsApp
-                        </a>
-                      </Button>
+                      <div className="flex items-center gap-2 mt-3">
+                        {s.mobile && (
+                          <>
+                            <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
+                              <a href={`tel:${s.mobile}`}>
+                                <Phone className="h-3 w-3" /> Call
+                              </a>
+                            </Button>
+                            <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1 text-emerald-600">
+                              <a href={`https://api.whatsapp.com/send?phone=91${s.mobile}`} target="_blank">
+                                WhatsApp
+                              </a>
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Add Speaker Dialog */}
+          <Dialog open={speakerDialogOpen} onOpenChange={setSpeakerDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Add Dignitary / Speaker</DialogTitle>
+                <DialogDescription>
+                  Add a guest of honour, keynote speaker, or dignitary to the event stage schedule in MongoDB.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleAddSpeaker} className="space-y-4 py-2">
+                <div>
+                  <Label className="text-xs font-semibold">Full Name</Label>
+                  <Input
+                    placeholder="e.g. Dr. Farhan Qureshi"
+                    value={newSpeaker.name}
+                    onChange={(e) => setNewSpeaker((prev) => ({ ...prev, name: e.target.value }))}
+                    className="mt-1"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Mobile Number</Label>
+                    <Input
+                      placeholder="9820000000"
+                      value={newSpeaker.mobile}
+                      onChange={(e) => setNewSpeaker((prev) => ({ ...prev, mobile: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="speaker@example.com"
+                      value={newSpeaker.email}
+                      onChange={(e) => setNewSpeaker((prev) => ({ ...prev, email: e.target.value }))}
+                      className="mt-1"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Organization / Business</Label>
+                    <Input
+                      placeholder="e.g. Merchant Logistics"
+                      value={newSpeaker.org}
+                      onChange={(e) => setNewSpeaker((prev) => ({ ...prev, org: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Designation</Label>
+                    <Input
+                      placeholder="e.g. Managing Director"
+                      value={newSpeaker.designation}
+                      onChange={(e) => setNewSpeaker((prev) => ({ ...prev, designation: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Role / Type</Label>
+                    <Select
+                      value={newSpeaker.type}
+                      onValueChange={(val) => setNewSpeaker((prev) => ({ ...prev, type: val }))}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Guest Speaker">Guest Speaker</SelectItem>
+                        <SelectItem value="Keynote Speaker">Keynote Speaker</SelectItem>
+                        <SelectItem value="Hero of Event">Hero of Event</SelectItem>
+                        <SelectItem value="Chief Guest">Chief Guest</SelectItem>
+                        <SelectItem value="Dignitary">Dignitary</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Speech / Keynote Topic</Label>
+                    <Input
+                      placeholder="e.g. Ethical Scaling"
+                      value={newSpeaker.topic}
+                      onChange={(e) => setNewSpeaker((prev) => ({ ...prev, topic: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSpeakerDialogOpen(false)}
+                    className="text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={savingSpeaker}
+                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
+                  >
+                    {savingSpeaker ? "Saving..." : "Save Speaker"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
@@ -1772,9 +2412,14 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 {/* Participant Roster Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   {followups.map((item) => {
-                    const d = item.contactDetails || {};
+                    const d = item.contactDetails || item || {};
+                    const name = item.name || d.name || "Participant";
+                    const mobile = item.mobile || d.mobile || "";
+                    const company = item.company || d.company || "Enterprise";
+                    const membershipStatus = item.category || d.membershipStatus || "Attendee";
+                    const assignedTo = item.assignedToName || item.assignedTo?.name || "Admin";
                     const msg = interpolateMessage(customFollowupMessage, item);
-                    const whatsappUrl = `https://api.whatsapp.com/send?phone=91${d.mobile}&text=${encodeURIComponent(msg)}`;
+                    const whatsappUrl = `https://api.whatsapp.com/send?phone=91${mobile}&text=${encodeURIComponent(msg)}`;
 
                     return (
                       <div
@@ -1784,11 +2429,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-cyan-500/10 text-cyan-500 font-bold flex items-center justify-center shrink-0 text-sm">
-                              {d.name ? d.name.slice(0, 1).toUpperCase() : "P"}
+                              {name ? name.slice(0, 1).toUpperCase() : "P"}
                             </div>
                             <div>
-                              <h4 className="font-bold text-sm text-foreground">{d.name || "Participant"}</h4>
-                              <p className="text-xs text-muted-foreground">{d.company || "Enterprise"}</p>
+                              <h4 className="font-bold text-sm text-foreground">{name}</h4>
+                              <p className="text-xs text-muted-foreground">{company}</p>
                             </div>
                           </div>
 
@@ -1810,48 +2455,66 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
                         <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground border-y border-border/50 py-2">
                           <div>
-                            Mobile: <span className="font-mono text-foreground">{d.mobile}</span>
+                            Mobile: <span className="font-mono text-foreground">{mobile || "N/A"}</span>
                           </div>
                           <div>
-                            Membership: <span className="font-semibold text-foreground">{d.membershipStatus}</span>
+                            Membership: <span className="font-semibold text-foreground">{membershipStatus}</span>
                           </div>
                           <div className="col-span-2">
-                            Assigned To: <span className="text-foreground">{item.assignedToName}</span>
+                            Assigned To: <span className="text-foreground">{assignedTo}</span>
                           </div>
                           {item.notes && (
                             <div className="col-span-2 text-primary text-[10px] bg-primary/5 p-1.5 rounded">
-                              Note: {item.notes}
+                              Note: {Array.isArray(item.notes) ? item.notes[item.notes.length - 1]?.content : item.notes}
+                            </div>
+                          )}
+                          {item.history && item.history.length > 0 && (
+                            <div className="col-span-2 text-[10px] text-cyan-500 bg-cyan-500/10 p-1.5 rounded border border-cyan-500/20">
+                              Latest: {item.history[item.history.length - 1].method?.toUpperCase()} on{" "}
+                              {new Date(item.history[item.history.length - 1].contactedAt).toLocaleDateString()}
+                              {item.history[item.history.length - 1].notes && ` - "${item.history[item.history.length - 1].notes}"`}
                             </div>
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between gap-2 pt-1">
+                        <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
                           <div className="flex items-center gap-1.5">
-                            <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
-                              <a href={`tel:${d.mobile}`} title="Direct Call">
-                                <Phone className="h-3 w-3" /> Call
-                              </a>
-                            </Button>
+                            {mobile && (
+                              <>
+                                <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
+                                  <a href={`tel:${mobile}`} title="Direct Call">
+                                    <Phone className="h-3 w-3" /> Call
+                                  </a>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  asChild
+                                  className="h-7 text-xs px-2 gap-1 text-emerald-600 border-emerald-500/30"
+                                >
+                                  <a href={whatsappUrl} target="_blank" title="Send WhatsApp">
+                                    WhatsApp
+                                  </a>
+                                </Button>
+                              </>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"
-                              asChild
-                              className="h-7 text-xs px-2 gap-1 text-emerald-600 border-emerald-500/30"
-                            >
-                              <a href={whatsappUrl} target="_blank" title="Send WhatsApp">
-                                WhatsApp
-                              </a>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
                               onClick={() => {
-                                setEditingNoteItem(item);
-                                setNoteText(item.notes || "");
+                                setHistoryTarget(item);
+                                setHistoryForm({
+                                  method: "call",
+                                  notes: "",
+                                  message: msg,
+                                  status: item.status || "contacted",
+                                  nextFollowUpAt: "",
+                                });
+                                setHistoryModalOpen(true);
                               }}
-                              className="h-7 text-xs px-2 gap-1"
+                              className="h-7 text-xs px-2 gap-1 text-cyan-600 border-cyan-500/30 font-semibold"
                             >
-                              <Edit className="h-3 w-3" /> Note
+                              <PhoneCall className="h-3 w-3" /> Log
                             </Button>
                           </div>
 
@@ -1886,25 +2549,25 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-blue-500">PROSPECTS</p>
                     <p className="text-xl font-black text-blue-500 mt-0.5 tabular-nums">
-                      {followupStats.membership.prospects || 12}
+                      {followupStats.membership.prospects || followups.length}
                     </p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">EXPIRING SOON</p>
                     <p className="text-xl font-black text-amber-500 mt-0.5 tabular-nums">
-                      {followupStats.membership.expiringSoon || 4}
+                      {followupStats.membership.expiringSoon || 0}
                     </p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-rose-500">OVERDUE / EXPIRED</p>
                     <p className="text-xl font-black text-rose-500 mt-0.5 tabular-nums">
-                      {followupStats.membership.expired || 2}
+                      {followupStats.membership.expired || 0}
                     </p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">RENEWED</p>
                     <p className="text-xl font-black text-emerald-500 mt-0.5 tabular-nums">
-                      {followupStats.membership.recentlyRenewed || 8}
+                      {followupStats.membership.recentlyRenewed || 0}
                     </p>
                   </div>
                 </div>
@@ -1967,9 +2630,13 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                     {followups.map((item) => {
-                      const d = item.contactDetails || {};
+                      const d = item.contactDetails || item || {};
+                      const name = item.name || d.name || "Member";
+                      const mobile = item.mobile || d.mobile || "";
+                      const company = item.company || d.company || "Enterprise";
+                      const membershipStatus = item.category || d.membershipStatus || "Member";
                       const msg = interpolateMessage(membershipCustomMessage, item);
-                      const whatsappUrl = `https://api.whatsapp.com/send?phone=91${d.mobile}&text=${encodeURIComponent(msg)}`;
+                      const whatsappUrl = `https://api.whatsapp.com/send?phone=91${mobile}&text=${encodeURIComponent(msg)}`;
 
                       return (
                         <div
@@ -1978,11 +2645,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                         >
                           <div className="flex items-start justify-between">
                             <div>
-                              <h4 className="font-bold text-sm text-foreground">{d.name}</h4>
-                              <p className="text-xs text-muted-foreground">{d.company}</p>
+                              <h4 className="font-bold text-sm text-foreground">{name}</h4>
+                              <p className="text-xs text-muted-foreground">{company}</p>
                             </div>
                             <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-bold">
-                              {d.membershipStatus}
+                              {membershipStatus}
                             </span>
                           </div>
 
@@ -1992,30 +2659,58 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                               <span className="text-foreground font-medium">
                                 {d.membershipExpiryDate
                                   ? new Date(d.membershipExpiryDate).toLocaleDateString()
-                                  : "Pending"}
+                                  : "Active"}
                               </span>
                             </div>
                             <div>
                               Status: <span className="font-bold text-foreground capitalize">{item.status}</span>
                             </div>
+                            {item.history && item.history.length > 0 && (
+                              <div className="col-span-2 text-[10px] text-cyan-500 bg-cyan-500/10 p-1.5 rounded border border-cyan-500/20">
+                                Latest: {item.history[item.history.length - 1].method?.toUpperCase()} on{" "}
+                                {new Date(item.history[item.history.length - 1].contactedAt).toLocaleDateString()}
+                              </div>
+                            )}
                           </div>
 
-                          <div className="flex items-center justify-between pt-1">
+                          <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
                             <div className="flex items-center gap-1.5">
-                              <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
-                                <a href={`tel:${d.mobile}`}>
-                                  <Phone className="h-3 w-3" /> Call
-                                </a>
-                              </Button>
+                              {mobile && (
+                                <>
+                                  <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
+                                    <a href={`tel:${mobile}`}>
+                                      <Phone className="h-3 w-3" /> Call
+                                    </a>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    asChild
+                                    className="h-7 text-xs px-2 gap-1 text-emerald-600"
+                                  >
+                                    <a href={whatsappUrl} target="_blank">
+                                      WhatsApp
+                                    </a>
+                                  </Button>
+                                </>
+                              )}
                               <Button
                                 size="sm"
                                 variant="outline"
-                                asChild
-                                className="h-7 text-xs px-2 gap-1 text-emerald-600"
+                                onClick={() => {
+                                  setHistoryTarget(item);
+                                  setHistoryForm({
+                                    method: "call",
+                                    notes: "",
+                                    message: msg,
+                                    status: item.status || "contacted",
+                                    nextFollowUpAt: "",
+                                  });
+                                  setHistoryModalOpen(true);
+                                }}
+                                className="h-7 text-xs px-2 gap-1 text-cyan-600 border-cyan-500/30 font-semibold"
                               >
-                                <a href={whatsappUrl} target="_blank">
-                                  WhatsApp
-                                </a>
+                                <PhoneCall className="h-3 w-3" /> Log
                               </Button>
                             </div>
 
@@ -2041,6 +2736,110 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </div>
             )}
           </div>
+
+          {/* Log Follow-up Contact History Dialog */}
+          <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Log Contact Interaction</DialogTitle>
+                <DialogDescription>
+                  Record contact details, discussion notes, and next scheduled follow-up date in MongoDB.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleSaveFollowupHistory} className="space-y-4 py-2">
+                <div className="p-3 rounded-lg bg-muted/40 text-xs flex items-center justify-between border border-border">
+                  <div>
+                    <span className="font-bold text-foreground block">{historyTarget?.name}</span>
+                    <span className="text-muted-foreground">{historyTarget?.mobile} · {historyTarget?.company}</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px] uppercase">
+                    {historyTarget?.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Contact Method</Label>
+                    <Select
+                      value={historyForm.method}
+                      onValueChange={(val) => setHistoryForm((prev) => ({ ...prev, method: val }))}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="call">Phone Call</SelectItem>
+                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="in_person">In Person / Meeting</SelectItem>
+                        <SelectItem value="sms">SMS</SelectItem>
+                        <SelectItem value="note">Internal Log</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Updated Status</Label>
+                    <Select
+                      value={historyForm.status}
+                      onValueChange={(val) => setHistoryForm((prev) => ({ ...prev, status: val }))}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="contacted">Contacted</SelectItem>
+                        <SelectItem value="interested">Interested</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="not_interested">Not Interested</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Discussion Notes / Remarks</Label>
+                  <Textarea
+                    rows={3}
+                    placeholder="Discussed chapter membership induction, ethical networking benefits..."
+                    value={historyForm.notes}
+                    onChange={(e) => setHistoryForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    className="mt-1 text-xs"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Next Follow-up Date</Label>
+                  <Input
+                    type="date"
+                    value={historyForm.nextFollowUpAt}
+                    onChange={(e) => setHistoryForm((prev) => ({ ...prev, nextFollowUpAt: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+
+                <DialogFooter className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setHistoryModalOpen(false)}
+                    className="text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={submittingHistory}
+                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
+                  >
+                    {submittingHistory ? "Saving..." : "Save to History"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
