@@ -131,7 +131,6 @@ const roleNavs = {
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
       { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
       { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
-      { label: "Users", to: "/chapter-admin/users", icon: Users },
       { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
