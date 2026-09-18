@@ -1,7 +1,7 @@
 "use client";
 import {
   ArrowLeft, PlayCircle, Play, FileText, CheckCircle2, Download,
-  Video, Loader2, ChevronLeft, ChevronRight, Award, BookOpen, Trophy
+  Video, Loader2, ChevronLeft, ChevronRight, Award, BookOpen, Trophy, X
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -27,10 +27,204 @@ function getScopeTag(course) {
   return SCOPE_LABELS[s] || { label: "📚 Training", color: "bg-slate-100 text-slate-600 border-slate-200" };
 }
 
+// ── Stylish PDF Document Card (Shown in player area)
+function PdfDocumentCard({ activeContent, onOpen }) {
+  const [downloading, setDownloading] = useState(false);
+  const mediaUrl = activeContent?.url || activeContent?.fileUrl || "";
+  const pdfUrl = resolveMediaUrl(mediaUrl);
+
+  const handleDownload = async (e) => {
+    e.stopPropagation();
+    if (!pdfUrl) return;
+    setDownloading(true);
+    try {
+      const cleanTitle = (activeContent.title || "Document").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const filename = `${cleanTitle}.pdf`;
+      const res = await fetch(pdfUrl);
+      if (!res.ok) throw new Error("Fetch failed");
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success("Document downloaded!");
+    } catch {
+      const link = document.createElement("a");
+      link.href = pdfUrl;
+      link.setAttribute("download", `${activeContent.title || "Document"}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div
+      onClick={onOpen}
+      className="group relative w-full aspect-video rounded-2xl overflow-hidden border border-slate-700/60 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-6 flex flex-col items-center justify-center text-center shadow-xl cursor-pointer hover:border-primary/60 transition-all duration-300"
+    >
+      {/* Ambient glow */}
+      <div className="absolute w-44 h-44 bg-primary/20 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/30 transition-colors" />
+
+      {/* Document Icon Badge */}
+      <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center text-white mb-4 group-hover:scale-105 group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-lg">
+        <FileText className="h-10 w-10 text-white/90 group-hover:text-white" />
+      </div>
+
+      {/* Title & Metadata */}
+      <div className="relative z-10 max-w-md space-y-1.5 mb-5">
+        <h3 className="text-xl font-bold text-white leading-snug line-clamp-1 group-hover:text-primary-foreground transition-colors">
+          {activeContent.title || "Course Document"}
+        </h3>
+        <p className="text-xs text-slate-300/80 font-medium tracking-wide">
+          Course Material • Click to Read Full Document
+        </p>
+      </div>
+
+      {/* Interactive Action Buttons */}
+      <div className="relative z-10 flex items-center gap-3">
+        <Button
+          size="sm"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 shadow-lg shadow-primary/25 rounded-xl gap-2"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen();
+          }}
+        >
+          <Play className="h-4 w-4 fill-current" /> Read Document
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-white/20 bg-white/5 hover:bg-white/10 text-white rounded-xl gap-2 backdrop-blur-sm"
+          onClick={handleDownload}
+          disabled={downloading}
+        >
+          {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Download
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ── Clean In-App PDF Pop-up Modal (Full original content)
+function PdfModalViewer({ activeContent, onClose }) {
+  const [downloading, setDownloading] = useState(false);
+  const mediaUrl = activeContent?.url || activeContent?.fileUrl || "";
+  const pdfUrl = resolveMediaUrl(mediaUrl);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  const handleDownload = async () => {
+    if (!pdfUrl) return;
+    setDownloading(true);
+    try {
+      const cleanTitle = (activeContent.title || "Document").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const filename = `${cleanTitle}.pdf`;
+      const res = await fetch(pdfUrl);
+      if (!res.ok) throw new Error("Fetch failed");
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success("Document downloaded!");
+    } catch {
+      const link = document.createElement("a");
+      link.href = pdfUrl;
+      link.setAttribute("download", `${activeContent.title || "Document"}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card rounded-2xl border shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ── Modal Top Bar ── */}
+        <div className="px-5 py-3.5 bg-card border-b flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-bold text-sm text-foreground truncate leading-snug">
+                {activeContent.title || "Document"}
+              </h3>
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" /> Course Study Document
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs gap-1.5 rounded-lg"
+              onClick={handleDownload}
+              disabled={downloading}
+            >
+              {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">Download</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
+              onClick={onClose}
+              title="Close (Esc)"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* ── Modal Body: Original PDF Content ── */}
+        <div className="w-full flex-1 relative bg-slate-900 flex flex-col overflow-hidden">
+          <iframe
+            src={`${pdfUrl}#toolbar=1`}
+            className="w-full h-full border-0"
+            title={activeContent.title || "PDF Viewer"}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function BizCourseDetail() {
   const { id } = useParams();
   const { data: courseResp, isLoading, refetch } = useCourse(id);
   const [activeContent, setActiveContent] = useState(null);
+  const [showPdfModal, setShowPdfModal] = useState(false);
   const [marking, setMarking] = useState(false);
   const [downloadingCert, setDownloadingCert] = useState(false);
 
@@ -69,7 +263,7 @@ export function BizCourseDetail() {
   const hasNext = activeIndex < allContents.length - 1;
 
   const handleMarkWatched = async (contentId) => {
-    if (completedIds.includes(String(contentId))) return;
+    if (!contentId || completedIds.includes(String(contentId))) return;
     setMarking(true);
     try {
       await courseApi.markWatched(course._id, contentId);
@@ -190,13 +384,35 @@ export function BizCourseDetail() {
         <div className="lg:col-span-2 space-y-4">
 
           {/* Video / PDF Player */}
-          <div className="rounded-2xl overflow-hidden border bg-black aspect-video flex items-center justify-center relative shadow-lg">
-            {activeContent ? (() => {
-              const contentType = activeContent.type || activeContent.contentType || "video";
-              const mediaUrl = activeContent.url || activeContent.fileUrl || "";
+          {(() => {
+            const isPdf = activeContent && (activeContent.type === "pdf" || activeContent.contentType === "pdf");
+            const contentType = activeContent ? (activeContent.type || activeContent.contentType || "video") : null;
+            const mediaUrl = activeContent ? (activeContent.url || activeContent.fileUrl || "") : "";
 
-              if (contentType === "video") {
-                return (
+            if (!activeContent) {
+              return (
+                <div className="rounded-2xl border bg-black aspect-video flex flex-col items-center justify-center gap-3 text-white/40 shadow-lg">
+                  <PlayCircle className="h-16 w-16" />
+                  <p className="text-sm">Select a lesson to start</p>
+                </div>
+              );
+            }
+
+            if (isPdf) {
+              return (
+                <PdfDocumentCard
+                  activeContent={activeContent}
+                  onOpen={() => {
+                    setShowPdfModal(true);
+                    handleMarkWatched(activeContent._id);
+                  }}
+                />
+              );
+            }
+
+            if (contentType === "video") {
+              return (
+                <div className="rounded-2xl overflow-hidden border bg-black aspect-video flex items-center justify-center relative shadow-lg">
                   <video
                     key={activeContent._id}
                     controls
@@ -206,38 +422,16 @@ export function BizCourseDetail() {
                   >
                     Your browser does not support HTML video.
                   </video>
-                );
-              }
+                </div>
+              );
+            }
 
-              if (contentType === "pdf") {
-                return (
-                  <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 flex flex-col items-center justify-center text-white p-6 gap-4">
-                    <div className="bg-white/10 rounded-2xl p-5 shadow-inner">
-                      <PlayCircle className="h-16 w-16 text-white/90" />
-                    </div>
-                    <p className="font-semibold text-lg">{activeContent.title}</p>
-                    <p className="text-sm text-white/60">Course Material</p>
-                    <Button
-                      className="bg-white text-slate-900 hover:bg-white/90 font-medium shadow-md"
-                      onClick={() => {
-                        window.open(resolveMediaUrl(mediaUrl), "_blank");
-                        handleMarkWatched(activeContent._id);
-                      }}
-                    >
-                      <Play className="h-4 w-4 mr-2 fill-current" /> Open PDF
-                    </Button>
-                  </div>
-                );
-              }
-
-              return <div className="text-white/50 text-sm">Unsupported content type</div>;
-            })() : (
-              <div className="flex flex-col items-center gap-3 text-white/40">
-                <PlayCircle className="h-16 w-16" />
-                <p className="text-sm">Select a lesson to start</p>
+            return (
+              <div className="rounded-2xl border bg-black aspect-video flex items-center justify-center text-white/50 text-sm">
+                Unsupported content type
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* Prev / Next navigation */}
           {allContents.length > 1 && (
@@ -246,7 +440,10 @@ export function BizCourseDetail() {
                 variant="outline"
                 size="sm"
                 disabled={!hasPrev}
-                onClick={() => setActiveContent(allContents[activeIndex - 1])}
+                onClick={() => {
+                  setActiveContent(allContents[activeIndex - 1]);
+                  setShowPdfModal(false);
+                }}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" /> Previous
               </Button>
@@ -257,7 +454,10 @@ export function BizCourseDetail() {
                 variant="outline"
                 size="sm"
                 disabled={!hasNext}
-                onClick={() => setActiveContent(allContents[activeIndex + 1])}
+                onClick={() => {
+                  setActiveContent(allContents[activeIndex + 1]);
+                  setShowPdfModal(false);
+                }}
               >
                 Next <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
@@ -376,7 +576,10 @@ export function BizCourseDetail() {
                             return (
                               <button
                                 key={item._id || index}
-                                onClick={() => setActiveContent(item)}
+                                onClick={() => {
+                                  setActiveContent(item);
+                                  setShowPdfModal(false);
+                                }}
                                 className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
                                   isActive
                                     ? "bg-primary/8 border-l-2 border-primary"
@@ -421,7 +624,10 @@ export function BizCourseDetail() {
                     return (
                       <button
                         key={item._id || index}
-                        onClick={() => setActiveContent(item)}
+                        onClick={() => {
+                          setActiveContent(item);
+                          setShowPdfModal(false);
+                        }}
                         className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
                           isActive
                             ? "bg-primary/8 border-l-2 border-primary"
@@ -464,6 +670,14 @@ export function BizCourseDetail() {
           </Panel>
         </div>
       </div>
+
+      {/* ── In-App PDF Pop-up Modal (Full Original Content) ── */}
+      {showPdfModal && activeContent && (
+        <PdfModalViewer
+          activeContent={activeContent}
+          onClose={() => setShowPdfModal(false)}
+        />
+      )}
     </AppShell>
   );
 }
