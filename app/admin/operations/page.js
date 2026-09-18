@@ -2,12 +2,12 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { OperationsCenter } from "@modules/admin/components/operations-center/operations-center";
 
 export const metadata = {
-  title: "RIFAH Operations Center | Chapter Admin Panel",
+  title: "Operations Center | RIFAH Admin Panel",
 };
 
-export default function ChapterAdminPage(props) {
+export default function AdminOperationsPage(props) {
   return (
-    <AppShell role="chapter_admin" title="Operations Center" subtitle="RIFAH Operations Center">
+    <AppShell role="chapter_admin" title="Operations Center" subtitle="RIFAH Operations Center Admin Panel">
       <OperationsCenter initialTab="event-setup" {...props} />
     </AppShell>
   );

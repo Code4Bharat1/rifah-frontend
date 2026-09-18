@@ -45,9 +45,12 @@ import {
   ArrowRight,
   Shield,
   Handshake,
-  TrendingUp,
   GraduationCap,
   Zap,
+  Radio,
+  Mic,
+  Link2,
+  CalendarPlus,
 } from "lucide-react";
 import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
 import { Button } from "@shared/components/ui/button";
@@ -88,12 +91,14 @@ const navs = {
     title: "RIFAH administration",
     primary: [
       { label: "Overview", to: "/admin", icon: Gauge },
+      { label: "Operations Center", to: "/chapter-admin/event-setup", icon: Radio },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
       { label: "Users", to: "/admin/users", icon: Users },
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Operations Center Hub", to: "/admin/operations", icon: Radio },
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
@@ -116,26 +121,25 @@ const navs = {
 
 const roleNavs = {
   chapter_admin: {
-    title: "Chapter admin",
+    title: "RIFAH OPERATIONS CENTER ADMIN PANEL",
     primary: [
-      { label: "Dashboard", to: "/chapter-admin", icon: Gauge },
-      { label: "Members", to: "/chapter-admin/members", icon: Users },
-      { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
-      { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
-      { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
+      { label: "Event Setup", to: "/chapter-admin/event-setup", icon: CalendarPlus },
+      { label: "Attendees", to: "/chapter-admin/attendees", icon: Ticket },
+      { label: "My Team", to: "/chapter-admin/my-team", icon: ShieldCheck },
+      { label: "Live Control", to: "/chapter-admin/live-control", icon: Radio },
+      { label: "Finance", to: "/chapter-admin/finance", icon: CreditCard },
+      { label: "Speakers & Guests", to: "/chapter-admin/speakers-guests", icon: Mic },
+      { label: "Follow-up", to: "/chapter-admin/follow-up", icon: MessageSquareText },
+      { label: "Documents", to: "/chapter-admin/documents", icon: FileStack },
+      { label: "Data", to: "/chapter-admin/data", icon: ChartNoAxesColumn },
+      { label: "My Links", to: "/chapter-admin/my-links", icon: Link2 },
     ],
     more: [
-      { label: "Feeds", to: "/biz/feeds", icon: Compass },
+      { label: "Chapter Overview", to: "/chapter-admin", icon: Gauge },
+      { label: "Chapter Members", to: "/chapter-admin/members", icon: Users },
+      { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
-      { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
-      { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
-      { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
-      { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
-      { label: "Users", to: "/chapter-admin/users", icon: Users },
-      { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
-      { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
-      { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
     ],
   },
   state_admin: {
@@ -180,15 +184,21 @@ const navRoles = [
 function useResolvedNav(role) {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // If in Chapter Admin / Operations Center or explicitly requesting chapter_admin, always show RIFAH OPERATIONS CENTER ADMIN PANEL
+  if (role === "chapter_admin" || pathname?.startsWith("/chapter-admin") || pathname === "/admin/operations") {
+    return roleNavs.chapter_admin;
+  }
+
   if (mounted && user?.role && roleNavs[user.role]) {
     return roleNavs[user.role];
   }
-  return navs[role] || navs.business || navs.admin;
+  return navs[role] || roleNavs[role] || navs.admin || navs.business;
 }
 
 function toRoleAwarePath(path, role, user) {
@@ -258,7 +268,7 @@ function SidebarLink({ item, active, badge, isLocked, onSelect }) {
       data-sidebar-active={active ? "true" : undefined}
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        active && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary",
+        active && "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-bold shadow-xs hover:bg-cyan-500/20 hover:text-cyan-300",
         isLocked && "opacity-75"
       )}
     >
@@ -433,19 +443,36 @@ export function AppShell({
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-sidebar lg:flex">
-        <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-          <Link href="/" scroll={false} className="flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-surface">
-              <LogoMark className="h-5" />
-            </span>
-            <span className="text-sm font-semibold text-sidebar-accent-foreground">RIFAH Connect</span>
-          </Link>
-        </div>
-        <div className="px-4 pt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
-            {nav.title}
-          </p>
-        </div>
+        {role === "chapter_admin" || user?.role === "chapter_admin" || path?.startsWith("/chapter-admin") || path === "/admin/operations" ? (
+          <div className="flex flex-col border-b border-sidebar-border px-4 py-3.5 bg-sidebar/50">
+            <Link href="/chapter-admin/event-setup" scroll={false} className="flex items-center gap-2.5">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-surface shadow-xs shrink-0">
+                <LogoMark className="h-5" />
+              </span>
+              <div className="min-w-0">
+                <span className="block text-sm font-black text-sidebar-accent-foreground leading-none">RIFAH</span>
+                <span className="block text-[10px] font-extrabold text-cyan-400 tracking-wider uppercase mt-1">OPERATIONS CENTER</span>
+                <span className="block text-[9px] font-bold text-sidebar-foreground/50 tracking-widest uppercase">ADMIN PANEL</span>
+              </div>
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
+              <Link href="/" scroll={false} className="flex items-center gap-2">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-surface">
+                  <LogoMark className="h-5" />
+                </span>
+                <span className="text-sm font-semibold text-sidebar-accent-foreground">RIFAH Connect</span>
+              </Link>
+            </div>
+            <div className="px-4 pt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+                {nav.title}
+              </p>
+            </div>
+          </>
+        )}
         <nav
           ref={setNavRef}
           onScroll={handleNavScroll}
@@ -491,6 +518,16 @@ export function AppShell({
                 <span className="block truncate text-[10px] text-sidebar-foreground/50">{user.email}</span>
               </span>
             </Link>
+          )}
+          {(role === "chapter_admin" || user?.role === "chapter_admin" || path?.startsWith("/chapter-admin") || path === "/admin/operations") && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-cyan-400 uppercase tracking-wider">CHAPTER ADMIN</span>
+                <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold uppercase truncate max-w-[120px]">
+                  {user?.chapter ? user.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "CENTRAL-MUMBAI"}
+                </span>
+              </div>
+            </div>
           )}
           {user?.previousRole && (
             <button
@@ -773,7 +810,7 @@ function UnderApprovalAccessGate({ business, path }) {
 export function MoreSheet({ role, isBizVerified = true }) {
   const [open, setOpen] = useState(false);
   const nav = useResolvedNav(role);
-  const items = nav.more;
+  const items = role === "chapter_admin" ? [...(nav?.primary || []), ...(nav?.more || [])] : (nav?.more || []);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -788,7 +825,14 @@ export function MoreSheet({ role, isBizVerified = true }) {
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
               <LogoMark className="h-4" />
             </span>
-            <span className="font-bold">RIFAH</span>
+            <div>
+              <span className="block font-bold leading-none">RIFAH</span>
+              {role === "chapter_admin" && (
+                <span className="block text-[9px] font-black text-cyan-500 uppercase tracking-wider mt-0.5">
+                  OPERATIONS CENTER
+                </span>
+              )}
+            </div>
           </SheetTitle>
         </SheetHeader>
         <nav className="mt-6 flex flex-col gap-1">
@@ -831,7 +875,16 @@ export function MoreSheet({ role, isBizVerified = true }) {
 export function BottomNav({ role, isBizVerified = true }) {
   const path = useCurrentPath();
   const nav = useResolvedNav(role);
-  const primary = nav.primary;
+  const isOperationsCenter = role === "chapter_admin" || path?.startsWith("/chapter-admin") || path === "/admin/operations";
+  const primary = isOperationsCenter
+    ? [
+        { label: "Event Setup", to: "/chapter-admin/event-setup", icon: CalendarPlus },
+        { label: "Attendees", to: "/chapter-admin/attendees", icon: Ticket },
+        { label: "Live Control", to: "/chapter-admin/live-control", icon: Radio },
+        { label: "Follow-up", to: "/chapter-admin/follow-up", icon: MessageSquareText },
+        { label: "My Links", to: "/chapter-admin/my-links", icon: Link2 },
+      ]
+    : nav.primary;
 
   return (
     <nav

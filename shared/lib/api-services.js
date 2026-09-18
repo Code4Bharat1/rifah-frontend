@@ -246,6 +246,16 @@ export const eventApi = {
   },
 };
 
+export const followupApi = {
+  list: (params = {}) => apiClient(`/followups${toQueryString(params)}`),
+  getAnalytics: (params = {}) => apiClient(`/followups/analytics${toQueryString(params)}`),
+  create: (data) => apiClient("/followups", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/followups/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/followups/${id}`, { method: "DELETE" }),
+  syncFromEvent: (eventId) => apiClient(`/followups/sync/event/${eventId}`, { method: "POST" }),
+  syncFromMembers: (chapter) => apiClient("/followups/sync/members", { method: "POST", body: JSON.stringify({ chapter }) }),
+};
+
 export const reviewApi = {
   getByBusiness: (businessId) => apiClient(`/reviews/business/${businessId}`),
   submit: (data) => apiClient("/reviews", { method: "POST", body: JSON.stringify(data) }),

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RIFAH Live Projector Screen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #060b14;
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 2.5rem;
+      user-select: none;
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 1.5rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: #06b6d4;
+      color: #020617;
+      font-weight: 900;
+      font-size: 24px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+    }
+    .title { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+    .subtitle { font-size: 13px; font-weight: 800; color: #38bdf8; letter-spacing: 1px; text-transform: uppercase; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 10px #34d399;
+    }
+    .stage {
+      margin: auto;
+      text-align: center;
+      max-width: 900px;
+      padding: 3rem 0;
+    }
+    .slide-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      color: #38bdf8;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      margin-bottom: 1.5rem;
+    }
+    .slide-title {
+      font-size: 64px;
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .event-title {
+      font-size: 22px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #1e293b;
+      padding-top: 1.5rem;
+      font-size: 13px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <div class="logo">R</div>
+      <div>
+        <div class="title">RIFAH CHAMBER OF COMMERCE</div>
+        <div class="subtitle" id="chapterDisplay">CENTRAL-MUMBAI CHAPTER · OPERATIONS CENTER</div>
+      </div>
+    </div>
+    <div class="status-badge">
+      <div class="pulse-dot"></div>
+      <span id="liveStatus">LIVE</span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="slide-badge" id="slideBadge">SLIDE 1</div>
+    <h1 class="slide-title" id="slideTitle">Welcome / Entrance & Networking</h1>
+    <p class="event-title" id="eventTitle">RIFAH Operations Center · Chapter Operations Meet</p>
+  </div>
+
+  <div class="footer">
+    <div>RIFAH Operations Center · Chapter Event Lifecycle System</div>
+    <div id="connStatus">Socket: Connected</div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const chapter = urlParams.get('c') || 'central-mumbai';
+    const chapterSlug = chapter.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+    document.getElementById('chapterDisplay').textContent = `${chapter.toUpperCase()} CHAPTER · OPERATIONS CENTER`;
+
+    const socket = io(window.location.origin, { transports: ['websocket', 'polling'] });
+    socket.on('connect', () => {
+      document.getElementById('connStatus').textContent = 'Socket: 🟢 Connected';
+      socket.emit('projector:join', chapterSlug);
+    });
+    socket.on('disconnect', () => {
+      document.getElementById('connStatus').textContent = 'Socket: 🟡 Reconnecting';
+    });
+    socket.on('projector:update', (data) => {
+      if (data) {
+        if (data.slideIndex !== undefined) {
+          document.getElementById('slideBadge').textContent = `SLIDE ${data.slideIndex + 1}`;
+        }
+        if (data.slideTitle) {
+          document.getElementById('slideTitle').textContent = data.slideTitle;
+        }
+        if (data.eventTitle) {
+          document.getElementById('eventTitle').textContent = data.eventTitle;
+        }
+        if (data.status) {
+          document.getElementById('liveStatus').textContent = data.status;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
