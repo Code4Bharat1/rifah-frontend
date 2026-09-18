@@ -324,6 +324,21 @@ export const settingsApi = {
   update: (data) => apiClient("/settings", { method: "PATCH", body: JSON.stringify(data) }),
 };
 
+export const courseApi = {
+  list: (params = {}) => apiClient(`/courses${toQueryString(params)}`),
+  getById: (id) => apiClient(`/courses/${id}`),
+  create: (data) => apiClient("/courses", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/courses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/courses/${id}`, { method: "DELETE" }),
+  uploadContent: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient("/courses/upload", { method: "POST", body: formData });
+  },
+  markWatched: (id, contentId, data = {}) => apiClient(`/courses/${id}/contents/${contentId}/watch`, { method: "POST", body: JSON.stringify(data) }),
+  getCertificates: (params = {}) => apiClient(`/courses/certificates${toQueryString(params)}`),
+};
+
 export const birthdayApi = {
   getToday: () => apiClient("/birthdays/today"),
   triggerEmails: () => apiClient("/birthdays/trigger-emails", { method: "POST" }),

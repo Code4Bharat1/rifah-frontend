@@ -582,7 +582,7 @@ function BizMembership() {
           type: replacingType,
           name: file.name,
           fileUrl: filePath,
-          status: "verified",
+          status: "pending",
           uploadedAt: new Date().toISOString(),
         },
       ];
@@ -721,29 +721,33 @@ function BizMembership() {
     verificationData?.status ||
     business?.verification ||
     business?.verificationStatus ||
-    "verified"
+    "pending"
   ).toLowerCase();
-  const isVerified = rawStatus === "verified" || rawStatus === "approved" || business?.isVerified === true;
+  const isVerified = (rawStatus === "verified" || rawStatus === "approved" || business?.isVerified === true) && (rawStatus !== "rejected" && rawStatus !== "correction_requested");
   const isUnderReview = rawStatus === "under_review" || rawStatus === "pending";
   const isChangesRequired = rawStatus === "correction_requested" || rawStatus === "changes_required";
   const isRejected = rawStatus === "rejected";
 
-  const findMatchingUploadedDoc = (templateType, index, docs) => {
+  const findMatchingUploadedDoc = (templateType, docs) => {
     if (!Array.isArray(docs) || docs.length === 0) return null;
     const byType = docs.find((d) => isMatchingDoc(d?.type, templateType));
     if (byType) return byType;
     const byName = docs.find((d) => isMatchingDoc(d?.name, templateType));
     if (byName) return byName;
-    if (docs[index] && (docs[index].fileUrl || docs[index].url)) {
-      return docs[index];
-    }
     return null;
   };
 
   const verifiedDocsCount = useMemo(() => {
-    return docTemplates.filter((template, idx) => {
-      const m = findMatchingUploadedDoc(template.type, idx, uploadedDocs);
-      return Boolean(m?.fileUrl || m?.url);
+    return docTemplates.filter((template) => {
+      const m = findMatchingUploadedDoc(template.type, uploadedDocs);
+      return m && (m.status === "verified" || m.status === "approved" || isVerified);
+    }).length;
+  }, [uploadedDocs, isVerified]);
+
+  const totalUploadedDocsCount = useMemo(() => {
+    return docTemplates.filter((template) => {
+      const m = findMatchingUploadedDoc(template.type, uploadedDocs);
+      return Boolean(m?.fileUrl || m?.url || m?.path);
     }).length;
   }, [uploadedDocs]);
 
@@ -1289,84 +1293,260 @@ function BizMembership() {
 
         {/* Row 2: 2 Columns Grid (Verification Status & Verification Documents) */}
         <div id="verification" className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch pt-2">
-          {/* Card 1: Verification Status */}
+          {/* Card 1: Verification Status (Vertical Animated Stepper) */}
           <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-border/90 transition-all">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-border/80">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base font-bold text-foreground">Verification Status</h3>
-                  <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    <span>{isVerified ? "Verified" : isRejected ? "Rejected" : isChangesRequired ? "Changes Required" : "In Review"}</span>
+                  <span className={cn(
+                    "rounded-full text-[11px] font-bold px-2.5 py-0.5 flex items-center gap-1.5 border shadow-2xs",
+                    isVerified
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                      : isRejected
+                      ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
+                      : isChangesRequired
+                      ? "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800"
+                      : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                  )}>
+                    {isVerified ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    ) : isRejected ? (
+                      <XCircle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+                    ) : isChangesRequired ? (
+                      <RotateCcw className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 animate-pulse" />
+                    )}
+                    <span>{isVerified ? "Verified" : isRejected ? "Rejected" : isChangesRequired ? "Changes Required" : "Under Review"}</span>
                   </span>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setVerificationModalOpen(true)}
-                  className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer shrink-0"
                 >
                   <span>Audit Trail</span>
                   <span>→</span>
                 </button>
               </div>
 
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground mt-2.5">
                 {isVerified
                   ? "Your business profile has been vetted and officially accredited by the RIFAH Chamber Secretariat."
                   : isChangesRequired
                   ? "The Secretariat requested adjustments to your verification paperwork."
                   : isRejected
                   ? "Your verification application was rejected by the Secretariat."
-                  : "Your compliance paperwork is currently under review by the Secretariat desk."}
+                  : "Your compliance paperwork is currently under review by the Chapter Admin and Secretariat desk."}
               </p>
 
-              {/* Stepper with Connected Progress Line */}
-              <div className="relative my-6 px-2">
-                {/* Horizontal Progress Track */}
-                <div className="absolute top-4 left-8 right-8 h-1 bg-muted rounded-full -z-0" />
-                <div className="absolute top-4 left-8 right-8 h-1 bg-gradient-to-r from-emerald-500 via-emerald-500 to-sky-500 rounded-full -z-0" />
-
-                <div className="relative z-10 grid grid-cols-4 gap-2 text-center">
-                  <div className="flex flex-col items-center">
-                    <div className="grid h-8 w-8 place-items-center rounded-full bg-emerald-600 text-white text-xs font-bold shadow-md shadow-emerald-600/20 ring-4 ring-background">
-                      <Check className="h-4 w-4" />
-                    </div>
-                    <span className="text-[11px] font-bold text-foreground mt-2 leading-tight">Submitted</span>
-                    <span className="text-[10px] text-emerald-600 font-semibold">Completed</span>
+              {/* Vertical Stepper with Connected Animated Progress Line */}
+              <div className="relative my-7 pl-1 space-y-9 sm:space-y-10">
+                {/* Step 1: Profile & Application Submitted */}
+                <div className="relative flex items-start gap-4.5 group">
+                  {/* Vertical Track connecting to step 2 */}
+                  <div className="absolute left-[17px] top-11 -bottom-9 w-[2px] bg-emerald-500 rounded-full" />
+                  
+                  <div className="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-600 text-white shadow-sm shadow-emerald-600/25 ring-4 ring-card transition-transform group-hover:scale-105">
+                    <Check className="h-4.5 w-4.5 stroke-[2.5]" />
                   </div>
 
-                  <div className="flex flex-col items-center">
-                    <div className="grid h-8 w-8 place-items-center rounded-full bg-emerald-600 text-white text-xs font-bold shadow-md shadow-emerald-600/20 ring-4 ring-background">
-                      <Check className="h-4 w-4" />
+                  <div className="min-w-0 flex-1 pt-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">1. Application & Profile Submitted</h4>
+                      <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
+                        Completed
+                      </span>
                     </div>
-                    <span className="text-[11px] font-bold text-foreground mt-2 leading-tight">Docs Checked</span>
-                    <span className="text-[10px] text-emerald-600 font-semibold">Completed</span>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                      Business profile, registration details & contact credentials recorded.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 2: Compliance Documents Uploaded */}
+                <div className="relative flex items-start gap-4.5 group">
+                  {/* Vertical Track connecting to step 3 */}
+                  <div className={cn(
+                    "absolute left-[17px] top-11 -bottom-9 w-[2px] rounded-full transition-all duration-500",
+                    totalUploadedDocsCount >= docTemplates.length
+                      ? "bg-emerald-500"
+                      : totalUploadedDocsCount > 0
+                      ? "bg-gradient-to-b from-emerald-500 to-amber-500"
+                      : "bg-muted-foreground/20"
+                  )} />
+
+                  <div className={cn(
+                    "relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ring-4 ring-card transition-all duration-300",
+                    totalUploadedDocsCount >= docTemplates.length
+                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25"
+                      : totalUploadedDocsCount > 0
+                      ? "bg-amber-500 text-white shadow-sm shadow-amber-500/30"
+                      : "bg-muted text-muted-foreground border border-border"
+                  )}>
+                    {totalUploadedDocsCount >= docTemplates.length ? (
+                      <Check className="h-4.5 w-4.5 stroke-[2.5]" />
+                    ) : totalUploadedDocsCount > 0 ? (
+                      <FileCheck className="h-4.5 w-4.5" />
+                    ) : (
+                      <FileText className="h-4.5 w-4.5 text-muted-foreground/70" />
+                    )}
+
+                    {/* Animated Pulsing Beacon only when currently in active upload progress */}
+                    {totalUploadedDocsCount > 0 && totalUploadedDocsCount < docTemplates.length && (
+                      <span className="absolute -inset-1 rounded-full bg-amber-400/30 animate-ping pointer-events-none" />
+                    )}
                   </div>
 
-                  <div className="flex flex-col items-center">
-                    <div className="grid h-8 w-8 place-items-center rounded-full bg-emerald-600 text-white text-xs font-bold shadow-md shadow-emerald-600/20 ring-4 ring-background">
-                      <Check className="h-4 w-4" />
+                  <div className="min-w-0 flex-1 pt-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">2. Compliance Documents Uploaded</h4>
+                      {totalUploadedDocsCount >= docTemplates.length ? (
+                        <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
+                          {totalUploadedDocsCount} of {docTemplates.length} Done
+                        </span>
+                      ) : totalUploadedDocsCount > 0 ? (
+                        <span className="rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          {totalUploadedDocsCount} of {docTemplates.length} Uploaded
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
+                          Pending Upload
+                        </span>
+                      )}
                     </div>
-                    <span className="text-[11px] font-bold text-foreground mt-2 leading-tight">Secretariat</span>
-                    <span className="text-[10px] text-emerald-600 font-semibold">Completed</span>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                      {totalUploadedDocsCount > 0
+                        ? `${totalUploadedDocsCount} of ${docTemplates.length} legal paperwork and registration files attached.`
+                        : "Upload incorporation certificate, GSTIN, PAN & bank verification papers."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 3: Secretariat & Chapter Admin Review */}
+                <div className="relative flex items-start gap-4.5 group">
+                  {/* Vertical Track connecting to step 4 */}
+                  <div className={cn(
+                    "absolute left-[17px] top-11 -bottom-9 w-[2px] rounded-full transition-all duration-500",
+                    isVerified
+                      ? "bg-emerald-500"
+                      : isRejected
+                      ? "bg-rose-500"
+                      : totalUploadedDocsCount >= docTemplates.length
+                      ? "bg-gradient-to-b from-amber-500 via-amber-400 to-slate-300 dark:to-slate-700"
+                      : "bg-muted-foreground/20"
+                  )} />
+
+                  <div className={cn(
+                    "relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ring-4 ring-card transition-all duration-300",
+                    isVerified
+                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25"
+                      : isRejected
+                      ? "bg-rose-600 text-white shadow-sm shadow-rose-600/25"
+                      : totalUploadedDocsCount > 0
+                      ? "bg-amber-500 text-white shadow-sm shadow-amber-500/30"
+                      : "bg-muted text-muted-foreground border border-border"
+                  )}>
+                    {isVerified ? (
+                      <Check className="h-4.5 w-4.5 stroke-[2.5]" />
+                    ) : isRejected ? (
+                      <XCircle className="h-4.5 w-4.5" />
+                    ) : totalUploadedDocsCount > 0 ? (
+                      <Clock className="h-4.5 w-4.5 animate-pulse" />
+                    ) : (
+                      <Clock className="h-4.5 w-4.5 text-muted-foreground/70" />
+                    )}
+
+                    {/* Animated Pulsing Beacon only when Step 2 is done and Step 3 is actively under desk review */}
+                    {!isVerified && !isRejected && totalUploadedDocsCount >= docTemplates.length && (
+                      <span className="absolute -inset-1 rounded-full bg-amber-400/30 animate-ping pointer-events-none" />
+                    )}
                   </div>
 
-                  <div className="flex flex-col items-center">
-                    <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-blue-600 text-white text-xs font-bold shadow-md shadow-sky-500/25 ring-4 ring-background">
-                      <ShieldCheck className="h-4.5 w-4.5" />
+                  <div className="min-w-0 flex-1 pt-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">3. Secretariat & Admin Review</h4>
+                      {isVerified ? (
+                        <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
+                          Approved
+                        </span>
+                      ) : isRejected ? (
+                        <span className="rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
+                          Rejected
+                        </span>
+                      ) : isChangesRequired ? (
+                        <span className="rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
+                          Re-upload Req.
+                        </span>
+                      ) : totalUploadedDocsCount > 0 ? (
+                        <span className="rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          Under Review
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
+                          Awaiting Docs
+                        </span>
+                      )}
                     </div>
-                    <span className="text-[11px] font-bold text-foreground mt-2 leading-tight">Verified & Live</span>
-                    <span className="text-[10px] text-sky-600 dark:text-sky-400 font-bold">Active</span>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                      {isVerified
+                        ? "Chapter Admin and Secretariat team validated your documents."
+                        : isRejected
+                        ? "Documentation rejected. Please check notes and replace documents."
+                        : totalUploadedDocsCount > 0
+                        ? "Chapter Admin & Secretariat reviewing compliance documents."
+                        : "Documentation will be vetted once required files are uploaded."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 4: Verified & Live on Directory */}
+                <div className="relative flex items-start gap-4.5 group">
+                  <div className={cn(
+                    "relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ring-4 ring-card transition-all duration-300",
+                    isVerified
+                      ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/30 ring-emerald-100 dark:ring-emerald-950"
+                      : "bg-muted text-muted-foreground border border-border"
+                  )}>
+                    <ShieldCheck className={cn("h-4.5 w-4.5", isVerified ? "text-white" : "text-muted-foreground/60")} />
+
+                    {/* Continuous Glow Beacon when accredited */}
+                    {isVerified && (
+                      <span className="absolute -inset-1 rounded-full bg-emerald-400/40 animate-pulse pointer-events-none" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1 pt-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">4. Verified & Live on Directory</h4>
+                      {isVerified ? (
+                        <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
+                          Active Badge
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
+                          Locked
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                      {isVerified
+                        ? "Official green shield badge active on public directory and search."
+                        : "Directory accreditation badge unlocks after Secretariat approval."}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Embedded Verified Accreditation Seal Card */}
               {isVerified && (
-                <div className="mt-4 rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/90 via-emerald-50/40 to-transparent dark:border-emerald-800/60 dark:from-emerald-950/30 dark:to-transparent p-4 flex items-start gap-3.5 shadow-2xs">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 ring-2 ring-emerald-100 dark:ring-emerald-900">
-                    <ShieldCheck className="h-5 w-5" />
+                <div className="mt-3 rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/90 via-emerald-50/40 to-transparent dark:border-emerald-800/60 dark:from-emerald-950/30 dark:to-transparent p-3.5 flex items-start gap-3 shadow-2xs">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 ring-2 ring-emerald-100 dark:ring-emerald-900">
+                    <ShieldCheck className="h-4.5 w-4.5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1385,8 +1565,8 @@ function BizMembership() {
               )}
 
               {isChangesRequired && (
-                <div className="mt-4 rounded-2xl border border-sky-300 bg-sky-50/90 dark:border-sky-900/50 dark:bg-sky-950/20 p-4 flex items-start gap-3.5">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-600 text-white shadow-2xs">
+                <div className="mt-3 rounded-2xl border border-sky-300 bg-sky-50/90 dark:border-sky-900/50 dark:bg-sky-950/20 p-3.5 flex items-start gap-3">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-sky-600 text-white shadow-2xs">
                     <RotateCcw className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
@@ -1401,8 +1581,8 @@ function BizMembership() {
               )}
 
               {isRejected && (
-                <div className="mt-4 rounded-2xl border border-rose-300 bg-rose-50/90 dark:border-rose-900/50 dark:bg-rose-950/20 p-4 flex items-start gap-3.5">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-rose-600 text-white shadow-2xs">
+                <div className="mt-3 rounded-2xl border border-rose-300 bg-rose-50/90 dark:border-rose-900/50 dark:bg-rose-950/20 p-3.5 flex items-start gap-3">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-rose-600 text-white shadow-2xs">
                     <XCircle className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
@@ -1428,19 +1608,31 @@ function BizMembership() {
                     Official certificates, registration papers & identity proof
                   </p>
                 </div>
-                <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 shrink-0">
-                  {displayVerifiedCount} of {docTemplates.length} Verified
-                </span>
+                {isVerified ? (
+                  <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 shrink-0">
+                    {verifiedDocsCount || docTemplates.length} of {docTemplates.length} Verified
+                  </span>
+                ) : totalUploadedDocsCount > 0 ? (
+                  <span className="rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-[11px] font-bold px-2.5 py-0.5 shrink-0">
+                    {totalUploadedDocsCount} of {docTemplates.length} Under Review
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[11px] font-bold px-2.5 py-0.5 shrink-0">
+                    0 of {docTemplates.length} Uploaded
+                  </span>
+                )}
               </div>
 
               <div className="space-y-2.5 pt-4">
-                {docTemplates.map((template, idx) => {
-                  const uploaded = findMatchingUploadedDoc(template.type, idx, uploadedDocs);
+                {docTemplates.map((template) => {
+                  const uploaded = findMatchingUploadedDoc(template.type, uploadedDocs);
                   const docUrl = uploaded?.fileUrl || uploaded?.url || uploaded?.path;
                   const docDate = uploaded?.uploadedAt
                     ? new Date(uploaded.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-                    : formattedStarted;
+                    : null;
                   const isUploaded = Boolean(docUrl);
+                  const isDocVerified = isUploaded && (uploaded?.status === "verified" || uploaded?.status === "approved" || (isVerified && uploaded?.status !== "rejected" && uploaded?.status !== "pending"));
+                  const isDocRejected = isUploaded && uploaded?.status === "rejected";
 
                   return (
                     <div
@@ -1448,7 +1640,14 @@ function BizMembership() {
                       className="flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border border-border/70 bg-card hover:bg-muted/30 hover:border-border hover:shadow-2xs transition-all"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/40 shadow-2xs">
+                        <div className={cn(
+                          "grid h-9 w-9 shrink-0 place-items-center rounded-xl border shadow-2xs",
+                          isDocVerified
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40"
+                            : isUploaded
+                            ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-900/40"
+                            : "bg-muted text-muted-foreground border-border/70"
+                        )}>
                           <FileText className="h-4 w-4" />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -1456,29 +1655,41 @@ function BizMembership() {
                             {template.name}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
-                            Uploaded ({docDate})
+                            {isUploaded ? `Uploaded (${docDate || "Recently"})` : "Not uploaded yet"}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                        <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2.5 py-0.5">
-                          {isVerified || uploaded?.status === "verified" || uploaded?.status === "approved"
-                            ? "Verified"
-                            : isUploaded
-                            ? "In Review"
-                            : "Pending"}
-                        </span>
+                        {isDocVerified ? (
+                          <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2.5 py-0.5">
+                            Verified
+                          </span>
+                        ) : isDocRejected ? (
+                          <span className="rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-[11px] font-semibold px-2.5 py-0.5">
+                            Needs Re-upload
+                          </span>
+                        ) : isUploaded ? (
+                          <span className="rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-[11px] font-semibold px-2.5 py-0.5">
+                            Under Review
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[11px] font-semibold px-2.5 py-0.5">
+                            Pending
+                          </span>
+                        )}
 
-                        <button
-                          type="button"
-                          onClick={() => handlePreviewDocument(template, uploaded)}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40"
-                          title="Preview uploaded document"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>Preview</span>
-                        </button>
+                        {isUploaded && (
+                          <button
+                            type="button"
+                            onClick={() => handlePreviewDocument(template, uploaded)}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40"
+                            title="Preview uploaded document"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            <span>Preview</span>
+                          </button>
+                        )}
 
                         <button
                           type="button"
@@ -1491,7 +1702,7 @@ function BizMembership() {
                           ) : (
                             <Upload className="h-3.5 w-3.5 text-muted-foreground" />
                           )}
-                          <span>Replace</span>
+                          <span>{isUploaded ? "Replace" : "Upload"}</span>
                         </button>
                       </div>
                     </div>
@@ -1697,10 +1908,26 @@ function BizMembership() {
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200">
-              <span className="font-bold block mb-1">Status: Officially Verified & Accredited</span>
-              <p className="text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
-                All 5 compliance and identification documents have been verified against statutory government registries (GST, MCA, CBDT).
+            <div className={cn(
+              "p-3 rounded-xl border",
+              isVerified
+                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200"
+                : isRejected
+                ? "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-950 dark:text-rose-200"
+                : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200"
+            )}>
+              <span className="font-bold block mb-1">
+                Status: {isVerified ? "Officially Verified & Accredited" : isRejected ? "Verification Rejected" : "Under Review by Secretariat"}
+              </span>
+              <p className={cn(
+                "text-[11px] leading-relaxed",
+                isVerified ? "text-emerald-800 dark:text-emerald-300" : isRejected ? "text-rose-800 dark:text-rose-300" : "text-amber-800 dark:text-amber-300"
+              )}>
+                {isVerified
+                  ? "All compliance and identification documents have been verified against statutory government registries (GST, MCA, CBDT)."
+                  : isRejected
+                  ? (business?.verificationReviewReason || "Submitted documents did not meet verification criteria.")
+                  : `${totalUploadedDocsCount} documents submitted. Secretariat desk is currently reviewing compliance certificates.`}
               </p>
             </div>
           </div>
