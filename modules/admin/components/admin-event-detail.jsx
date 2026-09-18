@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { CalendarDays, Clock, MapPin, Users, Ticket, ArrowLeft, Edit, Trash2, Eye } from "lucide-react";
+import { CalendarDays, Clock, MapPin, Users, Ticket, ArrowLeft, Edit, Trash2, Eye, Radio } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -79,6 +79,11 @@ export function AdminEventDetail() {
               </Link>
             </Button>
           )}
+          <Button asChild className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold">
+            <Link href="/chapter-admin/live-control">
+              <Radio className="h-4 w-4 mr-2" /> Operations Center
+            </Link>
+          </Button>
         </div>
       }
     >

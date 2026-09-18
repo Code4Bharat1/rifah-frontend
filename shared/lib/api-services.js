@@ -23,6 +23,11 @@ export const authApi = {
   completeOnboarding: (data) => apiClient("/auth/complete-onboarding", { method: "POST", body: JSON.stringify(data) }),
   sendRegisterOtp: (email) => apiClient("/auth/register-otp/send", { method: "POST", body: JSON.stringify({ email }) }),
   verifyRegisterOtp: (email, otp) => apiClient("/auth/register-otp/verify", { method: "POST", body: JSON.stringify({ email, otp }) }),
+  uploadPhoto: (file) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    return apiClient("/auth/upload-photo", { method: "POST", body: formData });
+  },
 };
 
 export const userApi = {
@@ -239,11 +244,35 @@ export const eventApi = {
   update: (id, data) => apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/events/${id}`, { method: "DELETE" }),
   getRegistrations: (id) => apiClient(`/events/${id}/registrations`),
+  getOperations: (id) => apiClient(`/events/${id}/operations`),
+  updateOperations: (id, data) => apiClient(`/events/${id}/operations`, { method: "PATCH", body: JSON.stringify(data) }),
+  checkinAttendee: (id, attendeeId, attendanceStatus = "Present") =>
+    apiClient(`/events/${id}/attendees/${attendeeId}/checkin`, {
+      method: "PATCH",
+      body: JSON.stringify({ attendanceStatus }),
+    }),
   uploadCover: (id, file) => {
     const formData = new FormData();
     formData.append("cover", file);
     return apiClient(`/events/${id}/cover`, { method: "POST", body: formData });
   },
+  addFinanceTransaction: (id, data) =>
+    apiClient(`/events/${id}/finance`, { method: "POST", body: JSON.stringify(data) }),
+};
+
+export const followupApi = {
+  list: (params = {}) => apiClient(`/followups${toQueryString(params)}`),
+  getStats: (params = {}) => apiClient(`/followups/stats${toQueryString(params)}`),
+  getAnalytics: (params = {}) => apiClient(`/followups/stats${toQueryString(params)}`),
+  create: (data) => apiClient("/followups", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/followups/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateStatus: (id, status, note) => apiClient(`/followups/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) }),
+  addNote: (id, content) => apiClient(`/followups/${id}/note`, { method: "POST", body: JSON.stringify({ content }) }),
+  logMessage: (id, channel, message) => apiClient(`/followups/${id}/message`, { method: "POST", body: JSON.stringify({ channel, message }) }),
+  addHistory: (id, data) => apiClient(`/followups/${id}/history`, { method: "POST", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/followups/${id}`, { method: "DELETE" }),
+  syncFromEvent: (eventId) => apiClient(`/followups/sync-event/${eventId}`, { method: "POST" }),
+  syncFromMembers: (chapter) => apiClient("/followups/sync/members", { method: "POST", body: JSON.stringify({ chapter }) }),
 };
 
 export const reviewApi = {

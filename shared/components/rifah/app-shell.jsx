@@ -45,9 +45,13 @@ import {
   ArrowRight,
   Shield,
   Handshake,
-  TrendingUp,
   GraduationCap,
+  TrendingUp,
   Zap,
+  Radio,
+  Mic,
+  Link2,
+  CalendarPlus,
   Award,
 } from "lucide-react";
 import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
@@ -89,12 +93,14 @@ const navs = {
     title: "RIFAH administration",
     primary: [
       { label: "Overview", to: "/admin", icon: Gauge },
+      { label: "Operations Center", to: "/admin/operations", icon: Radio },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
       { label: "Users", to: "/admin/users", icon: Users },
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Operations Center Hub", to: "/admin/operations", icon: Radio },
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
@@ -121,12 +127,14 @@ const roleNavs = {
     title: "Chapter admin",
     primary: [
       { label: "Dashboard", to: "/chapter-admin", icon: Gauge },
+      { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
       { label: "Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Operations Center Hub", to: "/chapter-admin/operations", icon: Radio },
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
@@ -143,12 +151,14 @@ const roleNavs = {
     title: "State admin",
     primary: [
       { label: "Dashboard", to: "/state-admin", icon: Gauge },
+      { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
       { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
       { label: "Members", to: "/state-admin/members", icon: Users },
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Operations Center Hub", to: "/chapter-admin/operations", icon: Radio },
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
@@ -164,6 +174,7 @@ const roleNavs = {
     title: "Secretariat Desk",
     primary: [
       { label: "Overview", to: "/admin", icon: Gauge },
+      { label: "Operations Center", to: "/admin/operations", icon: Radio },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Leads", to: "/admin/leads", icon: Target },
       { label: "Users", to: "/admin/users", icon: Users },
@@ -181,15 +192,21 @@ const navRoles = [
 function useResolvedNav(role) {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // If in Chapter Admin / Operations Center or explicitly requesting chapter_admin, always show RIFAH OPERATIONS CENTER ADMIN PANEL
+  if (role === "chapter_admin" || pathname?.startsWith("/chapter-admin") || pathname === "/admin/operations") {
+    return roleNavs.chapter_admin;
+  }
+
   if (mounted && user?.role && roleNavs[user.role]) {
     return roleNavs[user.role];
   }
-  return navs[role] || navs.business || navs.admin;
+  return navs[role] || roleNavs[role] || navs.admin || navs.business;
 }
 
 function toRoleAwarePath(path, role, user) {
@@ -259,7 +276,7 @@ function SidebarLink({ item, active, badge, isLocked, onSelect }) {
       data-sidebar-active={active ? "true" : undefined}
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        active && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary",
+        active && "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-bold shadow-xs hover:bg-cyan-500/20 hover:text-cyan-300",
         isLocked && "opacity-75"
       )}
     >
@@ -492,6 +509,16 @@ export function AppShell({
                 <span className="block truncate text-[10px] text-sidebar-foreground/50">{user.email}</span>
               </span>
             </Link>
+          )}
+          {(role === "chapter_admin" || user?.role === "chapter_admin" || path?.startsWith("/chapter-admin") || path === "/admin/operations") && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-cyan-400 uppercase tracking-wider">CHAPTER ADMIN</span>
+                <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold uppercase truncate max-w-[120px]">
+                  {user?.chapter ? user.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "CENTRAL-MUMBAI"}
+                </span>
+              </div>
+            </div>
           )}
           {user?.previousRole && (
             <button
@@ -774,7 +801,7 @@ function UnderApprovalAccessGate({ business, path }) {
 export function MoreSheet({ role, isBizVerified = true }) {
   const [open, setOpen] = useState(false);
   const nav = useResolvedNav(role);
-  const items = nav.more;
+  const items = role === "chapter_admin" ? [...(nav?.primary || []), ...(nav?.more || [])] : (nav?.more || []);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -789,7 +816,14 @@ export function MoreSheet({ role, isBizVerified = true }) {
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
               <LogoMark className="h-4" />
             </span>
-            <span className="font-bold">RIFAH</span>
+            <div>
+              <span className="block font-bold leading-none">RIFAH</span>
+              {role === "chapter_admin" && (
+                <span className="block text-[9px] font-black text-cyan-500 uppercase tracking-wider mt-0.5">
+                  OPERATIONS CENTER
+                </span>
+              )}
+            </div>
           </SheetTitle>
         </SheetHeader>
         <nav className="mt-6 flex flex-col gap-1">
