@@ -45,6 +45,7 @@ import {
   Shield,
   Handshake,
   TrendingUp,
+  GraduationCap,
 } from "lucide-react";
 import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
 import { Button } from "@shared/components/ui/button";
@@ -75,6 +76,7 @@ const navs = {
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
       { label: "Membership", to: "/biz/membership", icon: Star },
       { label: "Notifications", to: "/biz/notifications", icon: Bell },
+      { label: "LMS", to: "/biz/lms", icon: GraduationCap },
     ],
   },
   admin: {
@@ -101,6 +103,7 @@ const navs = {
       { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
       { label: "Settings", to: "/admin/settings", icon: Settings },
+      { label: "LMS", to: "/admin/lms", icon: GraduationCap },
     ],
   },
 };
@@ -125,6 +128,7 @@ const roleNavs = {
       { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
+      { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
     ],
   },
   state_admin: {
@@ -144,6 +148,7 @@ const roleNavs = {
       { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/state-admin/settings", icon: Settings },
+      { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
     ],
   },
   secretariat: {

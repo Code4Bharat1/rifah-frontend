@@ -26,6 +26,7 @@ import {
   thankYouNoteApi,
   referralApi,
   networkingAnalyticsApi,
+  courseApi,
   birthdayApi,
   anniversaryApi,
 } from "../lib/api-services";
@@ -125,6 +126,34 @@ export function useChapterDetails(id) {
       return res?.data || res;
     },
     enabled: Boolean(id),
+  });
+}
+
+
+
+// ----------------------------------------------------------------------
+// LMS
+// ----------------------------------------------------------------------
+
+export function useCourses(params = {}) {
+  return useQuery({
+    queryKey: ["courses", params],
+    queryFn: () => courseApi.list(params),
+  });
+}
+
+export function useCourse(id) {
+  return useQuery({
+    queryKey: ["courses", id],
+    queryFn: () => courseApi.getById(id),
+    enabled: !!id,
+  });
+}
+
+export function useCertificates(params = {}) {
+  return useQuery({
+    queryKey: ["certificates", params],
+    queryFn: () => courseApi.getCertificates(params),
   });
 }
 
