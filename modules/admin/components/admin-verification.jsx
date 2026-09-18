@@ -95,11 +95,40 @@ function AdminVerification() {
     if (selectedDoc?.fileUrl) {
       const url = resolveMediaUrl(selectedDoc.fileUrl);
       setSecureDocUrl(url);
-      setVerifiedDocs((prev) => (prev.includes(selectedDoc.fileUrl) ? prev : [...prev, selectedDoc.fileUrl]));
     } else {
       setSecureDocUrl(null);
     }
   }, [selectedDoc]);
+
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    if (!secureDocUrl) return;
+    
+    // Add a loading state if we want to show it, or just use toast
+    const toastId = toast.loading("Downloading document...");
+    try {
+      const response = await fetch(secureDocUrl);
+      if (!response.ok) throw new Error("Network response was not ok");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = selectedDoc?.name || "document.pdf";
+      document.body.appendChild(a);
+      
+      a.click();
+      
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      toast.success("Download complete!", { id: toastId });
+    } catch (err) {
+      toast.error("Failed to download document. Opening in new tab instead.", { id: toastId });
+      window.open(secureDocUrl, "_blank");
+    }
+  };
 
   if (error && error.status === 401) {
     return (
@@ -695,13 +724,13 @@ function AdminVerification() {
                   <ExternalLink className="h-3.5 w-3.5" /> Open in new tab ↗
                 </a>
                 <span className="text-muted-foreground text-xs">•</span>
-                <a
-                  href={secureDocUrl}
-                  download={selectedDoc?.name || "document.pdf"}
-                  className="text-xs font-semibold text-muted-foreground hover:underline inline-flex items-center gap-1"
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  className="text-xs font-semibold text-muted-foreground hover:underline inline-flex items-center gap-1 cursor-pointer"
                 >
                   <Download className="h-3.5 w-3.5" /> Download PDF
-                </a>
+                </button>
               </div>
             ) : (
               <span />
