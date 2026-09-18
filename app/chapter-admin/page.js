@@ -7,8 +7,8 @@ export const metadata = {
 
 export default function ChapterAdminPage(props) {
   return (
-    <AppShell role="chapter_admin" title="Operations Center" subtitle="RIFAH Operations Center">
-      <OperationsCenter initialTab="event-setup" {...props} />
+    <AppShell role="chapter_admin" title="Chapter Overview" subtitle="RIFAH Operations Center Admin Panel">
+      <OperationsCenter initialTab="overview" {...props} />
     </AppShell>
   );
 }

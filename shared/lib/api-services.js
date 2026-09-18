@@ -244,6 +244,13 @@ export const eventApi = {
   update: (id, data) => apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/events/${id}`, { method: "DELETE" }),
   getRegistrations: (id) => apiClient(`/events/${id}/registrations`),
+  getOperations: (id) => apiClient(`/events/${id}/operations`),
+  updateOperations: (id, data) => apiClient(`/events/${id}/operations`, { method: "PATCH", body: JSON.stringify(data) }),
+  checkinAttendee: (id, attendeeId, attendanceStatus = "Present") =>
+    apiClient(`/events/${id}/attendees/${attendeeId}/checkin`, {
+      method: "PATCH",
+      body: JSON.stringify({ attendanceStatus }),
+    }),
   uploadCover: (id, file) => {
     const formData = new FormData();
     formData.append("cover", file);
@@ -253,11 +260,15 @@ export const eventApi = {
 
 export const followupApi = {
   list: (params = {}) => apiClient(`/followups${toQueryString(params)}`),
-  getAnalytics: (params = {}) => apiClient(`/followups/analytics${toQueryString(params)}`),
+  getStats: (params = {}) => apiClient(`/followups/stats${toQueryString(params)}`),
+  getAnalytics: (params = {}) => apiClient(`/followups/stats${toQueryString(params)}`),
   create: (data) => apiClient("/followups", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/followups/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateStatus: (id, status, note) => apiClient(`/followups/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) }),
+  addNote: (id, content) => apiClient(`/followups/${id}/note`, { method: "POST", body: JSON.stringify({ content }) }),
+  logMessage: (id, channel, message) => apiClient(`/followups/${id}/message`, { method: "POST", body: JSON.stringify({ channel, message }) }),
   delete: (id) => apiClient(`/followups/${id}`, { method: "DELETE" }),
-  syncFromEvent: (eventId) => apiClient(`/followups/sync/event/${eventId}`, { method: "POST" }),
+  syncFromEvent: (eventId) => apiClient(`/followups/sync-event/${eventId}`, { method: "POST" }),
   syncFromMembers: (chapter) => apiClient("/followups/sync/members", { method: "POST", body: JSON.stringify({ chapter }) }),
 };
 

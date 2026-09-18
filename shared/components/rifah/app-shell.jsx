@@ -134,9 +134,9 @@ const roleNavs = {
       { label: "Documents", to: "/chapter-admin/documents", icon: FileStack },
       { label: "Data", to: "/chapter-admin/data", icon: ChartNoAxesColumn },
       { label: "My Links", to: "/chapter-admin/my-links", icon: Link2 },
+      { label: "Chapter Overview", to: "/chapter-admin", icon: Gauge },
     ],
     more: [
-      { label: "Chapter Overview", to: "/chapter-admin", icon: Gauge },
       { label: "Chapter Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },

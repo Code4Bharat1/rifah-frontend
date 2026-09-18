@@ -97,7 +97,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   // Active Tab: synchronized with URL param or prop
   const currentTab = searchParams.get("tab") || initialTab;
   const setTab = (tabName) => {
-    router.push(`/chapter-admin/${tabName}`);
+    if (tabName === "overview") {
+      router.push("/chapter-admin");
+    } else {
+      router.push(`/chapter-admin/${tabName}`);
+    }
   };
 
   // Chapter Name
@@ -265,8 +269,38 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     };
   }, [chapterSlug]);
 
-  // Projector Controller Broadcaster
-  const broadcastSlide = (newIndex) => {
+  // Fetch full operations data from backend
+  const fetchOperationsData = async (eventId) => {
+    if (!eventId) return;
+    try {
+      const res = await eventApi.getOperations(eventId);
+      if (res?.data?.event) {
+        const ev = res.data.event;
+        setActiveEvent(ev);
+        if (ev.stageStatus) setLiveEventStatus(ev.stageStatus);
+        if (ev.currentSlideIndex !== undefined) setCurrentSlideIndex(ev.currentSlideIndex);
+        if (ev.speakers?.length) setSpeakers(ev.speakers);
+        if (ev.finance?.moneyIn?.length || ev.finance?.moneyOut?.length) {
+          setFinanceRecords({
+            moneyIn: ev.finance.moneyIn || [],
+            moneyOut: ev.finance.moneyOut || [],
+            treasurerNotes: ev.finance.treasurerNotes || "",
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Operations data fallback:", err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedEventId) {
+      fetchOperationsData(selectedEventId);
+    }
+  }, [selectedEventId]);
+
+  // Projector Controller Broadcaster with Backend Persistence
+  const broadcastSlide = async (newIndex) => {
     setCurrentSlideIndex(newIndex);
     const socket = getSocket();
     if (socket && socket.connected) {
@@ -279,6 +313,53 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         chapter: chapterName,
         eventTitle: activeEvent?.title || "RIFAH Chapter Meet",
       });
+    }
+    if (selectedEventId) {
+      try {
+        await eventApi.updateOperations(selectedEventId, { currentSlideIndex: newIndex });
+      } catch (err) {
+        console.warn("Failed to persist slide index:", err.message);
+      }
+    }
+  };
+
+  const handleStageStatusChange = async (newStatus) => {
+    setLiveEventStatus(newStatus);
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit("projector:control", {
+        target: chapterSlug,
+        action: "status",
+        slideIndex: currentSlideIndex,
+        status: newStatus,
+        chapter: chapterName,
+        eventTitle: activeEvent?.title || "RIFAH Chapter Meet",
+      });
+    }
+    if (selectedEventId) {
+      try {
+        await eventApi.updateOperations(selectedEventId, { stageStatus: newStatus });
+      } catch (err) {
+        console.warn("Failed to persist stage status:", err.message);
+      }
+    }
+    toast.success(`Stage status set to ${newStatus}`);
+  };
+
+  const handleToggleCheckin = async (attendee) => {
+    const isCheckedIn = attendee.entryStatus === "Checked In";
+    const nextAttendance = isCheckedIn ? "Pending" : "Present";
+    const attendeeId = attendee.userId || attendee.id;
+    if (selectedEventId && attendeeId) {
+      try {
+        await eventApi.checkinAttendee(selectedEventId, attendeeId, nextAttendance);
+        toast.success(isCheckedIn ? `Check-in reversed for ${attendee.name}` : `Entry allowed for ${attendee.name}!`);
+        fetchOperationsData(selectedEventId);
+      } catch (err) {
+        toast.error("Failed to update check-in in backend");
+      }
+    } else {
+      toast.success(isCheckedIn ? `Check-in reversed for ${attendee.name}` : `Entry allowed for ${attendee.name}!`);
     }
   };
 
@@ -536,6 +617,310 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {/* ========================================================================= */}
       {/* 2. TAB CONTENT ROUTER                                                    */}
       {/* ========================================================================= */}
+
+      {/* CHAPTER OVERVIEW / EXECUTIVE OPERATIONS DECK */}
+      {(currentTab === "overview" || currentTab === "chapter-overview") && (
+        <div className="space-y-6">
+          {/* Executive Top Banner */}
+          <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-slate-900 via-[#0B1F33] to-slate-900 p-6 text-white shadow-lg">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-wider uppercase bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                    <Radio className="h-3 w-3 animate-pulse" />
+                    EXECUTIVE OPERATIONS DESK
+                  </span>
+                  <span className="text-xs text-slate-400">·</span>
+                  <span className="text-xs font-semibold text-slate-300">{chapterName}</span>
+                </div>
+                <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+                  {activeEvent ? activeEvent.title : "RIFAH Operations Command Center"}
+                </h2>
+                <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                  Real-time command and telemetry desk for chapter meetings, registrations, live slide projection, gate entry, and post-event attendee conversions.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <Button
+                  onClick={() => setTab("live-control")}
+                  className="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black shadow-md gap-2"
+                >
+                  <Radio className="h-4 w-4" />
+                  <span>Stage Live Control</span>
+                </Button>
+                <Button
+                  onClick={() => setTab("attendees")}
+                  variant="outline"
+                  className="border-slate-600 bg-slate-800/80 text-white hover:bg-slate-700 gap-2"
+                >
+                  <Ticket className="h-4 w-4 text-cyan-400" />
+                  <span>Gate Check-in</span>
+                </Button>
+                <Button
+                  onClick={() => window.open(projectorUrl, "_blank")}
+                  variant="outline"
+                  className="border-slate-600 bg-slate-800/80 text-white hover:bg-slate-700 gap-2"
+                >
+                  <ExternalLink className="h-4 w-4 text-amber-400" />
+                  <span>Launch Projector</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Quick Status Bar */}
+            <div className="mt-6 pt-4 border-t border-slate-700/60 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Stage State</span>
+                <span className={cn(
+                  "font-black uppercase tracking-wider",
+                  liveEventStatus === "LIVE" ? "text-emerald-400" : "text-amber-400"
+                )}>
+                  ● {liveEventStatus}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Slide Deck</span>
+                <span className="font-bold text-white">Slide {currentSlideIndex + 1} of {agenda.length}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Venue & Date</span>
+                <span className="font-bold text-white truncate block">{activeEvent?.venue || "Grand Hall"} · {activeEvent?.date || "Today"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Collections</span>
+                <span className="font-bold text-emerald-400">₹{kpiStats.fees.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Module Grid: 10 Operational Modules at a Glance */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Layers className="h-4 w-4 text-primary" />
+                Operations Lifecycle Modules (10 Core Units)
+              </h3>
+              <span className="text-xs text-muted-foreground font-medium">Click any module to configure</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Card 1: Event Setup */}
+              <div
+                onClick={() => setTab("event-setup")}
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <CalendarPlus className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 01</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">Event Setup</h4>
+                  <p className="text-xs text-muted-foreground mt-1">Configure event date, venue, capacity, signatories, and certificate rules.</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-primary">
+                  <span>{activeEvent?.seats || 100} Total Capacity</span>
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              {/* Card 2: Attendees */}
+              <div
+                onClick={() => setTab("attendees")}
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-emerald-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                      <Ticket className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 02</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground group-hover:text-emerald-500 transition-colors">Attendees & Gate Check-in</h4>
+                  <p className="text-xs text-muted-foreground mt-1">Live gate entry management, search, approval filtering, and badge verification.</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-emerald-500">
+                  <span>{kpiStats.approved} Checked / {kpiStats.registered} Registered</span>
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              {/* Card 3: My Team */}
+              <div
+                onClick={() => setTab("my-team")}
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-blue-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                      <ShieldCheck className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 03</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground group-hover:text-blue-500 transition-colors">My Chapter Team</h4>
+                  <p className="text-xs text-muted-foreground mt-1">Role assignments for President, Gate Incharge, Stage Manager, and Treasurer.</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-blue-500">
+                  <span>5 Active Team Leads</span>
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              {/* Card 4: Live Control */}
+              <div
+                onClick={() => setTab("live-control")}
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-cyan-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-500/10 text-cyan-500 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
+                      <Radio className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 04</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground group-hover:text-cyan-500 transition-colors">Live Stage Control</h4>
+                  <p className="text-xs text-muted-foreground mt-1">16-item agenda slide manager synchronized in real time with the hall projector.</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-cyan-500">
+                  <span>{liveEventStatus} · Slide {currentSlideIndex + 1}/16</span>
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              {/* Card 5: Finance */}
+              <div
+                onClick={() => setTab("finance")}
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-amber-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                      <CreditCard className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 05</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground group-hover:text-amber-500 transition-colors">Finance & Collections</h4>
+                  <p className="text-xs text-muted-foreground mt-1">Ledger accounting of ticket payments, sponsorships, and venue expenditures.</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-amber-500">
+                  <span>Total In: ₹{kpiStats.fees.toLocaleString("en-IN")}</span>
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              {/* Card 6: Speakers & Guests */}
+              <div
+                onClick={() => setTab("speakers-guests")}
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-indigo-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500/10 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                      <Mic className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 06</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground group-hover:text-indigo-500 transition-colors">Speakers & Guests</h4>
+                  <p className="text-xs text-muted-foreground mt-1">Keynote speakers, VIP dignitaries, and sponsors with direct WhatsApp triggers.</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-indigo-500">
+                  <span>{speakers.length} Dignitaries Listed</span>
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              {/* Card 7: Follow-up */}
+              <div
+                onClick={() => setTab("follow-up")}
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-purple-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-purple-500/10 text-purple-500 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                      <MessageSquareText className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 07</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground group-hover:text-purple-500 transition-colors">Follow-up Command Desk</h4>
+                  <p className="text-xs text-muted-foreground mt-1">Dual-mode attendee and membership conversion engine with WhatsApp templating.</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-purple-500">
+                  <span>{followupStats.event.pending} Pending Follow-ups</span>
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              {/* Card 8: Documents */}
+              <div
+                onClick={() => setTab("documents")}
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-teal-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal-500/10 text-teal-500 group-hover:bg-teal-500 group-hover:text-white transition-colors">
+                      <FileStack className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 08</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground group-hover:text-teal-500 transition-colors">Chapter Documents</h4>
+                  <p className="text-xs text-muted-foreground mt-1">Official meeting agendas, delegate sheets, bylaws, and certificate templates.</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-teal-500">
+                  <span>4 Verified Documents</span>
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              {/* Card 9: Data */}
+              <div
+                onClick={() => setTab("data")}
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-rose-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-rose-500/10 text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-colors">
+                      <ChartNoAxesColumn className="h-5 w-5" />
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 09</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground group-hover:text-rose-500 transition-colors">Data & Analytics</h4>
+                  <p className="text-xs text-muted-foreground mt-1">Attendance conversion ratios, registration distribution, and CSV export.</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-rose-500">
+                  <span>Export CSV / PDF</span>
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              {/* Card 10: My Links */}
+              <div
+                onClick={() => setTab("my-links")}
+                className="group rounded-2xl border border-border bg-card p-5 hover:border-cyan-500/50 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between sm:col-span-2 lg:col-span-3"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-500/15 text-cyan-400">
+                      <Link2 className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">Module 10</span>
+                      <h4 className="font-bold text-base text-foreground mt-0.5 group-hover:text-cyan-400 transition-colors">My Links & Dynamic QR Generator</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">Visitor registration link, live projector presentation URL, and branded PNG QR code download.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-cyan-400 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                      Open Links Desk <ChevronRight className="h-4 w-4" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODULE 1: EVENT SETUP */}
       {currentTab === "event-setup" && (
@@ -806,12 +1191,15 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => {
-                                toast.success(`Entry allowed for ${a.name}!`);
-                              }}
-                              className="h-7 text-xs px-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 border-emerald-500/30 font-semibold"
+                              onClick={() => handleToggleCheckin(a)}
+                              className={cn(
+                                "h-7 text-xs px-2 font-semibold",
+                                a.entryStatus === "Checked In"
+                                  ? "bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 border-slate-500/30"
+                                  : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 border-emerald-500/30"
+                              )}
                             >
-                              Allow Entry
+                              {a.entryStatus === "Checked In" ? "Revoke Entry" : "Allow Entry"}
                             </Button>
                             <Button
                               size="sm"
@@ -920,7 +1308,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-muted-foreground">Event Status:</span>
-                <Select value={liveEventStatus} onValueChange={(val) => setLiveEventStatus(val)}>
+                <Select value={liveEventStatus} onValueChange={(val) => handleStageStatusChange(val)}>
                   <SelectTrigger className="w-32 h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
