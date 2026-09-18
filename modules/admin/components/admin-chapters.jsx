@@ -12,7 +12,16 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
-import { useChapters } from "@shared/hooks/use-rifah-api";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@shared/components/ui/select";
+import { useChapters, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 
@@ -25,7 +34,49 @@ function AdminChapters() {
   const [openAdd, setOpenAdd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [adminModalChapter, setAdminModalChapter] = useState(null);
+  const [selectedBusinessId, setSelectedBusinessId] = useState("");
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "" });
+
+  const { data: businessesData } = useBusinesses({ limit: 150 });
+  const rawBusinesses = Array.isArray(businessesData)
+    ? businessesData
+    : (businessesData?.businesses || businessesData?.data || []);
+
+  const chapterBizList = rawBusinesses.filter((b) => {
+    if (!adminModalChapter) return false;
+    const bChapter = String(b.chapter || "").toLowerCase().trim();
+    const targetChapter = String(adminModalChapter.name || "").toLowerCase().trim();
+    const bChapterId = String(b.chapterId || "");
+    const targetId = String(adminModalChapter._id || adminModalChapter.id || "");
+    return (bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter);
+  });
+
+  const otherBizList = rawBusinesses.filter((b) => {
+    if (!adminModalChapter) return true;
+    const bChapter = String(b.chapter || "").toLowerCase().trim();
+    const targetChapter = String(adminModalChapter.name || "").toLowerCase().trim();
+    const bChapterId = String(b.chapterId || "");
+    const targetId = String(adminModalChapter._id || adminModalChapter.id || "");
+    return !((bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter));
+  });
+
+  const handleSelectBusinessOwner = (bizId) => {
+    setSelectedBusinessId(bizId);
+    if (!bizId || bizId === "custom") {
+      setNewAdmin({ name: "", email: "" });
+      return;
+    }
+    const biz = rawBusinesses.find((b) => String(b._id) === String(bizId));
+    if (biz) {
+      const ownerName = biz.owner?.name || biz.contactPerson || biz.name || "";
+      const ownerEmail = biz.owner?.email || biz.ownerEmail || biz.email || "";
+      setNewAdmin({
+        name: ownerName,
+        email: ownerEmail,
+      });
+    }
+  };
+
   const [newChapter, setNewChapter] = useState({
     name: "",
     city: "",
@@ -70,6 +121,7 @@ function AdminChapters() {
       const chapterId = adminModalChapter._id || adminModalChapter.id;
       await chapterApi.assignAdmin(chapterId, newAdmin);
       setAdminModalChapter(null);
+      setSelectedBusinessId("");
       setNewAdmin({ name: "", email: "" });
       toast.success("Admin assigned successfully. Email invitation sent!");
       refetch();
@@ -215,8 +267,17 @@ function AdminChapters() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!adminModalChapter} onOpenChange={(open) => !open && setAdminModalChapter(null)}>
-        <DialogContent>
+      <Dialog
+        open={!!adminModalChapter}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAdminModalChapter(null);
+            setSelectedBusinessId("");
+            setNewAdmin({ name: "", email: "" });
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Assign Chapter Admin</DialogTitle>
             <DialogDescription>
@@ -224,6 +285,65 @@ function AdminChapters() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAssignAdmin} className="space-y-4 py-4">
+            {/* Business Owner Quick Select Dropdown */}
+            <div className="space-y-1.5">
+              <Label htmlFor="biz-owner-select">Select Business Owner (Auto-fill)</Label>
+              <Select
+                value={selectedBusinessId || undefined}
+                onValueChange={handleSelectBusinessOwner}
+              >
+                <SelectTrigger id="biz-owner-select" className="w-full">
+                  <SelectValue placeholder="Choose a registered business owner..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="custom">-- Enter details manually --</SelectItem>
+                  {chapterBizList.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-primary">
+                        {adminModalChapter?.name} Owners
+                      </SelectLabel>
+                      {chapterBizList.map((b) => {
+                        const oName = b.owner?.name || b.contactPerson || b.name;
+                        const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                        return (
+                          <SelectItem key={b._id} value={b._id}>
+                            <div className="flex flex-col text-left py-0.5">
+                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                              <span className="text-[11px] text-muted-foreground">{oEmail}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  )}
+                  {otherBizList.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground">
+                        {chapterBizList.length > 0 ? "Other State Business Owners" : "Registered Business Owners"}
+                      </SelectLabel>
+                      {otherBizList.map((b) => {
+                        const oName = b.owner?.name || b.contactPerson || b.name;
+                        const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                        return (
+                          <SelectItem key={b._id} value={b._id}>
+                            <div className="flex flex-col text-left py-0.5">
+                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {b.chapter ? `${b.chapter} · ` : ""}{oEmail}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Selecting a business owner automatically fetches and fills their name and email address.
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label>Admin Name</Label>
               <Input
