@@ -56,6 +56,12 @@ import {
   Award,
   Sun,
   Moon,
+  Bell,
+  Volume2,
+  Tv,
+  Megaphone,
+  Timer,
+  Coffee,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -142,6 +148,15 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const [socketConnected, setSocketConnected] = useState(false);
   const [liveEventStatus, setLiveEventStatus] = useState("LIVE"); // LIVE, PAUSED, IDLE, ENDED
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [projectorMode, setProjectorMode] = useState("slides"); // "slides" | "qr" | "sponsors" | "break"
+  const [stageTimerSeconds, setStageTimerSeconds] = useState(900);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [timerInitialSeconds, setTimerInitialSeconds] = useState(900);
+  const [liveAnnouncement, setLiveAnnouncement] = useState("");
+  const [activeTicker, setActiveTicker] = useState("");
+  const [moderatorNotes, setModeratorNotes] = useState("");
+  const [addSlideModalOpen, setAddSlideModalOpen] = useState(false);
+  const [newSlideForm, setNewSlideForm] = useState({ title: "", duration: "10 min", speaker: "", notes: "" });
 
   // Events & Active Event
   const [events, setEvents] = useState([]);
@@ -334,6 +349,13 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
           setActiveEvent(ev);
           if (ev.stageStatus) setLiveEventStatus(ev.stageStatus);
           if (ev.currentSlideIndex !== undefined) setCurrentSlideIndex(ev.currentSlideIndex);
+          if (ev.agenda?.length) setAgenda(ev.agenda);
+          if (ev.projectorMode) setProjectorMode(ev.projectorMode);
+          if (ev.activeAnnouncement) {
+            setActiveTicker(ev.activeAnnouncement);
+            setLiveAnnouncement(ev.activeAnnouncement);
+          }
+          if (ev.moderatorNotes) setModeratorNotes(ev.moderatorNotes);
           if (ev.speakers?.length) setSpeakers(ev.speakers);
           if (ev.teamAssignments) {
             setTeamRoles((prev) => ({ ...prev, ...ev.teamAssignments }));
@@ -538,19 +560,69 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     }
   };
 
+  // Utility: Parse duration text to seconds
+  const parseDurationToSeconds = (durStr) => {
+    if (!durStr) return 600;
+    const match = String(durStr).match(/\d+/);
+    if (match) {
+      return parseInt(match[0], 10) * 60;
+    }
+    return 600;
+  };
+
+  // Utility: Format seconds to MM:SS
+  const formatTimerDisplay = (sec) => {
+    const isNegative = sec < 0;
+    const abs = Math.abs(sec);
+    const m = Math.floor(abs / 60);
+    const s = abs % 60;
+    const formatted = `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    return isNegative ? `-${formatted}` : formatted;
+  };
+
+  // Real-time Stage Timer Tick Effect
+  useEffect(() => {
+    let interval = null;
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        setStageTimerSeconds((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning]);
+
   // Projector Controller Broadcaster with Backend Persistence
   const broadcastSlide = async (newIndex) => {
     setCurrentSlideIndex(newIndex);
+    const targetItem = agenda[newIndex];
+    const nextItem = agenda[newIndex + 1];
+    const nextUpText = nextItem ? `${nextItem.title} (${nextItem.speaker})` : "Event Conclusion & Networking";
+
+    // Auto-update timer duration to match slide duration
+    if (targetItem?.duration) {
+      const slideSec = parseDurationToSeconds(targetItem.duration);
+      setTimerInitialSeconds(slideSec);
+      setStageTimerSeconds(slideSec);
+      setIsTimerRunning(false);
+    }
+
     const socket = getSocket();
     if (socket && socket.connected) {
       socket.emit("projector:control", {
         target: chapterSlug,
         action: "slide",
+        mode: projectorMode,
         slideIndex: newIndex,
-        slideTitle: agenda[newIndex]?.title || `Slide ${newIndex + 1}`,
+        totalSlides: agenda.length,
+        slideTitle: targetItem?.title || `Slide ${newIndex + 1}`,
+        speaker: targetItem?.speaker || "",
+        duration: targetItem?.duration || "",
+        nextUp: nextUpText,
         status: liveEventStatus,
         chapter: chapterName,
         eventTitle: activeEvent?.title || "RIFAH Chapter Meet",
+        qrUrl: publicVisitorUrl,
+        announcement: activeTicker,
       });
     }
     if (selectedEventId) {
@@ -562,6 +634,222 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     }
   };
 
+  // Switch Projector Display Mode (Slides, QR, Sponsors, Break)
+  const handleSwitchProjectorMode = async (mode) => {
+    setProjectorMode(mode);
+    const targetItem = agenda[currentSlideIndex];
+    const nextItem = agenda[currentSlideIndex + 1];
+    const nextUpText = nextItem ? `${nextItem.title} (${nextItem.speaker})` : "Event Conclusion";
+
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit("projector:control", {
+        target: chapterSlug,
+        action: "mode",
+        mode,
+        slideIndex: currentSlideIndex,
+        totalSlides: agenda.length,
+        slideTitle: targetItem?.title || `Slide ${currentSlideIndex + 1}`,
+        speaker: targetItem?.speaker || "",
+        duration: targetItem?.duration || "",
+        nextUp: nextUpText,
+        status: liveEventStatus,
+        chapter: chapterName,
+        eventTitle: activeEvent?.title || "RIFAH Chapter Meet",
+        qrUrl: publicVisitorUrl,
+        announcement: activeTicker,
+      });
+    }
+    if (selectedEventId) {
+      try {
+        await eventApi.updateOperations(selectedEventId, { projectorMode: mode });
+      } catch (err) {
+        console.warn("Failed to persist projector mode:", err.message);
+      }
+    }
+    toast.success(`Projector switched to ${mode.toUpperCase()} display`);
+  };
+
+  // Stage Speaker Timer Controls
+  const handleStartTimer = () => {
+    setIsTimerRunning(true);
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit("projector:control", {
+        target: chapterSlug,
+        action: "timer",
+        timerAction: "start",
+        remaining: stageTimerSeconds,
+      });
+    }
+    toast.success("Stage countdown clock started");
+  };
+
+  const handlePauseTimer = () => {
+    setIsTimerRunning(false);
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit("projector:control", {
+        target: chapterSlug,
+        action: "timer",
+        timerAction: "pause",
+      });
+    }
+    toast.info("Stage countdown clock paused");
+  };
+
+  const handleResetTimer = (customDuration) => {
+    setIsTimerRunning(false);
+    const duration = customDuration || timerInitialSeconds;
+    setStageTimerSeconds(duration);
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit("projector:control", {
+        target: chapterSlug,
+        action: "timer",
+        timerAction: "reset",
+        duration,
+      });
+    }
+    toast.success("Stage timer reset");
+  };
+
+  const handleAdjustTimer = (secondsDelta) => {
+    setStageTimerSeconds((prev) => {
+      const next = prev + secondsDelta;
+      const socket = getSocket();
+      if (socket && socket.connected) {
+        socket.emit("projector:control", {
+          target: chapterSlug,
+          action: "timer",
+          timerAction: "adjust",
+          delta: secondsDelta,
+        });
+      }
+      return next;
+    });
+    toast.success(secondsDelta > 0 ? `+${secondsDelta / 60}m extended on stage` : `${secondsDelta / 60}m subtracted`);
+  };
+
+  // Live Hall Announcement Ticker Broadcaster
+  const handleBroadcastAnnouncement = async (textToBroadcast) => {
+    const text = textToBroadcast !== undefined ? textToBroadcast : liveAnnouncement;
+    setActiveTicker(text);
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit("projector:control", {
+        target: chapterSlug,
+        action: "announcement",
+        announcement: text,
+      });
+    }
+    if (selectedEventId) {
+      try {
+        await eventApi.updateOperations(selectedEventId, { activeAnnouncement: text });
+      } catch (err) {}
+    }
+    if (text) {
+      toast.success("Announcement broadcasted to projector ticker!");
+    } else {
+      toast.info("Projector ticker cleared");
+    }
+  };
+
+  const handleClearAnnouncement = () => {
+    setLiveAnnouncement("");
+    handleBroadcastAnnouncement("");
+  };
+
+  // Web Audio API Stage Chime and AV Bell
+  const handlePlayStageChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(659.25, ctx.currentTime);
+        gain1.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start();
+        osc1.stop(ctx.currentTime + 0.6);
+        setTimeout(() => {
+          const osc2 = ctx.createOscillator();
+          const gain2 = ctx.createGain();
+          osc2.type = "sine";
+          osc2.frequency.setValueAtTime(987.77, ctx.currentTime);
+          gain2.gain.setValueAtTime(0.25, ctx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+          osc2.connect(gain2);
+          gain2.connect(ctx.destination);
+          osc2.start();
+          osc2.stop(ctx.currentTime + 0.9);
+        }, 180);
+      }
+    } catch (e) {
+      console.warn("Audio chime error:", e.message);
+    }
+
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit("projector:control", {
+        target: chapterSlug,
+        action: "chime",
+        chime: true,
+      });
+    }
+    toast.success("Stage Chime & Audio Bell Sounded");
+  };
+
+  // Add Custom Slide / Agenda Item
+  const handleAddCustomSlide = async (e) => {
+    e.preventDefault();
+    if (!newSlideForm.title.trim()) {
+      toast.error("Slide title is required");
+      return;
+    }
+    const newId = agenda.length + 1;
+    const newSlide = {
+      id: newId,
+      title: newSlideForm.title.trim(),
+      duration: newSlideForm.duration || "10 min",
+      speaker: newSlideForm.speaker.trim() || "Speaker",
+      notes: newSlideForm.notes || "",
+    };
+    const updatedAgenda = [...agenda, newSlide];
+    setAgenda(updatedAgenda);
+    setAddSlideModalOpen(false);
+    setNewSlideForm({ title: "", duration: "10 min", speaker: "", notes: "" });
+
+    if (selectedEventId) {
+      try {
+        await eventApi.updateOperations(selectedEventId, { agenda: updatedAgenda });
+        toast.success(`Slide ${newId} added to agenda and saved!`);
+      } catch (err) {
+        toast.error("Failed to persist new slide in MongoDB");
+      }
+    } else {
+      toast.success(`Slide ${newId} added!`);
+    }
+  };
+
+  // Save Moderator Teleprompter Notes
+  const handleSaveModeratorNotes = async () => {
+    if (selectedEventId) {
+      try {
+        await eventApi.updateOperations(selectedEventId, { moderatorNotes });
+        toast.success("Moderator stage notes saved!");
+      } catch (err) {
+        toast.error("Failed to save notes");
+      }
+    } else {
+      toast.success("Moderator notes updated locally!");
+    }
+  };
+
   const handleStageStatusChange = async (newStatus) => {
     setLiveEventStatus(newStatus);
     const socket = getSocket();
@@ -569,6 +857,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       socket.emit("projector:control", {
         target: chapterSlug,
         action: "status",
+        mode: projectorMode,
         slideIndex: currentSlideIndex,
         status: newStatus,
         chapter: chapterName,
@@ -620,10 +909,14 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       socket.emit("projector:control", {
         target: chapterSlug,
         action: "refresh",
+        mode: projectorMode,
         slideIndex: currentSlideIndex,
+        totalSlides: agenda.length,
         status: liveEventStatus,
         chapter: chapterName,
         eventTitle: activeEvent?.title || "RIFAH Chapter Meet",
+        qrUrl: publicVisitorUrl,
+        announcement: activeTicker,
       });
       toast.success("Projector screen refreshed successfully!");
     } else {
@@ -1620,71 +1913,241 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {/* MODULE 4: LIVE CONTROL */}
       {currentTab === "live-control" && (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-5">
+          {/* Executive Command Header */}
+          <div className="rounded-2xl border border-slate-800 bg-[#070b14] p-6 shadow-2xl text-slate-100">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-5 mb-6">
               <div>
-                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  <Radio className="h-5 w-5 text-cyan-500" />
-                  Live Presentation & Projector Control
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Synchronize hall projector screen in real-time
-                </p>
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shadow-sm">
+                    <Radio className="h-5 w-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-white tracking-tight">
+                      Live Stage & Projector Command Center
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Real-time AV synchronization · Stage speaker countdown clock · Live audience ticker
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted-foreground">Event Status:</span>
-                <Select value={liveEventStatus} onValueChange={(val) => handleStageStatusChange(val)}>
-                  <SelectTrigger className="w-32 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="LIVE">🟢 LIVE</SelectItem>
-                    <SelectItem value="PAUSED">🟡 PAUSED</SelectItem>
-                    <SelectItem value="IDLE">⚪ IDLE</SelectItem>
-                    <SelectItem value="ENDED">🔴 ENDED</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Stage Chime / Bell Button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handlePlayStageChime}
+                  className="bg-slate-900/90 border-slate-700 text-amber-300 hover:bg-amber-500/10 hover:border-amber-400 text-xs h-9 gap-1.5 shadow-sm"
+                >
+                  <Bell className="h-3.5 w-3.5 text-amber-400" /> Ring Stage Chime
+                </Button>
+
+                {/* Status Selector */}
+                <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status:</span>
+                  <Select value={liveEventStatus} onValueChange={(val) => handleStageStatusChange(val)}>
+                    <SelectTrigger className="w-28 h-7 text-xs bg-slate-950 border-slate-700 text-white font-bold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-950 border-slate-800 text-white">
+                      <SelectItem value="LIVE">🟢 LIVE</SelectItem>
+                      <SelectItem value="PAUSED">🟡 PAUSED</SelectItem>
+                      <SelectItem value="IDLE">⚪ IDLE</SelectItem>
+                      <SelectItem value="ENDED">🔴 ENDED</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Fullscreen Projector Link */}
+                <Button
+                  size="sm"
+                  asChild
+                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 gap-1.5 shadow-lg shadow-cyan-500/20"
+                >
+                  <Link href={projectorUrl} target="_blank">
+                    <ExternalLink className="h-3.5 w-3.5" /> Open Projector Screen
+                  </Link>
+                </Button>
               </div>
             </div>
 
+            {/* Projector Display Mode Selector */}
+            <div className="mb-6 p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Tv className="h-4 w-4 text-cyan-400" />
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Projector Screen Mode:
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { key: "slides", label: "📽 Slide Deck" },
+                  { key: "qr", label: "📱 Check-In QR" },
+                  { key: "sponsors", label: "🌟 Sponsor Showcase" },
+                  { key: "break", label: "☕ High Tea Break" },
+                ].map((m) => (
+                  <button
+                    key={m.key}
+                    onClick={() => handleSwitchProjectorMode(m.key)}
+                    className={cn(
+                      "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
+                      projectorMode === m.key
+                        ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
+                        : "bg-slate-950/80 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800"
+                    )}
+                  >
+                    <span>{m.label}</span>
+                    {projectorMode === m.key && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-ping" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Main Console Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Projector Deck Controls */}
-              <div className="lg:col-span-2 space-y-4">
-                <div className="p-6 rounded-2xl bg-[#070e17] border border-slate-800 text-white shadow-inner flex flex-col justify-between min-h-[280px]">
-                  <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-3">
-                    <span className="font-bold text-cyan-400 uppercase tracking-wider">
-                      PROJECTOR PREVIEW · SLIDE {currentSlideIndex + 1} OF {agenda.length}
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">
-                      {liveEventStatus}
-                    </span>
+              {/* Left 2 Cols: Confidence Monitor & Stage Controls */}
+              <div className="lg:col-span-2 space-y-5">
+                {/* Confidence Monitor Box */}
+                <div className="p-6 rounded-2xl bg-[#040711] border border-slate-800/90 text-white shadow-2xl flex flex-col justify-between min-h-[360px] relative overflow-hidden">
+                  <div className="absolute top-0 left-1/4 right-1/4 h-[2px] bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent" />
+
+                  {/* Monitor Top Meta */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 border-b border-slate-800/80 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                      <span className="font-mono font-bold text-cyan-400 uppercase tracking-widest text-[11px]">
+                        LIVE STAGE MONITOR · SLIDE {currentSlideIndex + 1} OF {agenda.length}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-[10px] uppercase font-bold">
+                        MODE: {projectorMode}
+                      </span>
+                      <span className={cn(
+                        "px-2.5 py-0.5 rounded-full font-mono text-[10px] font-black",
+                        liveEventStatus === "LIVE" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      )}>
+                        {liveEventStatus}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="py-8 text-center space-y-2">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                      CURRENT LIVE SLIDE
-                    </span>
-                    <h3 className="text-2xl sm:text-3xl font-black text-white">
-                      {agenda[currentSlideIndex]?.title}
-                    </h3>
-                    <p className="text-sm text-cyan-300">
-                      Speaker / Lead: {agenda[currentSlideIndex]?.speaker} · {agenda[currentSlideIndex]?.duration}
-                    </p>
+                  {/* Dual Stage Content: Current on Stage vs Next Up */}
+                  <div className="py-6 space-y-4">
+                    {/* Current on Stage */}
+                    <div className="text-center space-y-1.5">
+                      <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[2px]">
+                        CURRENT ON STAGE
+                      </span>
+                      <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
+                        {agenda[currentSlideIndex]?.title}
+                      </h3>
+                      <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs">
+                        <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-cyan-300 font-bold">
+                          Speaker: {agenda[currentSlideIndex]?.speaker}
+                        </span>
+                        <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-400 font-mono">
+                          Allocated: {agenda[currentSlideIndex]?.duration}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Stage Speaker Countdown Clock */}
+                    <div className="flex flex-col items-center justify-center pt-2">
+                      <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 shadow-inner flex flex-col items-center">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                          SPEAKER COUNTDOWN TIMER
+                        </span>
+                        <div className={cn(
+                          "font-mono text-4xl sm:text-5xl font-black tracking-wider px-6 py-1 rounded-xl transition-all",
+                          stageTimerSeconds <= 0
+                            ? "text-rose-400 bg-rose-500/10 border border-rose-500/30 animate-pulse"
+                            : stageTimerSeconds <= 120
+                            ? "text-amber-400 bg-amber-500/10 border border-amber-500/30"
+                            : "text-cyan-400 bg-cyan-500/10 border border-cyan-500/20"
+                        )}>
+                          {formatTimerDisplay(stageTimerSeconds)}
+                        </div>
+
+                        {/* Timer Control Buttons */}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                          {!isTimerRunning ? (
+                            <Button
+                              size="sm"
+                              onClick={handleStartTimer}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-7 px-3 gap-1"
+                            >
+                              <Play className="h-3 w-3" /> Start
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={handlePauseTimer}
+                              className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs h-7 px-3 gap-1"
+                            >
+                              <Pause className="h-3 w-3" /> Pause
+                            </Button>
+                          )}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleResetTimer()}
+                            className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-7 px-2.5 gap-1"
+                          >
+                            <RotateCcw className="h-3 w-3" /> Reset
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleAdjustTimer(60)}
+                            className="border-slate-700 text-cyan-300 hover:bg-slate-800 text-xs h-7 px-2"
+                          >
+                            +1m
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleAdjustTimer(300)}
+                            className="border-slate-700 text-cyan-300 hover:bg-slate-800 text-xs h-7 px-2"
+                          >
+                            +5m
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Next Up Strip */}
+                    <div className="p-2.5 rounded-xl bg-slate-900/50 border border-slate-800 flex items-center justify-between text-xs">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                        NEXT UP ON STAGE:
+                      </span>
+                      <span className="text-slate-200 font-bold truncate max-w-[70%]">
+                        {agenda[currentSlideIndex + 1]
+                          ? `${agenda[currentSlideIndex + 1].title} · ${agenda[currentSlideIndex + 1].speaker} (${agenda[currentSlideIndex + 1].duration})`
+                          : "Meeting Adjournment & Member Networking"}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                  {/* Monitor Navigation Bar */}
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-800/80">
                     <Button
                       size="sm"
                       variant="outline"
                       disabled={currentSlideIndex === 0}
                       onClick={handlePrevSlide}
-                      className="border-slate-700 text-white hover:bg-slate-800 text-xs h-9 gap-1"
+                      className="border-slate-700 text-white hover:bg-slate-800 text-xs h-9 gap-1.5"
                     >
-                      <ChevronLeft className="h-4 w-4" /> Previous
+                      <ChevronLeft className="h-4 w-4" /> Previous Slide
                     </Button>
 
-                    <span className="text-xs text-slate-400 font-mono">
+                    <span className="text-xs font-mono font-bold text-slate-400 bg-slate-900 px-3 py-1 rounded-md border border-slate-800">
                       {currentSlideIndex + 1} / {agenda.length}
                     </span>
 
@@ -1692,57 +2155,193 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                       size="sm"
                       disabled={currentSlideIndex === agenda.length - 1}
                       onClick={handleNextSlide}
-                      className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 gap-1"
+                      className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 gap-1.5"
                     >
                       Next Slide <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Live Hall Announcements & Breaking Ticker */}
+                <div className="p-5 rounded-2xl bg-slate-950/70 border border-slate-800 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Megaphone className="h-4 w-4 text-cyan-400" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                        Live Projector Ticker & Stage Announcements
+                      </h4>
+                    </div>
+                    {activeTicker && (
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] uppercase font-bold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        Ticker Active
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <Input
+                      placeholder="Type breaking announcement to display on the hall projector..."
+                      value={liveAnnouncement}
+                      onChange={(e) => setLiveAnnouncement(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleBroadcastAnnouncement()}
+                      className="text-xs h-9 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 flex-1"
+                    />
+                    <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                      <Button
+                        size="sm"
+                        onClick={() => handleBroadcastAnnouncement()}
+                        className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs h-9 px-3 gap-1 flex-1 sm:flex-none"
+                      >
+                        <Send className="h-3.5 w-3.5" /> Broadcast
+                      </Button>
+                      {activeTicker && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleClearAnnouncement}
+                          className="border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 text-xs h-9 px-3"
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Quick Preset Announcement Chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase mr-1">Presets:</span>
+                    {[
+                      "☕ High Tea is being served in Banquet Hall",
+                      "📵 Please turn mobile phones to silent mode",
+                      "🤝 Welcome Respected Dignitaries & VIP Guests",
+                      "📋 Ask & Give Session starting in 5 mins",
+                      "📸 Chapter Group Photograph at Stage",
+                    ].map((preset, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setLiveAnnouncement(preset);
+                          handleBroadcastAnnouncement(preset);
+                        }}
+                        className="px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-slate-300 transition-all truncate max-w-[240px]"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Active Ticker Preview */}
+                  {activeTicker && (
+                    <div className="p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-500/30 flex items-center gap-2 text-xs text-cyan-300">
+                      <span className="font-mono font-black text-[10px] px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 uppercase">
+                        ON SCREEN
+                      </span>
+                      <span className="font-semibold truncate">{activeTicker}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom AV Auxiliary Controls */}
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
                     onClick={handleRefreshProjector}
-                    className="flex-1 text-xs h-9 gap-1.5"
+                    className="flex-1 text-xs h-9 gap-1.5 bg-slate-900/60 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800"
                   >
                     <RefreshCw className="h-3.5 w-3.5" /> Refresh Projector Screen
                   </Button>
                   <Button
                     variant="outline"
                     asChild
-                    className="flex-1 text-xs h-9 gap-1.5"
+                    className="flex-1 text-xs h-9 gap-1.5 bg-slate-900/60 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800"
                   >
                     <Link href={projectorUrl} target="_blank">
-                      <ExternalLink className="h-3.5 w-3.5 text-cyan-500" /> Open Fullscreen Projector
+                      <ExternalLink className="h-3.5 w-3.5 text-cyan-400" /> Open Screen in New Window
                     </Link>
                   </Button>
                 </div>
               </div>
 
-              {/* Agenda Quick Jump */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Quick Jump to Slide
-                </h4>
-                <div className="max-h-[340px] overflow-y-auto space-y-1.5 pr-1 text-xs">
-                  {agenda.map((item, idx) => (
-                    <button
-                      key={item.id}
-                      onClick={() => broadcastSlide(idx)}
-                      className={cn(
-                        "w-full text-left p-2.5 rounded-lg border transition-all flex items-center justify-between",
-                        idx === currentSlideIndex
-                          ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-500 font-bold"
-                          : "border-border hover:bg-muted text-muted-foreground"
-                      )}
+              {/* Right Col: Agenda Schedule & Stage Notes */}
+              <div className="space-y-4">
+                {/* Agenda List Card */}
+                <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      Agenda Schedule ({agenda.length})
+                    </h4>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAddSlideModalOpen(true)}
+                      className="border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 text-[11px] h-7 px-2.5 gap-1"
                     >
-                      <div className="truncate">
-                        <span className="font-mono text-[10px] mr-2">{idx + 1}.</span>
-                        <span>{item.title}</span>
-                      </div>
-                      <span className="text-[10px] opacity-70 shrink-0">{item.duration}</span>
-                    </button>
-                  ))}
+                      <Plus className="h-3 w-3" /> Add Slide
+                    </Button>
+                  </div>
+
+                  <div className="max-h-[380px] overflow-y-auto space-y-1.5 pr-1 text-xs">
+                    {agenda.map((item, idx) => (
+                      <button
+                        key={item.id || idx}
+                        onClick={() => broadcastSlide(idx)}
+                        className={cn(
+                          "w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between gap-2",
+                          idx === currentSlideIndex
+                            ? "bg-cyan-500/15 border-cyan-500/50 text-cyan-300 font-bold shadow-sm"
+                            : "border-slate-800/80 bg-slate-900/40 hover:bg-slate-800/60 text-slate-400"
+                        )}
+                      >
+                        <div className="truncate">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-[10px] opacity-70">{idx + 1}.</span>
+                            <span className="font-semibold text-slate-200">{item.title}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 pl-4 truncate">
+                            {item.speaker || "General Session"}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[10px] font-mono opacity-80 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                            {item.duration}
+                          </span>
+                          {idx === currentSlideIndex && (
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950">
+                              LIVE
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Moderator / MC Teleprompter Stage Notes */}
+                <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      Anchor & Moderator Notes
+                    </h4>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleSaveModeratorNotes}
+                      className="border-slate-700 text-xs h-6 px-2 text-cyan-400 hover:bg-slate-800"
+                    >
+                      Save Notes
+                    </Button>
+                  </div>
+                  <Textarea
+                    placeholder="Type cue notes, speaker introduction bullets, or reminders for the anchor..."
+                    value={moderatorNotes}
+                    onChange={(e) => setModeratorNotes(e.target.value)}
+                    rows={4}
+                    className="text-xs bg-slate-900 border-slate-800 text-white placeholder:text-slate-500"
+                  />
+                  <p className="text-[10px] text-slate-500">
+                    Notes are persisted to MongoDB and visible to stage coordinators.
+                  </p>
                 </div>
               </div>
             </div>
@@ -2233,6 +2832,82 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
                   >
                     {savingSpeaker ? "Saving..." : "Save Speaker"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Add Custom Agenda Slide Dialog */}
+          <Dialog open={addSlideModalOpen} onOpenChange={setAddSlideModalOpen}>
+            <DialogContent className="sm:max-w-md bg-slate-950 border-slate-800 text-white">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                  <Plus className="h-4 w-4 text-cyan-400" /> Add Agenda Item / Slide
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-400">
+                  Insert a custom presentation slide into the meeting agenda in real-time.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleAddCustomSlide} className="space-y-3.5 py-2">
+                <div>
+                  <Label className="text-xs font-semibold text-slate-300">Slide / Session Title *</Label>
+                  <Input
+                    placeholder="e.g. Special Felicitation & MOU Signing"
+                    value={newSlideForm.title}
+                    onChange={(e) => setNewSlideForm((prev) => ({ ...prev, title: e.target.value }))}
+                    className="mt-1 bg-slate-900 border-slate-700 text-white text-xs h-8"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold text-slate-300">Allocated Duration</Label>
+                    <Input
+                      placeholder="e.g. 15 min"
+                      value={newSlideForm.duration}
+                      onChange={(e) => setNewSlideForm((prev) => ({ ...prev, duration: e.target.value }))}
+                      className="mt-1 bg-slate-900 border-slate-700 text-white text-xs h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold text-slate-300">Speaker / In-Charge</Label>
+                    <Input
+                      placeholder="e.g. Guest Speaker"
+                      value={newSlideForm.speaker}
+                      onChange={(e) => setNewSlideForm((prev) => ({ ...prev, speaker: e.target.value }))}
+                      className="mt-1 bg-slate-900 border-slate-700 text-white text-xs h-8"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold text-slate-300">Stage / Anchor Notes</Label>
+                  <Textarea
+                    placeholder="Cue notes or instructions for the stage coordinator..."
+                    value={newSlideForm.notes}
+                    onChange={(e) => setNewSlideForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    rows={2}
+                    className="mt-1 bg-slate-900 border-slate-700 text-white text-xs"
+                  />
+                </div>
+
+                <DialogFooter className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAddSlideModalOpen(false)}
+                    className="text-xs border-slate-700 text-slate-300 hover:bg-slate-800"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
+                  >
+                    Add Slide
                   </Button>
                 </DialogFooter>
               </form>

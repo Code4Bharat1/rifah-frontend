@@ -3,143 +3,682 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RIFAH Live Projector Screen</title>
+  <title>RIFAH Live Projector Screen · Stage Command</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #050811;
+      --card-bg: rgba(13, 20, 36, 0.75);
+      --card-border: rgba(56, 189, 248, 0.18);
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.35);
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
     body {
-      background-color: #060b14;
-      color: #f8fafc;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% 10%, rgba(6, 182, 212, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 10% 90%, rgba(56, 189, 248, 0.05) 0%, transparent 50%);
+      color: var(--text);
       font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 2.5rem;
+      padding: 2.25rem 3.5rem;
       user-select: none;
       overflow: hidden;
+      position: relative;
     }
+
+    /* Ambient Background Mesh Lines */
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .content-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: calc(100vh - 4.5rem);
+    }
+
+    /* Top Bar */
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #1e293b;
       padding-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
     .brand {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 1.25rem;
     }
     .logo {
-      width: 48px;
-      height: 48px;
-      background: #06b6d4;
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
       color: #020617;
       font-weight: 900;
-      font-size: 24px;
-      border-radius: 14px;
+      font-size: 26px;
+      border-radius: 16px;
       display: grid;
       place-items: center;
+      box-shadow: 0 0 24px rgba(6, 182, 212, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
-    .title { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
-    .subtitle { font-size: 13px; font-weight: 800; color: #38bdf8; letter-spacing: 1px; text-transform: uppercase; }
+    .title {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      font-size: 12px;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .live-clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: #94a3b8;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 6px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
     .status-badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 14px;
+      padding: 6px 16px;
       border-radius: 9999px;
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(16, 185, 129, 0.12);
       border: 1px solid rgba(16, 185, 129, 0.3);
       color: #34d399;
-      font-size: 12px;
-      font-weight: 900;
+      font-size: 13px;
+      font-weight: 800;
       letter-spacing: 1px;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
     }
     .pulse-dot {
-      width: 8px;
-      height: 8px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       background: #34d399;
       box-shadow: 0 0 10px #34d399;
+      animation: pulse 2s infinite ease-in-out;
     }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.6; }
+    }
+
+    /* Main Stage Area */
     .stage {
       margin: auto;
       text-align: center;
-      max-width: 900px;
-      padding: 3rem 0;
+      width: 100%;
+      max-width: 1050px;
+      padding: 2.5rem 0;
+    }
+
+    /* MODE: SLIDES */
+    .slide-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 3.5rem 3.5rem 2.75rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(6, 182, 212, 0.08);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .slide-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 15%;
+      right: 15%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #06b6d4, transparent);
     }
     .slide-badge {
-      display: inline-block;
-      padding: 6px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 18px;
       border-radius: 9999px;
-      background: rgba(6, 182, 212, 0.1);
-      border: 1px solid rgba(6, 182, 212, 0.3);
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.35);
       color: #38bdf8;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       letter-spacing: 1.5px;
-      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      margin-bottom: 1.75rem;
     }
     .slide-title {
-      font-size: 64px;
+      font-size: 58px;
       font-weight: 900;
       line-height: 1.15;
-      margin-bottom: 1.25rem;
-      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      letter-spacing: -1px;
+      margin-bottom: 1.5rem;
+      text-shadow: 0 4px 25px rgba(0, 0, 0, 0.6);
+      background: linear-gradient(180deg, #ffffff 10%, #e2e8f0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    .event-title {
-      font-size: 22px;
-      color: #94a3b8;
+    .speaker-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 22px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      font-size: 16px;
       font-weight: 600;
+      margin-bottom: 2rem;
     }
+    .speaker-name {
+      color: #38bdf8;
+      font-weight: 800;
+    }
+
+    /* Stage Countdown Timer */
+    .stage-timer-box {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .timer-digits {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #38bdf8;
+      background: rgba(6, 182, 212, 0.08);
+      padding: 6px 28px;
+      border-radius: 16px;
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.15);
+      transition: all 0.3s ease;
+    }
+    .timer-digits.warning {
+      color: #fbbf24;
+      border-color: rgba(251, 191, 36, 0.4);
+      box-shadow: 0 0 25px rgba(251, 191, 36, 0.25);
+    }
+    .timer-digits.danger {
+      color: #f43f5e;
+      border-color: rgba(244, 63, 94, 0.5);
+      box-shadow: 0 0 30px rgba(244, 63, 94, 0.35);
+      animation: blinkOvertime 1s infinite alternate;
+    }
+    @keyframes blinkOvertime {
+      0% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+    .timer-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #64748b;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* Next Up Banner */
+    .next-up-strip {
+      margin-top: 2.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #64748b;
+    }
+    .next-up-label {
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      font-size: 11px;
+    }
+    .next-up-value {
+      color: #e2e8f0;
+      font-weight: 700;
+    }
+
+    /* MODE: QR CODE REGISTRATION */
+    .qr-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 3.5rem 3rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .qr-frame {
+      padding: 18px;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 0 40px rgba(6, 182, 212, 0.35);
+      display: inline-block;
+    }
+    .qr-frame img {
+      width: 260px;
+      height: 260px;
+      display: block;
+    }
+    .qr-title {
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+    }
+    .qr-desc {
+      font-size: 16px;
+      color: #94a3b8;
+      max-width: 550px;
+      line-height: 1.5;
+    }
+    .qr-url-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 18px;
+      border-radius: 9999px;
+      color: #38bdf8;
+    }
+
+    /* MODE: SPONSORS REEL */
+    .sponsors-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 3.5rem 3rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    }
+    .sponsors-title {
+      font-size: 38px;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+    }
+    .sponsors-subtitle {
+      font-size: 15px;
+      color: #94a3b8;
+      margin-bottom: 2.5rem;
+    }
+    .sponsors-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+    .sponsor-item {
+      padding: 1.75rem 1.25rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .sponsor-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      margin-bottom: 0.75rem;
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+    .sponsor-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    /* MODE: BREAK / INTERMISSION */
+    .break-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 4rem 3rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+    .break-icon {
+      font-size: 54px;
+      margin-bottom: 1.25rem;
+      display: inline-block;
+      filter: drop-shadow(0 0 20px rgba(6, 182, 212, 0.5));
+    }
+    .break-title {
+      font-size: 46px;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 1rem;
+    }
+    .break-desc {
+      font-size: 18px;
+      color: #94a3b8;
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.5;
+    }
+
+    /* Ticker / Announcement Bar */
+    .announcement-bar {
+      display: none;
+      align-items: center;
+      background: linear-gradient(90deg, rgba(6, 182, 212, 0.2) 0%, rgba(2, 132, 199, 0.25) 100%);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      backdrop-filter: blur(12px);
+      border-radius: 14px;
+      padding: 10px 18px;
+      margin-top: 1.25rem;
+      box-shadow: 0 0 30px rgba(6, 182, 212, 0.25);
+    }
+    .announcement-bar.active {
+      display: flex;
+    }
+    .announcement-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: #020617;
+      background: #38bdf8;
+      padding: 4px 12px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      margin-right: 16px;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+    .announcement-marquee {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .announcement-text {
+      display: inline-block;
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+    }
+
+    /* Footer */
     .footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1px solid #1e293b;
       padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
       font-size: 13px;
       color: #64748b;
+    }
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .footer-badge {
+      padding: 3px 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="brand">
-      <div class="logo">R</div>
-      <div>
-        <div class="title">RIFAH CHAMBER OF COMMERCE</div>
-        <div class="subtitle" id="chapterDisplay">CENTRAL-MUMBAI CHAPTER · OPERATIONS CENTER</div>
+  <div class="content-wrapper">
+    <!-- Top Header -->
+    <div class="header">
+      <div class="brand">
+        <div class="logo">R</div>
+        <div>
+          <div class="title">RIFAH CHAMBER OF COMMERCE</div>
+          <div class="subtitle" id="chapterDisplay">CENTRAL-MUMBAI CHAPTER · OPERATIONS CENTER</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="live-clock" id="liveClock">10:00:00 AM</div>
+        <div class="status-badge">
+          <div class="pulse-dot"></div>
+          <span id="liveStatus">LIVE</span>
+        </div>
       </div>
     </div>
-    <div class="status-badge">
-      <div class="pulse-dot"></div>
-      <span id="liveStatus">LIVE</span>
+
+    <!-- Main Dynamic Stage -->
+    <div class="stage">
+      <!-- MODE 1: SLIDE DECK (Default) -->
+      <div id="modeSlides" class="slide-card">
+        <div class="slide-badge" id="slideBadge">
+          <span>●</span> <span id="slideBadgeText">SLIDE 1 OF 16</span>
+        </div>
+        <h1 class="slide-title" id="slideTitle">Welcome / Entrance & Networking</h1>
+        <div class="speaker-meta" id="speakerMeta">
+          <span>Speaker:</span>
+          <span class="speaker-name" id="speakerName">Gate Incharge</span>
+          <span>·</span>
+          <span id="speakerDuration">15 min</span>
+        </div>
+
+        <!-- Stage Timer Display -->
+        <div class="stage-timer-box" id="stageTimerBox">
+          <div class="timer-digits" id="timerDigits">15:00</div>
+          <div class="timer-label" id="timerLabel">STAGE TIMER</div>
+        </div>
+
+        <!-- Next Up Preview -->
+        <div class="next-up-strip" id="nextUpStrip">
+          <span class="next-up-label">NEXT UP:</span>
+          <span class="next-up-value" id="nextUpValue">Tilawat-e-Quran (Qari / Member)</span>
+        </div>
+      </div>
+
+      <!-- MODE 2: QR CODE CHECK-IN -->
+      <div id="modeQr" class="qr-card" style="display: none;">
+        <h2 class="qr-title">Scan to Register & Check-In</h2>
+        <p class="qr-desc">Open your phone camera to scan the code below for instant attendee registration, visitor access pass, and digital verification.</p>
+        <div class="qr-frame">
+          <img id="qrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=https://rifah.org" alt="Event Registration QR" />
+        </div>
+        <div class="qr-url-pill" id="qrUrlDisplay">https://rifah.org/events/mumbai</div>
+      </div>
+
+      <!-- MODE 3: SPONSORS SHOWCASE -->
+      <div id="modeSponsors" class="sponsors-card" style="display: none;">
+        <h2 class="sponsors-title">Our Corporate Partners & Sponsors</h2>
+        <p class="sponsors-subtitle">Honouring the visionary organisations driving trade and entrepreneurship at RIFAH Chamber of Commerce.</p>
+        <div class="sponsors-grid" id="sponsorsGrid">
+          <div class="sponsor-item">
+            <span class="sponsor-badge">Main Title Sponsor</span>
+            <div class="sponsor-name">Apex Global Ventures</div>
+          </div>
+          <div class="sponsor-item">
+            <span class="sponsor-badge">Gold Partner</span>
+            <div class="sponsor-name">Al-Barakah Real Estate</div>
+          </div>
+          <div class="sponsor-item">
+            <span class="sponsor-badge">Silver Partner</span>
+            <div class="sponsor-name">Falcon Technologies</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODE 4: NETWORKING BREAK -->
+      <div id="modeBreak" class="break-card" style="display: none;">
+        <div class="break-icon">☕</div>
+        <h2 class="break-title">High Tea & Business Networking</h2>
+        <p class="break-desc">Take this opportunity to exchange business cards, connect with fellow entrepreneurs, and explore bilateral trade collaborations.</p>
+        <div class="stage-timer-box">
+          <div class="timer-digits" id="breakTimerDigits">15:00</div>
+          <div class="timer-label">BREAK TIME REMAINING</div>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="stage">
-    <div class="slide-badge" id="slideBadge">SLIDE 1</div>
-    <h1 class="slide-title" id="slideTitle">Welcome / Entrance & Networking</h1>
-    <p class="event-title" id="eventTitle">RIFAH Operations Center · Chapter Operations Meet</p>
-  </div>
+    <!-- Live Breaking Ticker / Announcement Banner -->
+    <div class="announcement-bar" id="announcementBar">
+      <div class="announcement-tag">📢 ANNOUNCEMENT</div>
+      <div class="announcement-marquee">
+        <span class="announcement-text" id="announcementText"></span>
+      </div>
+    </div>
 
-  <div class="footer">
-    <div>RIFAH Operations Center · Chapter Event Lifecycle System</div>
-    <div id="connStatus">Socket: Connected</div>
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-left">
+        <span>RIFAH Operations Center · Stage Engine</span>
+        <span class="footer-badge" id="eventTitleDisplay">Chapter Operations Meet</span>
+      </div>
+      <div id="connStatus">Socket: 🟢 Connected</div>
+    </div>
   </div>
 
   <script>
+    // Live Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveClock').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // URL Parameters
     const urlParams = new URLSearchParams(window.location.search);
     const chapter = urlParams.get('c') || 'central-mumbai';
     const chapterSlug = chapter.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
     document.getElementById('chapterDisplay').textContent = `${chapter.toUpperCase()} CHAPTER · OPERATIONS CENTER`;
 
+    // Audio Chime Synthesizer using Web Audio API
+    function playStageChime() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        
+        // Note 1: E5 (659Hz)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(659.25, ctx.currentTime);
+        gain1.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start();
+        osc1.stop(ctx.currentTime + 0.6);
+
+        // Note 2: B5 (987Hz) with slight delay
+        setTimeout(() => {
+          const osc2 = ctx.createOscillator();
+          const gain2 = ctx.createGain();
+          osc2.type = 'sine';
+          osc2.frequency.setValueAtTime(987.77, ctx.currentTime);
+          gain2.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+          osc2.connect(gain2);
+          gain2.connect(ctx.destination);
+          osc2.start();
+          osc2.stop(ctx.currentTime + 0.9);
+        }, 180);
+      } catch (e) {
+        console.warn('Audio chime warning:', e.message);
+      }
+    }
+
+    // Timer variables
+    let remainingSeconds = 900;
+    let timerInterval = null;
+    let isTimerRunning = false;
+
+    function formatTime(sec) {
+      const isNegative = sec < 0;
+      const absSec = Math.abs(sec);
+      const m = Math.floor(absSec / 60);
+      const s = absSec % 60;
+      const str = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      return isNegative ? `-${str}` : str;
+    }
+
+    function renderTimer() {
+      const el = document.getElementById('timerDigits');
+      const breakEl = document.getElementById('breakTimerDigits');
+      const timeStr = formatTime(remainingSeconds);
+      if (el) el.textContent = timeStr;
+      if (breakEl) breakEl.textContent = timeStr;
+
+      if (el) {
+        el.classList.remove('warning', 'danger');
+        if (remainingSeconds <= 0) {
+          el.classList.add('danger');
+        } else if (remainingSeconds <= 120) {
+          el.classList.add('warning');
+        }
+      }
+    }
+
+    // Socket Connection
     const socket = io(window.location.origin, { transports: ['websocket', 'polling'] });
     socket.on('connect', () => {
       document.getElementById('connStatus').textContent = 'Socket: 🟢 Connected';
@@ -148,20 +687,107 @@
     socket.on('disconnect', () => {
       document.getElementById('connStatus').textContent = 'Socket: 🟡 Reconnecting';
     });
+
+    // Mode Switcher Function
+    function setProjectorMode(mode) {
+      const modes = ['Slides', 'Qr', 'Sponsors', 'Break'];
+      modes.forEach(m => {
+        const el = document.getElementById(`mode${m}`);
+        if (el) el.style.display = (m.toLowerCase() === (mode || 'slides').toLowerCase()) ? 'block' : 'none';
+      });
+      if (mode === 'qr') {
+        const el = document.getElementById('modeQr');
+        if (el) el.style.display = 'flex';
+      }
+    }
+
+    // Socket message listener
     socket.on('projector:update', (data) => {
-      if (data) {
-        if (data.slideIndex !== undefined) {
-          document.getElementById('slideBadge').textContent = `SLIDE ${data.slideIndex + 1}`;
+      if (!data) return;
+
+      // Mode
+      if (data.mode) {
+        setProjectorMode(data.mode);
+      }
+
+      // Status
+      if (data.status) {
+        const statusEl = document.getElementById('liveStatus');
+        statusEl.textContent = data.status;
+        if (data.status === 'PAUSED') {
+          statusEl.style.color = '#fbbf24';
+        } else if (data.status === 'ENDED') {
+          statusEl.style.color = '#f43f5e';
+        } else {
+          statusEl.style.color = '#34d399';
         }
-        if (data.slideTitle) {
-          document.getElementById('slideTitle').textContent = data.slideTitle;
+      }
+
+      // Slide Info
+      if (data.slideIndex !== undefined) {
+        document.getElementById('slideBadgeText').textContent = `SLIDE ${data.slideIndex + 1} OF ${data.totalSlides || 16}`;
+      }
+      if (data.slideTitle) {
+        document.getElementById('slideTitle').textContent = data.slideTitle;
+      }
+      if (data.speaker) {
+        document.getElementById('speakerName').textContent = data.speaker;
+      }
+      if (data.duration) {
+        document.getElementById('speakerDuration').textContent = data.duration;
+      }
+      if (data.nextUp) {
+        document.getElementById('nextUpValue').textContent = data.nextUp;
+      }
+      if (data.eventTitle) {
+        document.getElementById('eventTitleDisplay').textContent = data.eventTitle;
+      }
+
+      // QR Code
+      if (data.qrUrl) {
+        document.getElementById('qrUrlDisplay').textContent = data.qrUrl;
+        document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(data.qrUrl)}`;
+      }
+
+      // Announcement / Ticker
+      const bar = document.getElementById('announcementBar');
+      const textEl = document.getElementById('announcementText');
+      if (data.announcement) {
+        textEl.textContent = data.announcement;
+        bar.classList.add('active');
+      } else if (data.announcement === "") {
+        bar.classList.remove('active');
+      }
+
+      // Timer commands
+      if (data.timerAction) {
+        if (data.timerAction === 'start') {
+          isTimerRunning = true;
+          if (data.remaining !== undefined) remainingSeconds = data.remaining;
+          clearInterval(timerInterval);
+          timerInterval = setInterval(() => {
+            if (isTimerRunning) {
+              remainingSeconds--;
+              renderTimer();
+            }
+          }, 1000);
+        } else if (data.timerAction === 'pause') {
+          isTimerRunning = false;
+          clearInterval(timerInterval);
+        } else if (data.timerAction === 'reset') {
+          isTimerRunning = false;
+          clearInterval(timerInterval);
+          remainingSeconds = data.duration || 600;
+          renderTimer();
+        } else if (data.timerAction === 'adjust') {
+          remainingSeconds += (data.delta || 0);
+          renderTimer();
         }
-        if (data.eventTitle) {
-          document.getElementById('eventTitle').textContent = data.eventTitle;
-        }
-        if (data.status) {
-          document.getElementById('liveStatus').textContent = data.status;
-        }
+      }
+
+      // Audio Chime
+      if (data.chime) {
+        playStageChime();
       }
     });
   </script>
