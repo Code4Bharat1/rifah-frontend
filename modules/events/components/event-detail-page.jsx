@@ -7,13 +7,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
+import { Input } from "@shared/components/ui/input";
+import { Label } from "@shared/components/ui/label";
 import { Pill } from "@shared/components/rifah/badges";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { FieldRow, Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { eventImage } from "@shared/lib/media";
 import { useEventDetail, useEvents } from "@shared/hooks/use-rifah-api";
-import { eventApi, paymentApi } from "@shared/lib/api-services";
+import { eventApi, paymentApi, authApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
 function EventDetail() {
@@ -38,6 +41,17 @@ function EventDetail() {
   
   const [attended, setAttended] = useState(false);
   const [marking, setMarking] = useState(false);
+
+  // Registration Flow State
+  const [isRegModalOpen, setIsRegModalOpen] = useState(false);
+  const [regPath, setRegPath] = useState(null); // 'member' | 'guest'
+  
+  // Guest Form State
+  const [guestForm, setGuestForm] = useState({ name: "", email: "", phone: "", businessName: "" });
+  
+  // Member Coupon State
+  const [couponCode, setCouponCode] = useState("");
+  const [discountApplied, setDiscountApplied] = useState(false);
 
   const isUserAttended = Boolean(attended || userRegistration?.attendanceStatus === "Present");
 
@@ -87,32 +101,77 @@ const loadRazorpayScript = () => {
   });
 };
 
-  const handleRegister = async () => {
+  const handleRegisterClick = () => {
     if (!user) {
-      toast.info("Please log in to RSVP / register for this event");
-      window.location.href = `/login?redirect=/events/${eventId || event?.slug}`;
-      return;
+      setIsRegModalOpen(true);
+      setRegPath(null);
+    } else {
+      setIsRegModalOpen(true);
+      setRegPath("member");
     }
+  };
 
-    if (isUserRegistered) {
-      toast.info("You are already registered for this event!");
-      return;
+  const handleApplyCoupon = () => {
+    if (!couponCode) return;
+    if (couponCode.trim().toUpperCase() === event?.memberCouponCode?.toUpperCase()) {
+      setDiscountApplied(true);
+      toast.success("Coupon applied! Discount added.");
+    } else {
+      toast.error("Invalid coupon code.");
+      setDiscountApplied(false);
+    }
+  };
+
+  const handleFinalRegister = async () => {
+    if (regPath === "guest") {
+      if (!guestForm.name || !guestForm.email || !guestForm.phone) {
+        toast.error("Please fill all required fields (Name, Email, Phone).");
+        return;
+      }
     }
 
     setRegistering(true);
 
-    const isPaidEvent = Boolean(event?.isPaid && Number(event?.ticketPrice) > 0);
+    try {
+      if (regPath === "guest") {
+        try {
+          const pwd = `Guest@${Math.floor(Math.random() * 90000) + 10000}`;
+          const regRes = await authApi.register({
+            name: guestForm.name,
+            email: guestForm.email,
+            phone: guestForm.phone,
+            password: pwd,
+            chapter: "General",
+            organization: guestForm.businessName || "Guest User",
+          });
+          const responseData = regRes?.data || regRes;
+          if (responseData?.accessToken) {
+            localStorage.setItem("rifah_access_token", responseData.accessToken);
+            if (responseData.refreshToken) localStorage.setItem("rifah_refresh_token", responseData.refreshToken);
+          }
+        } catch (regErr) {
+          if (regErr.message && regErr.message.toLowerCase().includes("already exists")) {
+            toast.error("This email is already registered. Please close and select 'Yes, I am a Member' to login.");
+          } else {
+            toast.error(regErr.message || "Failed to setup guest session.");
+          }
+          setRegistering(false);
+          return;
+        }
+      }
 
-    if (isPaidEvent) {
-      try {
+      const isPaidEvent = Boolean(event?.isPaid && Number(event?.ticketPrice) > 0);
+      const finalAmount = (isPaidEvent && discountApplied && event?.memberPrice !== undefined) 
+        ? event.memberPrice 
+        : (event?.ticketPrice || 0);
+
+      if (isPaidEvent && finalAmount > 0) {
         const scriptLoaded = await loadRazorpayScript();
         if (!scriptLoaded) throw new Error("Razorpay not loaded");
 
         // Use any backend endpoint that creates an order
-        // For events, we can use the same paymentApi.createOrder
-        // We'll pass itemType="Event Pass" and eventId
         const orderRes = await paymentApi.createOrder({
-          amount: event?.ticketPrice,
+          amount: finalAmount,
           currency: "INR",
           eventId: event?._id,
           itemType: "Event Pass",
@@ -139,24 +198,28 @@ const loadRazorpayScript = () => {
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_signature: response.razorpay_signature,
-                  amount: event?.ticketPrice,
+                  amount: finalAmount,
                   currency: "INR",
                   itemType: "Event Pass",
                   eventId: event?._id,
                   description: `Event Pass: ${event?.title}`,
+                  guest: regPath === "guest" ? guestForm : undefined,
                 }),
                 // Registers user on the event
                 eventApi.registerPaid(event?._id, {
                   paymentId: response.razorpay_payment_id,
                   transactionId: response.razorpay_order_id,
+                  guest: regPath === "guest" ? guestForm : undefined,
+                  couponApplied: discountApplied ? event?.memberCouponCode : null,
                 }),
               ]);
 
               setRegistered(true);
+              setIsRegModalOpen(false);
               queryClient.invalidateQueries({ queryKey: ["event", eventId] });
               queryClient.invalidateQueries({ queryKey: ["events"] });
               queryClient.invalidateQueries({ queryKey: ["all-payments"] });
-              toast.success("Payment successful! You are registered.");
+              toast.success("Registration Successful! Your ticket and confirmation details have been sent to your email address.", { duration: 5000 });
             } catch (err) {
               console.error("Event payment error:", err);
               toast.error(err.message || "Registration failed after payment.");
@@ -165,8 +228,9 @@ const loadRazorpayScript = () => {
             }
           },
           prefill: {
-            name: user.name || "",
-            email: user.email || "",
+            name: regPath === "guest" ? guestForm.name : (user?.name || ""),
+            email: regPath === "guest" ? guestForm.email : (user?.email || ""),
+            contact: regPath === "guest" ? guestForm.phone : (user?.phone || ""),
           },
           theme: { color: "#0F2942" },
           modal: { ondismiss: () => setRegistering(false) }
@@ -174,20 +238,15 @@ const loadRazorpayScript = () => {
         const rzp = new window.Razorpay(options);
         rzp.on("payment.failed", () => toast.error("Payment failed."));
         rzp.open();
-      } catch (err) {
-        setRegistering(false);
-        console.error("Payment init error:", err);
-        toast.error(err.message || "Failed to initialize payment gateway.");
+        return;
       }
-      return;
-    }
 
-    try {
       await eventApi.register(event?._id);
       setRegistered(true);
+      setIsRegModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("RSVP confirmed! You are registered for this event.");
+      toast.success("Registration Successful! Your confirmation details have been sent to your email address.", { duration: 5000 });
     } catch (err) {
       console.error("Register error:", err);
       const message = err.message || "Failed to register for this event";
@@ -408,7 +467,7 @@ const loadRazorpayScript = () => {
                     className="w-full text-base font-bold shadow-md transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
                     size="lg"
                     disabled={registering}
-                    onClick={handleRegister}
+                    onClick={handleRegisterClick}
                   >
                     {registering ? "Processing..." : "RSVP / Register Now"}
                   </Button>
@@ -441,6 +500,142 @@ const loadRazorpayScript = () => {
           </aside>
         </div>
       </div>
+
+      <Dialog open={isRegModalOpen} onOpenChange={setIsRegModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Event Registration</DialogTitle>
+          </DialogHeader>
+          
+          {!regPath && (
+            <div className="py-6 space-y-4 text-center">
+              <h3 className="font-semibold text-lg">Are you a RIFAH Member?</h3>
+              <p className="text-sm text-muted-foreground mb-6">Members receive exclusive discounts on event passes.</p>
+              
+              <div className="space-y-3">
+                <Button 
+                  className="w-full font-bold" 
+                  size="lg"
+                  onClick={() => {
+                    if (!user) {
+                      toast.info("Please log in to verify your membership.");
+                      window.location.href = `/login?redirect=/events/${eventId || event?.slug}`;
+                    } else {
+                      setRegPath("member");
+                    }
+                  }}
+                >
+                  Yes, I am a Member
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={() => setRegPath("guest")}
+                >
+                  Continue as Guest
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {regPath === "guest" && (
+            <div className="space-y-4 py-4 animate-in fade-in slide-in-from-right-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Button variant="ghost" size="sm" onClick={() => setRegPath(null)} className="h-8 px-2 -ml-2 text-muted-foreground">
+                  ← Back
+                </Button>
+                <h3 className="font-semibold">Guest Registration</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Full Name *</Label>
+                  <Input value={guestForm.name} onChange={e => setGuestForm({...guestForm, name: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Email *</Label>
+                  <Input type="email" value={guestForm.email} onChange={e => setGuestForm({...guestForm, email: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Phone Number *</Label>
+                  <Input type="tel" value={guestForm.phone} onChange={e => setGuestForm({...guestForm, phone: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Business Name (Optional)</Label>
+                  <Input value={guestForm.businessName} onChange={e => setGuestForm({...guestForm, businessName: e.target.value})} />
+                </div>
+              </div>
+              
+              <div className="mt-6 p-4 rounded-xl bg-muted/30 border">
+                <div className="flex justify-between font-bold text-lg">
+                  <span>Total Amount</span>
+                  <span>₹{event?.ticketPrice || 0}</span>
+                </div>
+              </div>
+              <Button className="w-full mt-4" size="lg" onClick={handleFinalRegister} disabled={registering}>
+                {registering ? "Processing..." : `Pay ₹${event?.ticketPrice || 0} & Register`}
+              </Button>
+            </div>
+          )}
+
+          {regPath === "member" && (
+            <div className="space-y-4 py-4 animate-in fade-in slide-in-from-right-4">
+              <div className="flex items-center gap-2 mb-2">
+                {!user && (
+                  <Button variant="ghost" size="sm" onClick={() => setRegPath(null)} className="h-8 px-2 -ml-2 text-muted-foreground">
+                    ← Back
+                  </Button>
+                )}
+                <h3 className="font-semibold">Member Checkout</h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Have a Member Coupon Code?</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      value={couponCode} 
+                      onChange={e => setCouponCode(e.target.value.toUpperCase().replace(/\s/g, ''))} 
+                      placeholder="Enter code..." 
+                      disabled={discountApplied}
+                    />
+                    <Button 
+                      variant={discountApplied ? "outline" : "default"} 
+                      onClick={discountApplied ? () => { setDiscountApplied(false); setCouponCode(""); } : handleApplyCoupon}
+                      className={discountApplied ? "text-destructive hover:text-destructive" : ""}
+                    >
+                      {discountApplied ? "Remove" : "Apply"}
+                    </Button>
+                  </div>
+                  {discountApplied && (
+                    <p className="text-xs font-semibold text-emerald-600">Code applied successfully! Member Price unlocked.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 rounded-xl bg-muted/30 border space-y-2">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Non-Member Price</span>
+                  <span><del>₹{event?.ticketPrice || 0}</del></span>
+                </div>
+                {discountApplied && (
+                  <div className="flex justify-between text-sm text-emerald-600 font-medium">
+                    <span>Member Price Applied</span>
+                    <span>₹{event?.memberPrice || 0}</span>
+                  </div>
+                )}
+                <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                  <span>Total Payable</span>
+                  <span>₹{discountApplied ? (event?.memberPrice || 0) : (event?.ticketPrice || 0)}</span>
+                </div>
+              </div>
+              
+              <Button className="w-full mt-4" size="lg" onClick={handleFinalRegister} disabled={registering}>
+                {registering ? "Processing..." : `Pay ₹${discountApplied ? (event?.memberPrice || 0) : (event?.ticketPrice || 0)} & Register`}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PublicLayout>
   );
 }
