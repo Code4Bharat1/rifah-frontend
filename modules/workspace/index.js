@@ -12,3 +12,4 @@ export { BizProfile } from "./components/biz-profile.jsx";
 export { BizVerification } from "./components/biz-verification.jsx";
 export { BizMyEnquiries } from "./components/biz-my-enquiries.jsx";
 export { BizNewEnquiry } from "./components/biz-new-enquiry.jsx";
+export { BizFeeds } from "./components/biz-feeds.jsx";

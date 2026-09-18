@@ -11,6 +11,7 @@ import {
   CalendarDays,
   ChartNoAxesColumn,
   ChevronLeft,
+  Compass,
   CreditCard,
   FileStack,
   Gauge,
@@ -65,6 +66,7 @@ const navs = {
     title: "Business workspace",
     primary: [
       { label: "Dashboard", to: "/biz", icon: Gauge },
+      { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Enquiries", to: "/biz/enquiries", icon: FileStack },
       { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },
       { label: "Networking", to: "/biz/networking", icon: Handshake },
@@ -89,6 +91,7 @@ const navs = {
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
       { label: "Memberships", to: "/admin/memberships", icon: Star },
@@ -119,6 +122,7 @@ const roleNavs = {
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
@@ -141,6 +145,7 @@ const roleNavs = {
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
       { label: "Events", to: "/state-admin/events", icon: CalendarDays },
@@ -198,6 +203,10 @@ function isAccessibleUnverifiedPath(pathname) {
   if (!pathname) return true;
   const clean = pathname.split("?")[0];
   return (
+    clean === "/biz/feeds" ||
+    clean.startsWith("/biz/feeds/") ||
+    clean === "/feeds" ||
+    clean.startsWith("/feeds/") ||
     clean === "/biz/verification" ||
     clean.startsWith("/biz/verification/") ||
     clean === "/biz/membership" ||
