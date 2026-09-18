@@ -26,6 +26,8 @@ import {
   thankYouNoteApi,
   referralApi,
   networkingAnalyticsApi,
+  birthdayApi,
+  anniversaryApi,
 } from "../lib/api-services";
 
 // ==================== BUSINESS HOOKS ====================
@@ -601,3 +603,44 @@ export function useSettings(options = {}) {
     ...options,
   });
 }
+
+export function useTodayBirthdays(options = {}) {
+  return useQuery({
+    queryKey: ["today-birthdays"],
+    queryFn: async () => {
+      const res = await birthdayApi.getToday();
+      return res?.data || res;
+    },
+    staleTime: 5 * 60 * 1000, // 5 mins
+    refetchOnWindowFocus: false,
+    ...options,
+  });
+}
+
+export function useTodayAnniversaries(options = {}) {
+  return useQuery({
+    queryKey: ["today-anniversaries"],
+    queryFn: async () => {
+      const res = await anniversaryApi.getToday();
+      return res?.data || res;
+    },
+    staleTime: 5 * 60 * 1000, // 5 mins
+    refetchOnWindowFocus: false,
+    ...options,
+  });
+}
+
+export function useNewChapterMembers(options = {}) {
+  return useQuery({
+    queryKey: ["new-chapter-members"],
+    queryFn: async () => {
+      const res = await businessApi.getNewChapterMembers();
+      return res?.data || res;
+    },
+    staleTime: 2 * 60 * 1000, // 2 mins
+    refetchOnWindowFocus: false,
+    ...options,
+  });
+}
+
+

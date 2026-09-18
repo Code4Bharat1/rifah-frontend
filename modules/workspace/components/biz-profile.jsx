@@ -111,6 +111,9 @@ function BizProfile() {
     about: "",
     founded: "",
     employees: "",
+    dob: "",
+    joiningDate: "",
+    timezone: "Asia/Kolkata",
   });
 
   const { availableMainCategories, availableSubCategories } = React.useMemo(() => {
@@ -158,6 +161,9 @@ function BizProfile() {
         about: business.about || "",
         founded: business.founded || "",
         employees: business.employees || "",
+        dob: business.dob ? new Date(business.dob).toISOString().split("T")[0] : (user?.dob ? new Date(user.dob).toISOString().split("T")[0] : ""),
+        joiningDate: business.joiningDate ? new Date(business.joiningDate).toISOString().split("T")[0] : (user?.joiningDate ? new Date(user.joiningDate).toISOString().split("T")[0] : ""),
+        timezone: business.timezone || user?.timezone || "Asia/Kolkata",
       });
     } else if (user) {
       setFormData((prev) => ({
@@ -168,6 +174,9 @@ function BizProfile() {
         whatsapp: prev.whatsapp || user.whatsapp || user.phone || "",
         city: prev.city || user.city || "",
         state: prev.state || "",
+        dob: prev.dob || (user.dob ? new Date(user.dob).toISOString().split("T")[0] : ""),
+        joiningDate: prev.joiningDate || (user.joiningDate ? new Date(user.joiningDate).toISOString().split("T")[0] : ""),
+        timezone: prev.timezone || user.timezone || "Asia/Kolkata",
       }));
     }
   }, [business, user]);
@@ -212,6 +221,8 @@ function BizProfile() {
   const syncBusinessCache = () => {
     refetch();
     queryClient.invalidateQueries({ queryKey: ["my-business"] });
+    queryClient.invalidateQueries({ queryKey: ["today-birthdays"] });
+    queryClient.invalidateQueries({ queryKey: ["auth-user"] });
     if (business?._id) {
       queryClient.invalidateQueries({ queryKey: ["business", business._id] });
     }
@@ -492,10 +503,7 @@ function BizProfile() {
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="biz-whatsapp" className="flex items-center gap-1.5">
-                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>WhatsApp Number</span>
-                </Label>
+                <Label htmlFor="biz-whatsapp">WhatsApp Number</Label>
                 <Input
                   id="biz-whatsapp"
                   value={formData.whatsapp}
@@ -524,6 +532,48 @@ function BizProfile() {
                   className="h-11 bg-muted/40 cursor-not-allowed text-muted-foreground"
                 />
                 <p className="text-[10px] text-muted-foreground">Primary private login email (OTP verified).</p>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="biz-dob">Date of Birth (Owner / Member)</Label>
+                <Input
+                  id="biz-dob"
+                  type="date"
+                  value={formData.dob}
+                  onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                  className="h-11"
+                />
+                <p className="text-[10px] text-muted-foreground">Used for chapter birthday greetings & networking wishes (Year is kept private).</p>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="biz-joiningDate">Date of Joining (RIFAH Member Since)</Label>
+                <Input
+                  id="biz-joiningDate"
+                  type="date"
+                  value={formData.joiningDate}
+                  onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })}
+                  className="h-11"
+                />
+                <p className="text-[10px] text-muted-foreground">Used for annual RIFAH membership anniversary milestones & chapter recognition.</p>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="biz-timezone">Timezone</Label>
+                <select
+                  id="biz-timezone"
+                  value={formData.timezone || "Asia/Kolkata"}
+                  onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
+                  className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="Asia/Kolkata">Asia/Kolkata (IST - India Standard Time UTC+5:30)</option>
+                  <option value="Asia/Dubai">Asia/Dubai (GST - Gulf Standard Time UTC+4)</option>
+                  <option value="Asia/Riyadh">Asia/Riyadh (AST - Arabia Standard Time UTC+3)</option>
+                  <option value="Asia/Singapore">Asia/Singapore (SGT UTC+8)</option>
+                  <option value="Europe/London">Europe/London (GMT/BST UTC+0/+1)</option>
+                  <option value="America/New_York">America/New_York (EST/EDT UTC-5/-4)</option>
+                  <option value="America/Chicago">America/Chicago (CST/CDT UTC-6/-5)</option>
+                  <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT UTC-8/-7)</option>
+                  <option value="Australia/Sydney">Australia/Sydney (AEST UTC+10)</option>
+                </select>
+                <p className="text-[10px] text-muted-foreground">Ensures birthday & anniversary wishes arrive according to your local time.</p>
               </div>
               <div className="grid gap-1.5 sm:col-span-2">
                 <Label htmlFor="biz-about">About the business</Label>

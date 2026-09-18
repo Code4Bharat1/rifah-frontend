@@ -148,7 +148,7 @@ export function AdminEventDetail() {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">Audience</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {(event.targetAudience || ["All"]).map(a => (
+                    {(event?.targetAudience || ["All"]).map(a => (
                       <Pill key={a} tone="primary">{a}</Pill>
                     ))}
                   </div>
@@ -156,7 +156,7 @@ export function AdminEventDetail() {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">Chapters</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {(event.targetChapters || ["All"]).map(c => (
+                    {(event?.targetChapters || ["All"]).map(c => (
                       <Pill key={c}>{c}</Pill>
                     ))}
                   </div>

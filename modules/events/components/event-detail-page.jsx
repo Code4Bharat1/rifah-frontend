@@ -44,6 +44,7 @@ function EventDetail() {
   const isEventToday = event?.date === new Date().toISOString().split("T")[0];
 
   const canRegisterUser = () => {
+    if (!event) return true;
     if (!user) return true; // Let them click and redirect to login
     
     // All admins can see the button
@@ -51,19 +52,19 @@ function EventDetail() {
     
     const roleDisplay = user.role === "business_owner" ? "Businesses" : "Consumers";
     
-    const audiences = (event.targetAudience || []).map(a => a.trim().toLowerCase());
+    const audiences = (event?.targetAudience || []).map(a => (typeof a === "string" ? a.trim().toLowerCase() : ""));
     const audienceMatch = audiences.length === 0 || audiences.includes("all") || audiences.includes(roleDisplay.toLowerCase());
     if (!audienceMatch) return false;
 
-    if (event.targetStates && event.targetStates.length > 0) {
-      const states = event.targetStates.map(s => s.trim().toLowerCase());
+    if (event?.targetStates && event.targetStates.length > 0) {
+      const states = event.targetStates.map(s => (typeof s === "string" ? s.trim().toLowerCase() : ""));
       if (!states.includes("all") && user.state) {
         if (!states.includes(user.state.trim().toLowerCase())) return false;
       }
     }
 
-    if (event.targetChapters && event.targetChapters.length > 0) {
-      const chapters = event.targetChapters.map(c => c.trim().toLowerCase());
+    if (event?.targetChapters && event.targetChapters.length > 0) {
+      const chapters = event.targetChapters.map(c => (typeof c === "string" ? c.trim().toLowerCase() : ""));
       if (!chapters.includes("all") && user.chapter) {
         if (!chapters.includes(user.chapter.trim().toLowerCase())) return false;
       }
@@ -100,7 +101,7 @@ const loadRazorpayScript = () => {
 
     setRegistering(true);
 
-    const isPaidEvent = Boolean(event.isPaid && Number(event.ticketPrice) > 0);
+    const isPaidEvent = Boolean(event?.isPaid && Number(event?.ticketPrice) > 0);
 
     if (isPaidEvent) {
       try {
@@ -111,11 +112,11 @@ const loadRazorpayScript = () => {
         // For events, we can use the same paymentApi.createOrder
         // We'll pass itemType="Event Pass" and eventId
         const orderRes = await paymentApi.createOrder({
-          amount: event.ticketPrice,
+          amount: event?.ticketPrice,
           currency: "INR",
-          eventId: event._id,
+          eventId: event?._id,
           itemType: "Event Pass",
-          description: `Pass for ${event.title}`,
+          description: `Pass for ${event?.title}`,
         });
 
         const orderData = orderRes?.data || orderRes;
@@ -125,7 +126,7 @@ const loadRazorpayScript = () => {
           amount: orderData.amount,
           currency: orderData.currency || "INR",
           name: "RIFAH Events",
-          description: `Pass for ${event.title}`,
+          description: `Pass for ${event?.title}`,
           order_id: orderData.orderId,
           handler: async function (response) {
             try {
@@ -138,14 +139,14 @@ const loadRazorpayScript = () => {
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_signature: response.razorpay_signature,
-                  amount: event.ticketPrice,
+                  amount: event?.ticketPrice,
                   currency: "INR",
                   itemType: "Event Pass",
-                  eventId: event._id,
-                  description: `Event Pass: ${event.title}`,
+                  eventId: event?._id,
+                  description: `Event Pass: ${event?.title}`,
                 }),
                 // Registers user on the event
-                eventApi.registerPaid(event._id, {
+                eventApi.registerPaid(event?._id, {
                   paymentId: response.razorpay_payment_id,
                   transactionId: response.razorpay_order_id,
                 }),
@@ -182,7 +183,7 @@ const loadRazorpayScript = () => {
     }
 
     try {
-      await eventApi.register(event._id);
+      await eventApi.register(event?._id);
       setRegistered(true);
       queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
@@ -205,7 +206,7 @@ const loadRazorpayScript = () => {
     if (!user) return;
     setMarking(true);
     try {
-      await eventApi.markAttendance(event._id);
+      await eventApi.markAttendance(event?._id);
       setAttended(true);
       toast.success("Attendance marked successfully!");
       queryClient.invalidateQueries({ queryKey: ["event", eventId] });

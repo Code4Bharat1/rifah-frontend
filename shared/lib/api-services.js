@@ -73,6 +73,7 @@ export const businessApi = {
     formData.append("certificate", file);
     return apiClient(`/businesses/${id}/certificates`, { method: "POST", body: formData });
   },
+  getNewChapterMembers: () => apiClient("/businesses/new-members"),
 };
 
 export const categoryApi = {
@@ -322,3 +323,14 @@ export const settingsApi = {
   get: () => apiClient("/settings", { cache: "no-store" }),
   update: (data) => apiClient("/settings", { method: "PATCH", body: JSON.stringify(data) }),
 };
+
+export const birthdayApi = {
+  getToday: () => apiClient("/birthdays/today"),
+  triggerEmails: () => apiClient("/birthdays/trigger-emails", { method: "POST" }),
+};
+
+export const anniversaryApi = {
+  getToday: () => apiClient("/anniversaries/today"),
+  triggerEmails: () => apiClient("/anniversaries/trigger-emails", { method: "POST" }),
+};
+

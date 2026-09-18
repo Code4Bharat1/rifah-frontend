@@ -172,6 +172,9 @@ function RegisterBusiness({ isAdmin = false }) {
     pincode: "",
     state: "",
     chapter: "",
+    dob: "",
+    joiningDate: new Date().toISOString().split("T")[0],
+    timezone: typeof window !== "undefined" ? (Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata") : "Asia/Kolkata",
     region: "national",
   });
 
@@ -526,6 +529,8 @@ function RegisterBusiness({ isAdmin = false }) {
         membership: tier,
         about: formData.about,
         taxId: isInternational ? (certDocNumber || "") : (formData.taxId || "").trim().toUpperCase(),
+        dob: formData.dob || undefined,
+        timezone: formData.timezone || (typeof window !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "Asia/Kolkata"),
         region: formData.region || "national",
         currency,
         verifiedToken,
@@ -1323,6 +1328,28 @@ function RegisterBusiness({ isAdmin = false }) {
                       placeholder="Mobile number (Mandatory)"
                     />
                     <p className="text-[10px] text-muted-foreground">Direct mobile contact is mandatory for lead notifications.</p>
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="bdob">Date of Birth (Owner / Member)</Label>
+                    <FastInput
+                      id="bdob"
+                      type="date"
+                      value={formData.dob}
+                      onValueChange={(val) => setFormData({ ...formData, dob: val })}
+                      className="h-11"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Used for chapter birthday greetings & networking wishes (Birth year is kept strictly private).</p>
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="bjoiningDate">Date of Joining (RIFAH Member Since)</Label>
+                    <FastInput
+                      id="bjoiningDate"
+                      type="date"
+                      value={formData.joiningDate}
+                      onValueChange={(val) => setFormData({ ...formData, joiningDate: val })}
+                      className="h-11"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Defaults to today. Used for annual RIFAH membership anniversary milestones & chapter recognition.</p>
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <div className="flex items-center justify-between">

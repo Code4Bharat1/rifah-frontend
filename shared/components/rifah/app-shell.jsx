@@ -53,6 +53,7 @@ import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
 import { useNotifications, useConversations, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { VerificationBadge } from "@shared/components/rifah/badges";
+import { BirthdayBanner } from "@shared/components/rifah/birthday-banner";
 
 let globalSidebarScrollTop = typeof window !== "undefined"
   ? Number(sessionStorage.getItem("rifah_sidebar_scroll_top") || 0)
@@ -550,6 +551,7 @@ export function AppShell({
 
         <main className="px-3 pb-24 pt-3 sm:px-4 sm:pb-24 sm:pt-4 md:px-6 md:pb-10 md:pt-6 xl:px-10">
           <div className="mx-auto w-full max-w-[1440px]">
+            <BirthdayBanner />
             {isGatedPage ? (
               <UnderApprovalAccessGate business={businessData} path={path} />
             ) : (
