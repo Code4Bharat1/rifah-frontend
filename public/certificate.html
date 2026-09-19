@@ -21,14 +21,14 @@
     }
     .cert-border-outer {
       width: 100%; height: 100%;
-      border: 4px solid #06b6d4; /* Default accent, can be overridden */
+      border: 4px solid #00875a; /* Default RIFAH green */
       box-sizing: border-box;
       position: relative;
       padding: 8px;
     }
     .cert-border-inner {
       width: 100%; height: 100%;
-      border: 1px solid #06b6d4;
+      border: 1px solid #00875a;
       box-sizing: border-box;
       position: relative;
       display: flex;
@@ -41,26 +41,30 @@
     .corner {
       position: absolute;
       width: 35px; height: 35px;
-      border: 3px solid #06b6d4;
+      border: 3px solid #00875a;
     }
     .corner-tl { top: -6px; left: -6px; border-bottom: none; border-right: none; }
     .corner-tr { top: -6px; right: -6px; border-bottom: none; border-left: none; }
     .corner-bl { bottom: -6px; left: -6px; border-top: none; border-right: none; }
     .corner-br { bottom: -6px; right: -6px; border-top: none; border-left: none; }
 
-    .logo { height: 90px; margin-bottom: 30px; object-fit: contain; }
-    h1 { font-family: 'Cinzel', serif; font-size: 52px; color: #06b6d4; margin: 0; letter-spacing: 6px; }
+    .logo { height: 90px; margin-bottom: 25px; object-fit: contain; }
+    h1 { font-family: 'Cinzel', serif; font-size: 52px; color: #00875a; margin: 0; letter-spacing: 6px; }
     .subtitle { font-size: 20px; color: #475569; margin-top: 5px; font-weight: 400; letter-spacing: 3px; text-transform: uppercase; }
     
-    .presented-to { font-size: 18px; color: #64748b; font-style: italic; margin-top: 40px; }
-    .name { font-family: 'Playfair Display', serif; font-size: 64px; font-weight: 700; color: #0f172a; margin: 20px 0 15px 0; }
-    .accent-rule { width: 400px; height: 2px; background: #cbd5e1; margin: 0 auto 30px auto; }
+    .presented-to { font-size: 18px; color: #64748b; font-style: italic; margin-top: 32px; }
+    .name { font-family: 'Playfair Display', serif; font-size: 58px; font-weight: 700; color: #0f172a; margin: 16px 0 12px 0; }
+    .accent-rule { width: 380px; height: 1.5px; background: #cbd5e1; margin: 0 auto 24px auto; }
     
-    .reason { font-size: 18px; color: #334155; max-width: 800px; line-height: 1.6; font-weight: 300; }
-    .event-title { font-size: 22px; font-weight: 600; color: #0f172a; margin-top: 15px; }
+    .reason { font-size: 17px; color: #334155; max-width: 800px; line-height: 1.6; font-weight: 300; }
+    .event-title { font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 10px; }
+    .course-info { font-size: 15px; font-weight: 700; color: #00875a; margin-top: 6px; letter-spacing: 0.5px; }
+    .company-title { font-size: 16px; font-weight: 500; color: #475569; margin-top: 8px; }
 
     .signatures { display: flex; justify-content: space-between; width: 85%; margin-top: auto; padding-bottom: 20px; }
     .sig-block { display: flex; flex-direction: column; align-items: center; width: 250px; }
+    .sig-art { height: 50px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 4px; }
+    .sig-svg { overflow: visible; }
     .sig-img { height: 60px; object-fit: contain; margin-bottom: 5px; }
     .sig-line { width: 100%; height: 1px; background: #64748b; margin-bottom: 10px; }
     .sig-name { font-weight: 700; font-size: 16px; color: #0f172a; }
@@ -125,15 +129,27 @@
           For your valuable contribution and insightful presence as a <strong id="cert-role" style="font-weight: 600;">Speaker</strong>.
         </div>
         <div class="event-title" id="event-title">RIFAH Chamber Event</div>
+        <div class="course-info" id="course-info" style="display:none;"></div>
+        <div class="company-title" id="company-title" style="display:none;"></div>
         
         <div class="signatures">
           <div class="sig-block">
+            <div class="sig-art" id="sig1-art">
+              <svg viewBox="0 0 220 60" width="170" height="50" class="sig-svg">
+                <path id="sig1-path" d="M 12 36 C 18 12, 32 6, 44 16 C 52 24, 46 44, 34 50 C 22 56, 18 42, 36 30 C 52 18, 68 36, 80 40 C 90 44, 98 26, 108 36 C 118 44, 126 24, 136 34 C 146 42, 154 28, 164 36 C 174 42, 182 32, 192 38 M 22 54 Q 100 44, 178 48 Q 194 49, 204 42 M 194 38 L 202 46" fill="none" stroke="#0f2942" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
             <img src="" alt="" class="sig-img" id="sig1-img" style="display:none;" />
             <div class="sig-line"></div>
             <div class="sig-name" id="sig1-name">Name 1</div>
             <div class="sig-role" id="sig1-role">Chapter President</div>
           </div>
           <div class="sig-block">
+            <div class="sig-art" id="sig2-art">
+              <svg viewBox="0 0 220 60" width="170" height="50" class="sig-svg">
+                <path id="sig2-path" d="M 16 42 C 24 10, 42 8, 46 26 C 48 38, 38 52, 26 46 C 16 40, 28 20, 52 24 C 74 28, 64 52, 84 40 C 96 30, 108 14, 122 26 C 134 36, 128 48, 142 42 C 154 36, 164 22, 174 30 C 184 38, 180 50, 194 44 M 18 50 Q 106 60, 192 48 Q 204 46, 212 40" fill="none" stroke="#1e3a8a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
             <img src="" alt="" class="sig-img" id="sig2-img" style="display:none;" />
             <div class="sig-line"></div>
             <div class="sig-name" id="sig2-name">Name 2</div>
@@ -148,12 +164,46 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    document.getElementById('cert-name').textContent = params.get('name') || 'Guest Name';
-    document.getElementById('cert-role').textContent = params.get('role') || 'Participant';
-    document.getElementById('event-title').textContent = params.get('event') || 'RIFAH Chamber Event';
+    const certType = (params.get('type') || '').toLowerCase();
+    const isCourse = certType === 'completion' || Boolean(params.get('course'));
+    
+    document.getElementById('cert-name').textContent = params.get('name') || 'Member Name';
+    
+    if (isCourse) {
+      document.getElementById('cert-subtitle').textContent = 'OF COMPLETION';
+      document.getElementById('cert-reason').textContent = 'For successfully completing all modules, practical curriculum, and requirements of';
+      
+      const rawCourse = params.get('course') || params.get('event') || 'Executive Training Course';
+      const formattedCourse = rawCourse.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      document.getElementById('event-title').textContent = formattedCourse;
+
+      const scope = (params.get('scope') || 'centre').toLowerCase();
+      const chapter = params.get('chapter') || '';
+      let scopeLabel = 'Central Chamber National Leadership Program';
+      if (scope === 'state') scopeLabel = params.get('state') ? `${params.get('state')} State Executive Curriculum` : 'State Executive Curriculum';
+      else if (scope === 'chapter') scopeLabel = chapter ? `${chapter} Chapter Leadership Training` : 'Chapter Administration & Executive Development Program';
+      
+      const modules = params.get('modules') || '1';
+      const courseInfoElem = document.getElementById('course-info');
+      if (courseInfoElem) {
+        courseInfoElem.textContent = `Curriculum Track: ${scopeLabel} • ${modules} Module${Number(modules) > 1 ? 's' : ''} Completed`;
+        courseInfoElem.style.display = 'block';
+      }
+    } else {
+      document.getElementById('cert-subtitle').textContent = params.get('subtitle') || 'OF APPRECIATION';
+      const roleElem = document.getElementById('cert-role');
+      if (roleElem) roleElem.textContent = params.get('role') || 'Speaker';
+      document.getElementById('event-title').textContent = params.get('event') || 'RIFAH Chamber Event';
+    }
+    
+    if (params.get('business')) {
+      const comp = document.getElementById('company-title');
+      comp.textContent = `Representing Enterprise: ${params.get('business')}`;
+      comp.style.display = 'block';
+    }
     
     // Apply accent colors dynamically
-    const accentColor = params.get('accent') || '#06b6d4';
+    const accentColor = params.get('accent') || '#00875a';
     document.getElementById('border-outer').style.borderColor = accentColor;
     document.getElementById('border-inner').style.borderColor = accentColor;
     document.getElementById('corner-tl').style.borderColor = accentColor;
@@ -163,26 +213,46 @@
     document.getElementById('cert-title').style.color = accentColor;
     
     // Fill Signatories
-    if (params.get('sig1Name')) document.getElementById('sig1-name').textContent = params.get('sig1Name');
-    if (params.get('sig1Role')) document.getElementById('sig1-role').textContent = params.get('sig1Role');
+    document.getElementById('sig1-name').textContent = params.get('sig1Name') || (params.get('chapter') ? `${params.get('chapter')} Chapter` : 'RIFAH Chamber');
+    document.getElementById('sig1-role').textContent = params.get('sig1Role') || 'CHAPTER PRESIDENT';
+    // Randomize handwritten cursive signatures
+    const SIGNATURE_PRESETS = [
+      { path: "M 12 36 C 18 12, 32 6, 44 16 C 52 24, 46 44, 34 50 C 22 56, 18 42, 36 30 C 52 18, 68 36, 80 40 C 90 44, 98 26, 108 36 C 118 44, 126 24, 136 34 C 146 42, 154 28, 164 36 C 174 42, 182 32, 192 38 M 22 54 Q 100 44, 178 48 Q 194 49, 204 42 M 194 38 L 202 46", color: "#0f2942" },
+      { path: "M 16 42 C 24 10, 42 8, 46 26 C 48 38, 38 52, 26 46 C 16 40, 28 20, 52 24 C 74 28, 64 52, 84 40 C 96 30, 108 14, 122 26 C 134 36, 128 48, 142 42 C 154 36, 164 22, 174 30 C 184 38, 180 50, 194 44 M 18 50 Q 106 60, 192 48 Q 204 46, 212 40", color: "#1e3a8a" },
+      { path: "M 20 48 C 30 14, 46 8, 50 30 C 52 46, 38 56, 28 50 C 18 44, 32 22, 60 26 C 86 30, 72 56, 92 44 C 108 34, 118 16, 134 30 C 148 42, 140 54, 156 46 C 170 38, 180 24, 192 34 C 202 42, 198 56, 212 48 M 24 56 Q 112 64, 198 52 Q 212 50, 220 42", color: "#172554" },
+      { path: "M 14 38 C 22 16, 36 10, 48 22 C 56 30, 50 48, 38 52 C 26 56, 22 42, 40 32 C 58 20, 74 38, 86 42 C 96 46, 104 28, 114 38 C 124 46, 132 26, 142 36 C 152 44, 160 30, 170 38 C 180 44, 188 34, 198 40 M 26 54 Q 104 46, 184 50 Q 200 51, 210 44 M 198 40 L 208 48", color: "#0e3a5a" }
+    ];
+    const s1 = SIGNATURE_PRESETS[Math.floor(Math.random() * SIGNATURE_PRESETS.length)];
+    let s2Idx = (SIGNATURE_PRESETS.indexOf(s1) + 1 + Math.floor(Math.random() * (SIGNATURE_PRESETS.length - 1))) % SIGNATURE_PRESETS.length;
+    const s2 = SIGNATURE_PRESETS[s2Idx];
+    const p1 = document.getElementById('sig1-path');
+    const p2 = document.getElementById('sig2-path');
+    if (p1) { p1.setAttribute('d', s1.path); p1.setAttribute('stroke', s1.color); }
+    if (p2) { p2.setAttribute('d', s2.path); p2.setAttribute('stroke', s2.color); }
+
     if (params.get('sig1Img')) {
       const img = document.getElementById('sig1-img');
       img.src = params.get('sig1Img');
       img.style.display = 'block';
+      const art = document.getElementById('sig1-art');
+      if (art) art.style.display = 'none';
     }
     
-    if (params.get('sig2Name')) document.getElementById('sig2-name').textContent = params.get('sig2Name');
-    if (params.get('sig2Role')) document.getElementById('sig2-role').textContent = params.get('sig2Role');
+    document.getElementById('sig2-name').textContent = params.get('sig2Name') || 'RIFAH Central HQ';
+    document.getElementById('sig2-role').textContent = params.get('sig2Role') || 'DIRECTOR GENERAL';
     if (params.get('sig2Img')) {
       const img = document.getElementById('sig2-img');
       img.src = params.get('sig2Img');
       img.style.display = 'block';
+      const art = document.getElementById('sig2-art');
+      if (art) art.style.display = 'none';
     }
 
-    // Auto-trigger print dialog after images load (and fonts)
-    window.onload = () => {
-      setTimeout(() => window.print(), 800);
-    };
+    if (params.get('print') === 'true' || params.get('autoprint') === 'true') {
+      window.onload = () => {
+        setTimeout(() => window.print(), 800);
+      };
+    }
   </script>
 </body>
 </html>
