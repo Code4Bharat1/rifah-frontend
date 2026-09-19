@@ -759,6 +759,7 @@ export function BizFeeds() {
   const chapters = chaptersData || [];
   const statesList = statesData || [];
 
+  const [posts, setPosts] = useState([]);
   const [isNewPostOpen, setIsNewPostOpen] = useState(false);
   const [isSubmittingPost, setIsSubmittingPost] = useState(false);
   const [formPostImageFile, setFormPostImageFile] = useState(null);
@@ -893,8 +894,6 @@ export function BizFeeds() {
   const deletePostMutation = useDeletePost();
 
   // Keep local optimistic state synchronized with apiPosts
-  const [posts, setPosts] = useState([]);
-
   useEffect(() => {
     if (apiPosts && Array.isArray(apiPosts)) {
       setPosts(apiPosts);
