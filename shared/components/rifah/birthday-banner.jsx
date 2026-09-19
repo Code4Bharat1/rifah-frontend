@@ -58,7 +58,7 @@ export function BirthdayBanner() {
   ];
   const isDashboard = dashboardRoutes.includes(cleanPath);
 
-  // Exclude Admin & Super Admin from celebration/welcome banners
+  // Exclude Central Admin from celebration/welcome banners
   const allowedRoles = ["chapter_admin", "business", "business_owner"];
   if (!isDashboard || !user || !allowedRoles.includes(user.role)) return null;
 
