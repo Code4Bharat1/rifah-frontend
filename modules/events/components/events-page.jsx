@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Clock, MapPin, Ticket, Users } from "lucide-react";
+import { Clock, MapPin, Ticket, Users, Share2 } from "lucide-react";
 import { useState } from "react";
 
 import { Pill } from "@shared/components/rifah/badges";
@@ -9,10 +9,12 @@ import { SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { useEvents } from "@shared/hooks/use-rifah-api";
+import { EventShareModal } from "@shared/components/rifah/event-share-modal";
 import { cn } from "@shared/lib/utils";
 
 function EventsPage() {
   const [tab, setTab] = useState("Upcoming");
+  const [sharingEvent, setSharingEvent] = useState(null);
   const { data: eventsData, isLoading } = useEvents({ status: tab });
   const list = Array.isArray(eventsData)
     ? eventsData
@@ -91,10 +93,28 @@ function EventsPage() {
                       <Ticket className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{ev.isPaid ? `₹${ev.ticketPrice}` : (ev.fee && ev.fee !== "Complimentary for Members" ? ev.fee : "Free")}</span>
                     </div>
                   </dl>
-                  <div className="mt-3 flex flex-1 flex-wrap items-end gap-1.5">
-                    <Pill tone={ev.mode === "Online" ? "primary" : "neutral"}>{ev.mode}</Pill>
-                    <Pill>{ev.chapter}</Pill>
-                    {ev.isPaid ? <Pill tone="warning">Paid (₹{ev.ticketPrice})</Pill> : <Pill tone="success">Free</Pill>}
+                  <div className="mt-3 flex flex-1 flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Pill tone={ev.mode === "Online" ? "primary" : "neutral"}>{ev.mode}</Pill>
+                      <Pill>{ev.chapter}</Pill>
+                      {ev.isPaid ? <Pill tone="warning">Paid (₹{ev.ticketPrice})</Pill> : <Pill tone="success">Free</Pill>}
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSharingEvent(ev);
+                      }}
+                      className="rounded-xl h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/80 border border-border/60 shrink-0 gap-1.5"
+                      title="Share Event"
+                      aria-label={`Share ${ev.title}`}
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                      <span>Share</span>
+                    </Button>
                   </div>
                 </Link>
               </li>
@@ -112,6 +132,14 @@ function EventsPage() {
           </Button>
         </div>
       </div>
+
+      <EventShareModal
+        event={sharingEvent}
+        open={Boolean(sharingEvent)}
+        onOpenChange={(open) => {
+          if (!open) setSharingEvent(null);
+        }}
+      />
     </PublicLayout>
   );
 }

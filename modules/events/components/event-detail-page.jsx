@@ -18,6 +18,7 @@ import { eventImage } from "@shared/lib/media";
 import { useEventDetail, useEvents } from "@shared/hooks/use-rifah-api";
 import { eventApi, paymentApi, authApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
+import { EventShareModal } from "@shared/components/rifah/event-share-modal";
 
 function EventDetail() {
   const params = useParams();
@@ -45,6 +46,7 @@ function EventDetail() {
   // Registration Flow State
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [regPath, setRegPath] = useState(null); // 'member' | 'guest'
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
   // Guest Form State
   const [guestForm, setGuestForm] = useState({ name: "", email: "", phone: "", businessName: "" });
@@ -318,9 +320,21 @@ const loadRazorpayScript = () => {
         </div>
 
         <div className="rifah-container relative z-10 pt-16 pb-12 sm:pt-24 sm:pb-16 lg:pt-32 lg:pb-20">
-          <Link href="/events" className="inline-flex items-center text-sm font-medium text-slate-300 hover:text-white transition-colors mb-6">
-            ← Back to all events
-          </Link>
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <Link href="/events" className="inline-flex items-center text-sm font-medium text-slate-300 hover:text-white transition-colors">
+              ← Back to all events
+            </Link>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsShareModalOpen(true)}
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md gap-2 rounded-full px-4 text-xs font-semibold shadow-xs"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              <span>Share Event</span>
+            </Button>
+          </div>
           
           <div className="flex flex-wrap gap-2 mb-4">
             <Pill tone={event.mode === "Online" ? "primary" : "neutral"} className="bg-white/10 text-white border-white/20 backdrop-blur-md shadow-sm">{event.mode}</Pill>
@@ -446,6 +460,19 @@ const loadRazorpayScript = () => {
                       )}
                     </div>
                   )}
+
+                  <div className="mt-3 pt-3 border-t border-emerald-500/20">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsShareModalOpen(true)}
+                      className="w-full gap-2 rounded-xl text-xs font-semibold border-emerald-500/30 bg-white/40 dark:bg-black/20 hover:bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+                    >
+                      <Share2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>Invite Colleagues & Partners</span>
+                    </Button>
+                  </div>
                 </div>
               ) : isEligibleToRegister ? (
                 <div className="space-y-5">
@@ -470,6 +497,15 @@ const loadRazorpayScript = () => {
                     onClick={handleRegisterClick}
                   >
                     {registering ? "Processing..." : "RSVP / Register Now"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2 rounded-xl text-xs font-semibold border-border hover:border-primary/50 text-muted-foreground hover:text-foreground"
+                    onClick={() => setIsShareModalOpen(true)}
+                  >
+                    <Share2 className="h-3.5 w-3.5 text-primary" />
+                    <span>Share Event with Network</span>
                   </Button>
                 </div>
               ) : (
@@ -636,6 +672,12 @@ const loadRazorpayScript = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <EventShareModal
+        event={event}
+        open={isShareModalOpen}
+        onOpenChange={setIsShareModalOpen}
+      />
     </PublicLayout>
   );
 }
