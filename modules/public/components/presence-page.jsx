@@ -20,6 +20,7 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { useStates } from "@shared/hooks/use-rifah-api";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 import { cn } from "@shared/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 
@@ -113,7 +114,7 @@ export function PresencePage() {
                   <div className="relative w-full aspect-square sm:aspect-[4/5] bg-muted/40 overflow-hidden flex-shrink-0 border-b border-border/20">
                     {imageUrl ? (
                       <img
-                        src={imageUrl}
+                        src={resolveMediaUrl(imageUrl)}
                         alt={st.state}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
