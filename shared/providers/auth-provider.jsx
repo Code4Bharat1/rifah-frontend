@@ -165,6 +165,7 @@ export function AuthProvider({ children }) {
       value={{
         user,
         loading,
+        token: typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null,
         login,
         loginWithGoogle,
         completeOnboarding,

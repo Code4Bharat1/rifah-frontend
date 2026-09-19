@@ -4,66 +4,144 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Certificate of Appreciation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
   <style>
     body, html {
       margin: 0; padding: 0; width: 100%; height: 100%;
       display: flex; align-items: center; justify-content: center;
-      background: #e2e8f0; font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #f1f5f9; font-family: 'Montserrat', Arial, sans-serif;
     }
-    .cert-container {
-      width: 1056px; height: 816px; /* 11x8.5 inches at 96dpi (US Letter Landscape) */
-      background: white; position: relative; padding: 40px; box-sizing: border-box;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; border: 15px solid #0f172a; /* Navy band */
+    .cert-wrapper {
+      width: 1100px; height: 800px; /* Landscape aspect ratio */
+      background: white;
+      padding: 40px;
+      box-sizing: border-box; /* Crucial to prevent overflow */
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      position: relative;
     }
-    .accent-rule { width: 80%; height: 4px; background: #ca8a04; margin: 30px 0; }
-    .logo { height: 80px; margin-bottom: 20px; }
-    h1 { font-size: 48px; text-transform: uppercase; letter-spacing: 4px; color: #0f172a; margin: 0; }
-    .subtitle { font-size: 24px; color: #64748b; margin-top: 10px; font-weight: 300; }
-    .presented-to { font-size: 18px; color: #94a3b8; text-transform: uppercase; margin-top: 50px; letter-spacing: 2px; }
-    .name { font-size: 56px; font-weight: bold; color: #0f172a; margin: 20px 0; font-family: Georgia, serif; }
-    .reason { font-size: 20px; color: #475569; max-width: 700px; line-height: 1.5; }
-    .signatures { display: flex; justify-content: space-between; width: 80%; margin-top: 80px; }
-    .sig-block { display: flex; flex-direction: column; align-items: center; width: 250px; }
-    .sig-img { height: 60px; object-fit: contain; margin-bottom: 10px; }
-    .sig-line { width: 100%; height: 1px; background: #94a3b8; margin-bottom: 10px; }
-    .sig-name { font-weight: bold; font-size: 18px; color: #0f172a; }
-    .sig-role { font-size: 14px; color: #64748b; text-transform: uppercase; }
+    .cert-border-outer {
+      width: 100%; height: 100%;
+      border: 4px solid #06b6d4; /* Default accent, can be overridden */
+      box-sizing: border-box;
+      position: relative;
+      padding: 8px;
+    }
+    .cert-border-inner {
+      width: 100%; height: 100%;
+      border: 1px solid #06b6d4;
+      box-sizing: border-box;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 50px 40px;
+      text-align: center;
+    }
+    /* Corner accents */
+    .corner {
+      position: absolute;
+      width: 35px; height: 35px;
+      border: 3px solid #06b6d4;
+    }
+    .corner-tl { top: -6px; left: -6px; border-bottom: none; border-right: none; }
+    .corner-tr { top: -6px; right: -6px; border-bottom: none; border-left: none; }
+    .corner-bl { bottom: -6px; left: -6px; border-top: none; border-right: none; }
+    .corner-br { bottom: -6px; right: -6px; border-top: none; border-left: none; }
+
+    .logo { height: 90px; margin-bottom: 30px; object-fit: contain; }
+    h1 { font-family: 'Cinzel', serif; font-size: 52px; color: #06b6d4; margin: 0; letter-spacing: 6px; }
+    .subtitle { font-size: 20px; color: #475569; margin-top: 5px; font-weight: 400; letter-spacing: 3px; text-transform: uppercase; }
     
+    .presented-to { font-size: 18px; color: #64748b; font-style: italic; margin-top: 40px; }
+    .name { font-family: 'Playfair Display', serif; font-size: 64px; font-weight: 700; color: #0f172a; margin: 20px 0 15px 0; }
+    .accent-rule { width: 400px; height: 2px; background: #cbd5e1; margin: 0 auto 30px auto; }
+    
+    .reason { font-size: 18px; color: #334155; max-width: 800px; line-height: 1.6; font-weight: 300; }
+    .event-title { font-size: 22px; font-weight: 600; color: #0f172a; margin-top: 15px; }
+
+    .signatures { display: flex; justify-content: space-between; width: 85%; margin-top: auto; padding-bottom: 20px; }
+    .sig-block { display: flex; flex-direction: column; align-items: center; width: 250px; }
+    .sig-img { height: 60px; object-fit: contain; margin-bottom: 5px; }
+    .sig-line { width: 100%; height: 1px; background: #64748b; margin-bottom: 10px; }
+    .sig-name { font-weight: 700; font-size: 16px; color: #0f172a; }
+    .sig-role { font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+    
+    .footer { position: absolute; bottom: 15px; left: 0; right: 0; text-align: center; font-size: 11px; color: #94a3b8; font-weight: 300; }
+
+    @page {
+      size: landscape;
+      margin: 0;
+    }
+
     @media print {
-      body { background: white; }
-      .cert-container { box-shadow: none; border-width: 20px; }
+      html, body { 
+        background: white; 
+        margin: 0 !important; 
+        padding: 0 !important; 
+        width: 100%; 
+        height: 100%;
+        -webkit-print-color-adjust: exact; 
+        print-color-adjust: exact; 
+      }
+      .cert-wrapper { 
+        box-shadow: none; 
+        width: 100%; 
+        height: 100%; /* Prevents overflow from viewport calculations */
+        padding: 15px; 
+        page-break-after: avoid; 
+        page-break-before: avoid;
+        page-break-inside: avoid;
+        overflow: hidden;
+      }
+      .cert-border-outer { padding: 6px; }
+      .cert-border-inner { padding: 30px 20px; }
+      .logo { margin-bottom: 20px; height: 75px; }
+      h1 { font-size: 44px; margin-top: 10px; }
+      .name { font-size: 52px; margin: 15px 0 10px 0; }
+      .presented-to { margin-top: 25px; }
+      .signatures { margin-top: auto; padding-bottom: 10px; }
     }
   </style>
 </head>
 <body>
-  <div class="cert-container" id="cert">
-    <img src="/rifah-logo.png" alt="Logo" class="logo" />
-    <h1>Certificate of Appreciation</h1>
-    <div class="subtitle" id="event-title">RIFAH Chamber Event</div>
-    
-    <div class="presented-to">Proudly Presented To</div>
-    <div class="name" id="cert-name">John Doe</div>
-    
-    <div class="accent-rule" id="accent"></div>
-    
-    <div class="reason" id="cert-reason">
-      For your valuable contribution and insightful presence as a <strong id="cert-role">Speaker</strong> at our event.
-    </div>
-    
-    <div class="signatures">
-      <div class="sig-block">
-        <img src="" alt="" class="sig-img" id="sig1-img" style="display:none;" />
-        <div class="sig-line"></div>
-        <div class="sig-name" id="sig1-name">Name 1</div>
-        <div class="sig-role" id="sig1-role">Chapter President</div>
-      </div>
-      <div class="sig-block">
-        <img src="" alt="" class="sig-img" id="sig2-img" style="display:none;" />
-        <div class="sig-line"></div>
-        <div class="sig-name" id="sig2-name">Name 2</div>
-        <div class="sig-role" id="sig2-role">Chapter Secretary</div>
+  <div class="cert-wrapper">
+    <div class="cert-border-outer" id="border-outer">
+      <div class="cert-border-inner" id="border-inner">
+        <div class="corner corner-tl" id="corner-tl"></div>
+        <div class="corner corner-tr" id="corner-tr"></div>
+        <div class="corner corner-bl" id="corner-bl"></div>
+        <div class="corner corner-br" id="corner-br"></div>
+
+        <img src="/rifah-logo.png" alt="RIFAH Logo" class="logo" />
+        
+        <h1 id="cert-title">CERTIFICATE</h1>
+        <div class="subtitle" id="cert-subtitle">Of Appreciation</div>
+        
+        <div class="presented-to">This is proudly presented to</div>
+        <div class="name" id="cert-name">John Doe</div>
+        <div class="accent-rule"></div>
+        
+        <div class="reason" id="cert-reason">
+          For your valuable contribution and insightful presence as a <strong id="cert-role" style="font-weight: 600;">Speaker</strong>.
+        </div>
+        <div class="event-title" id="event-title">RIFAH Chamber Event</div>
+        
+        <div class="signatures">
+          <div class="sig-block">
+            <img src="" alt="" class="sig-img" id="sig1-img" style="display:none;" />
+            <div class="sig-line"></div>
+            <div class="sig-name" id="sig1-name">Name 1</div>
+            <div class="sig-role" id="sig1-role">Chapter President</div>
+          </div>
+          <div class="sig-block">
+            <img src="" alt="" class="sig-img" id="sig2-img" style="display:none;" />
+            <div class="sig-line"></div>
+            <div class="sig-name" id="sig2-name">Name 2</div>
+            <div class="sig-role" id="sig2-role">Chapter Secretary</div>
+          </div>
+        </div>
+
+        <div class="footer">RIFAH Chamber of Commerce and Industry</div>
       </div>
     </div>
   </div>
@@ -74,9 +152,15 @@
     document.getElementById('cert-role').textContent = params.get('role') || 'Participant';
     document.getElementById('event-title').textContent = params.get('event') || 'RIFAH Chamber Event';
     
-    if (params.get('accent')) {
-      document.getElementById('accent').style.backgroundColor = params.get('accent');
-    }
+    // Apply accent colors dynamically
+    const accentColor = params.get('accent') || '#06b6d4';
+    document.getElementById('border-outer').style.borderColor = accentColor;
+    document.getElementById('border-inner').style.borderColor = accentColor;
+    document.getElementById('corner-tl').style.borderColor = accentColor;
+    document.getElementById('corner-tr').style.borderColor = accentColor;
+    document.getElementById('corner-bl').style.borderColor = accentColor;
+    document.getElementById('corner-br').style.borderColor = accentColor;
+    document.getElementById('cert-title').style.color = accentColor;
     
     // Fill Signatories
     if (params.get('sig1Name')) document.getElementById('sig1-name').textContent = params.get('sig1Name');
@@ -95,9 +179,9 @@
       img.style.display = 'block';
     }
 
-    // Auto-trigger print dialog after images load
+    // Auto-trigger print dialog after images load (and fonts)
     window.onload = () => {
-      setTimeout(() => window.print(), 500);
+      setTimeout(() => window.print(), 800);
     };
   </script>
 </body>

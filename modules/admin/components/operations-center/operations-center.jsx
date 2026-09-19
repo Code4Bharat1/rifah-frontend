@@ -612,6 +612,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       const payload = {
         certificateStyle: eventSetupForm.certificateStyle,
         certificateAccentColor: eventSetupForm.certificateAccentColor,
+        signatory1Role: eventSetupForm.signatory1Role,
+        signatory1Name: eventSetupForm.signatory1Name,
+        signatory1Image: eventSetupForm.signatory1Image,
         signatory2Role: eventSetupForm.signatory2Role,
         signatory2Name: eventSetupForm.signatory2Name,
         signatory2Image: eventSetupForm.signatory2Image,
@@ -2158,7 +2161,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <p className="text-xs text-muted-foreground mt-1">Role assignments for President, Gate Incharge, Stage Manager, and Treasurer.</p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-blue-500">
-                  <span>{teamMembers.length} Appointed Roles</span>
+                  <span>{Object.values(teamRoles).filter(Boolean).length} Appointed Roles</span>
                   <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -2565,6 +2568,36 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <input type="color" value={eventSetupForm.certificateAccentColor} onChange={(e) => setEventSetupForm(prev => ({ ...prev, certificateAccentColor: e.target.value }))} className="h-9 w-14 rounded-md border border-border cursor-pointer p-0.5" />
                     <span className="text-sm font-mono text-muted-foreground">{eventSetupForm.certificateAccentColor}</span>
                   </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Signatory 1</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Role / Designation</Label>
+                    <Select value={eventSetupForm.signatory1Role} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, signatory1Role: val }))}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["— none —","Chapter Vice President","Chapter President","Chapter Secretary","State President","State Secretary","Other"].map(r => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Name (as printed)</Label>
+                    <Input value={eventSetupForm.signatory1Name} onChange={(e) => setEventSetupForm(prev => ({ ...prev, signatory1Name: e.target.value }))} placeholder="Full name" className="mt-1" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">Signature Image</Label>
+                  <Input type="file" accept="image/*" className="mt-1"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setEventSetupForm(prev => ({ ...prev, signatory1Image: URL.createObjectURL(file) }));
+                    }}
+                  />
                 </div>
               </div>
 
