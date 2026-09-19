@@ -71,6 +71,7 @@ import {
   Loader2,
   ScrollText,
   Lock,
+  Trash,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -86,6 +87,11 @@ import { DynamicQrCode } from "@shared/components/rifah/dynamic-qr";
 import { cn } from "@shared/lib/utils";
 import { StatCard } from "@shared/components/rifah/ui-bits";
 import { Pill } from "@shared/components/rifah/badges";
+import { EntranceDesk } from "./entrance-desk";
+import { CertificatesTab } from "./certificates-tab";
+import { ScriptsTab } from "./scripts-tab";
+import { AskGiveBoard } from "./ask-give-board";
+import { MyTeamTab } from "./my-team-tab";
 
 // 16 Default Chapter Agenda Items
 const DEFAULT_AGENDA = [
@@ -115,6 +121,10 @@ const HORIZONTAL_MODULE_TABS = [
   { key: "finance", label: "Finance", icon: CreditCard },
   { key: "speakers-guests", label: "Speakers & Guests", icon: Mic },
   { key: "follow-up", label: "Follow-up", icon: MessageSquareText },
+  { key: "ask-give", label: "Ask & Give", icon: Users },
+  { key: "entrance-desk", label: "Entrance Desk", icon: ShieldCheck },
+  { key: "certificates", label: "Certificates", icon: FileStack },
+  { key: "scripts", label: "Scripts", icon: ScrollText },
   { key: "documents", label: "Documents", icon: FileStack },
   { key: "data", label: "Data", icon: ChartNoAxesColumn },
   { key: "my-links", label: "My Links", icon: Link2 },
@@ -259,13 +269,28 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   });
   const [savingSpeaker, setSavingSpeaker] = useState(false);
 
-  // Team Roles
+  // Team & Operations
   const [teamRoles, setTeamRoles] = useState({
-    chapterAdmin: user?.name || "Chapter Admin",
-    entranceIncharge: "Bilal Sheikh",
-    followupCoordinator: "Rashid Kamal",
-    treasurer: "Sameer Joshi",
-    guestManager: "Ayesha Siddiqui",
+    chapterAdmin: "",
+    entranceIncharge: "",
+    followupCoordinator: "",
+    treasurer: "",
+    guestManager: "",
+    // New Stage Roles & Operations
+    photosVideo: "",
+    tilawatEquran: "",
+    presidentWelcome: "",
+    secretaryIntro: "",
+    eventCoordinator: "",
+    keynote1: "",
+    keynote1Topic: "",
+    keynote2: "",
+    keynote2Topic: "",
+    heroOfEvent: "",
+    best60SecPitch: "",
+    closingRemarks: "",
+    voteOfThanks: "",
+    eventEnd: "",
   });
 
   // Event Setup Form State — Full
@@ -755,30 +780,49 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     }
     try {
       setSavingSpeaker(true);
-      const updatedSpeakers = [
-        ...speakers,
-        {
-          id: `sp-${Date.now()}`,
-          ...newSpeaker,
-        },
-      ];
+      let updatedSpeakers;
+      if (newSpeaker.id) {
+        updatedSpeakers = speakers.map(sp => sp.id === newSpeaker.id ? newSpeaker : sp);
+      } else {
+        updatedSpeakers = [
+          ...speakers,
+          {
+            id: `sp-${Date.now()}`,
+            ...newSpeaker,
+          },
+        ];
+      }
       setSpeakers(updatedSpeakers);
       if (selectedEventId) {
         await eventApi.updateOperations(selectedEventId, { speakers: updatedSpeakers });
       }
-      toast.success(`Speaker ${newSpeaker.name} saved to MongoDB!`);
+      toast.success(`Speaker ${newSpeaker.name} saved!`);
       setSpeakerDialogOpen(false);
-      setNewSpeaker({
-        name: "",
-        mobile: "",
-        email: "",
-        org: "",
-        designation: "",
-        type: "Guest Speaker",
-        topic: "",
-      });
+      setNewSpeaker({ name: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
     } catch (err) {
-      toast.error("Failed to save speaker: " + (err.message || "Unknown error"));
+      toast.error("Failed to save speaker.");
+    } finally {
+      setSavingSpeaker(false);
+    }
+  };
+
+  const handleEditSpeakerClick = (s) => {
+    setNewSpeaker(s);
+    setSpeakerDialogOpen(true);
+  };
+
+  const handleDeleteSpeaker = async (speakerId) => {
+    if (!window.confirm("Are you sure you want to remove this speaker?")) return;
+    try {
+      setSavingSpeaker(true);
+      const updatedSpeakers = speakers.filter(sp => sp.id !== speakerId);
+      setSpeakers(updatedSpeakers);
+      if (selectedEventId) {
+        await eventApi.updateOperations(selectedEventId, { speakers: updatedSpeakers });
+      }
+      toast.success("Speaker removed!");
+    } catch (err) {
+      toast.error("Failed to remove speaker.");
     } finally {
       setSavingSpeaker(false);
     }
@@ -3021,85 +3065,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
       {/* MODULE 3: MY TEAM */}
       {currentTab === "my-team" && (
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="border-b border-border pb-4 mb-5">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-primary" />
-                Event Core Team & Operations Assignments
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Assign event responsibilities to verified chapter members
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { role: "Chapter Admin", name: teamRoles.chapterAdmin, desc: "Overall command & approval", icon: ShieldCheck },
-                { role: "Entrance Incharge", name: teamRoles.entranceIncharge, desc: "Gate check-in & badges", icon: Ticket },
-                { role: "Follow-up Coordinator", name: teamRoles.followupCoordinator, desc: "Post-event calls & membership drive", icon: MessageSquareText },
-                { role: "Treasurer", name: teamRoles.treasurer, desc: "Accounts, ledger & money collection", icon: CreditCard },
-                { role: "Guest & Speaker Manager", name: teamRoles.guestManager, desc: "Dignitary welcome & stage liaison", icon: Mic },
-              ].map((m, idx) => (
-                <div
-                  key={idx}
-                  className="p-4 rounded-xl border border-border bg-card/60 hover:border-primary/40 transition-all space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="p-2 rounded-lg bg-primary/10 text-primary">
-                      <m.icon className="h-4 w-4" />
-                    </span>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                      ROLE {idx + 1}
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-foreground">{m.role}</h4>
-                    <p className="text-xs text-muted-foreground">{m.desc}</p>
-                  </div>
-                  <div className="pt-2">
-                    <Select
-                      value={m.name || ""}
-                      onValueChange={(val) => {
-                        if (m.role === "Chapter Admin") setTeamRoles((prev) => ({ ...prev, chapterAdmin: val }));
-                        if (m.role === "Entrance Incharge") setTeamRoles((prev) => ({ ...prev, entranceIncharge: val }));
-                        if (m.role === "Follow-up Coordinator") setTeamRoles((prev) => ({ ...prev, followupCoordinator: val }));
-                        if (m.role === "Treasurer") setTeamRoles((prev) => ({ ...prev, treasurer: val }));
-                        if (m.role === "Guest & Speaker Manager") setTeamRoles((prev) => ({ ...prev, guestManager: val }));
-                      }}
-                    >
-                      <SelectTrigger className="text-xs h-8 bg-background border-border text-foreground">
-                        <SelectValue placeholder="Select Member from Chapter" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-56 bg-card border-border text-foreground">
-                        {m.name && !chapterMembers.some((mem) => mem.name === m.name) && (
-                          <SelectItem value={m.name} className="text-xs font-semibold">
-                            {m.name} (Assigned)
-                          </SelectItem>
-                        )}
-                        {chapterMembers.map((mem) => (
-                          <SelectItem key={mem._id || mem.id} value={mem.name} className="text-xs">
-                            {mem.name} — {mem.organization || mem.company || mem.role || "Member"} {mem.phone ? `(${mem.phone})` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <Button
-                onClick={handleSaveTeamRoles}
-                className="gap-2 font-semibold shadow-xs"
-              >
-                <Save className="h-4 w-4" />
-                <span>Save Team Assignments</span>
-              </Button>
-            </div>
-          </div>
-        </div>
+        <MyTeamTab
+          teamRoles={teamRoles}
+          setTeamRoles={setTeamRoles}
+          chapterMembers={chapterMembers}
+          handleSaveTeamRoles={handleSaveTeamRoles}
+        />
       )}
 
       {/* MODULE 4: LIVE CONTROL */}
@@ -3850,7 +3821,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </div>
 
               <Button
-                onClick={() => setSpeakerDialogOpen(true)}
+                onClick={() => {
+                  setNewSpeaker({ name: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
+                  setSpeakerDialogOpen(true);
+                }}
                 className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
               >
                 <Plus className="h-4 w-4" />
@@ -3904,6 +3878,13 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                             </Button>
                           </>
                         )}
+                        <div className="flex-1"></div>
+                        <Button size="sm" variant="ghost" onClick={() => handleEditSpeakerClick(s)} className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteSpeaker(s.id)} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
+                          <Trash className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -4706,6 +4687,99 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </form>
             </DialogContent>
           </Dialog>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODULE 11: ASK & GIVE BOARD                                               */}
+      {/* ========================================================================= */}
+      {currentTab === "ask-give" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
+              <div>
+                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Ask & Give Board
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Business requirements and offerings from all registered attendees
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
+              >
+                <Download className="h-4 w-4" />
+                <span>Export Board (CSV)</span>
+              </Button>
+            </div>
+            
+            <AskGiveBoard eventId={selectedEventId} />
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODULE 12: ENTRANCE DESK                                                  */}
+      {/* ========================================================================= */}
+      {currentTab === "entrance-desk" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+            <div className="border-b border-border pb-4 mb-6">
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                Entrance Desk Gate Management
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Real-time queue of arriving attendees. Verify fees and approve entry.
+              </p>
+            </div>
+            
+            <EntranceDesk eventId={selectedEventId} />
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODULE 13: CERTIFICATES                                                   */}
+      {/* ========================================================================= */}
+      {currentTab === "certificates" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+            <div className="border-b border-border pb-4 mb-6">
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <FileStack className="h-5 w-5 text-primary" />
+                Certificate Generation
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Generate and distribute participation certificates for attendees.
+              </p>
+            </div>
+            
+            <CertificatesTab eventId={selectedEventId} />
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODULE 14: SCRIPTS                                                        */}
+      {/* ========================================================================= */}
+      {currentTab === "scripts" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+            <div className="border-b border-border pb-4 mb-6">
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <ScrollText className="h-5 w-5 text-primary" />
+                Stage Prompter & Event Scripts
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Customize the 16 standard event segments and use the built-in teleprompter.
+              </p>
+            </div>
+            
+            <ScriptsTab eventId={selectedEventId} teamRoles={teamRoles} />
+          </div>
         </div>
       )}
 

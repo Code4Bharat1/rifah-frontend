@@ -264,6 +264,26 @@ export const eventApi = {
   },
   addFinanceTransaction: (id, data) =>
     apiClient(`/events/${id}/finance`, { method: "POST", body: JSON.stringify(data) }),
+  
+  // ─── Ask & Give Board ──────────────────────────────────────────────────────
+  getAskGiveBoard: (id) => apiClient(`/events/${id}/ask-give-board`),
+  updateAttendeeAskGive: (id, attendeeId, data) => 
+    apiClient(`/events/${id}/attendees/${attendeeId}/ask-give`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  // ─── Entrance Desk Gate Action ─────────────────────────────────────────────
+  gateAction: (id, attendeeId, action) => 
+    apiClient(`/events/${id}/attendees/${attendeeId}/gate-action`, { method: "PATCH", body: JSON.stringify({ action }) }),
+
+  // ─── Certificate Generation ────────────────────────────────────────────────
+  getCertificateUrl: (id, attendeeId, style, accentColor) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") || "http://localhost:5000";
+    return `${baseUrl}/api/v1/events/${id}/certificates/${attendeeId}?style=${style}&accentColor=${encodeURIComponent(accentColor)}`;
+  },
+
+  // ─── Event Scripts ─────────────────────────────────────────────────────────
+  getScripts: (id) => apiClient(`/events/${id}/scripts`),
+  updateScript: (id, segmentId, data) => 
+    apiClient(`/events/${id}/scripts/${segmentId}`, { method: "PATCH", body: JSON.stringify(data) }),
 };
 
 export const followupApi = {
