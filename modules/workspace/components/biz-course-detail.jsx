@@ -1,7 +1,7 @@
 "use client";
 import {
   ArrowLeft, PlayCircle, Play, FileText, CheckCircle2, Download,
-  Video, Loader2, ChevronLeft, ChevronRight, Award, BookOpen, Trophy, X
+  Video, Loader2, ChevronLeft, ChevronRight, Award, BookOpen, Trophy, X, ExternalLink
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -326,6 +326,43 @@ export function BizCourseDetail() {
     }
   };
 
+  const handleViewCertificate = async () => {
+    let targetUrl = certificate?.pdfUrl || certificate?.fileUrl || certificate?.url;
+    if (targetUrl) {
+      window.open(resolveMediaUrl(targetUrl), "_blank");
+      return;
+    }
+    try {
+      const res = await courseApi.getCertificates({ courseId: course._id });
+      const certs = res?.data || res;
+      const certList = Array.isArray(certs) ? certs : (Array.isArray(certs?.data) ? certs.data : []);
+      const target = certList.find(c => String(c.courseId?._id || c.courseId) === String(course._id)) || certList[0];
+      targetUrl = target?.pdfUrl || target?.fileUrl || target?.url;
+      if (targetUrl) {
+        window.open(resolveMediaUrl(targetUrl), "_blank");
+        return;
+      }
+    } catch {
+      // fallback to HTML certificate preview
+    }
+
+    const recipientName = courseResp?.data?.business?.owner?.name || courseResp?.data?.business?.contactPerson || courseResp?.data?.business?.name || "Member";
+    const bName = courseResp?.data?.business?.name || "";
+    const q = new URLSearchParams({
+      type: "completion",
+      name: recipientName,
+      course: course.title || "Course",
+      business: bName,
+      chapter: course.chapter || "",
+      scope: course.scope || "centre",
+      state: course.state || "",
+      modules: String(course.chapters?.length || 1),
+      accent: "#00875a",
+      autoprint: "false",
+    });
+    window.open(`/certificate.html?${q.toString()}`, "_blank");
+  };
+
   // ── Loading
   if (isLoading) {
     return (
@@ -489,29 +526,43 @@ export function BizCourseDetail() {
 
           {/* 🎓 Certificate celebration card */}
           {(isCompleted || certificate) && (
-            <div className="relative overflow-hidden rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-6 shadow-lg">
+            <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-surface p-5 sm:p-6 shadow-lg">
               {/* decorative sparkles */}
               <div className="absolute top-0 right-0 text-6xl opacity-10 select-none pointer-events-none pr-4 pt-2">🏆</div>
-              <div className="flex items-center gap-4">
-                <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
-                  <Award className="h-7 w-7 text-white" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md">
+                    <Award className="h-7 w-7" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-foreground text-lg leading-tight flex items-center gap-2">
+                      <span>🎉 Course Completed!</span>
+                      <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800">Verified</span>
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Your official Certificate of Completion is ready.
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-amber-900 text-lg leading-tight">🎉 Course Completed!</h3>
-                  <p className="text-sm text-amber-700 mt-0.5">
-                    Your certificate of completion is ready to download.
-                  </p>
+                <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+                  <Button
+                    variant="outline"
+                    className="rounded-xl font-semibold border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 gap-1.5 shadow-2xs"
+                    onClick={handleViewCertificate}
+                  >
+                    <ExternalLink className="h-4 w-4" /> View / Print
+                  </Button>
+                  <Button
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-md gap-1.5"
+                    onClick={handleDownloadCertificate}
+                    disabled={downloadingCert}
+                  >
+                    {downloadingCert
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Download className="h-4 w-4" />}
+                    Download PDF
+                  </Button>
                 </div>
-                <Button
-                  className="shrink-0 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md"
-                  onClick={handleDownloadCertificate}
-                  disabled={downloadingCert}
-                >
-                  {downloadingCert
-                    ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    : <Download className="h-4 w-4 mr-2" />}
-                  Download Certificate
-                </Button>
               </div>
             </div>
           )}

@@ -103,6 +103,7 @@ export const chapterApi = {
 export const stateApi = {
   list: () => apiClient("/states"),
   getByName: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}`),
+  createState: (data) => apiClient("/states", { method: "POST", body: JSON.stringify(data) }),
   assignAdmin: (data) => apiClient("/states/assign-admin", { method: "POST", body: JSON.stringify(data) }),
   removeAdmin: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}/admin`, { method: "DELETE" }),
   renameState: (oldName, newName) => apiClient(`/states/${encodeURIComponent(oldName)}`, { method: "PUT", body: JSON.stringify({ newStateName: newName }) }),
