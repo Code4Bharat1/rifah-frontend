@@ -157,14 +157,14 @@ function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
     queryFn: () => stateApi.list(),
     enabled: isOpen && formData.level === "State",
   });
-  const states = statesRes?.data || [];
+  const states = statesRes?.data?.states || statesRes?.data || statesRes || [];
 
   const { data: chaptersRes } = useQuery({
     queryKey: ["admin-chapters"],
     queryFn: () => chapterApi.list(),
     enabled: isOpen && formData.level === "Chapter",
   });
-  const chapters = chaptersRes?.data || [];
+  const chapters = chaptersRes?.data?.chapters || chaptersRes?.data || chaptersRes || [];
 
   const isEditing = !!roleToEdit;
 
@@ -361,7 +361,7 @@ function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
                     </SelectTrigger>
                     <SelectContent>
                       {states.map(s => (
-                        <SelectItem key={s._id} value={s.name}>{s.name}</SelectItem>
+                        <SelectItem key={s.state} value={s.state}>{s.state}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
