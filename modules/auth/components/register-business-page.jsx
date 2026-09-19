@@ -1889,20 +1889,6 @@ function RegisterBusiness({ isAdmin = false }) {
                           className="h-10"
                         />
                       </div>
-
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label htmlFor="bwebsite" className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          <Globe className="h-3.5 w-3.5 text-primary" />
-                          Website URL
-                        </Label>
-                        <FastInput
-                          id="bwebsite"
-                          value={formData.website}
-                          onValueChange={(val) => setFormData({ ...formData, website: val })}
-                          placeholder="e.g. https://www.yourcompany.com"
-                          className="h-10"
-                        />
-                      </div>
                     </div>
                   </div>
                 </div>
