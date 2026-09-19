@@ -27,6 +27,42 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+
+const Instagram = ({ className = "h-4 w-4", ...props }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
+const Linkedin = ({ className = "h-4 w-4", ...props }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@shared/providers/auth-provider";
 import { toast } from "sonner";
@@ -469,8 +505,8 @@ function BusinessProfile() {
                   </div>
                 </div>
 
-                {/* Profile actions (Share + Enquiry) */}
-                <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
+                {/* Profile actions (Share + Enquiry + Social Quick Links) */}
+                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 sm:pt-0">
                   <Button
                     size="sm"
                     onClick={() => setEnquiryOpen(true)}
@@ -490,6 +526,42 @@ function BusinessProfile() {
                   >
                     <Share2 className="h-4 w-4" /> Share
                   </Button>
+                  {business.instagram && (
+                    <a
+                      href={formatSocialUrl("instagram", business.instagram)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Follow on Instagram"
+                      aria-label="Follow on Instagram"
+                      className="inline-flex items-center justify-center h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-card hover:bg-pink-50 dark:hover:bg-pink-950/30 text-slate-700 dark:text-slate-300 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-colors shadow-2xs"
+                    >
+                      <Instagram className="h-4 w-4" />
+                    </a>
+                  )}
+                  {business.linkedin && (
+                    <a
+                      href={formatSocialUrl("linkedin", business.linkedin)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Connect on LinkedIn"
+                      aria-label="Connect on LinkedIn"
+                      className="inline-flex items-center justify-center h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-card hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 transition-colors shadow-2xs"
+                    >
+                      <Linkedin className="h-4 w-4" />
+                    </a>
+                  )}
+                  {business.website && (
+                    <a
+                      href={formatSocialUrl("website", business.website)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Visit Official Website"
+                      aria-label="Visit Official Website"
+                      className="inline-flex items-center justify-center h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-card hover:bg-primary/10 text-slate-700 dark:text-slate-300 hover:text-primary hover:border-primary/30 transition-colors shadow-2xs"
+                    >
+                      <Globe className="h-4 w-4" />
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -714,12 +786,42 @@ function BusinessProfile() {
                       />
                     )}
                     <FieldRow label="Address" value={`${business.address || ""}, ${business.city}, ${business.state}`} />
+                    {business.instagram && (
+                      <FieldRow
+                        label="Instagram"
+                        value={
+                          <a
+                            href={formatSocialUrl("instagram", business.instagram)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-pink-600 dark:text-pink-400 hover:underline font-medium"
+                          >
+                            <Instagram className="h-4 w-4 text-pink-500" /> {business.instagram.startsWith("http") ? "Instagram Profile" : business.instagram}
+                          </a>
+                        }
+                      />
+                    )}
+                    {business.linkedin && (
+                      <FieldRow
+                        label="LinkedIn"
+                        value={
+                          <a
+                            href={formatSocialUrl("linkedin", business.linkedin)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                          >
+                            <Linkedin className="h-4 w-4 text-blue-500" /> {business.linkedin.startsWith("http") ? "LinkedIn Page" : business.linkedin}
+                          </a>
+                        }
+                      />
+                    )}
                     {business.website && (
                       <FieldRow
                         label="Website"
                         value={
                           <a
-                            href={business.website.startsWith("http") ? business.website : `https://${business.website}`}
+                            href={formatSocialUrl("website", business.website)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-primary hover:underline font-medium"
@@ -921,13 +1023,39 @@ function BusinessProfile() {
                       (business.contactPerson || business.owner?.name || "R").charAt(0).toUpperCase()
                     )}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-foreground truncate">
                       {business.contactPerson || business.owner?.name}
                     </p>
                     <span className="mt-0.5 inline-block text-[11px] font-semibold text-primary px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 truncate max-w-full">
                       {business.roleInBusiness || business.owner?.roleInBusiness || business.owner?.designation || business.designation || "Founder / Owner"}
                     </span>
+                    {(business.instagram || business.linkedin) && (
+                      <div className="mt-2 flex items-center gap-2">
+                        {business.instagram && (
+                          <a
+                            href={formatSocialUrl("instagram", business.instagram)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Instagram"
+                            className="p-1 rounded-md text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-950/40 border border-pink-200 dark:border-pink-900/50 transition-colors"
+                          >
+                            <Instagram className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        {business.linkedin && (
+                          <a
+                            href={formatSocialUrl("linkedin", business.linkedin)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="LinkedIn"
+                            className="p-1 rounded-md text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 transition-colors"
+                          >
+                            <Linkedin className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </Panel>
