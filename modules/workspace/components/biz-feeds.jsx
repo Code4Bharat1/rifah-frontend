@@ -143,6 +143,7 @@ function InstagramPostCard({
   const [showAllComments, setShowAllComments] = useState(false);
   const [commentInput, setCommentInput] = useState("");
   const [showHeartPop, setShowHeartPop] = useState(false);
+  const [imageErrorMap, setImageErrorMap] = useState({});
   const commentInputRef = useRef(null);
 
   const rawImages = Array.isArray(post.images) ? post.images : (post.image ? [post.image] : []);
@@ -265,16 +266,17 @@ function InstagramPostCard({
         onDoubleClick={handleDoubleClick}
         className="relative w-full aspect-square bg-muted/30 select-none overflow-hidden group cursor-pointer"
       >
-        {totalImages > 0 && images[currentSlide] ? (
+        {totalImages > 0 && images[currentSlide] && !imageErrorMap[currentSlide] ? (
           <img
             src={images[currentSlide]}
             alt="Post photo"
             className="w-full h-full object-cover"
+            onError={() => setImageErrorMap((prev) => ({ ...prev, [currentSlide]: true }))}
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
-            <Camera className="h-10 w-10 stroke-[1.5]" />
-            <span className="text-xs">No image provided</span>
+          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2 bg-gradient-to-br from-muted/30 to-muted/60">
+            <Camera className="h-10 w-10 stroke-[1.5] opacity-50" />
+            <span className="text-xs font-medium">Image unavailable</span>
           </div>
         )}
 
