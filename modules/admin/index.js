@@ -10,7 +10,7 @@ export { AdminNotifications } from "./components/admin-notifications.jsx";
 export { AdminPayments } from "./components/admin-payments.jsx";
 export { AdminReports } from "./components/admin-reports.jsx";
 export { AdminReviews } from "./components/admin-reviews.jsx";
-export { AdminAuditLogsPage } from "./components/admin-audit.jsx";
+
 export { AdminRolesPage } from "./components/admin-roles.jsx";
 export { AdminSettingsPage } from "./components/admin-settings.jsx";
 export { AdminUnits } from "./components/admin-units.jsx";

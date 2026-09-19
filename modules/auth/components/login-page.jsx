@@ -683,7 +683,16 @@ export default function LoginPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {availableRoles.map((role) => (
+            {availableRoles.map((role) => {
+              const roleDetails = {
+                super_admin: { label: "Super Admin", desc: "Manage entire platform", icon: <Shield className="h-5 w-5 text-primary" /> },
+                central_admin: { label: "Central Admin", desc: "Manage central operations", icon: <Shield className="h-5 w-5 text-primary" /> },
+                state_admin: { label: "State Admin", desc: "Manage your state", icon: <ShieldCheck className="h-5 w-5 text-primary" /> },
+                chapter_admin: { label: "Chapter Admin", desc: "Manage your chapter", icon: <ShieldCheck className="h-5 w-5 text-primary" /> },
+                business_owner: { label: "Business Owner", desc: "Manage your business profile", icon: <Building2 className="h-5 w-5 text-primary" /> },
+              }[role] || { label: "Business Owner", desc: "Manage your business profile", icon: <Building2 className="h-5 w-5 text-primary" /> };
+
+              return (
               <Button
                 key={role}
                 variant="outline"
@@ -693,18 +702,19 @@ export default function LoginPage() {
               >
                 <div className="flex items-center gap-3 w-full">
                   <div className="bg-primary/10 p-2 rounded-full">
-                    {role === "chapter_admin" ? <ShieldCheck className="h-5 w-5 text-primary" /> : <Building2 className="h-5 w-5 text-primary" />}
+                    {roleDetails.icon}
                   </div>
                   <div>
-                    <div className="font-semibold">{role === "chapter_admin" ? "Chapter Admin" : "Business Owner"}</div>
+                    <div className="font-semibold">{roleDetails.label}</div>
                     <div className="text-xs text-muted-foreground">
-                      {role === "chapter_admin" ? "Manage your chapter" : "Manage your business profile"}
+                      {roleDetails.desc}
                     </div>
                   </div>
                   {roleSwitchLoading && pendingUser?.role === role && <Loader2 className="h-4 w-4 animate-spin ml-auto" />}
                 </div>
               </Button>
-            ))}
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
