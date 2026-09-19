@@ -146,6 +146,11 @@ function InstagramPostCard({
   const [imageErrorMap, setImageErrorMap] = useState({});
   const commentInputRef = useRef(null);
 
+  // Auto-reset imageErrorMap when post data or images change (e.g. after refresh/edit)
+  useEffect(() => {
+    setImageErrorMap({});
+  }, [post.id, post._id, post.images, post.updatedAt]);
+
   const rawImages = Array.isArray(post.images) ? post.images : (post.image ? [post.image] : []);
   const images = rawImages.map((img) => resolveMediaUrl(img)).filter(Boolean);
   const totalImages = images.length;
@@ -920,7 +925,7 @@ export function BizFeeds() {
     reader.readAsDataURL(file);
   };
 
-  // Post Image File Upload Handler
+  // Post Image File Upload Handler with client-side canvas compression for multi-PC Atlas sync
   const handlePostImageFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -933,8 +938,34 @@ export function BizFeeds() {
     setFormPostImageFile(file);
     const reader = new FileReader();
     reader.onload = (event) => {
-      setFormPostImage(event.target.result);
-      toast.success("Post image selected!");
+      const rawDataUrl = event.target.result;
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1200;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL("image/jpeg", 0.85);
+        setFormPostImage(compressed);
+        toast.success("Post image selected!");
+      };
+      img.onerror = () => {
+        setFormPostImage(rawDataUrl);
+        toast.success("Post image selected!");
+      };
+      img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
   };
@@ -1038,11 +1069,17 @@ export function BizFeeds() {
       if (formPostImageFile) {
         try {
           const uploadRes = await postsApi.uploadImage(formPostImageFile);
-          if (uploadRes?.data?.url || uploadRes?.url) {
+          // Prefer compressed dataUrl if available so image syncs seamlessly across all PCs via Atlas
+          if (formPostImage && formPostImage.startsWith("data:")) {
+            finalPostImage = formPostImage;
+          } else if (uploadRes?.data?.dataUrl) {
+            finalPostImage = uploadRes.data.dataUrl;
+          } else if (uploadRes?.data?.url || uploadRes?.url) {
             finalPostImage = uploadRes?.data?.url || uploadRes?.url;
           }
         } catch (uploadErr) {
           console.warn("Direct upload fallback to payload:", uploadErr);
+          if (formPostImage) finalPostImage = formPostImage;
         }
       }
 
