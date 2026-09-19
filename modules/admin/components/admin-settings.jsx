@@ -31,7 +31,6 @@ import { settingsApi, authApi } from "@shared/lib/api-services";
 
 const modules = [
   { label: "Businesses", to: "/admin/businesses", icon: Building2 },
-  { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
   { label: "Users & roles", to: "/admin/users", icon: Users },
   { label: "Memberships", to: "/admin/memberships", icon: Star },
   { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },

@@ -1,8 +1,4 @@
 import path from "node:path";
-import createNextIntlPlugin from 'next-intl/plugin';
-
-const withNextIntl = createNextIntlPlugin('./shared/i18n/request.js');
-
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -13,6 +9,15 @@ const backendServerUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost
 const nextConfig = {
   turbopack: {
     root: __dirname,
+    resolveAlias: {
+      'next-intl/config': './shared/i18n/request.js',
+    },
+  },
+  webpack(config) {
+    config.resolve = config.resolve || {};
+    config.resolve.alias = config.resolve.alias || {};
+    config.resolve.alias['next-intl/config'] = path.resolve(__dirname, './shared/i18n/request.js');
+    return config;
   },
   images: {
     unoptimized: true,
@@ -69,4 +74,4 @@ const nextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+export default nextConfig;

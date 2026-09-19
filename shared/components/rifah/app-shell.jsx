@@ -100,7 +100,6 @@ const navs = {
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
-
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
       { label: "Memberships", to: "/admin/memberships", icon: Star },
