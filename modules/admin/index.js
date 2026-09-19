@@ -10,15 +10,9 @@ export { AdminNotifications } from "./components/admin-notifications.jsx";
 export { AdminPayments } from "./components/admin-payments.jsx";
 export { AdminReports } from "./components/admin-reports.jsx";
 export { AdminReviews } from "./components/admin-reviews.jsx";
-<<<<<<< Updated upstream
-
-export { AdminRolesPage } from "./components/admin-roles.jsx";
-export { AdminSettingsPage } from "./components/admin-settings.jsx";
-=======
 export { AdminRolesPage, AdminRolesPage as AdminRoles } from "./components/admin-roles.jsx";
 export { AdminSettings, AdminSettings as AdminSettingsPage } from "./components/admin-settings.jsx";
 export { AdminStates } from "./components/admin-states.jsx";
->>>>>>> Stashed changes
 export { AdminUnits } from "./components/admin-units.jsx";
 export { AdminUsers } from "./components/admin-users.jsx";
 export { AdminVerification } from "./components/admin-verification.jsx";
