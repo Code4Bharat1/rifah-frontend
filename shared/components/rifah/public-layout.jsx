@@ -27,6 +27,7 @@ const primaryNav = [
   { tKey: "discover", to: "/discover" },
   { tKey: "catalogue", to: "/catalogue" },
   { tKey: "events", to: "/events" },
+  { label: "Our Leadership", to: "/members" },
   { tKey: "membership", to: "/membership" },
   { tKey: "about", to: "/about" },
   { tKey: "contact", to: "/contact" },
@@ -79,7 +80,7 @@ export function PublicHeader() {
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                {t(`nav.${item.tKey}`)}
+                {item.tKey ? t(`nav.${item.tKey}`) : item.label}
               </Link>
             );
           })}
@@ -171,7 +172,7 @@ function MobileMenu() {
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                {t(`nav.${item.tKey}`)}
+                {item.tKey ? t(`nav.${item.tKey}`) : item.label}
               </Link>
             );
           })}

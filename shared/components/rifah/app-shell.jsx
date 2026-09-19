@@ -52,6 +52,7 @@ import {
   Mic,
   Link2,
   CalendarPlus,
+  Award,
 } from "lucide-react";
 import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
 import { Button } from "@shared/components/ui/button";
@@ -114,6 +115,7 @@ const navs = {
       { label: "Notifications", to: "/admin/notifications", icon: Bell },
       { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
+      { label: "Roles", to: "/admin/roles", icon: Award },
       { label: "Settings", to: "/admin/settings", icon: Settings },
       { label: "LMS", to: "/admin/lms", icon: GraduationCap },
     ],
