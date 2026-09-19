@@ -13,6 +13,7 @@ export { AdminReviews } from "./components/admin-reviews.jsx";
 export { AdminAuditLogsPage } from "./components/admin-audit.jsx";
 export { AdminRolesPage } from "./components/admin-roles.jsx";
 export { AdminSettings, AdminSettings as AdminSettingsPage } from "./components/admin-settings.jsx";
+export { AdminSettingsPage, AdminSettingsPage as AdminSettings } from "./components/admin-settings.jsx";
 export { AdminUnits } from "./components/admin-units.jsx";
 export { AdminUsers } from "./components/admin-users.jsx";
 export { AdminVerification } from "./components/admin-verification.jsx";

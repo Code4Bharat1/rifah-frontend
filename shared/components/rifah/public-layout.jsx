@@ -8,6 +8,7 @@ import {
   FileStack,
   Home,
   LogOut,
+  MapPin,
   Menu,
   Package,
   Search,
@@ -25,7 +26,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 const primaryNav = [
   { tKey: "discover", to: "/discover" },
-  { tKey: "catalogue", to: "/catalogue" },
+  { label: "Our Presence", to: "/presence" },
   { tKey: "events", to: "/events" },
   { label: "Our Leadership", to: "/members" },
   { tKey: "membership", to: "/membership" },
@@ -36,7 +37,7 @@ const primaryNav = [
 const mobileTabs = [
   { label: "Home", to: "/", icon: Home },
   { label: "Discover", to: "/discover", icon: Search },
-  { label: "Catalogue", to: "/catalogue", icon: Package },
+  { label: "Presence", to: "/presence", icon: MapPin },
   { label: "Events", to: "/events", icon: CalendarDays },
   { label: "Account", to: "/login", icon: UserRound },
 ];
@@ -66,7 +67,7 @@ export function PublicHeader() {
       <div className="rifah-container flex h-14 items-center gap-3 md:h-[68px]">
         <RifahLogo />
 
-        <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Main">
+        <nav className="ml-4 xl:ml-6 hidden items-center gap-0.5 xl:gap-1 lg:flex flex-nowrap shrink-0" aria-label="Main">
           {primaryNav.map((item) => {
             const isActive = pathname === item.to || (item.to !== "/" && pathname?.startsWith(`${item.to}/`));
             return (
@@ -74,7 +75,7 @@ export function PublicHeader() {
                 key={item.to}
                 href={item.to}
                 className={cn(
-                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "rounded-lg px-2.5 xl:px-3 py-1.5 xl:py-2 text-xs xl:text-sm font-medium transition-colors whitespace-nowrap shrink-0",
                   isActive
                     ? "bg-muted text-foreground font-semibold"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -221,7 +222,7 @@ export function PublicFooter() {
       title: "Discover",
       links: [
         { label: "Business directory", to: "/discover" },
-        { label: "Products & services", to: "/catalogue" },
+        { label: "Our Presence", to: "/presence" },
         { label: "Events", to: "/events" },
       ],
     },
@@ -237,8 +238,8 @@ export function PublicFooter() {
       title: "Chamber",
       links: [
         { label: "About RIFAH", to: "/about" },
+        { label: "Our Leadership", to: "/members" },
         { label: "Contact", to: "/contact" },
-        { label: "Chapters & units", to: "/about" },
       ],
     },
   ];

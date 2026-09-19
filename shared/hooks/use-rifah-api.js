@@ -74,13 +74,14 @@ export function useMyBusiness() {
 
 // ==================== CATALOGUE HOOKS ====================
 
-export function useCatalogue(params = {}) {
+export function useCatalogue(params = {}, options = {}) {
   return useQuery({
     queryKey: ["catalogue", params],
     queryFn: async () => {
       const res = await catalogueApi.list(params);
       return res?.data?.items || res?.data || res;
     },
+    ...options,
   });
 }
 

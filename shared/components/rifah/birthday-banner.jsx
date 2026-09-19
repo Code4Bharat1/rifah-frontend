@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Cake, Megaphone, Users, Mail, X, Sparkles, Award } from "lucide-react";
+import { Cake, Megaphone, Users, X, Sparkles, Award } from "lucide-react";
 import { Button } from "@shared/components/ui/button";
 import { useTodayBirthdays, useTodayAnniversaries, useNewChapterMembers } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -52,14 +51,12 @@ export function BirthdayBanner() {
   const dashboardRoutes = [
     "/biz",
     "/chapter-admin",
-    "/admin",
-    "/state-admin",
-    "/secretariat",
-    "/consumer",
   ];
   const isDashboard = dashboardRoutes.includes(cleanPath);
 
-  if (!isDashboard || !user) return null;
+  // Exclude Admin & Super Admin from celebration/welcome banners
+  const allowedRoles = ["chapter_admin", "business", "business_owner"];
+  if (!isDashboard || !user || !allowedRoles.includes(user.role)) return null;
 
   const myName = user?.name || "Member";
   const myChapter = user?.chapter ? ` (${user.chapter} Chapter)` : "";
@@ -234,38 +231,26 @@ export function BirthdayBanner() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                {otherBirthdays.length === 1 ? (
-                  <>
-                    {otherBirthdays[0].whatsapp || otherBirthdays[0].phone ? (
-                      <a
-                        href={`https://wa.me/${(otherBirthdays[0].whatsapp || otherBirthdays[0].phone).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Wishing you a very Happy Birthday! 🎉 May this year bring immense success to you and ${otherBirthdays[0].businessName || "your business"}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
-                      >
-                        <WhatsAppIcon className="h-3.5 w-3.5" />
-                        <span>WhatsApp</span>
-                      </a>
-                    ) : null}
-
-                    <Link
-                      href={`/biz/messages?recipient=${otherBirthdays[0].userId}`}
-                      className="inline-flex items-center gap-1.5 bg-white dark:bg-card border border-border/90 hover:bg-muted text-slate-800 dark:text-slate-100 text-xs font-semibold px-3.5 py-1.5 rounded-xl shadow-2xs transition-colors cursor-pointer"
-                    >
-                      <Mail className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                      <span>Send Message</span>
-                    </Link>
-                  </>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => setIsBirthdayDialogOpen(true)}
-                    className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl gap-1.5 shadow-xs"
+                {otherBirthdays.length === 1 && (otherBirthdays[0].whatsapp || otherBirthdays[0].phone) && (
+                  <a
+                    href={`https://wa.me/${(otherBirthdays[0].whatsapp || otherBirthdays[0].phone).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Wishing you a very Happy Birthday! 🎉 May this year bring immense success to you and ${otherBirthdays[0].businessName || "your business"}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
                   >
-                    <Users className="h-3.5 w-3.5" />
-                    <span>View All ({otherBirthdays.length})</span>
-                  </Button>
+                    <WhatsAppIcon className="h-3.5 w-3.5" />
+                    <span>WhatsApp</span>
+                  </a>
                 )}
+
+                <Button
+                  size="sm"
+                  onClick={() => setIsBirthdayDialogOpen(true)}
+                  className="h-8 px-3.5 text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl gap-1.5 shadow-xs transition-colors"
+                >
+                  <Cake className="h-3.5 w-3.5" />
+                  <span>{otherBirthdays.length === 1 ? "Wish Member" : `View All (${otherBirthdays.length})`}</span>
+                </Button>
 
                 {!isSelfBirthday && (
                   <Button
@@ -316,40 +301,26 @@ export function BirthdayBanner() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                {otherAnniversaries.length === 1 ? (
-                  <>
-                    {otherAnniversaries[0].whatsapp || otherAnniversaries[0].phone ? (
-                      <a
-                        href={`https://wa.me/${(otherAnniversaries[0].whatsapp || otherAnniversaries[0].phone).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Congratulations on your ${getOrdinal(otherAnniversaries[0].yearsCompleted)} Anniversary with RIFAH Chamber! 🎊 Wishing continued growth to ${otherAnniversaries[0].businessName}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
-                      >
-                        <WhatsAppIcon className="h-3.5 w-3.5" />
-                        <span>WhatsApp</span>
-                      </a>
-                    ) : null}
-
-                    {otherAnniversaries[0].userId && (
-                      <Link
-                        href={`/biz/messages?recipient=${otherAnniversaries[0].userId}`}
-                        className="inline-flex items-center gap-1.5 bg-white dark:bg-card border border-border/90 hover:bg-muted text-slate-800 dark:text-slate-100 text-xs font-semibold px-3.5 py-1.5 rounded-xl shadow-2xs transition-colors cursor-pointer"
-                      >
-                        <Mail className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                        <span>Send Message</span>
-                      </Link>
-                    )}
-                  </>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => setIsAnniversaryDialogOpen(true)}
-                    className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl gap-1.5 shadow-xs"
+                {otherAnniversaries.length === 1 && (otherAnniversaries[0].whatsapp || otherAnniversaries[0].phone) && (
+                  <a
+                    href={`https://wa.me/${(otherAnniversaries[0].whatsapp || otherAnniversaries[0].phone).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Congratulations on your ${getOrdinal(otherAnniversaries[0].yearsCompleted)} Anniversary with RIFAH Chamber! 🎊 Wishing continued growth to ${otherAnniversaries[0].businessName}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
                   >
-                    <Award className="h-3.5 w-3.5" />
-                    <span>View All ({otherAnniversaries.length})</span>
-                  </Button>
+                    <WhatsAppIcon className="h-3.5 w-3.5" />
+                    <span>WhatsApp</span>
+                  </a>
                 )}
+
+                <Button
+                  size="sm"
+                  onClick={() => setIsAnniversaryDialogOpen(true)}
+                  className="h-8 px-3.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl gap-1.5 shadow-xs transition-colors"
+                >
+                  <Award className="h-3.5 w-3.5" />
+                  <span>{otherAnniversaries.length === 1 ? "Congratulate" : `View All (${otherAnniversaries.length})`}</span>
+                </Button>
 
                 {!isSelfAnniversary && (
                   <Button
@@ -372,11 +343,11 @@ export function BirthdayBanner() {
         {/* 5. NEW CHAPTER MEMBER WELCOME ALERT (Bottom Banner)                       */}
         {/* ========================================================================= */}
         {otherNewMembers.length > 0 && (
-          <div className="relative overflow-hidden rounded-2xl border border-sky-200/80 bg-sky-50/40 dark:bg-sky-950/20 dark:border-sky-800/60 p-3 sm:px-4 sm:py-3 shadow-2xs transition-all">
+          <div className="relative overflow-hidden rounded-2xl border border-indigo-200/80 bg-indigo-50/40 dark:bg-indigo-950/20 dark:border-indigo-800/60 p-3 sm:px-4 sm:py-3 shadow-2xs transition-all">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-600 dark:bg-sky-900/60 dark:text-sky-400">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-900/60 dark:text-indigo-400">
                   <Users className="h-4.5 w-4.5" />
                 </div>
 
@@ -401,49 +372,26 @@ export function BirthdayBanner() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                {otherNewMembers.length === 1 ? (
-                  <>
-                    {otherNewMembers[0].whatsapp || otherNewMembers[0].phone ? (
-                      <a
-                        href={`https://wa.me/${(otherNewMembers[0].whatsapp || otherNewMembers[0].phone).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hi ${otherNewMembers[0].userName}, welcome to the RIFAH Chamber! 🎉 We are excited to connect with ${otherNewMembers[0].businessName}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
-                      >
-                        <WhatsAppIcon className="h-3.5 w-3.5" />
-                        <span>WhatsApp</span>
-                      </a>
-                    ) : null}
-
-                    {otherNewMembers[0].userId && (
-                      <Link
-                        href={`/biz/messages?recipient=${otherNewMembers[0].userId}`}
-                        className="inline-flex items-center gap-1.5 bg-white dark:bg-card border border-border/90 hover:bg-muted text-slate-800 dark:text-slate-100 text-xs font-semibold px-3.5 py-1.5 rounded-xl shadow-2xs transition-colors cursor-pointer"
-                      >
-                        <Mail className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                        <span>Send Message</span>
-                      </Link>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => setIsNewMembersDialogOpen(true)}
-                      className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
-                    >
-                      <Sparkles className="h-3.5 w-3.5 text-blue-100" />
-                      <span>Welcome</span>
-                    </button>
-                  </>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => setIsNewMembersDialogOpen(true)}
-                    className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl gap-1.5 shadow-xs"
+                {otherNewMembers.length === 1 && (otherNewMembers[0].whatsapp || otherNewMembers[0].phone) && (
+                  <a
+                    href={`https://wa.me/${(otherNewMembers[0].whatsapp || otherNewMembers[0].phone).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hi ${otherNewMembers[0].userName}, welcome to the RIFAH Chamber! 🎉 We are excited to connect with ${otherNewMembers[0].businessName}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
                   >
-                    <Users className="h-3.5 w-3.5" />
-                    <span>View & Welcome ({otherNewMembers.length})</span>
-                  </Button>
+                    <WhatsAppIcon className="h-3.5 w-3.5" />
+                    <span>WhatsApp</span>
+                  </a>
                 )}
+
+                <Button
+                  size="sm"
+                  onClick={() => setIsNewMembersDialogOpen(true)}
+                  className="h-8 px-3.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  <span>{otherNewMembers.length === 1 ? "Welcome Member" : `View & Welcome (${otherNewMembers.length})`}</span>
+                </Button>
 
                 <Button
                   variant="ghost"
