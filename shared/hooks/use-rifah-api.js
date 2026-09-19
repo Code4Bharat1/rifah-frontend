@@ -22,6 +22,7 @@ import {
   contactApi,
   settingsApi,
   stateApi,
+  centralAdminApi,
   oneToOneApi,
   thankYouNoteApi,
   referralApi,
@@ -178,6 +179,16 @@ export function useStateDetails(stateName) {
       return res?.data || res;
     },
     enabled: Boolean(stateName),
+  });
+}
+
+export function useCurrentCentralAdmin() {
+  return useQuery({
+    queryKey: ["central-admin"],
+    queryFn: async () => {
+      const res = await centralAdminApi.getCurrent();
+      return res?.data || res;
+    },
   });
 }
 

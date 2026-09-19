@@ -115,6 +115,11 @@ export const stateApi = {
   updateStateProfile: (stateName, data) => apiClient(`/states/${encodeURIComponent(stateName)}/profile`, { method: "PUT", body: JSON.stringify(data) }),
 };
 
+export const centralAdminApi = {
+  getCurrent: () => apiClient("/central-admin"),
+  transfer: (businessId) => apiClient("/central-admin/transfer", { method: "POST", body: JSON.stringify({ businessId }) }),
+};
+
 export const oneToOneApi = {
   create: (data) => apiClient("/one-to-ones", { method: "POST", body: JSON.stringify(data) }),
   listMine: (params = {}) => apiClient(`/one-to-ones/me${toQueryString(params)}`),

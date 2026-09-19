@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, Phone, MoreHorizontal, UserCheck, Trash2, Building2, Edit2, Eye } from "lucide-react";
+import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, MoreHorizontal, UserCheck, Trash2, Building2, Edit2, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -12,26 +12,67 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
-import { useStates } from "@shared/hooks/use-rifah-api";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@shared/components/ui/select";
+import { useStates, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { stateApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 
 export function AdminStates() {
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
+  const isCentralAdmin = user?.role === "central_admin";
   const { data: statesData, refetch, isLoading } = useStates();
   const states = Array.isArray(statesData) ? statesData : [];
 
+  const { data: businessesData } = useBusinesses({ limit: 150 });
+  const rawBusinesses = Array.isArray(businessesData)
+    ? businessesData
+    : (businessesData?.businesses || businessesData?.data || []);
+
+  const isEligibleBusiness = (b) =>
+    b.isPaid === true &&
+    b.membership &&
+    b.membership !== "Free" &&
+    ["verified", "Verified", "approved", "Approved"].includes(b.verification);
+
+  const eligibleBusinesses = rawBusinesses.filter(isEligibleBusiness);
+
   const [openModal, setOpenModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [targetState, setTargetState] = useState("");
+  const [selectedBusinessId, setSelectedBusinessId] = useState("");
   const [form, setForm] = useState({
-    state: "",
     name: "",
     email: "",
-    phone: "",
     address: "",
     imageFile: null,
   });
+
+  const stateBizList = eligibleBusinesses.filter(
+    (b) => targetState && String(b.state || "").toLowerCase().trim() === targetState.toLowerCase().trim()
+  );
+  const otherBizList = eligibleBusinesses.filter(
+    (b) => !(targetState && String(b.state || "").toLowerCase().trim() === targetState.toLowerCase().trim())
+  );
+
+  const handleSelectBusinessOwner = (bizId) => {
+    setSelectedBusinessId(bizId);
+    const biz = rawBusinesses.find((b) => String(b._id) === String(bizId));
+    if (biz) {
+      setForm((f) => ({
+        ...f,
+        name: biz.owner?.name || biz.contactPerson || biz.name || "",
+        email: biz.owner?.email || biz.ownerEmail || biz.email || "",
+      }));
+    }
+  };
 
   // Edit State Modal
   const [openEditModal, setOpenEditModal] = useState(false);
@@ -44,21 +85,16 @@ export function AdminStates() {
   const totalBusinesses = states.reduce((sum, s) => sum + (s.totalBusinesses || 0), 0);
 
   const handleOpenAllocate = (prefillState = "") => {
-    setForm({
-      state: prefillState,
-      name: "",
-      email: "",
-      phone: "",
-      address: "",
-      imageFile: null,
-    });
+    setTargetState(prefillState);
+    setSelectedBusinessId("");
+    setForm({ name: "", email: "", address: "", imageFile: null });
     setOpenModal(true);
   };
 
   const handleAssignAdmin = async (e) => {
     e.preventDefault();
-    if (!form.state || !form.name || !form.email) {
-      toast.error("State, Admin Name, and Email are required");
+    if (!selectedBusinessId) {
+      toast.error("Please select a paid, verified business owner to allocate as State Admin.");
       return;
     }
     setSubmitting(true);
@@ -70,17 +106,16 @@ export function AdminStates() {
       }
 
       await stateApi.assignAdmin({
-        state: form.state,
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
+        businessId: selectedBusinessId,
         address: form.address,
         image: imageUrl,
       });
 
-      toast.success(`State Admin allocated for ${form.state}! Credentials sent via email.`);
+      toast.success(`State Admin allocated! Credentials sent via email.`);
       setOpenModal(false);
-      setForm({ state: "", name: "", email: "", phone: "", address: "", imageFile: null });
+      setTargetState("");
+      setSelectedBusinessId("");
+      setForm({ name: "", email: "", address: "", imageFile: null });
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to allocate State Admin.");
@@ -284,20 +319,75 @@ export function AdminStates() {
           <DialogHeader>
             <DialogTitle>Allocate State Admin</DialogTitle>
             <DialogDescription>
-              Assign a State Admin for a state. They will have exclusive executive authority to appoint Chapter Admins for cities in that state.
+              Assign a State Admin — only businesses with an active paid membership and verified status are
+              eligible. The state is taken from the selected business. They will have exclusive executive
+              authority to appoint Chapter Admins for cities in that state.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAssignAdmin} className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <Label htmlFor="st-name">State / Region Name *</Label>
-              <Input
-                id="st-name"
-                required
-                value={form.state}
-                onChange={(e) => setForm({ ...form, state: e.target.value })}
-                placeholder="e.g. Maharashtra"
-              />
+              <Label htmlFor="st-biz-select">Select Business Owner *</Label>
+              <Select value={selectedBusinessId || undefined} onValueChange={handleSelectBusinessOwner}>
+                <SelectTrigger id="st-biz-select" className="w-full">
+                  <SelectValue placeholder="Choose a paid, verified business owner..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {eligibleBusinesses.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">
+                      No paid & verified businesses found yet.
+                    </div>
+                  )}
+                  {stateBizList.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-primary">{targetState} Owners</SelectLabel>
+                      {stateBizList.map((b) => {
+                        const oName = b.owner?.name || b.contactPerson || b.name;
+                        const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                        return (
+                          <SelectItem key={b._id} value={b._id}>
+                            <div className="flex flex-col text-left py-0.5">
+                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                              <span className="text-[11px] text-muted-foreground">{oEmail}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  )}
+                  {otherBizList.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground">
+                        {stateBizList.length > 0 ? "Other Businesses" : "Registered Business Owners"}
+                      </SelectLabel>
+                      {otherBizList.map((b) => {
+                        const oName = b.owner?.name || b.contactPerson || b.name;
+                        const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                        return (
+                          <SelectItem key={b._id} value={b._id}>
+                            <div className="flex flex-col text-left py-0.5">
+                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {b.state ? `${b.state} · ` : ""}{oEmail}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Only businesses with an active paid membership and verified status appear here.
+              </p>
             </div>
+
+            {selectedBusinessId && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                <p className="font-medium text-foreground">{form.name}</p>
+                <p className="text-xs text-muted-foreground">{form.email}</p>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="st-image">State Cover Image</Label>
@@ -319,37 +409,7 @@ export function AdminStates() {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="st-admin-name">State Admin Full Name *</Label>
-              <Input
-                id="st-admin-name"
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Ramesh Patil"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="st-email">Admin Email Address *</Label>
-              <Input
-                id="st-email"
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="e.g. ramesh.patil@rifah.org"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="st-phone">Phone Number (Optional)</Label>
-              <Input
-                id="st-phone"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="e.g. +91 98200 12345"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
+            <Button type="submit" className="w-full" disabled={submitting || !selectedBusinessId}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {submitting ? "Allocating..." : "Allocate & Send Credentials"}
             </Button>

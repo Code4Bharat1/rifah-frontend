@@ -1,6 +1,7 @@
 export { AdminDashboard } from "./components/admin-dashboard.jsx";
 export { AdminAudit, AdminAudit as AdminAuditLogsPage } from "./components/admin-audit.jsx";
 export { AdminBusinesses } from "./components/admin-businesses.jsx";
+export { AdminCentralAdmin } from "./components/admin-central-admin.jsx";
 export { AdminChapters } from "./components/admin-chapters.jsx";
 export { AdminEnquiries } from "./components/admin-enquiries.jsx";
 export { AdminEvents } from "./components/admin-events.jsx";

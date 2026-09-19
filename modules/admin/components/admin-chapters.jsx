@@ -27,7 +27,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminChapters() {
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
+  const isCentralAdmin = user?.role === "central_admin";
   const { data: chaptersData, refetch } = useChapters();
   const chapters = chaptersData || [];
 
@@ -42,7 +42,15 @@ function AdminChapters() {
     ? businessesData
     : (businessesData?.businesses || businessesData?.data || []);
 
-  const chapterBizList = rawBusinesses.filter((b) => {
+  const isEligibleBusiness = (b) =>
+    b.isPaid === true &&
+    b.membership &&
+    b.membership !== "Free" &&
+    ["verified", "Verified", "approved", "Approved"].includes(b.verification);
+
+  const eligibleBusinesses = rawBusinesses.filter(isEligibleBusiness);
+
+  const chapterBizList = eligibleBusinesses.filter((b) => {
     if (!adminModalChapter) return false;
     const bChapter = String(b.chapter || "").toLowerCase().trim();
     const targetChapter = String(adminModalChapter.name || "").toLowerCase().trim();
@@ -51,7 +59,7 @@ function AdminChapters() {
     return (bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter);
   });
 
-  const otherBizList = rawBusinesses.filter((b) => {
+  const otherBizList = eligibleBusinesses.filter((b) => {
     if (!adminModalChapter) return true;
     const bChapter = String(b.chapter || "").toLowerCase().trim();
     const targetChapter = String(adminModalChapter.name || "").toLowerCase().trim();
@@ -62,10 +70,6 @@ function AdminChapters() {
 
   const handleSelectBusinessOwner = (bizId) => {
     setSelectedBusinessId(bizId);
-    if (!bizId || bizId === "custom") {
-      setNewAdmin({ name: "", email: "" });
-      return;
-    }
     const biz = rawBusinesses.find((b) => String(b._id) === String(bizId));
     if (biz) {
       const ownerName = biz.owner?.name || biz.contactPerson || biz.name || "";
@@ -115,11 +119,11 @@ function AdminChapters() {
 
   const handleAssignAdmin = async (e) => {
     e.preventDefault();
-    if (!newAdmin.name || !newAdmin.email || !adminModalChapter) return;
+    if (!selectedBusinessId || !adminModalChapter) return;
     setLoading(true);
     try {
       const chapterId = adminModalChapter._id || adminModalChapter.id;
-      await chapterApi.assignAdmin(chapterId, newAdmin);
+      await chapterApi.assignAdmin(chapterId, { businessId: selectedBusinessId });
       setAdminModalChapter(null);
       setSelectedBusinessId("");
       setNewAdmin({ name: "", email: "" });
@@ -281,22 +285,27 @@ function AdminChapters() {
           <DialogHeader>
             <DialogTitle>Assign Chapter Admin</DialogTitle>
             <DialogDescription>
-              Assign an admin for {adminModalChapter?.name}. They will receive an email with their login credentials.
+              Assign an admin for {adminModalChapter?.name}. Only businesses with an active paid membership and
+              verified status are eligible. They will receive an email with their login credentials.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAssignAdmin} className="space-y-4 py-4">
-            {/* Business Owner Quick Select Dropdown */}
+            {/* Business Owner Select (eligible = paid + verified only) */}
             <div className="space-y-1.5">
-              <Label htmlFor="biz-owner-select">Select Business Owner (Auto-fill)</Label>
+              <Label htmlFor="biz-owner-select">Select Business Owner *</Label>
               <Select
                 value={selectedBusinessId || undefined}
                 onValueChange={handleSelectBusinessOwner}
               >
                 <SelectTrigger id="biz-owner-select" className="w-full">
-                  <SelectValue placeholder="Choose a registered business owner..." />
+                  <SelectValue placeholder="Choose a paid, verified business owner..." />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  <SelectItem value="custom">-- Enter details manually --</SelectItem>
+                  {eligibleBusinesses.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">
+                      No paid & verified businesses found yet.
+                    </div>
+                  )}
                   {chapterBizList.length > 0 && (
                     <SelectGroup>
                       <SelectLabel className="text-xs font-semibold text-primary">
@@ -340,31 +349,18 @@ function AdminChapters() {
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-muted-foreground">
-                Selecting a business owner automatically fetches and fills their name and email address.
+                Only businesses with an active paid membership and verified status appear here.
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label>Admin Name</Label>
-              <Input
-                placeholder="e.g. John Doe"
-                value={newAdmin.name}
-                onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Email Address</Label>
-              <Input
-                type="email"
-                placeholder="john.doe@example.com"
-                value={newAdmin.email}
-                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
-                required
-              />
-            </div>
+            {selectedBusinessId && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                <p className="font-medium text-foreground">{newAdmin.name}</p>
+                <p className="text-xs text-muted-foreground">{newAdmin.email}</p>
+              </div>
+            )}
             <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !selectedBusinessId}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Send Invitation
               </Button>
