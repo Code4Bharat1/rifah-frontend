@@ -5,14 +5,16 @@ import { useQuery } from "@tanstack/react-query";
 import { resolveMediaUrl } from "@shared/lib/media";
 import { roleApi, stateApi, chapterApi } from "@shared/lib/api-services";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
-import { Award, Building2, ShieldCheck, MapPin } from "lucide-react";
+import { Award, Building2, ShieldCheck, MapPin, Mail, Phone } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { Button } from "@shared/components/ui/button";
 
 export function MembersDirectoryPage() {
   const [levelFilter, setLevelFilter] = useState("all");
   const [stateFilter, setStateFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
+  const [selectedLeader, setSelectedLeader] = useState(null);
 
   const queryParams = {
     ...(levelFilter !== "all" && { level: levelFilter }),
@@ -163,7 +165,11 @@ export function MembersDirectoryPage() {
                 const avatarUrl = user?.avatar ? resolveMediaUrl(user.avatar) : null;
 
                 return (
-                  <div key={role._id} className="group relative h-full bg-background rounded-3xl border border-border/50 text-center hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 hover:-translate-y-2 flex flex-col overflow-hidden isolate shadow-sm">
+                  <div 
+                    key={role._id} 
+                    onClick={() => setSelectedLeader(role)}
+                    className="group relative h-full bg-background rounded-3xl border border-border/50 text-center hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 hover:-translate-y-2 flex flex-col overflow-hidden isolate shadow-sm cursor-pointer"
+                  >
                     
                     {/* Full width portrait image container */}
                     <div className="relative w-full aspect-square bg-muted/40 overflow-hidden flex-shrink-0 border-b border-border/20">
@@ -225,6 +231,130 @@ export function MembersDirectoryPage() {
           )}
         </div>
       </section>
+
+      {/* Leader Details Modal */}
+      <Dialog open={!!selectedLeader} onOpenChange={(open) => !open && setSelectedLeader(null)}>
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden border-none bg-transparent shadow-2xl">
+          {selectedLeader && (
+            <div className="bg-background rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-xl border border-border">
+              {/* Left side: Image */}
+              <div className="relative w-full md:w-2/5 aspect-square md:aspect-auto md:min-h-[400px] bg-muted/40">
+                {selectedLeader.userId?.avatar ? (
+                  <img
+                    src={resolveMediaUrl(selectedLeader.userId.avatar)}
+                    alt={selectedLeader.userId?.name}
+                    className="w-full h-full object-cover object-top"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/20 text-primary/60 flex items-center justify-center text-[100px] font-black">
+                    {selectedLeader.userId?.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute top-4 left-4 z-20 shadow-sm">
+                  {getLevelBadge(selectedLeader.level)}
+                </div>
+              </div>
+              
+              {/* Right side: Details */}
+              <div className="p-8 w-full md:w-3/5 flex flex-col">
+                <DialogHeader className="mb-5 text-left">
+                  <DialogTitle className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
+                    {selectedLeader.userId?.name}
+                  </DialogTitle>
+                  <p className="text-sm font-bold text-primary tracking-wider uppercase px-4 py-1.5 bg-primary/5 rounded-full border border-primary/10 inline-block w-fit mb-2">
+                    {selectedLeader.role}
+                  </p>
+                </DialogHeader>
+
+                <div className="space-y-5 flex-grow">
+                  {/* Level & Location Info */}
+                  <div className="flex gap-2 flex-wrap">
+                    <div className="flex items-center text-xs font-bold text-muted-foreground uppercase tracking-widest bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg border border-amber-200">
+                      {selectedLeader.level} Level
+                    </div>
+                    {(() => {
+                      const stateName = selectedLeader.state || selectedLeader.userId?.state;
+                      return stateName ? (
+                        <div className="flex items-center text-xs font-bold text-muted-foreground uppercase tracking-widest bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200">
+                          <MapPin className="h-3.5 w-3.5 mr-1.5" /> {stateName}
+                        </div>
+                      ) : null;
+                    })()}
+                    {(() => {
+                      const chapterName = selectedLeader.chapterId?.name || selectedLeader.userId?.chapterId?.name;
+                      return chapterName ? (
+                        <div className="flex items-center text-xs font-bold text-muted-foreground uppercase tracking-widest bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-200">
+                          <MapPin className="h-3.5 w-3.5 mr-1.5" /> {chapterName}
+                        </div>
+                      ) : null;
+                    })()}
+                    {selectedLeader.userId?.city && (
+                      <div className="flex items-center text-xs font-bold text-muted-foreground uppercase tracking-widest bg-muted/60 px-3 py-1.5 rounded-lg border border-border/50">
+                        <MapPin className="h-3.5 w-3.5 mr-1.5 text-primary/60" /> {selectedLeader.userId.city}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="space-y-3 pt-5 border-t border-border/40">
+                    {selectedLeader.userId?.email && (
+                      <div className="flex items-center text-sm font-medium text-foreground/80 group">
+                        <Mail className="h-4 w-4 mr-3 text-primary/50 group-hover:text-primary transition-colors flex-shrink-0" />
+                        <a href={`mailto:${selectedLeader.userId.email}`} className="hover:text-primary transition-colors truncate">
+                          {selectedLeader.userId.email}
+                        </a>
+                      </div>
+                    )}
+                    {selectedLeader.userId?.phone && (
+                      <div className="flex items-center text-sm font-medium text-foreground/80 group">
+                        <Phone className="h-4 w-4 mr-3 text-primary/50 group-hover:text-primary transition-colors flex-shrink-0" />
+                        <a href={`tel:${selectedLeader.userId.phone}`} className="hover:text-primary transition-colors">
+                          {selectedLeader.userId.phone}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Business / Organization Info */}
+                  <div className="pt-5 border-t border-border/40">
+                    {selectedLeader.businessId?.name ? (
+                      <div className="flex items-start text-sm">
+                        <Building2 className="h-5 w-5 mr-3.5 text-primary/40 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-[15px] text-foreground">
+                            {selectedLeader.businessId.name}
+                          </p>
+                          {selectedLeader.businessId.industry && (
+                            <p className="text-muted-foreground mt-0.5 text-[11px] uppercase tracking-wider font-bold">
+                              {selectedLeader.businessId.industry}
+                            </p>
+                          )}
+                          {(selectedLeader.businessId.city || selectedLeader.businessId.state) && (
+                            <p className="text-muted-foreground mt-1 text-xs">
+                              {[selectedLeader.businessId.city, selectedLeader.businessId.state].filter(Boolean).join(", ")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : selectedLeader.userId?.organization ? (
+                      <div className="flex items-start text-sm">
+                        <Building2 className="h-5 w-5 mr-3.5 text-primary/40 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-[15px] text-foreground">
+                            {selectedLeader.userId.organization}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm italic">No business linked</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PublicLayout>
   );
 }
