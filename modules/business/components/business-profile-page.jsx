@@ -25,6 +25,7 @@ import {
   Image as ImageIcon,
   Loader2,
   AlertCircle,
+  User,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -594,15 +595,37 @@ function BusinessProfile() {
                 </Panel>
                 <Panel title="Location & contact">
                   <dl className="mt-2">
+                    {(business.contactPerson || business.owner?.name) && (
+                      <FieldRow
+                        label="Representative"
+                        value={
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-foreground">
+                              {business.contactPerson || business.owner?.name}
+                            </span>
+                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20">
+                              {business.roleInBusiness || business.owner?.roleInBusiness || business.owner?.designation || business.designation || "Founder / Owner"}
+                            </span>
+                          </div>
+                        }
+                      />
+                    )}
                     <FieldRow label="Address" value={`${business.address || ""}, ${business.city}, ${business.state}`} />
-                    <FieldRow
-                      label="Website"
-                      value={
-                        <span className="inline-flex items-center gap-1.5">
-                          <Globe className="h-4 w-4 text-muted-foreground" /> {business.website}
-                        </span>
-                      }
-                    />
+                    {business.website && (
+                      <FieldRow
+                        label="Website"
+                        value={
+                          <a
+                            href={business.website.startsWith("http") ? business.website : `https://${business.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-primary hover:underline font-medium"
+                          >
+                            <Globe className="h-4 w-4 text-muted-foreground" /> {business.website}
+                          </a>
+                        }
+                      />
+                    )}
                   </dl>
                   <div className="mt-4 pt-3 border-t border-border">
                     <p className="text-xs text-muted-foreground mb-2">Want to reach this business directly?</p>
@@ -780,6 +803,33 @@ function BusinessProfile() {
 
           {/* Sticky side rail */}
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+            {/* Key Representative Card */}
+            {(business.contactPerson || business.owner?.name) && (
+              <Panel title="Key Representative">
+                <div className="flex items-center gap-3.5">
+                  <div className="relative h-12 w-12 rounded-full overflow-hidden border border-border shrink-0 bg-primary/10 flex items-center justify-center font-bold text-primary text-base shadow-2xs">
+                    {business.owner?.avatar || business.avatar ? (
+                      <img
+                        src={resolveMediaUrl(business.owner?.avatar || business.avatar)}
+                        alt={business.contactPerson || business.owner?.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      (business.contactPerson || business.owner?.name || "R").charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-foreground truncate">
+                      {business.contactPerson || business.owner?.name}
+                    </p>
+                    <span className="mt-0.5 inline-block text-[11px] font-semibold text-primary px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 truncate max-w-full">
+                      {business.roleInBusiness || business.owner?.roleInBusiness || business.owner?.designation || business.designation || "Founder / Owner"}
+                    </span>
+                  </div>
+                </div>
+              </Panel>
+            )}
+
             <Panel title="Membership & trust">
               <ul className="space-y-2.5 text-sm">
                 <li className="flex items-center justify-between gap-3">

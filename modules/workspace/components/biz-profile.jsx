@@ -101,6 +101,9 @@ function BizProfile() {
     tagline: "",
     industry: "",
     subCategory: "",
+    contactPerson: "",
+    roleInBusiness: "Founder / Owner",
+    customRoleInBusiness: "",
     city: "",
     state: "",
     address: "",
@@ -145,12 +148,28 @@ function BizProfile() {
   const [uploadingCert, setUploadingCert] = useState(false);
 
   useEffect(() => {
+    const knownRoles = [
+      "Founder / Owner",
+      "Proprietor",
+      "Managing Director (MD)",
+      "Partner",
+      "Director / CEO",
+      "General Manager / COO",
+      "Authorized Representative",
+    ];
+
     if (business) {
+      const currentRole = business.roleInBusiness || business.owner?.roleInBusiness || business.owner?.designation || business.designation || "";
+      const isKnown = knownRoles.includes(currentRole);
+
       setFormData({
         name: business.name || "",
         tagline: business.tagline || "",
         industry: business.industry || business.categories?.[0] || business.category || "",
         subCategory: business.subCategory || business.categories?.[1] || "",
+        contactPerson: business.contactPerson || business.owner?.name || "",
+        roleInBusiness: isKnown ? currentRole : (currentRole ? "Other" : "Founder / Owner"),
+        customRoleInBusiness: isKnown ? "" : currentRole,
         city: business.city || "",
         state: business.state || "",
         address: business.address || "",
@@ -169,6 +188,8 @@ function BizProfile() {
       setFormData((prev) => ({
         ...prev,
         name: prev.name || user.organization || `${user.name}'s Enterprise`,
+        contactPerson: prev.contactPerson || user.name || "",
+        roleInBusiness: prev.roleInBusiness || user.roleInBusiness || user.designation || "Founder / Owner",
         email: prev.email || user.email || "",
         phone: prev.phone || user.phone || "",
         whatsapp: prev.whatsapp || user.whatsapp || user.phone || "",
@@ -185,8 +206,16 @@ function BizProfile() {
     e.preventDefault();
     setSaving(true);
     try {
+      const finalRole = (
+        formData.roleInBusiness === "Other" && formData.customRoleInBusiness
+          ? formData.customRoleInBusiness
+          : (formData.roleInBusiness || "Founder / Owner")
+      ).trim();
+
       const payload = {
         ...formData,
+        roleInBusiness: finalRole,
+        designation: finalRole,
         subCategory: formData.subCategory,
         categories: [formData.industry, formData.subCategory].filter(Boolean),
       };
@@ -492,6 +521,49 @@ function BizProfile() {
                   className="h-11"
                 />
               </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="biz-contactPerson">Authorised Contact Person / Representative</Label>
+                <Input
+                  id="biz-contactPerson"
+                  value={formData.contactPerson}
+                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                  placeholder="e.g. Mohd Rashid Ansari"
+                  className="h-11"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="biz-roleInBusiness">Role in Business</Label>
+                <Select
+                  value={formData.roleInBusiness || "Founder / Owner"}
+                  onValueChange={(val) => setFormData({ ...formData, roleInBusiness: val })}
+                >
+                  <SelectTrigger id="biz-roleInBusiness" className="h-11">
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Founder / Owner">Founder / Owner</SelectItem>
+                    <SelectItem value="Proprietor">Proprietor</SelectItem>
+                    <SelectItem value="Managing Director (MD)">Managing Director (MD)</SelectItem>
+                    <SelectItem value="Partner">Partner</SelectItem>
+                    <SelectItem value="Director / CEO">Director / CEO</SelectItem>
+                    <SelectItem value="General Manager / COO">General Manager / COO</SelectItem>
+                    <SelectItem value="Authorized Representative">Authorized Representative</SelectItem>
+                    <SelectItem value="Other">Other (Specify below)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {formData.roleInBusiness === "Other" && (
+                <div className="grid gap-1.5 sm:col-span-2">
+                  <Label htmlFor="biz-customRole">Specify Your Role / Designation</Label>
+                  <Input
+                    id="biz-customRole"
+                    value={formData.customRoleInBusiness || ""}
+                    onChange={(e) => setFormData({ ...formData, customRoleInBusiness: e.target.value })}
+                    placeholder="e.g. Chief Marketing Officer, Co-Founder, Operations Head"
+                    className="h-11"
+                  />
+                </div>
+              )}
               <div className="grid gap-1.5">
                 <Label htmlFor="biz-phone">Phone</Label>
                 <Input

@@ -47,7 +47,7 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [] }) {
     if (!item.userId) return;
 
     const ordinal = getOrdinal(item.yearsCompleted || 1);
-    const messageContent = `Congratulations on your ${ordinal} Anniversary with RIFAH Chamber of Commerce & Industry! 🎊🌟 Wishing continued growth, prosperity, and tremendous success to you and ${item.businessName}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`;
+    const messageContent = `Congratulations on your ${ordinal} Anniversary with RIFAH Chamber of Commerce & Industry! 🎊 Wishing continued growth, prosperity, and tremendous success to you and ${item.businessName}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`;
 
     setSendingMap((prev) => ({ ...prev, [item.userId]: true }));
     try {
@@ -66,43 +66,33 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [] }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-[780px] max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-[28px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl font-sans">
+      <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-[780px] max-h-[88vh] flex flex-col p-0 sm:p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl font-sans">
         
-        {/* TOP CELEBRATION HEADER WITH GRADIENT BANNER */}
-        <div className="relative m-3.5 mb-0 overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-100/90 via-teal-100/80 to-emerald-100/90 dark:from-emerald-950/40 dark:via-teal-950/40 dark:to-emerald-950/40 border border-emerald-200/50 dark:border-emerald-900/30 p-5 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-            
-            {/* Left: Icon + Title */}
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="h-14 w-14 shrink-0 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-400 text-white shadow-lg flex items-center justify-center">
-                <Award className="h-7 w-7" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                  Today's Chapter Anniversaries <span className="text-emerald-500 font-normal">🌟</span>
-                </DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium mt-0.5">
-                  <strong className="text-slate-900 dark:text-white font-bold">{anniversaries.length} {anniversaries.length === 1 ? "business is" : "businesses are"}</strong> celebrating their membership anniversary!
-                  <br className="hidden sm:inline" /> Connect and send your warm congratulations.
-                </DialogDescription>
-              </div>
+        {/* TOP CELEBRATION HEADER WITH SEAMLESS GRADIENT BANNER */}
+        <div className="relative border-b border-emerald-100/90 dark:border-emerald-900/50 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-emerald-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 px-6 py-5 pr-14 shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-md shadow-emerald-600/20 flex items-center justify-center">
+              <Award className="h-6 w-6" />
             </div>
-
-            {/* Right: Tagline Pill Box */}
-            <div className="hidden md:flex flex-col justify-center px-4 py-2.5 rounded-xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-white/60 dark:border-slate-800/80 shadow-2xs shrink-0 text-left">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Growing Stronger.
-              </span>
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                Together in Business.
-              </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-100/90 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
+                  <Sparkles className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                  Chapter Milestones
+                </span>
+              </div>
+              <DialogTitle className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">
+                Today's Chapter Anniversaries
+              </DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+                Celebrating <strong className="font-bold text-slate-900 dark:text-slate-200">{anniversaries.length} {anniversaries.length === 1 ? "business" : "businesses"}</strong> reaching membership milestones today.
+              </DialogDescription>
             </div>
-
           </div>
         </div>
 
         {/* MEMBERS SCROLLABLE LIST */}
-        <div className="p-3.5 sm:p-4 overflow-y-auto flex-1 space-y-3">
+        <div className="p-4 sm:p-5 overflow-y-auto max-h-[58vh] space-y-3.5 bg-slate-50/40 dark:bg-slate-950/40">
           {anniversaries.map((item, idx) => {
             const isSending = sendingMap[item.userId];
             const isSent = sentMap[item.userId];
@@ -118,94 +108,108 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [] }) {
             return (
               <div
                 key={String(item.businessId || item.userId || idx)}
-                className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+                className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-md transition-all duration-200"
               >
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
                   
-                  {/* Left: Avatar Block & Business Info */}
-                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                    <div className={`h-14 w-14 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-lg shadow-2xs ${themeClass}`}>
-                      {item.userAvatar ? (
-                        <img
-                          src={item.userAvatar}
-                          alt={item.businessName}
-                          className="h-full w-full object-cover rounded-2xl"
-                        />
-                      ) : (
-                        initials
+                  {/* Left: Avatar Block */}
+                  <div className={`h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-base sm:text-lg shadow-xs ${themeClass}`}>
+                    {item.userAvatar ? (
+                      <img
+                        src={item.userAvatar}
+                        alt={item.businessName}
+                        className="h-full w-full object-cover rounded-2xl"
+                      />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+
+                  {/* Right: Business Details & Actions */}
+                  <div className="min-w-0 flex-1 flex flex-col justify-between gap-2.5">
+                    
+                    {/* Top Row: Business Name in single clean line */}
+                    <div className="flex items-center justify-between gap-3 min-w-0">
+                      <h4 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight truncate">
+                        {item.businessName}
+                      </h4>
+                      {item.isSelf && (
+                        <span className="inline-flex items-center text-[11px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 font-bold px-2.5 py-0.5 rounded-full shrink-0">
+                          Your Business
+                        </span>
                       )}
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      {/* Name & Anniversary Pill */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-extrabold text-base text-slate-900 dark:text-white tracking-tight">
-                          {item.businessName}
-                        </h4>
-                        {item.isSelf ? (
-                          <span className="text-[11px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 font-bold px-2.5 py-0.5 rounded-full">
-                            Your Business
-                          </span>
-                        ) : (
-                          <span className="text-[11px] bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 font-bold px-2.5 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800">
-                            {item.yearsCompleted} Year{item.yearsCompleted > 1 ? "s" : ""} at RIFAH 🌟
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Details Row */}
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
-                        <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
-                          <User className="h-3.5 w-3.5 text-slate-400" />
-                          Owner: {item.userName}
+                    {/* Bottom Row: Owner & Chapter on Left, Badge & Buttons on Right */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                      
+                      {/* Left: Owner & Chapter info */}
+                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                          <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span>Owner: <strong className="font-semibold text-slate-800 dark:text-slate-200">{item.userName}</strong></span>
                         </span>
                         {item.chapter && (
                           <span className="flex items-center gap-1 text-slate-500">
-                            <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                            {item.chapter} Chapter
+                            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span>{item.chapter} Chapter</span>
                           </span>
                         )}
                       </div>
+
+                      {/* Right (Niche Right Me): Milestone Badge + WhatsApp + Say Congrats */}
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        {!item.isSelf && (
+                          <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 font-semibold px-3 py-1.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800 shrink-0">
+                            <Sparkles className="h-3.5 w-3.5 text-amber-500 fill-amber-400 shrink-0" />
+                            <span>{item.yearsCompleted} {item.yearsCompleted > 1 ? "Years" : "Year"} at RIFAH</span>
+                          </span>
+                        )}
+
+                        {whatsappUrl && (
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                          >
+                            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                              <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" />
+                              <span>WhatsApp</span>
+                            </a>
+                          </Button>
+                        )}
+
+                        {!item.isSelf && (
+                          isSent ? (
+                            <Button
+                              size="sm"
+                              disabled
+                              className="h-8.5 px-3.5 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold rounded-xl gap-1.5 border border-emerald-300 dark:border-emerald-800"
+                            >
+                              <Check className="h-3.5 w-3.5 text-emerald-600" />
+                              <span>Wished</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              disabled={isSending}
+                              onClick={() => handleSendCongratulate(item)}
+                              className="h-8.5 px-3.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl gap-1.5 shadow-2xs transition-all cursor-pointer"
+                            >
+                              {isSending ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
+                              )}
+                              <span>Say Congrats</span>
+                            </Button>
+                          )
+                        )}
+                      </div>
+
                     </div>
-                  </div>
 
-                  {/* Right: Actions (WhatsApp & Say Congrats) */}
-                  <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-end lg:self-center">
-                    {whatsappUrl && (
-                      <Button
-                        asChild
-                        size="sm"
-                        className="h-9 px-4 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full gap-1.5 shadow-sm transition-all cursor-pointer"
-                      >
-                        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                          <WhatsAppIcon className="h-4 w-4" />
-                          <span>WhatsApp</span>
-                        </a>
-                      </Button>
-                    )}
-
-                    {!item.isSelf && (
-                      isSent ? (
-                        <Button
-                          size="sm"
-                          disabled
-                          className="h-9 px-4 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold rounded-full gap-1.5 border border-emerald-300 dark:border-emerald-800"
-                        >
-                          <Check className="h-4 w-4 text-emerald-600" />
-                          <span>Congratulated</span>
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          disabled={isSending}
-                          onClick={() => handleSendCongratulate(item)}
-                          className="h-9 px-4 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full gap-1.5 shadow-sm transition-all cursor-pointer"
-                        >
-                          {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>🎊</span>}
-                          <span>Say Congrats</span>
-                        </Button>
-                      )
-                    )}
                   </div>
 
                 </div>
@@ -215,24 +219,22 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [] }) {
         </div>
 
         {/* BOTTOM FOOTER */}
-        <div className="px-5 py-3.5 border-t border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-          <div>
-            <span className="text-xs font-bold text-slate-900 dark:text-white">
-              {anniversaries.length} {anniversaries.length === 1 ? "anniversary" : "anniversaries"} today
-            </span>
-            <p className="text-[11px] text-muted-foreground">
+        <div className="px-6 py-3.5 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2">
+            <Award className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
               Celebrating loyalty, partnership, and entrepreneurial excellence at RIFAH.
-            </p>
+            </span>
           </div>
 
           <Button
             asChild
             variant="outline"
             size="sm"
-            className="h-9 px-4 text-xs font-bold rounded-full border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs gap-1.5"
+            className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-2xs gap-1.5 self-end sm:self-center"
           >
             <Link href="/biz/networking">
-              <span>View All Members</span>
+              <span>Chapter Directory</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </Button>

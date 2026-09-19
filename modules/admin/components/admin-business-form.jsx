@@ -26,6 +26,8 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
     businessName: "",
     ownerName: "",
     contactPerson: "",
+    roleInBusiness: "Founder / Owner",
+    customRoleInBusiness: "",
     email: "",
     phone: "",
     chapter: "",
@@ -55,7 +57,17 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await businessApi.createAdmin(formData);
+      const finalRole = (
+        formData.roleInBusiness === "Other" && formData.customRoleInBusiness
+          ? formData.customRoleInBusiness
+          : (formData.roleInBusiness || "Founder / Owner")
+      ).trim();
+
+      await businessApi.createAdmin({
+        ...formData,
+        roleInBusiness: finalRole,
+        designation: finalRole
+      });
       toast.success("Business registered successfully. Welcome email sent to owner.");
       onOpenChange(false);
       if (onSuccess) onSuccess();
@@ -64,6 +76,8 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
         businessName: "",
         ownerName: "",
         contactPerson: "",
+        roleInBusiness: "Founder / Owner",
+        customRoleInBusiness: "",
         email: "",
         phone: "",
         chapter: "",
@@ -229,8 +243,41 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="contactPerson">Contact Person</Label>
-              <Input id="contactPerson" name="contactPerson" value={formData.contactPerson} onChange={handleChange} />
+              <Input id="contactPerson" name="contactPerson" value={formData.contactPerson} onChange={handleChange} placeholder="Full Name" />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="roleInBusiness">Role in Business</Label>
+              <Select value={formData.roleInBusiness} onValueChange={(val) => handleSelectChange("roleInBusiness", val)}>
+                <SelectTrigger id="roleInBusiness">
+                  <SelectValue placeholder="Select Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Founder / Owner">Founder / Owner</SelectItem>
+                  <SelectItem value="Proprietor">Proprietor</SelectItem>
+                  <SelectItem value="Managing Director (MD)">Managing Director (MD)</SelectItem>
+                  <SelectItem value="Partner">Partner</SelectItem>
+                  <SelectItem value="Director / CEO">Director / CEO</SelectItem>
+                  <SelectItem value="General Manager / COO">General Manager / COO</SelectItem>
+                  <SelectItem value="Authorized Representative">Authorized Representative</SelectItem>
+                  <SelectItem value="Other">Other (Specify)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {formData.roleInBusiness === "Other" ? (
+              <div className="space-y-2">
+                <Label htmlFor="customRoleInBusiness">Specify Role / Designation</Label>
+                <Input
+                  id="customRoleInBusiness"
+                  name="customRoleInBusiness"
+                  value={formData.customRoleInBusiness}
+                  onChange={handleChange}
+                  placeholder="e.g. Co-Founder, Operations Head"
+                />
+              </div>
+            ) : <div />}
           </div>
 
           <div className="space-y-2">

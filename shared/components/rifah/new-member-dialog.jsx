@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Users, Calendar, Building2, User, MapPin, Check, Loader2, ArrowRight } from "lucide-react";
+import { Users, Calendar, Building2, User, MapPin, Check, Loader2, ArrowRight, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { Button } from "@shared/components/ui/button";
 import { messageApi } from "@shared/lib/api-services";
@@ -77,43 +77,33 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-[780px] max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-[28px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl font-sans">
+      <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-[780px] max-h-[88vh] flex flex-col p-0 sm:p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl font-sans">
         
-        {/* TOP CELEBRATION HEADER WITH GRADIENT BANNER */}
-        <div className="relative m-3.5 mb-0 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-100/90 via-indigo-100/80 to-purple-100/90 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 border border-blue-200/50 dark:border-blue-900/30 p-5 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-            
-            {/* Left: Icon + Title */}
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="h-14 w-14 shrink-0 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-400 text-white shadow-lg flex items-center justify-center">
-                <Users className="h-7 w-7" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                  New Chapter Members <span className="text-amber-400 font-normal">✨</span>
-                </DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium mt-0.5">
-                  <strong className="text-slate-900 dark:text-white font-bold">{newMembers.length} new businesses</strong> have joined your chapter recently!
-                  <br className="hidden sm:inline" /> Say hello and welcome them to RIFAH.
-                </DialogDescription>
-              </div>
+        {/* TOP CELEBRATION HEADER WITH SEAMLESS GRADIENT BANNER */}
+        <div className="relative border-b border-indigo-100/90 dark:border-indigo-900/50 bg-gradient-to-r from-blue-50 via-indigo-50/70 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-purple-950/40 px-6 py-5 pr-14 shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 text-white shadow-md shadow-indigo-500/20 flex items-center justify-center">
+              <Users className="h-6 w-6" />
             </div>
-
-            {/* Right: Tagline Pill Box */}
-            <div className="hidden md:flex flex-col justify-center px-4 py-2.5 rounded-xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-white/60 dark:border-slate-800/80 shadow-2xs shrink-0 text-left">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Stronger Businesses.
-              </span>
-              <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                A Brighter Tomorrow.
-              </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-indigo-100/90 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300">
+                  <Sparkles className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
+                  Chapter Community
+                </span>
+              </div>
+              <DialogTitle className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">
+                New Chapter Members
+              </DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+                Welcoming <strong className="font-bold text-slate-900 dark:text-slate-200">{newMembers.length} {newMembers.length === 1 ? "business" : "businesses"}</strong> who joined your chapter recently.
+              </DialogDescription>
             </div>
-
           </div>
         </div>
 
         {/* MEMBERS SCROLLABLE LIST */}
-        <div className="p-3.5 sm:p-4 overflow-y-auto flex-1 space-y-3">
+        <div className="p-4 sm:p-5 overflow-y-auto max-h-[58vh] space-y-3.5 bg-slate-50/40 dark:bg-slate-950/40">
           {newMembers.map((item, idx) => {
             const isSending = sendingMap[item.userId];
             const isSent = sentMap[item.userId];
@@ -128,97 +118,109 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
             return (
               <div
                 key={String(item.businessId || item.userId || idx)}
-                className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+                className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-md transition-all duration-200"
               >
-                {/* Avatar, Info & 2 Action Buttons (WhatsApp & Say Welcome) */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
                   
-                  {/* Left: Avatar Block & Business Info */}
-                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                    <div className={`h-14 w-14 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-lg shadow-2xs ${themeClass}`}>
-                      {item.userAvatar ? (
-                        <img
-                          src={item.userAvatar}
-                          alt={item.businessName}
-                          className="h-full w-full object-cover rounded-2xl"
-                        />
-                      ) : (
-                        initials
-                      )}
+                  {/* Left: Avatar Block */}
+                  <div className={`h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-base sm:text-lg shadow-xs ${themeClass}`}>
+                    {item.userAvatar ? (
+                      <img
+                        src={item.userAvatar}
+                        alt={item.businessName}
+                        className="h-full w-full object-cover rounded-2xl"
+                      />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+
+                  {/* Right: Business Details & Actions */}
+                  <div className="min-w-0 flex-1 flex flex-col justify-between gap-2.5">
+                    
+                    {/* Top Row: Business Name in single clean line */}
+                    <div className="flex items-center justify-between gap-3 min-w-0">
+                      <h4 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight truncate">
+                        {item.businessName}
+                      </h4>
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      {/* Name & New Member Pill */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-extrabold text-base text-slate-900 dark:text-white tracking-tight">
-                          {item.businessName}
-                        </h4>
-                        <span className="text-[11px] bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 font-bold px-2.5 py-0.5 rounded-full border border-sky-200/60 dark:border-sky-800">
-                          New Member
-                        </span>
-                      </div>
-
-                      {/* Details Row: Owner, Category, Chapter, Joined */}
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
-                        <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
-                          <User className="h-3.5 w-3.5 text-slate-400" />
-                          Owner: {item.userName}
+                    {/* Bottom Row: Owner, Category, Chapter, Joined on Left; Pill & Buttons on Right */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                      
+                      {/* Left: Details Row */}
+                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                          <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span>Owner: <strong className="font-semibold text-slate-800 dark:text-slate-200">{item.userName}</strong></span>
                         </span>
                         {item.industry && (
-                          <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
-                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                            {item.industry}
+                          <span className="flex items-center gap-1">
+                            <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate">{item.industry}</span>
                           </span>
                         )}
                         {item.chapter && (
                           <span className="flex items-center gap-1 text-slate-500">
-                            <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                            {item.chapter} Chapter
+                            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span>{item.chapter} Chapter</span>
                           </span>
                         )}
                         <span className="flex items-center gap-1 text-slate-500">
-                          <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                          {formatJoinedTime(item.joinedAt)}
+                          <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span>{formatJoinedTime(item.joinedAt)}</span>
                         </span>
                       </div>
+
+                      {/* Right (Niche Right Me): New Member Pill + WhatsApp + Say Welcome */}
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        <span className="inline-flex items-center gap-1.5 text-xs bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 font-semibold px-3 py-1.5 rounded-xl border border-sky-200/80 dark:border-sky-800 shrink-0">
+                          <Sparkles className="h-3.5 w-3.5 text-sky-500 fill-sky-400 shrink-0" />
+                          <span>New Member</span>
+                        </span>
+
+                        {whatsappUrl && (
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                          >
+                            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                              <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" />
+                              <span>WhatsApp</span>
+                            </a>
+                          </Button>
+                        )}
+
+                        {isSent ? (
+                          <Button
+                            size="sm"
+                            disabled
+                            className="h-8.5 px-3.5 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold rounded-xl gap-1.5 border border-emerald-300 dark:border-emerald-800"
+                          >
+                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>Welcomed</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            disabled={isSending}
+                            onClick={() => handleSendWelcome(item)}
+                            className="h-8.5 px-3.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl gap-1.5 shadow-2xs transition-all cursor-pointer"
+                          >
+                            {isSending ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3.5 w-3.5 text-sky-200 fill-sky-200" />
+                            )}
+                            <span>Say Welcome</span>
+                          </Button>
+                        )}
+                      </div>
+
                     </div>
-                  </div>
 
-                  {/* Right: 2 Action Buttons (WhatsApp, Say Welcome) */}
-                  <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-end lg:self-center">
-                    {whatsappUrl && (
-                      <Button
-                        asChild
-                        size="sm"
-                        className="h-9 px-4 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full gap-1.5 shadow-sm transition-all cursor-pointer"
-                      >
-                        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                          <WhatsAppIcon className="h-4 w-4" />
-                          <span>WhatsApp</span>
-                        </a>
-                      </Button>
-                    )}
-
-                    {isSent ? (
-                      <Button
-                        size="sm"
-                        disabled
-                        className="h-9 px-4 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold rounded-full gap-1.5 border border-emerald-300 dark:border-emerald-800"
-                      >
-                        <Check className="h-4 w-4 text-emerald-600" />
-                        <span>Welcomed</span>
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        disabled={isSending}
-                        onClick={() => handleSendWelcome(item)}
-                        className="h-9 px-4 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full gap-1.5 shadow-sm transition-all cursor-pointer"
-                      >
-                        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>👋</span>}
-                        <span>Say Welcome</span>
-                      </Button>
-                    )}
                   </div>
 
                 </div>
@@ -228,24 +230,22 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
         </div>
 
         {/* BOTTOM FOOTER */}
-        <div className="px-5 py-3.5 border-t border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-          <div>
-            <span className="text-xs font-bold text-slate-900 dark:text-white">
-              {newMembers.length} new {newMembers.length === 1 ? "member" : "members"}
-            </span>
-            <p className="text-[11px] text-muted-foreground">
+        <div className="px-6 py-3.5 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-indigo-600 shrink-0" />
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
               Build stronger connections. A stronger RIFAH community.
-            </p>
+            </span>
           </div>
 
           <Button
             asChild
             variant="outline"
             size="sm"
-            className="h-9 px-4 text-xs font-bold rounded-full border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs gap-1.5"
+            className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-2xs gap-1.5 self-end sm:self-center"
           >
             <Link href="/biz/networking">
-              <span>View All Members</span>
+              <span>Chapter Directory</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
