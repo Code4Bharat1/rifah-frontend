@@ -395,12 +395,20 @@ export function AppShell({
   const isBizVerified = (rawVerification || "").toLowerCase() === "verified";
   const hasEverBeenVerified = businessData?.isVerified === true || isBizVerified;
 
+  // If the user is an admin who switched to business_owner, bypass the verification gate
+  // Central/State/Chapter admins who own a business should always see the full workspace
+  const isAdminSwitchedToBusiness =
+    user?.previousRole === "central_admin" ||
+    user?.previousRole === "state_admin" ||
+    user?.previousRole === "chapter_admin";
+
   const isGatedPage =
     role === "business" &&
     !isBizLoading &&
     Boolean(businessData) &&
     !hasEverBeenVerified &&
-    !isAccessibleUnverifiedPath(path);
+    !isAccessibleUnverifiedPath(path) &&
+    !isAdminSwitchedToBusiness;
 
   let finalTitle = title;
   let finalSubtitle = subtitle;
@@ -510,7 +518,7 @@ export function AppShell({
             let badge = null;
             if (item.label === "Messages") badge = unreadMsgs;
             if (item.label === "Notifications") badge = unreadNotifs;
-            const isItemLocked = role === "business" && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to);
+            const isItemLocked = role === "business" && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to) && !isAdminSwitchedToBusiness;
             return (
               <SidebarLink
                 key={`sidebar-${item.to}-${item.label}-${index}`}
@@ -590,15 +598,33 @@ export function AppShell({
           {user?.previousRole && (
             <button
               onClick={async () => {
-                await switchRole(user.previousRole);
-                if (user.previousRole === "chapter_admin") router.push("/chapter-admin");
-                else if (user.previousRole === "business_owner") router.push("/biz");
-                else router.push("/biz");
+                const switched = await switchRole(user.previousRole);
+                const targetRole = user.previousRole;
+                if (targetRole === "central_admin") {
+                  router.push("/admin");
+                } else if (targetRole === "state_admin") {
+                  router.push("/state-admin");
+                } else if (targetRole === "chapter_admin") {
+                  router.push("/chapter-admin");
+                } else if (targetRole === "business_owner") {
+                  // Navigate to the admin's own registered business workspace
+                  router.push("/biz");
+                } else {
+                  router.push("/biz");
+                }
               }}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
             >
               <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-              <span>Switch to {user.previousRole === "chapter_admin" ? "Admin" : "User"} View</span>
+              <span>
+                {user.previousRole === "central_admin"
+                  ? "Switch to Admin View"
+                  : user.previousRole === "state_admin"
+                  ? "Switch to State Admin"
+                  : user.previousRole === "chapter_admin"
+                  ? "Switch to Chapter Admin"
+                  : "Switch to Business View"}
+              </span>
             </button>
           )}
           <button

@@ -195,6 +195,7 @@ export function AuthProvider({ children }) {
             queryClient.clear();
             await queryClient.invalidateQueries();
           } catch (e) {}
+          // Return user with businessId/businessSlug if admin switched to business_owner
           return loggedInUser;
         }
       }}
