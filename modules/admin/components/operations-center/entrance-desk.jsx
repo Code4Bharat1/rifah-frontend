@@ -8,8 +8,9 @@ import { Badge } from "@shared/components/ui/badge";
 import { toast } from "sonner";
 import { eventApi } from "@shared/lib/api-services";
 
-export function EntranceDesk({ eventId }) {
+export function EntranceDesk({ eventId, chapterMembers = [] }) {
   const [attendees, setAttendees] = useState([]);
+  const [mergedList, setMergedList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [stats, setStats] = useState({ total: 0, waiting: 0, approved: 0 });
@@ -42,6 +43,35 @@ export function EntranceDesk({ eventId }) {
     }
   };
 
+  useEffect(() => {
+    const combined = [];
+    const registeredUserIds = new Set();
+    
+    // Add all registered attendees
+    attendees.forEach(a => {
+      const uId = a.user?._id || a.user?.id || a.user;
+      if (uId) registeredUserIds.add(String(uId));
+      combined.push({
+        ...a,
+        isRegistered: true,
+      });
+    });
+    
+    // Add chapter members who haven't registered
+    chapterMembers.forEach(m => {
+      if (!registeredUserIds.has(String(m._id))) {
+        combined.push({
+          _id: m._id, // use member id as key
+          user: m,
+          isRegistered: false,
+          gateStatus: 'not_registered'
+        });
+      }
+    });
+    
+    setMergedList(combined);
+  }, [attendees, chapterMembers]);
+
   const handleGateAction = async (attendeeId, action) => {
     try {
       const res = await eventApi.gateAction(eventId, attendeeId, action);
@@ -62,7 +92,7 @@ export function EntranceDesk({ eventId }) {
     }
   };
 
-  const filteredAttendees = attendees.filter(a => {
+  const filteredAttendees = mergedList.filter(a => {
     const term = searchTerm.toLowerCase();
     const nameMatch = (a.user?.name || "").toLowerCase().includes(term);
     const companyMatch = (a.user?.company || a.user?.businessName || "").toLowerCase().includes(term);
@@ -152,35 +182,45 @@ export function EntranceDesk({ eventId }) {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        {status === "waiting" && (
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleGateAction(attendee._id, "approved")}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
-                            >
-                              <UserCheck className="h-4 w-4 mr-1" /> Approve Entry
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleGateAction(attendee._id, "rejected")}
-                              className="border-rose-200 hover:bg-rose-50 text-rose-600 h-8 px-2"
-                              title="Reject Entry"
-                            >
-                              <UserX className="h-4 w-4" />
-                            </Button>
+                        {attendee.isRegistered ? (
+                          <>
+                            {status === "waiting" && (
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleGateAction(attendee._id, "approved")}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
+                                >
+                                  <UserCheck className="h-4 w-4 mr-1" /> Approve Entry
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => handleGateAction(attendee._id, "rejected")}
+                                  className="border-rose-200 hover:bg-rose-50 text-rose-600 h-8 px-2"
+                                  title="Reject Entry"
+                                >
+                                  <UserX className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                            {status === "approved" && (
+                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 py-1">
+                                <UserCheck className="h-3 w-3 mr-1" /> Entry Approved
+                              </Badge>
+                            )}
+                            {status === "rejected" && (
+                              <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20 py-1">
+                                <UserX className="h-3 w-3 mr-1" /> Entry Denied
+                              </Badge>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-center w-full">
+                            <a href={`/chapter-admin/events/${eventId}/edit`} className="text-xs text-primary font-bold hover:underline cursor-pointer">
+                              Not registered yet
+                            </a>
                           </div>
-                        )}
-                        {status === "approved" && (
-                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 py-1">
-                            <UserCheck className="h-3 w-3 mr-1" /> Entry Approved
-                          </Badge>
-                        )}
-                        {status === "rejected" && (
-                          <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20 py-1">
-                            <UserX className="h-3 w-3 mr-1" /> Entry Denied
-                          </Badge>
                         )}
                       </td>
                     </tr>

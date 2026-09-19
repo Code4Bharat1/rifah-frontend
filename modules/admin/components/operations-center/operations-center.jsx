@@ -92,6 +92,7 @@ import { CertificatesTab } from "./certificates-tab";
 import { ScriptsTab } from "./scripts-tab";
 import { AskGiveBoard } from "./ask-give-board";
 import { MyTeamTab } from "./my-team-tab";
+import { AgendaCrud } from "./agenda-crud";
 
 // 16 Default Chapter Agenda Items
 const DEFAULT_AGENDA = [
@@ -3509,6 +3510,13 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </div>
             </div>
           </div>
+          
+          {/* Agenda Setup / CRUD */}
+          <AgendaCrud 
+            eventId={selectedEventId} 
+            agenda={agenda} 
+            setAgenda={setAgenda} 
+          />
         </div>
       )}
 
@@ -4736,7 +4744,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </p>
             </div>
             
-            <EntranceDesk eventId={selectedEventId} />
+            <EntranceDesk eventId={selectedEventId} chapterMembers={chapterMembers} />
           </div>
         </div>
       )}
