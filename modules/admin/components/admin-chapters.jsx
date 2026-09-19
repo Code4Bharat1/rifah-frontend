@@ -27,7 +27,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminChapters() {
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === "super_admin" || user?.role === "secretariat";
+  const isCentralAdmin = user?.role === "central_admin";
   const { data: chaptersData, refetch } = useChapters();
   const chapters = chaptersData || [];
 
@@ -138,7 +138,7 @@ function AdminChapters() {
       title="Chapters and units"
       subtitle="Regional structure and branch desks of RIFAH Chamber"
       actions={
-        isSuperAdmin ? (
+        isCentralAdmin ? (
           <Button onClick={() => setOpenAdd(true)}>
             <Plus className="h-4 w-4" /> New chapter
           </Button>
@@ -164,7 +164,7 @@ function AdminChapters() {
               {
                 key: "act",
                 header: "",
-                cell: (r) => isSuperAdmin ? (
+                cell: (r) => isCentralAdmin ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">

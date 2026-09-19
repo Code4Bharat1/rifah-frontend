@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@shared/providers/auth-provider";
 
-const ALLOWED_ROLES = ["super_admin"];
+const ALLOWED_ROLES = ["central_admin"];
 
 export default function AdminLayout({ children }) {
   const { user, loading } = useAuth();

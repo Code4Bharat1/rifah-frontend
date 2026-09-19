@@ -123,7 +123,7 @@ export function GoogleAuthButton({
                   router.push("/chapter-admin");
                 } else if (loggedInUser.role === "state_admin") {
                   router.push("/state-admin");
-                } else if (loggedInUser.role === "super_admin" || loggedInUser.role === "secretariat") {
+                } else if (loggedInUser.role === "central_admin") {
                   router.push("/admin");
                 } else {
                   router.push("/biz");
@@ -169,7 +169,7 @@ export function GoogleAuthButton({
                 router.push("/chapter-admin");
               } else if (loggedInUser.role === "state_admin") {
                 router.push("/state-admin");
-              } else if (loggedInUser.role === "super_admin" || loggedInUser.role === "secretariat") {
+              } else if (loggedInUser.role === "central_admin") {
                 router.push("/admin");
               } else {
                 router.push("/biz");

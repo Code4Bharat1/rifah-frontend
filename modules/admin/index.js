@@ -1,5 +1,5 @@
 export { AdminDashboard } from "./components/admin-dashboard.jsx";
-export { AdminAudit } from "./components/admin-audit.jsx";
+export { AdminAudit, AdminAudit as AdminAuditLogsPage } from "./components/admin-audit.jsx";
 export { AdminBusinesses } from "./components/admin-businesses.jsx";
 export { AdminChapters } from "./components/admin-chapters.jsx";
 export { AdminEnquiries } from "./components/admin-enquiries.jsx";
@@ -12,8 +12,8 @@ export { AdminReports } from "./components/admin-reports.jsx";
 export { AdminReviews } from "./components/admin-reviews.jsx";
 export { AdminAuditLogsPage } from "./components/admin-audit.jsx";
 export { AdminRolesPage } from "./components/admin-roles.jsx";
-export { AdminSettings, AdminSettings as AdminSettingsPage } from "./components/admin-settings.jsx";
-export { AdminSettingsPage, AdminSettingsPage as AdminSettings } from "./components/admin-settings.jsx";
+export { AdminSettingsPage } from "./components/admin-settings.jsx";
 export { AdminUnits } from "./components/admin-units.jsx";
 export { AdminUsers } from "./components/admin-users.jsx";
 export { AdminVerification } from "./components/admin-verification.jsx";
+export { AdminAnnouncements } from "./components/admin-announcements.jsx";

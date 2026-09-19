@@ -18,7 +18,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminLeads() {
   const { user } = useAuth();
-  const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
+  const isCentralAdmin = user?.role === "central_admin";
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -53,12 +53,12 @@ function AdminLeads() {
 
   const canRouteLead = (lead) => {
     if (!lead) return false;
-    if (isSuperAdmin) return lead.status === "Escalated";
+    if (isCentralAdmin) return lead.status === "Escalated";
     return Boolean(lead.chapterId) && String(lead.chapterId) === String(user?.chapterId) && lead.status !== "Escalated";
   };
 
   const displayBusinesses = businesses
-    .filter(b => isSuperAdmin || String(b.chapterId) === String(user?.chapterId))
+    .filter(b => isCentralAdmin || String(b.chapterId) === String(user?.chapterId))
     .filter(b => {
       if (!routingSearch) return true;
       const term = routingSearch.toLowerCase();
@@ -220,7 +220,7 @@ function AdminLeads() {
               <SelectItem value="broadcast">Broadcast RFQs</SelectItem>
             </SelectContent>
           </Select>
-          {isSuperAdmin ? (
+          {isCentralAdmin ? (
             <Select value={chapterFilter} onValueChange={setChapterFilter}>
               <SelectTrigger className="sm:max-w-[180px]">
                 <SelectValue placeholder="Filter by chapter" />
@@ -250,7 +250,7 @@ function AdminLeads() {
               { key: "location", header: "Location", cell: (r) => r.city || r.location },
               { key: "quantity", header: "Quantity", cell: (r) => r.quantity || "On request" },
               { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
-              ...(isSuperAdmin ? [{ key: "chapter", header: "Chapter", cell: (r) => (
+              ...(isCentralAdmin ? [{ key: "chapter", header: "Chapter", cell: (r) => (
                 <span className="text-xs text-muted-foreground">{r.chapter || "Unassigned"}</span>
               )}] : []),
               { key: "action", header: "", cell: (r) => (
@@ -383,7 +383,7 @@ function AdminLeads() {
                     </div>
                   </div>
                   <div className="p-4 border-t border-border bg-surface flex justify-between items-center gap-2">
-                    {!isSuperAdmin && (
+                    {!isCentralAdmin && (
                       <Button variant="outline" onClick={handleEscalate} disabled={isRouting}>
                         {isRouting ? "Escalating..." : "Escalate to Head Office"}
                       </Button>
@@ -401,7 +401,7 @@ function AdminLeads() {
                   <div className="grid h-12 w-12 place-items-center rounded-full bg-amber-100 text-amber-600">
                     <Lock className="h-6 w-6" />
                   </div>
-                  {isSuperAdmin ? (
+                  {isCentralAdmin ? (
                     <>
                       <h4 className="font-semibold text-sm">Routing Locked</h4>
                       <p className="text-xs text-muted-foreground max-w-xs">

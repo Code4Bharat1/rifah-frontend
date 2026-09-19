@@ -124,7 +124,7 @@ function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
     queryKey: ["users-search", search, userRoleFilter],
     queryFn: () => {
       let roleParam = undefined;
-      if (userRoleFilter === "admins") roleParam = "super_admin,state_admin,chapter_admin";
+      if (userRoleFilter === "admins") roleParam = "central_admin,state_admin,chapter_admin";
       else if (userRoleFilter === "business_owner") roleParam = "business_owner";
       return userApi.getAdminUsers({ search, limit: 50, role: roleParam });
     },

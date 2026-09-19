@@ -21,7 +21,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminHome() {
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === "super_admin" || user?.role === "secretariat";
+  const isCentralAdmin = user?.role === "central_admin";
   const { data: overviewData, refetch: refetchOverview } = useAdminOverview();
   const { data: queueData, refetch: refetchQueue } = useVerificationQueue();
   const { data: enquiriesData } = useAllEnquiries();
@@ -47,7 +47,7 @@ function AdminHome() {
     <AppShell
       role="admin"
       title="Central administration"
-      subtitle="RIFAH Secretariat · all chapters"
+      subtitle="RIFAH Central Admin · all chapters"
       actions={
         <Button asChild variant="outline" className="rounded-full">
           <Link href="/admin/reports">View reports</Link>
@@ -183,7 +183,7 @@ function AdminHome() {
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-4">
-            {!isSuperAdmin && (
+            {!isCentralAdmin && (
               <Panel
                 title="Verification queue"
                 description="Businesses awaiting chapter document verification"
@@ -249,7 +249,7 @@ function AdminHome() {
           </div>
 
           <div className="space-y-4">
-            {isSuperAdmin && (
+            {isCentralAdmin && (
               <>
                 <Panel title="Chapters & Units" action={<MoreLink href="/admin/states" />}>
                   <ul className="space-y-3">

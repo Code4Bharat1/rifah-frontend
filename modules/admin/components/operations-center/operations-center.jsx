@@ -2362,7 +2362,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <div>
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Chapter</Label>
                   <div className="mt-2 px-3 py-2 rounded-lg border border-border bg-muted/40 text-sm font-medium text-foreground">{user?.chapter || chapterName}</div>
-                  <p className="text-[10px] text-primary mt-1">From your login. State office can rename under Super Admin.</p>
+                  <p className="text-[10px] text-primary mt-1">From your login. State office can rename under Central Admin.</p>
                 </div>
               </div>
 

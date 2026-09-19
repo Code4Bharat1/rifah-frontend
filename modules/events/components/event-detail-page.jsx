@@ -62,7 +62,7 @@ function EventDetail() {
     if (!user) return true; // Let them click and redirect to login
     
     // All admins can see the button
-    if (["super_admin", "secretariat", "state_admin", "chapter_admin"].includes(user.role)) return true;
+    if (["central_admin", "state_admin", "chapter_admin"].includes(user.role)) return true;
     
     const roleDisplay = user.role === "business_owner" ? "Businesses" : "Consumers";
     
@@ -395,7 +395,7 @@ const loadRazorpayScript = () => {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            {["super_admin", "secretariat", "chapter_admin", "state_admin"].includes(user?.role) && (
+            {["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (
               <Panel title="Admin View">
                 <div className="space-y-3 text-center">
                   <p className="text-sm text-muted-foreground">You are viewing this event as an admin.</p>

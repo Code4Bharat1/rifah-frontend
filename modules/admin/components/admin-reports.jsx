@@ -175,7 +175,7 @@ function EventAnalyticsTab() {
           <h3 className="font-semibold text-foreground">Global Filters</h3>
         </div>
         
-        {user?.role === "super_admin" && (
+        {(user?.role === "central_admin") && (
           <div className="w-full sm:w-64">
             <Label className="text-xs mb-1.5 block font-medium text-muted-foreground uppercase tracking-wider">State</Label>
             <CreatableCombobox 
@@ -186,7 +186,7 @@ function EventAnalyticsTab() {
             />
           </div>
         )}
-        {["super_admin", "state_admin"].includes(user?.role) && (
+        {["central_admin", "state_admin"].includes(user?.role) && (
           <div className="w-full sm:w-64">
             <Label className="text-xs mb-1.5 block font-medium text-muted-foreground uppercase tracking-wider">Chapter</Label>
             <CreatableCombobox 

@@ -47,7 +47,7 @@ export default function ChangePasswordPage() {
         router.push("/chapter-admin");
       } else if (updatedUser?.role === "state_admin") {
         router.push("/state-admin");
-      } else if (updatedUser?.role === "super_admin" || updatedUser?.role === "secretariat") {
+      } else if (updatedUser?.role === "central_admin") {
         router.push("/admin");
       } else {
         router.push("/biz");

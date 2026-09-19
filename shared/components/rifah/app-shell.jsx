@@ -90,7 +90,7 @@ const navs = {
     ],
   },
   admin: {
-    title: "RIFAH administration",
+    title: "RIFAH Central Administration",
     primary: [
       { label: "Overview", to: "/admin", icon: Gauge },
       { label: "Operations Center", to: "/admin/operations", icon: Radio },
@@ -170,23 +170,11 @@ const roleNavs = {
       { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
     ],
   },
-  secretariat: {
-    title: "Secretariat Desk",
-    primary: [
-      { label: "Overview", to: "/admin", icon: Gauge },
-      { label: "Operations Center", to: "/admin/operations", icon: Radio },
-      { label: "Businesses", to: "/admin/businesses", icon: Building2 },
-      { label: "Leads", to: "/admin/leads", icon: Target },
-      { label: "Users", to: "/admin/users", icon: Users },
-      { label: "More", to: "/admin/settings", icon: LayoutGrid },
-    ],
-    more: navs.admin.more,
-  },
 };
 
 const navRoles = [
   { role: "business", label: "Business", to: "/biz" },
-  { role: "admin", label: "Admin", to: "/admin" },
+  { role: "admin", label: "Central Admin", to: "/admin" },
 ];
 
 function useResolvedNav(role) {
@@ -372,7 +360,7 @@ export function AppShell({
     if (title === "Central administration" || title === "Chapters and units" || title === "Overview") {
       finalTitle = `${user.chapter || "Regional"} Workspace`;
     }
-    if (subtitle === "RIFAH Central Admin · all chapters" || subtitle === "RIFAH Secretariat · all chapters" || subtitle === "Regional structure and branch desks of RIFAH Chamber") {
+    if (subtitle === "RIFAH Central Admin · all chapters" || subtitle === "Regional structure and branch desks of RIFAH Chamber") {
       finalSubtitle = "Regional branch dashboard";
     }
   }
@@ -509,6 +497,16 @@ export function AppShell({
                 <span className="block truncate text-[10px] text-sidebar-foreground/50">{user.email}</span>
               </span>
             </Link>
+          )}
+          {user?.role === "central_admin" && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-blue-500 uppercase tracking-wider">CENTRAL ADMIN</span>
+                <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-bold uppercase truncate max-w-[120px]">
+                  ALL CHAPTERS
+                </span>
+              </div>
+            </div>
           )}
           {(role === "chapter_admin" || user?.role === "chapter_admin" || path?.startsWith("/chapter-admin") || path === "/admin/operations") && (
             <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">

@@ -10,8 +10,8 @@ export default function StateAdminLayout({ children }) {
 
   useEffect(() => {
     if (loading || !user) return;
-    if (user.role === "super_admin") {
-      // Super Admin has overview across both admin and state admin
+    if (user.role === "central_admin") {
+      // Central Admin has overview across both admin and state admin
       return;
     }
     if (user.role === "chapter_admin") {

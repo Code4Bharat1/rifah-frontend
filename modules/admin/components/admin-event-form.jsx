@@ -95,7 +95,7 @@ function MultiSelectDropdown({ options, selected, toggleOption, placeholder = "S
 export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const router = useRouter();
   const { user } = useAuth();
-  const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
+  const isCentralAdmin = user?.role === "central_admin";
   const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -607,7 +607,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
 
 
 
-            {isSuperAdmin && (
+            {isCentralAdmin && (
               <div className="space-y-3 pt-6 border-t">
                 <div>
                   <Label className="text-base">Target States</Label>
@@ -689,7 +689,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   disabled={loading || savingDraft}
                   className="w-48 bg-primary"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isSuperAdmin ? "Publish Now & Broadcast" : "Submit for Approval")}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isCentralAdmin ? "Publish Now & Broadcast" : "Submit for Approval")}
                 </Button>
               </div>
             </div>

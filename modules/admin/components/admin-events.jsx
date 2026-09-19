@@ -117,7 +117,7 @@ function CalendarView({ events, onEventClick }) {
 function AdminEvents() {
   const router = useRouter();
   const { user } = useAuth();
-  const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
+  const isCentralAdmin = user?.role === "central_admin";
   const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
   const { data: eventsData, refetch } = useEvents();
   const events = Array.isArray(eventsData) ? eventsData : [];
@@ -325,13 +325,13 @@ function AdminEvents() {
                         <DropdownMenuItem asChild>
                           <Link href={`${basePath}/${r._id}`}>View Event Page</Link>
                         </DropdownMenuItem>
-                        {(isSuperAdmin || r.createdBy === user?._id) && (
+                        {(isCentralAdmin || r.createdBy === user?._id) && (
                           <DropdownMenuItem onClick={() => setRegistrationsModal({ open: true, eventId: r._id, eventTitle: r.title })}>
                             View Registrations
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
-                        {isSuperAdmin && r.status === "Pending Approval" && (
+                        {isCentralAdmin && r.status === "Pending Approval" && (
                           <DropdownMenuItem onClick={async () => {
                             try {
                               await eventApi.update(r._id, { status: "Upcoming" });
@@ -345,7 +345,7 @@ function AdminEvents() {
                           </DropdownMenuItem>
                         )}
 
-                        {(isSuperAdmin || r.createdBy === user?._id) && (
+                        {(isCentralAdmin || r.createdBy === user?._id) && (
                           <>
                             <DropdownMenuItem onClick={async () => {
                               try {

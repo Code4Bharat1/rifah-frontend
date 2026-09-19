@@ -48,11 +48,11 @@ export function AdminEventDetail() {
     );
   }
 
-  const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
+  const isCentralAdmin = user?.role === "central_admin";
   // Safely compare user._id (or id) with event.createdBy
   const userIdStr = String(user?._id || user?.id);
   const createdByStr = String(event.createdBy?._id || event.createdBy);
-  const canEdit = isSuperAdmin || createdByStr === userIdStr;
+  const canEdit = isCentralAdmin || createdByStr === userIdStr;
 
   const coverUrl = event.coverImage ? resolveMediaUrl(event.coverImage) : eventImage;
   const seatsRemaining = Math.max(0, (event.seats || 100) - (event.registeredCount || 0));

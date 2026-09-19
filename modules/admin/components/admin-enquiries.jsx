@@ -58,7 +58,7 @@ function AdminEnquiries() {
 
   const { data: adminUsersData } = useAdminUsers({ limit: 100 });
   const adminUsers = Array.isArray(adminUsersData)
-    ? adminUsersData.filter(u => ["super_admin", "secretariat", "state_admin", "chapter_admin"].includes(u.role))
+    ? adminUsersData.filter(u => ["central_admin", "state_admin", "chapter_admin"].includes(u.role))
     : [];
 
   const { data: statesData } = useStates();

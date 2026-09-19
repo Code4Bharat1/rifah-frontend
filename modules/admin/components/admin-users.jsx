@@ -55,15 +55,15 @@ function AdminUsers() {
   const totalCount = rows.length;
   const businessOwnersCount = rows.filter((u) => u.role === "business_owner").length;
   const buyersCount = rows.filter((u) => u.role === "customer").length;
-  const adminCount = rows.filter((u) => ["super_admin", "state_admin", "chapter_admin", "secretariat"].includes(u.role)).length;
+  const adminCount = rows.filter((u) => ["central_admin", "state_admin", "chapter_admin"].includes(u.role)).length;
 
   let displayRows = rows;
   if (roleFilter === "business_owner") {
     displayRows = rows.filter((u) => u.role === "business_owner");
   } else if (roleFilter === "customer") {
     displayRows = rows.filter((u) => u.role === "customer");
-  } else if (roleFilter === "admin" || roleFilter === "secretariat") {
-    displayRows = rows.filter((u) => ["super_admin", "state_admin", "chapter_admin", "secretariat"].includes(u.role));
+  } else if (roleFilter === "admin") {
+    displayRows = rows.filter((u) => ["central_admin", "state_admin", "chapter_admin"].includes(u.role));
   }
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -177,7 +177,20 @@ function AdminUsers() {
             columns={[
               { key: "name", header: "Name", cell: (r) => <span className="font-semibold">{r.name}</span> },
               { key: "email", header: "Email", cell: (r) => r.email },
-              { key: "role", header: "Role", cell: (r) => <Pill tone="primary">{r.role}</Pill> },
+              { key: "role", header: "Role", cell: (r) => {
+                const roleName = (r.role === "central_admin")
+                  ? "Central Admin"
+                  : r.role === "state_admin"
+                  ? "State Admin"
+                  : r.role === "chapter_admin"
+                  ? "Chapter Admin"
+                  : r.role === "business_owner"
+                  ? "Business Owner"
+                  : r.role === "customer"
+                  ? "Buyer"
+                  : r.role;
+                return <Pill tone="primary">{roleName}</Pill>;
+              }},
               { key: "status", header: "Status", cell: (r) => <Pill tone={(r.status || "active").toLowerCase() === "active" ? "success" : "warning"}>{r.status || "Active"}</Pill> },
               { key: "joined", header: "Joined", cell: (r) => new Date(r.createdAt).toLocaleDateString() },
               {
@@ -214,7 +227,7 @@ function AdminUsers() {
                             <DropdownMenuItem onClick={() => handleChangeRole(r, "state_admin")} disabled={r.role === "state_admin"}>
                               Make State Admin
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleChangeRole(r, "secretariat")} disabled={r.role === "secretariat"}>
+                            <DropdownMenuItem onClick={() => handleChangeRole(r, "central_admin")} disabled={r.role === "central_admin"}>
                               Make Central Admin
                             </DropdownMenuItem>
                           </>
@@ -244,7 +257,15 @@ function AdminUsers() {
                     <Pill tone={(r.status || "active").toLowerCase() === "active" ? "success" : "warning"}>{r.status || "Active"}</Pill>
                   </div>
                   <div className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5">
-                    <Pill tone="primary">{r.role}</Pill>
+                    <Pill tone="primary">
+                      {r.role === "central_admin"
+                        ? "Central Admin"
+                        : r.role === "state_admin"
+                        ? "State Admin"
+                        : r.role === "chapter_admin"
+                        ? "Chapter Admin"
+                        : r.role}
+                    </Pill>
                     <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectedUser(r)}>Manage</Button>
                   </div>
                 </div>

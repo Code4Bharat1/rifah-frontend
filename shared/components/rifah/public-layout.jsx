@@ -54,7 +54,7 @@ export function PublicHeader() {
   };
 
   const dashboardPath =
-    user?.role === "super_admin"
+    user?.role === "central_admin"
       ? "/admin"
       : user?.role === "state_admin"
       ? "/state-admin"
@@ -138,7 +138,7 @@ function MobileMenu() {
   };
 
   const dashboardPath =
-    user?.role === "super_admin"
+    user?.role === "central_admin"
       ? "/admin"
       : user?.role === "state_admin"
       ? "/state-admin"

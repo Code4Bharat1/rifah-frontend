@@ -57,7 +57,7 @@ import { cn } from "@shared/lib/utils";
 
 function AdminVerification() {
   const { user } = useAuth();
-  const isSuperAdmin = ["super_admin", "secretariat"].includes(user?.role);
+  const isCentralAdmin = user?.role === "central_admin";
   const [chapterFilter, setChapterFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
@@ -446,9 +446,7 @@ function AdminVerification() {
                   <span className="opacity-90">
                     ({item.reviewedBy.role === "chapter_admin" 
                       ? `${item.reviewedBy.chapter ? item.reviewedBy.chapter.replace(/\s*[Cc]hapter\s*/g, "") : ""} Chapter Admin`.trim()
-                      : item.reviewedBy.role === "super_admin" 
-                      ? "RIFAH Super Admin" 
-                      : "Central Admin"})
+                      : "RIFAH Central Admin"})
                   </span>
                 )}
               </span>
@@ -551,7 +549,7 @@ function AdminVerification() {
             />
           </div>
 
-          {isSuperAdmin ? (
+          {isCentralAdmin ? (
             <Select value={chapterFilter} onValueChange={setChapterFilter}>
               <SelectTrigger className="sm:max-w-[220px] h-10">
                 <SelectValue placeholder="Filter by chapter" />

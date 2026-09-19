@@ -27,10 +27,10 @@ export function AdminAudit() {
       const data = res?.data?.auditLogs || res?.data || res || [];
       const list = Array.isArray(data) ? data : [];
 
-      // Filter out super_admin logs and DELETE action status for state admin / scoped views
+      // Filter out central_admin logs and DELETE action status for state admin / scoped views
       const filtered = list.filter((log) => {
         if (isStateAdmin) {
-          if (log.actorRole === "super_admin" || log.actorRole === "superadmin") return false;
+          if (log.actorRole === "central_admin") return false;
           if (log.action?.toUpperCase() === "DELETE") return false;
         } else if (log.action?.toUpperCase() === "DELETE") {
           return false;

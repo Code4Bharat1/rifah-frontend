@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Heart,
   MessageCircle,
@@ -16,10 +16,16 @@ import {
   Trash2,
   Building2,
   MapPin,
+  Filter,
+  Globe,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
 } from "lucide-react";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { Badge } from "@shared/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +37,7 @@ import { Textarea } from "@shared/components/ui/textarea";
 import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useChapters, useMyBusiness } from "@shared/hooks/use-rifah-api";
+import { useChapters, useStates, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { resolveMediaUrl } from "@shared/lib/media";
 import { toast } from "sonner";
 import { cn } from "@shared/lib/utils";
@@ -73,10 +79,10 @@ function UserAvatar({ src, name, className = "h-9 w-9", iconClassName = "h-5 w-5
 
 // Role badge helper for displaying author level
 function RoleBadge({ role }) {
-  if (role === "super_admin" || role === "admin" || role === "secretariat") {
+  if (role === "central_admin") {
     return (
       <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-        Admin
+        Central Admin
       </span>
     );
   }
@@ -109,6 +115,8 @@ function InstagramPostCard({
   onLikeToggle,
   onAddComment,
   onDeletePost,
+  onSelectChapter,
+  onSelectState,
 }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -182,11 +190,39 @@ function InstagramPostCard({
               <span className="text-xs text-muted-foreground">{post.author?.timeAgo || "Just now"}</span>
             </div>
 
-            {/* Chapter / Location subtitle */}
+            {/* Chapter / Location subtitle with interactive quick-filtering */}
             {(post.chapter || post.state || post.author?.subtitle) && (
-              <span className="text-[11px] text-muted-foreground truncate">
-                {post.chapter ? `${post.chapter}${post.state ? ` • ${post.state}` : ""}` : (post.author?.subtitle || post.state)}
-              </span>
+              <div className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
+                {post.chapter ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectChapter?.(post.chapter);
+                    }}
+                    className="hover:text-primary hover:underline transition-colors cursor-pointer truncate"
+                    title={`Filter by chapter: ${post.chapter}`}
+                  >
+                    {post.chapter}
+                  </button>
+                ) : null}
+                {post.chapter && post.state && <span>•</span>}
+                {post.state ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectState?.(post.state);
+                    }}
+                    className="hover:text-primary hover:underline transition-colors cursor-pointer truncate"
+                    title={`Filter by state: ${post.state}`}
+                  >
+                    {post.state}
+                  </button>
+                ) : (
+                  !post.chapter && <span>{post.author?.subtitle}</span>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -417,12 +453,343 @@ function InstagramPostCard({
   );
 }
 
+// Multi-Level Filter Panel (All, State-wise, Chapter-wise)
+function FeedFilterSidebar({
+  filterMode,
+  setFilterMode,
+  selectedState,
+  setSelectedState,
+  selectedChapter,
+  setSelectedChapter,
+  searchQuery,
+  setSearchQuery,
+  availableStates = [],
+  availableChapters = [],
+  totalPostsCount = 0,
+  filteredCount = 0,
+  onReset,
+  userState = "",
+  userChapter = "",
+}) {
+  const isFiltering =
+    filterMode !== "all" ||
+    Boolean(selectedState) ||
+    Boolean(selectedChapter) ||
+    Boolean(searchQuery.trim());
+
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-3.5 border-b border-border/70 flex items-center justify-between bg-muted/20">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-foreground tracking-tight">Feed Filters</h2>
+            <p className="text-[11px] text-muted-foreground">
+              {filteredCount} of {totalPostsCount} posts
+            </p>
+          </div>
+        </div>
+
+        {isFiltering && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReset}
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer"
+            title="Reset filters"
+          >
+            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+            Reset
+          </Button>
+        )}
+      </div>
+
+      <div className="p-4 space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search posts, captions, members..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 text-xs h-8.5 rounded-lg"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* 3-Mode Filter Segmented Control */}
+        <div className="space-y-1.5">
+          <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Filter View
+          </Label>
+          <div className="grid grid-cols-3 gap-1 bg-muted/40 p-1 rounded-xl border border-border/50">
+            <button
+              type="button"
+              onClick={() => {
+                setFilterMode("all");
+                setSelectedState("");
+                setSelectedChapter("");
+              }}
+              className={cn(
+                "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                filterMode === "all"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Globe className="h-3.5 w-3.5 shrink-0" />
+              <span>All</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFilterMode("state")}
+              className={cn(
+                "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                filterMode === "state"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              <span>State</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFilterMode("chapter")}
+              className={cn(
+                "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                filterMode === "chapter"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Building2 className="h-3.5 w-3.5 shrink-0" />
+              <span>Chapter</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Dynamic Controls based on selected Mode */}
+        {filterMode === "all" && (
+          <div className="rounded-xl border border-border/60 bg-muted/15 p-3 space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+              <Globe className="h-3.5 w-3.5 text-sky-500" />
+              <span>All Feeds Active</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Showing updates from all chapters and states across the entire RIFAH network.
+            </p>
+
+            {(userChapter || userState) && (
+              <div className="pt-2 border-t border-border/40 space-y-1.5">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
+                  Quick Shortcuts
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {userChapter && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterMode("chapter");
+                        setSelectedChapter(userChapter);
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                    >
+                      <Building2 className="h-3 w-3" />
+                      My Chapter ({userChapter})
+                    </button>
+                  )}
+                  {userState && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterMode("state");
+                        setSelectedState(userState);
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                    >
+                      <MapPin className="h-3 w-3" />
+                      My State ({userState})
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {filterMode === "state" && (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-primary" /> Select State
+              </Label>
+              <Select
+                value={selectedState || "ALL_STATES"}
+                onValueChange={(val) => setSelectedState(val === "ALL_STATES" ? "" : val)}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select a state" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="ALL_STATES">All States</SelectItem>
+                  {availableStates.map((state) => (
+                    <SelectItem key={state} value={state}>
+                      {state}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Quick State Pills */}
+            {availableStates.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
+                  Popular States
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableStates.slice(0, 6).map((state) => {
+                    const isSelected = selectedState.toLowerCase() === state.toLowerCase();
+                    return (
+                      <button
+                        key={state}
+                        type="button"
+                        onClick={() => setSelectedState(isSelected ? "" : state)}
+                        className={cn(
+                          "px-2 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer",
+                          isSelected
+                            ? "bg-primary text-primary-foreground font-semibold"
+                            : "bg-muted hover:bg-muted/80 text-foreground"
+                        )}
+                      >
+                        {state}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {filterMode === "chapter" && (
+          <div className="space-y-3">
+            {/* Optional state filter to narrow chapters */}
+            {availableStates.length > 1 && (
+              <div className="space-y-1">
+                <Label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> State Filter (Optional)
+                </Label>
+                <Select
+                  value={selectedState || "ALL_STATES"}
+                  onValueChange={(val) => {
+                    setSelectedState(val === "ALL_STATES" ? "" : val);
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="All States" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-48">
+                    <SelectItem value="ALL_STATES">All States</SelectItem>
+                    {availableStates.map((state) => (
+                      <SelectItem key={state} value={state}>
+                        {state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Select Chapter */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-primary" /> Select Chapter
+              </Label>
+              <Select
+                value={selectedChapter || "ALL_CHAPTERS"}
+                onValueChange={(val) => setSelectedChapter(val === "ALL_CHAPTERS" ? "" : val)}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select a chapter" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="ALL_CHAPTERS">All Chapters</SelectItem>
+                  {availableChapters.map((chapter) => (
+                    <SelectItem key={chapter.id || chapter.name} value={chapter.name}>
+                      {chapter.name} {chapter.state ? `(${chapter.state})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Quick Chapter Shortcuts */}
+            {userChapter && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedChapter(userChapter)}
+                  className={cn(
+                    "w-full text-left flex items-center justify-between p-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer",
+                    selectedChapter.toLowerCase() === userChapter.toLowerCase()
+                      ? "border-primary bg-primary/10 text-primary font-semibold"
+                      : "border-border bg-muted/20 hover:bg-muted/40 text-foreground"
+                  )}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5" />
+                    My Chapter: {userChapter}
+                  </span>
+                  {selectedChapter.toLowerCase() === userChapter.toLowerCase() && (
+                    <Badge variant="default" className="text-[10px] h-4 px-1">Active</Badge>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Current Active Filter Summary Tag */}
+        {isFiltering && (
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">Active Filter:</span>
+            <span className="font-semibold text-primary truncate max-w-[180px]">
+              {filterMode === "all"
+                ? (searchQuery ? `Search: "${searchQuery}"` : "All Feeds")
+                : filterMode === "state"
+                ? (selectedState ? `State: ${selectedState}` : "All States")
+                : (selectedChapter ? `Chapter: ${selectedChapter}` : "All Chapters")}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Main BizFeeds Component
 export function BizFeeds() {
   const { user } = useAuth();
   const { data: businessData } = useMyBusiness();
+  const { data: statesData } = useStates();
   const { data: chaptersData } = useChapters();
   const chapters = chaptersData || [];
+  const statesList = statesData || [];
 
   const [posts, setPosts] = useState([]);
   const [isNewPostOpen, setIsNewPostOpen] = useState(false);
@@ -437,6 +804,12 @@ export function BizFeeds() {
   const [useUrlInput, setUseUrlInput] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState("");
 
+  // Feed Filter States ('all' | 'state' | 'chapter')
+  const [filterMode, setFilterMode] = useState("all");
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedChapter, setSelectedChapter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const profilePicInputRef = useRef(null);
   const postImageInputRef = useRef(null);
 
@@ -449,6 +822,75 @@ export function BizFeeds() {
   const currentUsername = (user?.name || user?.email?.split("@")[0] || "").toLowerCase().replace(/\s+/g, "_");
 
   const resolvedDefaultAvatar = user?.avatar ? resolveMediaUrl(user.avatar) : "";
+
+  // Compute list of unique states available for filtering
+  const availableStates = useMemo(() => {
+    const stateSet = new Set();
+    statesList.forEach((s) => {
+      const name = typeof s === "string" ? s : s?.name;
+      if (name) stateSet.add(name.trim());
+    });
+    chapters.forEach((c) => {
+      if (c.state) stateSet.add(c.state.trim());
+    });
+    posts.forEach((p) => {
+      if (p.state) stateSet.add(p.state.trim());
+    });
+    return Array.from(stateSet).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [statesList, chapters, posts]);
+
+  // Compute list of unique chapters available for filtering
+  const availableChapters = useMemo(() => {
+    const chapterMap = new Map();
+    chapters.forEach((c) => {
+      if (c.name) {
+        chapterMap.set(c.name.trim(), {
+          name: c.name.trim(),
+          state: c.state || "",
+          id: c._id || c.id || c.name,
+        });
+      }
+    });
+    posts.forEach((p) => {
+      if (p.chapter && !chapterMap.has(p.chapter.trim())) {
+        chapterMap.set(p.chapter.trim(), {
+          name: p.chapter.trim(),
+          state: p.state || "",
+          id: p.chapterId || p.chapter,
+        });
+      }
+    });
+    let list = Array.from(chapterMap.values());
+    if (filterMode === "chapter" && selectedState && selectedState !== "ALL_STATES") {
+      list = list.filter((c) => (c.state || "").toLowerCase() === selectedState.toLowerCase());
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [chapters, posts, filterMode, selectedState]);
+
+  // Handlers for quick interactive filtering
+  const handleResetFilter = () => {
+    setFilterMode("all");
+    setSelectedState("");
+    setSelectedChapter("");
+    setSearchQuery("");
+  };
+
+  const handleSelectState = (stateName) => {
+    if (!stateName) return;
+    setFilterMode("state");
+    setSelectedState(stateName);
+    setSelectedChapter("");
+  };
+
+  const handleSelectChapter = (chapterName) => {
+    if (!chapterName) return;
+    setFilterMode("chapter");
+    setSelectedChapter(chapterName);
+    const match = chapters.find((c) => (c.name || "").toLowerCase() === chapterName.toLowerCase());
+    if (match?.state) {
+      setSelectedState(match.state);
+    }
+  };
 
   // Initialize form when modal opens with user defaults
   useEffect(() => {
@@ -604,7 +1046,7 @@ export function BizFeeds() {
         name: username,
         avatar: formProfilePic || null,
         role: userRole,
-        verified: (userRole === "admin" || userRole === "super_admin" || userRole === "state_admin" || userRole === "chapter_admin"),
+        verified: (userRole === "central_admin" || userRole === "state_admin" || userRole === "chapter_admin"),
         subtitle: targetChapter ? `${targetChapter} • ${postState}` : postState,
         timeAgo: "Just now",
       },
@@ -639,86 +1081,66 @@ export function BizFeeds() {
   };
 
   // =========================================================================
-  // AUTOMATIC FEED SEGREGATION (No manual filter UI)
+  // FEED FILTERING: All Feeds by default + State / Chapter Wise Right-Side Filters
   // =========================================================================
-  // 1. Central Admin: Automatically sees ALL posts across the entire platform
-  // 2. State Admin: Automatically sees ONLY Chapter Admins & Business posts in their state, plus their own
-  // 3. Chapter Admin: Automatically sees ONLY Business posts in their chapter, plus their own
-  // 4. Business Member: Automatically sees their Chapter community posts, plus their own
-  // =========================================================================
-  const filteredPosts = posts.filter((post) => {
-    // 1. Central Admin sees ALL posts automatically
-    if (userRole === "super_admin" || userRole === "admin" || userRole === "secretariat") {
+  const filteredPosts = useMemo(() => {
+    return posts.filter((post) => {
+      // 1. Text Search Filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const captionMatch = (post.caption || "").toLowerCase().includes(q);
+        const authorMatch = (post.author?.username || post.author?.name || "").toLowerCase().includes(q);
+        const chapterMatch = (post.chapter || "").toLowerCase().includes(q);
+        const stateMatch = (post.state || "").toLowerCase().includes(q);
+        if (!captionMatch && !authorMatch && !chapterMatch && !stateMatch) {
+          return false;
+        }
+      }
+
+      // 2. All Mode: Show all feeds
+      if (filterMode === "all") {
+        return true;
+      }
+
+      // 3. State Mode: Filter by selected state
+      if (filterMode === "state") {
+        if (!selectedState || selectedState === "ALL_STATES") return true;
+        const postState = (
+          post.state ||
+          chapters.find((c) => (c.name || "").toLowerCase() === (post.chapter || "").toLowerCase())?.state ||
+          ""
+        ).toLowerCase().trim();
+        const targetState = selectedState.toLowerCase().trim();
+        return (
+          postState === targetState ||
+          postState.includes(targetState) ||
+          targetState.includes(postState)
+        );
+      }
+
+      // 4. Chapter Mode: Filter by selected chapter
+      if (filterMode === "chapter") {
+        if (!selectedChapter || selectedChapter === "ALL_CHAPTERS") return true;
+        const postChapter = (post.chapter || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
+        const targetChapter = selectedChapter.toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
+        return (
+          postChapter === targetChapter ||
+          postChapter.includes(targetChapter) ||
+          targetChapter.includes(postChapter) ||
+          (post.chapterId && String(post.chapterId) === selectedChapter)
+        );
+      }
+
       return true;
-    }
-
-    // 2. Author always sees their own post
-    const isOwner = Boolean(
-      (post.createdById && userId && String(post.createdById) === userId) ||
-      (post.createdByUsername && currentUsername && post.createdByUsername.toLowerCase() === currentUsername)
-    );
-    if (isOwner) {
-      return true;
-    }
-
-    // 3. State Admin: Automatically show only chapter admins & business posts in their state
-    if (userRole === "state_admin") {
-      if (!userState) return true;
-
-      // Collect all chapter names belonging to this state
-      const stateChapters = chapters
-        .filter((c) => (c.state || "").toLowerCase().trim() === userState)
-        .map((c) => (c.name || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim());
-
-      const postState = (post.state || "").toLowerCase().trim();
-      const isSameState = postState && (postState === userState || userState.includes(postState) || postState.includes(userState));
-
-      const postChapterClean = (post.chapter || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
-      const isChapterInState = stateChapters.some(
-        (sc) => sc && postChapterClean && (sc === postChapterClean || postChapterClean.includes(sc) || sc.includes(postChapterClean))
-      );
-
-      // Must be in this state AND created by chapter_admin, business, or state_admin
-      const postRole = post.createdByRole || post.author?.role || "business";
-      const isAllowedRole = ["chapter_admin", "business", "member", "state_admin"].includes(postRole);
-
-      return (isSameState || isChapterInState) && isAllowedRole;
-    }
-
-    // 4. Chapter Admin: Automatically show only business posts in their chapter (and chapter admin posts)
-    if (userRole === "chapter_admin") {
-      const userChapterClean = userChapter.replace(/\b(chapter|chamber)\b/gi, "").trim();
-      const postChapterClean = (post.chapter || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
-
-      const isSameChapter = Boolean(
-        (post.chapterId && userChapterId && String(post.chapterId) === userChapterId) ||
-        (userChapterClean && postChapterClean && (
-          userChapterClean === postChapterClean ||
-          postChapterClean.includes(userChapterClean) ||
-          userChapterClean.includes(postChapterClean)
-        ))
-      );
-
-      const postRole = post.createdByRole || post.author?.role || "business";
-      const isAllowedRole = ["business", "member", "chapter_admin"].includes(postRole);
-
-      return isSameChapter && isAllowedRole;
-    }
-
-    // 5. Business Member: Automatically show posts from their chapter (or general public posts)
-    const userChapterClean = userChapter.replace(/\b(chapter|chamber)\b/gi, "").trim();
-    const postChapterClean = (post.chapter || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
-
-    if (!userChapterClean) return true;
-    return !postChapterClean || userChapterClean === postChapterClean || postChapterClean.includes(userChapterClean);
-  });
+    });
+  }, [posts, filterMode, selectedState, selectedChapter, searchQuery, chapters]);
 
   // =========================================================================
   // AUTOMATIC DELETION PERMISSIONS
   // =========================================================================
   const hasDeletePermission = (post) => {
     // 1. Central Admin can delete ALL posts automatically
-    if (userRole === "super_admin" || userRole === "admin" || userRole === "secretariat") {
+    if (userRole === "central_admin") {
       return true;
     }
 
@@ -772,7 +1194,7 @@ export function BizFeeds() {
 
   return (
     <AppShell
-      role={userRole === "admin" || userRole === "super_admin" ? "admin" : "business"}
+      role={userRole || "business"}
       title="Feeds"
       subtitle="Connect, share business milestones, and explore updates from fellow members"
       actions={
@@ -781,41 +1203,104 @@ export function BizFeeds() {
         </Button>
       }
     >
-      <div className="py-2 space-y-6 max-w-[500px] mx-auto">
-        {/* If no posts match the user's automatically filtered scope */}
-        {filteredPosts.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center space-y-4 shadow-xs">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted border border-border">
-              <Camera className="h-8 w-8 text-muted-foreground stroke-[1.5]" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-foreground">No Posts Yet</h3>
-              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                No posts published in your feed yet. Share the first post to get started!
-              </p>
-            </div>
-            <Button
-              onClick={() => setIsNewPostOpen(true)}
-              className="gap-2 font-semibold text-xs"
-            >
-              <PlusCircle className="h-4 w-4" /> Create Post
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {filteredPosts.map((post) => (
-              <InstagramPostCard
-                key={post.id}
-                post={post}
-                currentUser={activeUser}
-                canDelete={hasDeletePermission(post)}
-                onLikeToggle={handleLikeToggle}
-                onAddComment={handleAddComment}
-                onDeletePost={handleDeletePost}
-              />
-            ))}
-          </div>
-        )}
+      <div className="max-w-6xl mx-auto py-2">
+        {/* Mobile / Tablet Filter Bar (< lg) */}
+        <div className="lg:hidden mb-5">
+          <FeedFilterSidebar
+            filterMode={filterMode}
+            setFilterMode={setFilterMode}
+            selectedState={selectedState}
+            setSelectedState={setSelectedState}
+            selectedChapter={selectedChapter}
+            setSelectedChapter={setSelectedChapter}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            availableStates={availableStates}
+            availableChapters={availableChapters}
+            totalPostsCount={posts.length}
+            filteredCount={filteredPosts.length}
+            onReset={handleResetFilter}
+            userState={userState}
+            userChapter={userChapter}
+          />
+        </div>
+
+        {/* 2-Column Responsive Layout: Feed in Center, Filters on Right */}
+        <div className="flex items-start justify-center gap-8">
+          {/* Main Feed Stream Column */}
+          <main className="flex-1 max-w-[520px] w-full min-w-0 space-y-6">
+            {filteredPosts.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center space-y-4 shadow-xs">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted border border-border">
+                  <Camera className="h-8 w-8 text-muted-foreground stroke-[1.5]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-foreground">No Posts Found</h3>
+                  <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                    {posts.length === 0
+                      ? "No posts published in the network yet. Be the first to share an update!"
+                      : "No posts match the current filter selection. Try choosing another state/chapter or resetting."}
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  {posts.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResetFilter}
+                      className="gap-1.5 text-xs font-semibold cursor-pointer"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> Show All Posts
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => setIsNewPostOpen(true)}
+                    className="gap-2 font-semibold text-xs cursor-pointer"
+                  >
+                    <PlusCircle className="h-4 w-4" /> Create Post
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {filteredPosts.map((post) => (
+                  <InstagramPostCard
+                    key={post.id}
+                    post={post}
+                    currentUser={activeUser}
+                    canDelete={hasDeletePermission(post)}
+                    onLikeToggle={handleLikeToggle}
+                    onAddComment={handleAddComment}
+                    onDeletePost={handleDeletePost}
+                    onSelectChapter={handleSelectChapter}
+                    onSelectState={handleSelectState}
+                  />
+                ))}
+              </div>
+            )}
+          </main>
+
+          {/* Right Column: Sticky Multi-Level Filter Panel (Desktop lg+) */}
+          <aside className="hidden lg:block w-80 shrink-0 sticky top-20">
+            <FeedFilterSidebar
+              filterMode={filterMode}
+              setFilterMode={setFilterMode}
+              selectedState={selectedState}
+              setSelectedState={setSelectedState}
+              selectedChapter={selectedChapter}
+              setSelectedChapter={setSelectedChapter}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              availableStates={availableStates}
+              availableChapters={availableChapters}
+              totalPostsCount={posts.length}
+              filteredCount={filteredPosts.length}
+              onReset={handleResetFilter}
+              userState={userState}
+              userChapter={userChapter}
+            />
+          </aside>
+        </div>
       </div>
 
       {/* Direct Image & Post Creation Modal */}
@@ -908,7 +1393,7 @@ export function BizFeeds() {
               </div>
 
               {/* Chapter & State Assignment (if admin or selecting target) */}
-              {(userRole === "admin" || userRole === "super_admin" || userRole === "state_admin" || !user?.chapter) && (
+              {(userRole === "central_admin" || userRole === "state_admin" || !user?.chapter) && (
                 <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
                   <div className="space-y-1">
                     <Label className="text-xs font-medium flex items-center gap-1">

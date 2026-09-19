@@ -21,7 +21,7 @@ export default function ChapterAdminLayout({ children }) {
         router.replace("/chapter-admin/enquiries");
       }
       // Other subroutes (/chapter-admin/businesses, /chapter-admin/users, /chapter-admin/audit, etc.) are allowed
-    } else if (user.role !== "chapter_admin" && user.role !== "super_admin" && user.role !== "admin") {
+    } else if (user.role !== "chapter_admin" && user.role !== "central_admin") {
       router.replace("/");
     }
   }, [user, loading, router, pathname]);

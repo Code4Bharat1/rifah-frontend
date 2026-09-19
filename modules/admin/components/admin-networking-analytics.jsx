@@ -29,19 +29,20 @@ function AdminNetworkingAnalytics() {
   });
   const leaderboardRows = leaderboardData?.rows || [];
 
-  const breakdownLevel = role === "super_admin" ? "state" : role === "state_admin" ? "chapter" : null;
+  const isCentral = role === "central_admin";
+  const breakdownLevel = isCentral ? "state" : role === "state_admin" ? "chapter" : null;
   const { data: breakdownData, isLoading: breakdownLoading } = useNetworkingBreakdown({ level: breakdownLevel });
   const breakdownRows = breakdownData?.rows || [];
 
   const scopeName = overview?.scope?.name || "";
   const title =
-    role === "super_admin"
+    isCentral
       ? "Business Generated Analytics"
       : role === "state_admin"
         ? `${scopeName || "State"} — Business Analytics`
         : `${scopeName || "Chapter"} — Business Analytics`;
 
-  const breakdownTitle = role === "super_admin" ? "State-wise Business Generated" : "Chapter-wise Business Generated";
+  const breakdownTitle = isCentral ? "State-wise Business Generated" : "Chapter-wise Business Generated";
 
   return (
     <AppShell
@@ -153,7 +154,7 @@ function AdminNetworkingAnalytics() {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground font-semibold">
                     <tr>
-                      <th className="px-4 py-3">{role === "super_admin" ? "State" : "Chapter"}</th>
+                      <th className="px-4 py-3">{isCentral ? "State" : "Chapter"}</th>
                       <th className="px-4 py-3">Given</th>
                       <th className="px-4 py-3">Received</th>
                       <th className="px-4 py-3">Total</th>

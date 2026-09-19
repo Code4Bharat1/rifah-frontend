@@ -18,7 +18,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 export function AdminStates() {
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === "super_admin";
+  const isCentralAdmin = user?.role === "central_admin";
   const { data: statesData, refetch, isLoading } = useStates();
   const states = Array.isArray(statesData) ? statesData : [];
 
@@ -116,9 +116,9 @@ export function AdminStates() {
     <AppShell
       role="admin"
       title="States & Regional Leadership"
-      subtitle="National structure: Super Admin allocates State Admins to manage Chapter Admin"
+      subtitle="National structure: Central Admin allocates State Admins to manage Chapter Admins"
       actions={
-        isSuperAdmin ? (
+        isCentralAdmin ? (
           <Button onClick={() => handleOpenAllocate()} className="gap-2">
             <Plus className="h-4 w-4" /> Allocate State Admin
           </Button>
@@ -130,7 +130,7 @@ export function AdminStates() {
         <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900 shadow-xs dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
           <p className="font-semibold text-sm">3-Tier Geographic Delegation System</p>
           <p className="mt-1 text-blue-800/90 dark:text-blue-300">
-            As Super Admin, you assign <strong>State Admins</strong> to oversee states. The State Admin for that state then holds the exclusive authority to assign and manage <strong>Chapter Admins</strong> for individual cities (e.g., Mumbai, Pune, Nagpur).
+            As Central Admin, you assign <strong>State Admins</strong> to oversee states. The State Admin for that state then holds the exclusive authority to assign and manage <strong>Chapter Admins</strong> for individual cities (e.g., Mumbai, Pune, Nagpur).
           </p>
         </div>
 
@@ -213,7 +213,7 @@ export function AdminStates() {
                 key: "actions",
                 header: "",
                 cell: (r) =>
-                  isSuperAdmin ? (
+                  isCentralAdmin ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">

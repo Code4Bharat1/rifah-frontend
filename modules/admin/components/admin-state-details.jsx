@@ -29,8 +29,8 @@ import { useAuth } from "@shared/providers/auth-provider";
 export default function AdminStateDetails({ stateName }) {
   const router = useRouter();
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === "super_admin";
-  const currentRole = isSuperAdmin ? "admin" : "state_admin";
+  const isCentralAdmin = user?.role === "central_admin";
+  const currentRole = isCentralAdmin ? "admin" : "state_admin";
   const backHref = "/admin/states";
   
   const { data, isLoading, refetch } = useStateDetails(stateName);
@@ -207,7 +207,7 @@ export default function AdminStateDetails({ stateName }) {
                       </div>
                     </div>
 
-                    {isSuperAdmin && (
+                    {isCentralAdmin && (
                       <div className="pt-4 border-t border-border">
                         <Button 
                           variant="outline" 
@@ -237,7 +237,7 @@ export default function AdminStateDetails({ stateName }) {
                       </p>
                     </div>
                     
-                    {isSuperAdmin && (
+                    {isCentralAdmin && (
                       <Button 
                         onClick={() => {
                           setNewAdmin({ name: "", email: "", phone: "", state: stateName });

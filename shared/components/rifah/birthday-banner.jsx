@@ -51,6 +51,10 @@ export function BirthdayBanner() {
   const dashboardRoutes = [
     "/biz",
     "/chapter-admin",
+    "/admin",
+    "/state-admin",
+    "/secretariat",
+    "/consumer",
   ];
   const isDashboard = dashboardRoutes.includes(cleanPath);
 
