@@ -25,7 +25,6 @@ import {
   Image as ImageIcon,
   Loader2,
   AlertCircle,
-  User,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -105,6 +104,12 @@ function BusinessProfile() {
   const [coverError, setCoverError] = useState(false);
   const [logoError, setLogoError] = useState(false);
 
+  // Tab and Catalogue detail modal state
+  const [activeTab, setActiveTab] = useState("about");
+  const [selectedCatalogueItem, setSelectedCatalogueItem] = useState(null);
+  const [activeCatalogueImageIndex, setActiveCatalogueImageIndex] = useState(0);
+  const [catalogueLinkCopied, setCatalogueLinkCopied] = useState(false);
+
   // Enquiry modal state
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [enquirySubmitting, setEnquirySubmitting] = useState(false);
@@ -156,6 +161,87 @@ function BusinessProfile() {
         setEnquiryError("");
       }, 300);
     }
+  };
+
+  // Open catalogue item from URL query parameter (e.g. ?item=slug) or hash without full page reload
+  useEffect(() => {
+    if (typeof window === "undefined" || !catalogueItems?.length) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const itemParam = urlParams.get("item") || (window.location.hash ? window.location.hash.replace("#", "") : null);
+    if (itemParam) {
+      const match = catalogueItems.find(
+        (i) => String(i.slug || "").toLowerCase() === itemParam.toLowerCase() || String(i._id) === itemParam
+      );
+      if (match) {
+        setSelectedCatalogueItem(match);
+        setActiveCatalogueImageIndex(0);
+        setActiveTab("catalogue");
+      }
+    }
+  }, [catalogueItems]);
+
+  const handleOpenCatalogueItem = (item) => {
+    setSelectedCatalogueItem(item);
+    setActiveCatalogueImageIndex(0);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("item", item.slug || item._id);
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  const handleCloseCatalogueItem = () => {
+    setSelectedCatalogueItem(null);
+    setActiveCatalogueImageIndex(0);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("item");
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  const handleCopyCatalogueItemLink = async (item) => {
+    if (typeof window === "undefined" || !item) return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("item", item.slug || item._id);
+      await navigator.clipboard.writeText(url.toString());
+      setCatalogueLinkCopied(true);
+      toast.success("Direct link to this item copied!");
+      setTimeout(() => setCatalogueLinkCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  // Lock body scroll and listen for Escape key when catalogue item full-screen page is open
+  useEffect(() => {
+    if (!selectedCatalogueItem) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        handleCloseCatalogueItem();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedCatalogueItem]);
+
+  const handleEnquireFromCatalogue = (item) => {
+    setEnquiryForm((prev) => ({
+      ...prev,
+      title: `Enquiry: ${item.name}`,
+      quantity: item.moq || prev.quantity || "",
+      description: `Hi, I am interested in "${item.name}" (${item.type || "Product"}). Please provide more details on pricing, availability, and ordering requirements.`,
+    }));
+    handleCloseCatalogueItem();
+    setEnquiryOpen(true);
   };
 
   useEffect(() => {
@@ -428,7 +514,7 @@ function BusinessProfile() {
             </div>
 
             {/* Profile sections */}
-            <Tabs defaultValue="about" className="mt-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
               <TabsList className="w-full justify-start overflow-x-auto no-scrollbar">
                 <TabsTrigger value="about">About</TabsTrigger>
                 <TabsTrigger value="catalogue">Catalogue ({catalogue.length})</TabsTrigger>
@@ -471,14 +557,26 @@ function BusinessProfile() {
                   ) : (
                     <ul className="grid gap-4 sm:grid-cols-2">
                       {catalogue.map((item) => (
-                        <li key={item._id || item.slug} className="flex flex-col justify-between rounded-2xl border border-border p-4 bg-card/60 overflow-hidden hover:border-primary/40 transition-colors">
+                        <li
+                          key={item._id || item.slug}
+                          onClick={() => handleOpenCatalogueItem(item)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleOpenCatalogueItem(item);
+                            }
+                          }}
+                          className="group cursor-pointer flex flex-col justify-between rounded-2xl border border-border p-4 bg-card/60 overflow-hidden hover:border-primary/60 hover:shadow-md hover:bg-card transition-all duration-200"
+                        >
                           <div>
                             {item.images && item.images.length > 0 ? (
                               <div className="relative mb-3 h-36 w-full overflow-hidden rounded-xl bg-muted border border-border">
                                 <img
                                   src={resolveMediaUrl(item.images[0])}
                                   alt={item.name}
-                                  className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 />
                                 {item.images.length > 1 && (
                                   <span className="absolute bottom-2 right-2 rounded-full bg-slate-900/75 backdrop-blur-xs px-2 py-0.5 text-[10px] font-medium text-white">
@@ -487,17 +585,17 @@ function BusinessProfile() {
                                 )}
                               </div>
                             ) : (
-                              <div className="relative mb-3 h-24 w-full overflow-hidden rounded-xl bg-muted/60 flex items-center justify-center border border-border">
+                              <div className="relative mb-3 h-24 w-full overflow-hidden rounded-xl bg-muted/60 flex items-center justify-center border border-border group-hover:bg-muted transition-colors">
                                 {item.type === "Service" ? (
-                                  <Wrench className="h-6 w-6 text-muted-foreground/60" />
+                                  <Wrench className="h-6 w-6 text-muted-foreground/60 group-hover:text-primary transition-colors" />
                                 ) : (
-                                  <Package className="h-6 w-6 text-muted-foreground/60" />
+                                  <Package className="h-6 w-6 text-muted-foreground/60 group-hover:text-primary transition-colors" />
                                 )}
                               </div>
                             )}
 
                             <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm font-bold text-foreground leading-snug">{item.name}</p>
+                              <p className="text-sm font-bold text-foreground leading-snug group-hover:text-primary transition-colors">{item.name}</p>
                               <span
                                 className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
                                   item.type === "Service"
@@ -531,16 +629,21 @@ function BusinessProfile() {
                                 {item.price ? (item.price.startsWith("₹") ? item.price : `₹ ${item.price}`) : "On Request"}
                               </span>
                             </div>
-                            {item.moq && (
-                              <div className="text-right">
-                                <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
-                                  MOQ
-                                </span>
-                                <span className="font-semibold text-muted-foreground">
-                                  {item.moq}
-                                </span>
-                              </div>
-                            )}
+                            <div className="text-right flex flex-col items-end">
+                              {item.moq && (
+                                <>
+                                  <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
+                                    MOQ
+                                  </span>
+                                  <span className="font-semibold text-muted-foreground">
+                                    {item.moq}
+                                  </span>
+                                </>
+                              )}
+                              <span className="mt-1 text-[11px] font-semibold text-primary inline-flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                                View details →
+                              </span>
+                            </div>
                           </div>
                         </li>
                       ))}
@@ -1201,6 +1304,227 @@ function BusinessProfile() {
                 </Button>
               </div>
             </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Catalogue Item Detail Popup Modal (Vertical Flow, Scrollable without Visible Scrollbar) */}
+      <Dialog
+        open={Boolean(selectedCatalogueItem)}
+        onOpenChange={(open) => {
+          if (!open) handleCloseCatalogueItem();
+        }}
+      >
+        <DialogContent className="w-[94vw] sm:max-w-lg md:max-w-xl max-h-[88vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden p-0 gap-0 rounded-2xl sm:rounded-3xl border border-border shadow-2xl bg-card">
+          {selectedCatalogueItem && (
+            <div className="flex flex-col">
+              {/* Media Stage (Top of Vertical Stack) */}
+              <div className="relative bg-muted/40 border-b border-border p-3 sm:p-4 pb-3">
+                {selectedCatalogueItem.images && selectedCatalogueItem.images.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="relative h-56 sm:h-72 w-full overflow-hidden rounded-2xl bg-black/5 dark:bg-black/30 border border-border flex items-center justify-center">
+                      <img
+                        src={resolveMediaUrl(
+                          selectedCatalogueItem.images[activeCatalogueImageIndex] || selectedCatalogueItem.images[0]
+                        )}
+                        alt={selectedCatalogueItem.name}
+                        className="h-full w-full object-contain p-2 transition-all duration-200"
+                      />
+                      {selectedCatalogueItem.images.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCatalogueImageIndex((prev) =>
+                                prev === 0 ? selectedCatalogueItem.images.length - 1 : prev - 1
+                              );
+                            }}
+                            className="absolute left-2.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors shadow-md cursor-pointer"
+                            aria-label="Previous image"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCatalogueImageIndex((prev) =>
+                                prev === selectedCatalogueItem.images.length - 1 ? 0 : prev + 1
+                              );
+                            }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors shadow-md cursor-pointer"
+                            aria-label="Next image"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                          <div className="absolute bottom-2.5 right-3 rounded-full bg-black/70 backdrop-blur-xs px-2.5 py-0.5 text-xs font-semibold text-white">
+                            {activeCatalogueImageIndex + 1} / {selectedCatalogueItem.images.length}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Image Thumbnails if > 1 */}
+                    {selectedCatalogueItem.images.length > 1 && (
+                      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                        {selectedCatalogueItem.images.map((img, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveCatalogueImageIndex(idx)}
+                            className={cn(
+                              "relative h-12 w-12 shrink-0 rounded-xl overflow-hidden border-2 transition-all cursor-pointer",
+                              activeCatalogueImageIndex === idx
+                                ? "border-primary ring-2 ring-primary/30 scale-105"
+                                : "border-border/70 opacity-60 hover:opacity-100"
+                            )}
+                          >
+                            <img
+                              src={resolveMediaUrl(img)}
+                              alt={`thumb ${idx + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-40 sm:h-48 w-full rounded-2xl bg-gradient-to-br from-primary/5 via-primary/10 to-transparent border border-border/70 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <div className="h-12 w-12 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-center text-primary">
+                      {selectedCatalogueItem.type === "Service" ? (
+                        <Wrench className="h-6 w-6" />
+                      ) : (
+                        <Package className="h-6 w-6" />
+                      )}
+                    </div>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      No media uploaded for this offering
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Details Content (Vertical Flow) */}
+              <div className="p-5 sm:p-6 space-y-4">
+                {/* Type badge, Category tag & Slug */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                        selectedCatalogueItem.type === "Service"
+                          ? "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300"
+                          : "bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300"
+                      }`}
+                    >
+                      {selectedCatalogueItem.type || "Product"}
+                    </span>
+                    {selectedCatalogueItem.category && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        <Tag className="h-3 w-3" />
+                        {selectedCatalogueItem.category}
+                      </span>
+                    )}
+                  </div>
+                  {selectedCatalogueItem.slug && (
+                    <span className="text-[11px] font-mono text-muted-foreground bg-muted/60 px-2.5 py-0.5 rounded-md">
+                      #{selectedCatalogueItem.slug}
+                    </span>
+                  )}
+                </div>
+
+                {/* Title & Business attribution */}
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-foreground leading-snug">
+                    {selectedCatalogueItem.name}
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                    Offered by <strong className="text-foreground">{business.name}</strong>
+                    {business.city && <span>· {business.city}</span>}
+                  </p>
+                </div>
+
+                {/* Price & MOQ stats */}
+                <div className="grid grid-cols-2 gap-2.5 p-2.5 rounded-2xl bg-muted/30 border border-border">
+                  <div className="p-2.5 rounded-xl bg-card border border-border/50">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block">
+                      Price
+                    </span>
+                    <span className="mt-0.5 text-base sm:text-lg font-bold text-primary block truncate">
+                      {selectedCatalogueItem.price
+                        ? selectedCatalogueItem.price.startsWith("₹")
+                          ? selectedCatalogueItem.price
+                          : `₹ ${selectedCatalogueItem.price}`
+                        : "On Request"}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-card border border-border/50">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block">
+                      Minimum Order (MOQ)
+                    </span>
+                    <span className="mt-0.5 text-xs sm:text-sm font-semibold text-foreground block truncate">
+                      {selectedCatalogueItem.moq || "Flexible / On Request"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Description & Specifications */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
+                    Description & Specifications
+                  </span>
+                  <div className="rounded-2xl border border-border/60 bg-muted/15 p-3.5">
+                    <p className="text-xs sm:text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
+                      {selectedCatalogueItem.description || "No detailed description has been provided for this offering."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-2 border-t border-border flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyCatalogueItemLink(selectedCatalogueItem)}
+                    className="rounded-xl gap-1.5 text-xs font-semibold"
+                  >
+                    {catalogueLinkCopied ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-600" /> Link Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" /> Share Item Link
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCloseCatalogueItem}
+                      className="rounded-xl"
+                    >
+                      Close
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => handleEnquireFromCatalogue(selectedCatalogueItem)}
+                      className="rounded-xl gap-1.5 font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                    >
+                      <Send className="h-3.5 w-3.5" /> Enquire for this {selectedCatalogueItem.type || "Item"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
