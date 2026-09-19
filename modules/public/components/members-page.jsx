@@ -163,52 +163,61 @@ export function MembersDirectoryPage() {
                 const avatarUrl = user?.avatar ? resolveMediaUrl(user.avatar) : null;
 
                 return (
-                  <div key={role._id} className="group relative bg-background rounded-3xl border border-border p-8 text-center hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 flex flex-col items-center overflow-hidden">
-
-                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary/40 to-primary"></div>
-
-                    <div className="relative mb-6">
+                  <div key={role._id} className="group relative h-full bg-background rounded-[2rem] border border-border/50 text-center hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 hover:-translate-y-2 flex flex-col overflow-hidden isolate shadow-sm">
+                    
+                    {/* Full width portrait image container */}
+                    <div className="relative w-full aspect-[4/5] bg-muted/40 overflow-hidden flex-shrink-0 border-b border-border/20">
                       {avatarUrl ? (
                         <img
                           src={avatarUrl}
                           alt={user?.name}
-                          className="w-28 h-28 rounded-full object-cover border-4 border-background shadow-lg bg-muted relative z-10"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="w-28 h-28 rounded-full bg-primary/10 text-primary flex items-center justify-center text-4xl font-bold shadow-lg border-4 border-background relative z-10">
+                        <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/20 text-primary/60 flex items-center justify-center text-[100px] font-black transition-transform duration-700 group-hover:scale-105">
                           {user?.name?.charAt(0)?.toUpperCase()}
                         </div>
                       )}
-                      <div className="absolute -bottom-4 inset-x-0 flex justify-center z-20">
+                      
+                      {/* Gentle shadow overlay inside image for depth */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none"></div>
+
+                      {/* Level Badge overlaid on top left */}
+                      <div className="absolute top-4 left-4 z-20 shadow-sm">
                         {getLevelBadge(role.level)}
                       </div>
                     </div>
 
-                    <h3 className="text-xl font-bold text-foreground truncate w-full mb-1 mt-2">{user?.name}</h3>
+                    {/* Card Content Area */}
+                    <div className="relative p-6 bg-background z-10 flex flex-col items-center flex-grow">
+                      <h3 className="text-2xl font-extrabold text-foreground w-full mb-1 tracking-tight truncate">{user?.name}</h3>
+                      
+                      <p className="text-[13px] font-bold text-primary tracking-wide uppercase px-4 py-1.5 bg-primary/5 rounded-full border border-primary/10 mb-5 mt-1 inline-block">
+                        {role.role}
+                      </p>
 
-                    <p className="text-sm font-bold text-primary px-4 py-1.5 bg-primary/5 rounded-full border border-primary/10 mb-4 inline-block">
-                      {role.role}
-                    </p>
+                      <div className="flex gap-2 w-full justify-center flex-wrap mb-4">
+                        {role.level === "State" && role.state && (
+                          <div className="flex items-center justify-center text-[11px] uppercase tracking-widest text-muted-foreground font-bold bg-muted/60 px-3 py-1.5 rounded-lg">
+                            <MapPin className="h-3 w-3 mr-1 text-primary/60" /> {role.state}
+                          </div>
+                        )}
+                        {role.level === "Chapter" && role.chapterId && (
+                          <div className="flex items-center justify-center text-[11px] uppercase tracking-widest text-muted-foreground font-bold bg-muted/60 px-3 py-1.5 rounded-lg">
+                            <MapPin className="h-3 w-3 mr-1 text-primary/60" /> {role.chapterId.name || "Chapter"}
+                          </div>
+                        )}
+                      </div>
 
-                    {role.level === "State" && role.state && (
-                      <div className="flex items-center text-xs text-muted-foreground mb-4 font-medium bg-muted/50 px-3 py-1.5 rounded-lg border border-border/50">
-                        <MapPin className="h-3.5 w-3.5 mr-1.5" /> {role.state}
-                      </div>
-                    )}
-                    {role.level === "Chapter" && role.chapterId && (
-                      <div className="flex items-center text-xs text-muted-foreground mb-4 font-medium bg-muted/50 px-3 py-1.5 rounded-lg border border-border/50">
-                        <MapPin className="h-3.5 w-3.5 mr-1.5" /> {role.chapterId.name || "Chapter"}
-                      </div>
-                    )}
-
-                    {(business?.name || user?.organization) && (
-                      <div className="mt-auto flex items-center justify-center gap-2 w-full text-muted-foreground bg-muted/30 p-3 rounded-xl border border-border/50">
-                        <Building2 className="h-4 w-4 shrink-0 text-primary/60" />
-                        <span className="text-sm font-semibold truncate">
-                          {business?.name || user?.organization}
-                        </span>
-                      </div>
-                    )}
+                      {(business?.name || user?.organization) && (
+                        <div className="mt-auto flex flex-col items-center justify-center gap-1.5 w-full text-foreground/80 pt-4 border-t border-border/40">
+                          <Building2 className="h-4 w-4 text-primary/40" />
+                          <span className="text-sm font-semibold truncate w-full text-center">
+                            {business?.name || user?.organization}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
