@@ -29,6 +29,8 @@ export function AdminStates() {
     name: "",
     email: "",
     phone: "",
+    address: "",
+    imageFile: null,
   });
 
   // Edit State Modal
@@ -47,6 +49,8 @@ export function AdminStates() {
       name: "",
       email: "",
       phone: "",
+      address: "",
+      imageFile: null,
     });
     setOpenModal(true);
   };
@@ -59,10 +63,24 @@ export function AdminStates() {
     }
     setSubmitting(true);
     try {
-      await stateApi.assignAdmin(form);
+      let imageUrl = "";
+      if (form.imageFile) {
+        const uploadRes = await stateApi.uploadStateCover(form.imageFile);
+        imageUrl = uploadRes.data?.url || uploadRes.url || "";
+      }
+
+      await stateApi.assignAdmin({
+        state: form.state,
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        address: form.address,
+        image: imageUrl,
+      });
+
       toast.success(`State Admin allocated for ${form.state}! Credentials sent via email.`);
       setOpenModal(false);
-      setForm({ state: "", name: "", email: "", phone: "" });
+      setForm({ state: "", name: "", email: "", phone: "", address: "", imageFile: null });
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to allocate State Admin.");
@@ -280,6 +298,27 @@ export function AdminStates() {
                 placeholder="e.g. Maharashtra"
               />
             </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="st-image">State Cover Image</Label>
+              <Input
+                id="st-image"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setForm({ ...form, imageFile: e.target.files[0] })}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="st-address">Office Address</Label>
+              <Input
+                id="st-address"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                placeholder="e.g. 123 Main St, Mumbai"
+              />
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="st-admin-name">State Admin Full Name *</Label>
               <Input

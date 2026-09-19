@@ -56,15 +56,17 @@ export function EventRegistrationsModal({ eventId, eventTitle, open, onOpenChang
               No registrations found for this event yet.
             </div>
           ) : (
-            <ResponsiveTable rows={registrations} columns={[
-              { key: "name", header: "Name", cell: r => r.user?.name || "Unknown" },
-              { key: "email", header: "Email", cell: r => r.user?.email || "N/A" },
-              { key: "phone", header: "Phone", cell: r => r.user?.phone || "N/A" },
-              { key: "role", header: "Role", cell: r => <span className="capitalize">{r.user?.role?.replace("_", " ")}</span> },
-              { key: "chapter", header: "Chapter", cell: r => r.user?.chapter || "N/A" },
-              { key: "attendance", header: "Attendance", cell: r => <Pill tone={r.attendanceStatus === "Present" ? "success" : "neutral"}>{r.attendanceStatus || "Pending"}</Pill> },
-              { key: "date", header: "Registered At", cell: r => new Date(r.registeredAt).toLocaleString() },
-            ]} />
+              <ResponsiveTable rows={registrations} columns={[
+                { key: "name", header: "Name", cell: r => r.user?.name || "Unknown" },
+                { key: "email", header: "Email", cell: r => r.user?.email || "N/A" },
+                { key: "phone", header: "Phone", cell: r => r.user?.phone || "N/A" },
+                { key: "role", header: "Role", cell: r => <span className="capitalize">{r.user?.role?.replace("_", " ")}</span> },
+                { key: "chapter", header: "Chapter", cell: r => r.user?.chapter || "N/A" },
+                { key: "attendance", header: "Attendance", cell: r => <Pill tone={r.attendanceStatus === "Present" ? "success" : "neutral"}>{r.attendanceStatus || "Pending"}</Pill> },
+                { key: "amount", header: "Amount", cell: r => <span className="font-semibold text-emerald-600">{r.amountPaid ? `₹${r.amountPaid}` : "Free"}</span> },
+                { key: "coupon", header: "Coupon", cell: r => r.couponApplied ? <Pill tone="info">{r.couponApplied}</Pill> : <span className="text-muted-foreground">-</span> },
+                { key: "date", header: "Registered At", cell: r => new Date(r.registeredAt).toLocaleString() },
+              ]} />
           )}
         </div>
       </DialogContent>

@@ -105,8 +105,14 @@ export const stateApi = {
   getByName: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}`),
   assignAdmin: (data) => apiClient("/states/assign-admin", { method: "POST", body: JSON.stringify(data) }),
   removeAdmin: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}/admin`, { method: "DELETE" }),
-  renameState: (stateName, newStateName) => apiClient(`/states/${encodeURIComponent(stateName)}`, { method: "PUT", body: JSON.stringify({ newStateName }) }),
+  renameState: (oldName, newName) => apiClient(`/states/${encodeURIComponent(oldName)}`, { method: "PUT", body: JSON.stringify({ newStateName: newName }) }),
   deleteState: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}`, { method: "DELETE" }),
+  uploadStateCover: (file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    return apiClient("/states/upload", { method: "POST", body: formData });
+  },
+  updateStateProfile: (stateName, data) => apiClient(`/states/${encodeURIComponent(stateName)}/profile`, { method: "PUT", body: JSON.stringify(data) }),
 };
 
 export const oneToOneApi = {
