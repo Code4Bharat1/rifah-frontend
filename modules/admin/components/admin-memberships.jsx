@@ -29,6 +29,8 @@ function AdminMemberships() {
   const businesses = rawBusinesses.filter(b => b.verification === "verified" || b.isVerified === true);
 
   const [filter, setFilter] = useState("all");
+  const [viewMode, setViewMode] = useState("list"); // "list" or "directory"
+
   const filteredBusinesses = businesses.filter((b) => {
     if (filter === "premium") return b.membership === "Premium" || b.membership === "Enterprise";
     if (filter === "basic") return b.membership === "Basic";
@@ -230,7 +232,89 @@ function AdminMemberships() {
           </Panel>
         )}
 
-        <Panel title={filter === "all" ? "Member subscriptions" : filter === "premium" ? "Premium/Enterprise Subscriptions" : filter === "basic" ? "Basic Subscriptions" : "Verified Members"}>
+        <Panel>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+            <h2 className="text-lg font-semibold">{filter === "all" ? "Member subscriptions" : filter === "premium" ? "Premium/Enterprise Subscriptions" : filter === "basic" ? "Basic Subscriptions" : "Verified Members"}</h2>
+            
+            {user?.role === "chapter_admin" && (
+              <div className="flex bg-muted p-1 rounded-lg self-start sm:self-auto border border-border">
+                <Button size="sm" variant={viewMode === "list" ? "default" : "ghost"} onClick={() => setViewMode("list")} className="h-8">List View</Button>
+                <Button size="sm" variant={viewMode === "directory" ? "default" : "ghost"} onClick={() => setViewMode("directory")} className="h-8">Directory View</Button>
+              </div>
+            )}
+          </div>
+          
+          {viewMode === "directory" ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {filteredBusinesses.map((b, idx) => {
+                const owner = b.owner || {};
+                const name = owner.name || b.contactPerson || "Member";
+                const role = b.roleInBusiness || owner.roleInBusiness || b.designation || "Member";
+                const location = [b.city, b.state].filter(Boolean).join(", ");
+                const industry = b.categories?.length > 0 ? b.categories.join(", ") : b.industry;
+                const ask = owner.sourcingInterest || "Looking for reliable business partners and networking opportunities.";
+                const give = b.productsSummary?.join(", ") || b.servicesSummary?.join(", ") || b.about || "Quality products and services in our industry.";
+                
+                return (
+                  <div key={b._id} className="border border-border rounded-xl bg-card overflow-hidden shadow-sm flex flex-col relative transition-all hover:shadow-md">
+                    <div className="absolute top-3 left-3 text-sm font-bold text-muted-foreground w-6 h-6 flex items-center justify-center">
+                      {idx + 1}.
+                    </div>
+                    <div className="p-4 pl-10 flex gap-4 border-b border-border bg-muted/5">
+                      <div className="h-20 w-20 rounded-md bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border">
+                        {b.logo || owner.avatar ? (
+                          <img src={b.logo || owner.avatar} alt="Profile" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="h-full w-full bg-primary/10 text-primary flex items-center justify-center font-bold text-2xl">
+                            {name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 flex flex-col justify-center">
+                        <h3 className="font-bold text-lg text-foreground truncate pr-2">{name}</h3>
+                        <p className="text-sm font-medium text-foreground leading-tight mt-1">
+                          {b.name} <span className="text-muted-foreground font-normal text-xs ml-1">• {role} • {b.membership.toUpperCase()}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1.5 truncate flex items-center gap-1">
+                          {location} <span className="text-border">|</span> {industry}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 flex flex-col gap-3 flex-1 text-sm bg-background">
+                      <div>
+                        <span className="font-bold text-amber-500 mr-2">ASK:</span>
+                        <span className="text-foreground/90">{ask}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-green-600 mr-2">GIVE:</span>
+                        <span className="text-foreground/90">{give}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 px-4 border-t border-border bg-muted/10 text-xs flex flex-wrap gap-x-6 gap-y-2 items-center">
+                      {b.whatsapp || b.whatsappNumber ? (
+                        <div className="flex gap-1.5 items-center">
+                          <span className="font-bold text-green-600">WhatsApp:</span> 
+                          <span className="font-medium text-foreground">{b.whatsapp || b.whatsappNumber}</span>
+                        </div>
+                      ) : (
+                        <div className="flex gap-1.5 items-center">
+                          <span className="font-bold text-foreground">Phone:</span> 
+                          <span className="font-medium text-foreground">{b.phone || owner.phone}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-1.5 items-center ml-auto">
+                        <span className="font-bold text-foreground">Email:</span> 
+                        <span className="font-medium text-foreground truncate max-w-[150px]">{b.email || owner.email}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
           <ResponsiveTable
             rows={filteredBusinesses}
             columns={[
@@ -303,6 +387,7 @@ function AdminMemberships() {
               </div>
             )}
           />
+          )}
         </Panel>
       </div>
 
