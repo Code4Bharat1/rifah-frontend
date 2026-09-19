@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { useStateDetails } from "@shared/hooks/use-rifah-api";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 import { 
   ChevronRight, 
   MapPin, 
@@ -103,7 +104,7 @@ export function StateDetailPage({ stateName }) {
           {/* Top Image */}
           <div className="w-full bg-slate-100 flex items-center justify-center border-b border-slate-100 relative min-h-[250px]">
              {image ? (
-               <img src={image} alt={displayName} className="w-full max-h-[500px] object-cover" />
+               <img src={resolveMediaUrl(image)} alt={displayName} className="w-full max-h-[500px] object-cover" />
              ) : (
                <div className="py-24 text-slate-400 flex flex-col items-center">
                  <Globe className="h-16 w-16 mb-4 opacity-50" />

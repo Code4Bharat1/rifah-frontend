@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   CalendarDays,
   CalendarPlus,
@@ -88,6 +88,7 @@ import { cn } from "@shared/lib/utils";
 import { StatCard } from "@shared/components/rifah/ui-bits";
 import { Pill } from "@shared/components/rifah/badges";
 import { EntranceDesk } from "./entrance-desk";
+import { FinanceTab } from "./finance-tab";
 import { CertificatesTab } from "./certificates-tab";
 import { ScriptsTab } from "./scripts-tab";
 import { AskGiveBoard } from "./ask-give-board";
@@ -135,7 +136,15 @@ const HORIZONTAL_MODULE_TABS = [
 export function OperationsCenter({ initialTab = "event-setup" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { user, logout } = useAuth();
+
+  // Dynamic Base Path for Routing
+  const basePath = pathname?.startsWith("/admin") 
+    ? "/admin" 
+    : pathname?.startsWith("/state-admin") 
+      ? "/state-admin" 
+      : "/chapter-admin";
 
   // Active Tab: synchronized with URL param or prop + instant state update
   const [activeTabState, setActiveTabState] = useState(initialTab || "event-setup");
@@ -150,16 +159,29 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
   const setTab = (tabName) => {
     setActiveTabState(tabName);
-    if (tabName === "overview" || tabName === "chapter-overview") {
-      router.push("/chapter-admin");
+    if (basePath === "/chapter-admin") {
+      if (tabName === "overview" || tabName === "chapter-overview") {
+        router.push(basePath);
+      } else {
+        router.push(`${basePath}/${tabName}`);
+      }
     } else {
-      router.push(`/chapter-admin/${tabName}`);
+      router.push(`${basePath}/operations?tab=${tabName}`);
     }
   };
   const currentTab = activeTabState;
 
-  // Chapter Name
-  const chapterName = user?.chapter || "Mumbai Chapter";
+  // Context-Aware UI Strings
+  const isCentralAdmin = user?.role === "central_admin";
+  const isStateAdmin = user?.role === "state_admin";
+
+  const chapterName = isCentralAdmin 
+    ? "Global Operations" 
+    : isStateAdmin 
+      ? `${user?.state || "State"} State Operations` 
+      : (user?.chapter || "Mumbai Chapter");
+      
+  const roleLabel = isCentralAdmin ? "CENTRAL ADMIN" : isStateAdmin ? "STATE ADMIN" : "CHAPTER ADMIN";
   const chapterSlug = (user?.chapter || "central-mumbai")
     .toLowerCase()
     .replace(/\s*[Cc]hapter\s*/g, "")
@@ -352,7 +374,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     async function loadData() {
       try {
         setLoadingEvents(true);
-        const res = await eventApi.list({ limit: 50 });
+        const res = await eventApi.list({ limit: 50, strictAdminScope: true });
         const eventList = res?.events || res?.data || res || [];
         setEvents(eventList);
         if (eventList.length > 0) {
@@ -590,6 +612,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       const payload = {
         certificateStyle: eventSetupForm.certificateStyle,
         certificateAccentColor: eventSetupForm.certificateAccentColor,
+        signatory1Role: eventSetupForm.signatory1Role,
+        signatory1Name: eventSetupForm.signatory1Name,
+        signatory1Image: eventSetupForm.signatory1Image,
         signatory2Role: eventSetupForm.signatory2Role,
         signatory2Name: eventSetupForm.signatory2Name,
         signatory2Image: eventSetupForm.signatory2Image,
@@ -1838,7 +1863,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-5">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Pill tone="brand">CHAPTER ADMIN</Pill>
+              <Pill tone="brand">{roleLabel}</Pill>
               <Pill tone="neutral">{chapterName.toUpperCase()}</Pill>
               <Pill tone={socketConnected ? "success" : "warning"}>
                 <span
@@ -1855,7 +1880,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             </h1>
             <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground mt-1">
               <span>
-                <span className="font-semibold text-foreground">Current Chapter:</span> {chapterName}
+                <span className="font-semibold text-foreground">Current Scope:</span> {chapterName}
               </span>
               <span className="text-border">|</span>
               <span>
@@ -1863,7 +1888,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </span>
               <span className="text-border">|</span>
               <span>
-                <span className="font-semibold text-foreground">Current Admin:</span> {user?.name || user?.email || "Chapter Admin"}
+                <span className="font-semibold text-foreground">Current Admin:</span> {user?.name || user?.email || roleLabel}
               </span>
             </div>
           </div>
@@ -2136,7 +2161,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <p className="text-xs text-muted-foreground mt-1">Role assignments for President, Gate Incharge, Stage Manager, and Treasurer.</p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-blue-500">
-                  <span>{teamMembers.length} Appointed Roles</span>
+                  <span>{Object.values(teamRoles).filter(Boolean).length} Appointed Roles</span>
                   <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -2453,7 +2478,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 </div>
                 <div>
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Event Poster <span className="font-normal normal-case">(optional)</span>
+                    Event Poster <span className="font-normal normal-case">(optional - Size 4:5)</span>
                   </Label>
                   <Input type="file" accept="image/*" className="mt-2"
                     onChange={(e) => {
@@ -2543,6 +2568,36 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <input type="color" value={eventSetupForm.certificateAccentColor} onChange={(e) => setEventSetupForm(prev => ({ ...prev, certificateAccentColor: e.target.value }))} className="h-9 w-14 rounded-md border border-border cursor-pointer p-0.5" />
                     <span className="text-sm font-mono text-muted-foreground">{eventSetupForm.certificateAccentColor}</span>
                   </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Signatory 1</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Role / Designation</Label>
+                    <Select value={eventSetupForm.signatory1Role} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, signatory1Role: val }))}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["— none —","Chapter Vice President","Chapter President","Chapter Secretary","State President","State Secretary","Other"].map(r => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Name (as printed)</Label>
+                    <Input value={eventSetupForm.signatory1Name} onChange={(e) => setEventSetupForm(prev => ({ ...prev, signatory1Name: e.target.value }))} placeholder="Full name" className="mt-1" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">Signature Image</Label>
+                  <Input type="file" accept="image/*" className="mt-1"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setEventSetupForm(prev => ({ ...prev, signatory1Image: URL.createObjectURL(file) }));
+                    }}
+                  />
                 </div>
               </div>
 
@@ -3522,295 +3577,14 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
       {/* MODULE 5: FINANCE */}
       {currentTab === "finance" && (
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-5">
-              <div>
-                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  Chapter Event Financial Ledger
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Track collections, expenses, vendor invoices, and statement reports backed by MongoDB
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => setFinanceDialogOpen(true)}
-                  className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Transaction</span>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportFinancialStatement}
-                  className="text-xs h-9 gap-1.5 font-semibold"
-                >
-                  <Download className="h-3.5 w-3.5 text-primary" />
-                  <span>Export Statement PDF</span>
-                </Button>
-              </div>
-            </div>
-
-            {/* 3 Summary Ledger KPI Badges */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">
-                  Total Collections (Money In)
-                </span>
-                <span className="text-2xl font-black text-emerald-600 font-mono mt-1 block">
-                  ₹{(financeRecords.moneyIn || []).reduce((s, i) => s + (Number(i.amount) || 0), 0).toLocaleString("en-IN")}
-                </span>
-              </div>
-              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 block">
-                  Total Expenses (Money Out)
-                </span>
-                <span className="text-2xl font-black text-rose-500 font-mono mt-1 block">
-                  ₹{(financeRecords.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0).toLocaleString("en-IN")}
-                </span>
-              </div>
-              <div className="p-4 rounded-xl bg-primary-soft border border-primary/20">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-primary block">
-                  Net Event Balance
-                </span>
-                <span className="text-2xl font-black text-primary font-mono mt-1 block">
-                  ₹{(
-                    (financeRecords.moneyIn || []).reduce((s, i) => s + (Number(i.amount) || 0), 0) -
-                    (financeRecords.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0)
-                  ).toLocaleString("en-IN")}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Money In */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <h4 className="font-bold text-emerald-600 flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4" /> Money In (Collections)
-                  </h4>
-                  <span className="font-black text-emerald-600 text-sm font-mono">
-                    ₹{(financeRecords.moneyIn || []).reduce((s, i) => s + (Number(i.amount) || 0), 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {(financeRecords.moneyIn || []).length === 0 ? (
-                    <div className="p-4 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
-                      No collections recorded yet. Click &ldquo;Add Transaction&rdquo; above.
-                    </div>
-                  ) : (
-                    (financeRecords.moneyIn || []).map((item, idx) => (
-                      <div
-                        key={item.id || item._id || idx}
-                        className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between text-xs"
-                      >
-                        <div>
-                          <p className="font-bold text-foreground">{item.desc}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            From: {item.from || "Attendee / Sponsor"} · {item.method || "Online"} · {item.date ? String(item.date).split("T")[0] : ""}
-                          </p>
-                        </div>
-                        <span className="font-black text-emerald-500 font-mono">
-                          +₹{Number(item.amount || 0).toLocaleString()}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Money Out */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <h4 className="font-bold text-rose-500 flex items-center gap-1.5">
-                    <AlertCircle className="h-4 w-4" /> Money Out (Expenses)
-                  </h4>
-                  <span className="font-black text-rose-500 text-sm font-mono">
-                    ₹{(financeRecords.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {(financeRecords.moneyOut || []).length === 0 ? (
-                    <div className="p-4 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
-                      No expenses recorded yet. Click &ldquo;Add Transaction&rdquo; above.
-                    </div>
-                  ) : (
-                    (financeRecords.moneyOut || []).map((item, idx) => (
-                      <div
-                        key={item.id || item._id || idx}
-                        className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between text-xs"
-                      >
-                        <div>
-                          <p className="font-bold text-foreground">{item.desc}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            To: {item.to || "Vendor"} · Ref: {item.invoice || "N/A"} · {item.date ? String(item.date).split("T")[0] : ""}
-                          </p>
-                        </div>
-                        <span className="font-black text-rose-500 font-mono">
-                          -₹{Number(item.amount || 0).toLocaleString()}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Ledger Summary */}
-            <div className="mt-6 p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-bold text-foreground">Treasurer Notes</p>
-                <p className="text-[11px] text-muted-foreground">{financeRecords.treasurerNotes}</p>
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Net Event Balance</span>
-                <span className="text-xl font-black text-primary font-mono">
-                  ₹
-                  {(
-                    (financeRecords.moneyIn || []).reduce((s, i) => s + (Number(i.amount) || 0), 0) -
-                    (financeRecords.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0)
-                  ).toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Add Finance Transaction Dialog */}
-          <Dialog open={financeDialogOpen} onOpenChange={setFinanceDialogOpen}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add Ledger Transaction</DialogTitle>
-                <DialogDescription>
-                  Record income collection or venue/catering expense directly into the chapter ledger in MongoDB.
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleAddFinanceTransaction} className="space-y-4 py-2">
-                <div>
-                  <Label className="text-xs font-semibold">Transaction Type</Label>
-                  <Select
-                    value={financeForm.type}
-                    onValueChange={(val) => setFinanceForm((prev) => ({ ...prev, type: val }))}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="moneyIn">Money In (Collection / Ticket / Sponsor)</SelectItem>
-                      <SelectItem value="moneyOut">Money Out (Expense / Venue / Catering)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">Description</Label>
-                  <Input
-                    placeholder="e.g. Venue Hall Advance or Sponsor Contribution"
-                    value={financeForm.desc}
-                    onChange={(e) => setFinanceForm((prev) => ({ ...prev, desc: e.target.value }))}
-                    className="mt-1"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs font-semibold">Amount (₹)</Label>
-                    <Input
-                      type="number"
-                      placeholder="5000"
-                      value={financeForm.amount}
-                      onChange={(e) => setFinanceForm((prev) => ({ ...prev, amount: e.target.value }))}
-                      className="mt-1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs font-semibold">
-                      {financeForm.type === "moneyIn" ? "Received From" : "Paid To"}
-                    </Label>
-                    <Input
-                      placeholder={financeForm.type === "moneyIn" ? "Payer / Sponsor" : "Vendor Name"}
-                      value={financeForm.type === "moneyIn" ? financeForm.from : financeForm.to}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (financeForm.type === "moneyIn") {
-                          setFinanceForm((prev) => ({ ...prev, from: val }));
-                        } else {
-                          setFinanceForm((prev) => ({ ...prev, to: val }));
-                        }
-                      }}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs font-semibold">Payment Method</Label>
-                    <Select
-                      value={financeForm.method}
-                      onValueChange={(val) => setFinanceForm((prev) => ({ ...prev, method: val }))}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Online">Online / Gateway</SelectItem>
-                        <SelectItem value="UPI">UPI</SelectItem>
-                        <SelectItem value="Bank Transfer">Bank Transfer (NEFT/IMPS)</SelectItem>
-                        <SelectItem value="Cash">Cash</SelectItem>
-                        <SelectItem value="Cheque">Cheque</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs font-semibold">Invoice / Reference No.</Label>
-                    <Input
-                      placeholder="INV-102 or UPI Ref"
-                      value={financeForm.invoice}
-                      onChange={(e) => setFinanceForm((prev) => ({ ...prev, invoice: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">Date</Label>
-                  <Input
-                    type="date"
-                    value={financeForm.date}
-                    onChange={(e) => setFinanceForm((prev) => ({ ...prev, date: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-
-                <DialogFooter className="pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setFinanceDialogOpen(false)}
-                    className="text-xs"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={submittingFinance}
-                    className="font-semibold text-xs shadow-xs"
-                  >
-                    {submittingFinance ? "Saving..." : "Record Transaction"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <FinanceTab
+          eventId={selectedEventId}
+          activeEvent={activeEvent}
+          financeRecords={financeRecords}
+          setFinanceRecords={setFinanceRecords}
+          attendees={attendeesList}
+          chapterMembers={chapterMembers}
+        />
       )}
 
       {/* MODULE 6: SPEAKERS & GUESTS */}

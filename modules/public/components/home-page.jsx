@@ -25,6 +25,7 @@ import {
   Mail,
   User,
   MapPin,
+  Share2,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { MoreLink, SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { EventShareModal } from "@shared/components/rifah/event-share-modal";
 import {
   Dialog,
   DialogContent,
@@ -128,6 +130,8 @@ function HomePage() {
           ? Object.entries(plansData).map(([id, p]) => ({ id, ...p }))
           : [])
     : [];
+
+  const [sharingEvent, setSharingEvent] = useState(null);
 
   // Home Page RFQ Modal State
   const [rfqOpen, setRfqOpen] = useState(false);
@@ -448,11 +452,22 @@ function HomePage() {
                       </p>
                     </div>
                   </div>
-                  <div className="p-4.5 pt-0">
-                    <Button asChild size="sm" variant="outline" className="w-full">
+                  <div className="p-4.5 pt-0 flex items-center gap-2">
+                    <Button asChild size="sm" variant="outline" className="flex-1 rounded-xl">
                       <Link href={`/events/${e._id || e.slug}`}>
                         View Event Details
                       </Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSharingEvent(e)}
+                      className="rounded-xl h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:border-primary/50 shrink-0"
+                      title="Share Event"
+                      aria-label={`Share ${e.title}`}
+                    >
+                      <Share2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </article>
@@ -718,6 +733,14 @@ function HomePage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <EventShareModal
+        event={sharingEvent}
+        open={Boolean(sharingEvent)}
+        onOpenChange={(open) => {
+          if (!open) setSharingEvent(null);
+        }}
+      />
     </PublicLayout>
   );
 }

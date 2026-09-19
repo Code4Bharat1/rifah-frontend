@@ -16,3 +16,4 @@ export { BizPowerNetworking } from "./components/power-networking/biz-power-netw
 export { BizFeeds } from "./components/biz-feeds.jsx";
 export { BizEvents } from "./components/biz-events.jsx";
 export { BizLms } from "./components/biz-lms.jsx";
+export { BizReviews } from "./components/biz-reviews.jsx";

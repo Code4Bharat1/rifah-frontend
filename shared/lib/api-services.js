@@ -103,6 +103,7 @@ export const chapterApi = {
 export const stateApi = {
   list: () => apiClient("/states"),
   getByName: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}`),
+  createState: (data) => apiClient("/states", { method: "POST", body: JSON.stringify(data) }),
   assignAdmin: (data) => apiClient("/states/assign-admin", { method: "POST", body: JSON.stringify(data) }),
   removeAdmin: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}/admin`, { method: "DELETE" }),
   renameState: (oldName, newName) => apiClient(`/states/${encodeURIComponent(oldName)}`, { method: "PUT", body: JSON.stringify({ newStateName: newName }) }),
@@ -160,6 +161,7 @@ export const verificationApi = {
     return apiClient("/verification/upload", { method: "POST", body: formData });
   },
   review: (id, data) => apiClient(`/verification/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/verification/${id}`, { method: "DELETE" }),
 };
 
 export const catalogueApi = {
@@ -321,9 +323,11 @@ export const reportApi = {
   getBusinessAnalytics: () => apiClient("/reports/business/me"),
   downloadAdminCsv: () => downloadFile("/reports/admin/export/csv", "admin_reports.csv"),
   downloadRevenue: (params) => downloadFile(`/reports/admin/export/revenue${toQueryString(params)}`, "revenue_report.csv"),
+  downloadBusinesses: (params) => downloadFile(`/reports/admin/export/businesses${toQueryString(params)}`, "businesses_report.csv"),
   downloadMemberships: (params) => downloadFile(`/reports/admin/export/memberships${toQueryString(params)}`, "memberships_report.csv"),
   downloadLeads: (params) => downloadFile(`/reports/admin/export/leads${toQueryString(params)}`, "leads_report.csv"),
   getRevenue: (params) => apiClient(`/reports/admin/export/revenue${toQueryString({ ...params, format: 'json' })}`),
+  getBusinesses: (params) => apiClient(`/reports/admin/export/businesses${toQueryString({ ...params, format: 'json' })}`),
   getMemberships: (params) => apiClient(`/reports/admin/export/memberships${toQueryString({ ...params, format: 'json' })}`),
   getLeads: (params) => apiClient(`/reports/admin/export/leads${toQueryString({ ...params, format: 'json' })}`),
   getEventsAnalytics: (params) => apiClient(`/reports/admin/events-analytics${toQueryString(params)}`),

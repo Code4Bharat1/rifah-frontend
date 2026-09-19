@@ -6,7 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { 
   ArrowLeft, Building2, MapPin, Users, UserCog, Mail, Briefcase, Phone,
-  Loader2, ShieldAlert, KeyRound, CheckCircle2, Image as ImageIcon, Camera, Pencil
+  Loader2, ShieldAlert, KeyRound, CheckCircle2, Image as ImageIcon, Camera, Pencil, Check, ChevronsUpDown, X
 } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -15,6 +15,7 @@ import { Panel, StatCard, ResponsiveTable } from "@shared/components/rifah/ui-bi
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
+import { Checkbox } from "@shared/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -22,8 +23,23 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@shared/components/ui/dialog";
-import { useStateDetails } from "@shared/hooks/use-rifah-api";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@shared/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@shared/components/ui/command";
+import { cn } from "@shared/lib/utils";
+import { useStateDetails, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { stateApi } from "@shared/lib/api-services";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 import { useAuth } from "@shared/providers/auth-provider";
 
 export default function AdminStateDetails({ stateName }) {
@@ -39,9 +55,31 @@ export default function AdminStateDetails({ stateName }) {
   const [adminLoading, setAdminLoading] = useState(false);
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "", phone: "", state: stateName });
 
+  const { data: businessesData } = useBusinesses({ limit: 150 });
+  const rawBusinesses = Array.isArray(businessesData)
+    ? businessesData
+    : (businessesData?.businesses || businessesData?.data || []);
+  const eligibleBusinesses = rawBusinesses.filter(b => b.owner);
+
+  const [openCombobox, setOpenCombobox] = useState(false);
+  const [selectedBusinessId, setSelectedBusinessId] = useState("");
+
+  const handleSelectBusinessOwner = (bizId) => {
+    setSelectedBusinessId(bizId);
+    const biz = rawBusinesses.find((b) => String(b._id) === String(bizId));
+    if (biz) {
+      setNewAdmin((prev) => ({
+        ...prev,
+        name: biz.owner?.name || biz.contactPerson || biz.name || "",
+        email: biz.owner?.email || biz.ownerEmail || biz.email || "",
+        phone: biz.owner?.phone || biz.phone || "",
+      }));
+    }
+  };
+
   const [openProfileModal, setOpenProfileModal] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [profileData, setProfileData] = useState({ address: "", email: "", phone: "" });
+  const [profileData, setProfileData] = useState({ address: "", email: "", phone: "", useAdminContact: false });
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [previewImage, setPreviewImage] = useState("");
 
@@ -74,10 +112,15 @@ export default function AdminStateDetails({ stateName }) {
     e.preventDefault();
     setAdminLoading(true);
     try {
-      await stateApi.assignAdmin(newAdmin);
+      await stateApi.assignAdmin({
+        ...newAdmin,
+        businessId: selectedBusinessId || undefined,
+        explicitStateName: stateName
+      });
       toast.success("State Admin successfully allocated/updated!");
       setOpenAdminModal(false);
       setNewAdmin({ name: "", email: "", phone: "", state: stateName });
+      setSelectedBusinessId("");
       refetch();
     } catch (error) {
       toast.error(error.message || "Failed to change admin.");
@@ -112,10 +155,12 @@ export default function AdminStateDetails({ stateName }) {
   };
 
   const openEditProfile = () => {
+    const isUsingAdminContact = admin && profile?.email === admin.email && profile?.phone === admin.phone;
     setProfileData({
       address: profile?.address || "",
       email: profile?.email || "",
       phone: profile?.phone || "",
+      useAdminContact: isUsingAdminContact || false
     });
     setPreviewImage(profile?.image || "");
     setSelectedImageFile(null);
@@ -232,7 +277,7 @@ export default function AdminStateDetails({ stateName }) {
               <div className="space-y-4">
                 <div className="relative w-full aspect-video bg-muted/30 rounded-xl overflow-hidden border border-border">
                   {profile?.image ? (
-                    <img src={profile.image} alt={stateName} className="w-full h-full object-cover" />
+                    <img src={resolveMediaUrl(profile.image)} alt={stateName} className="w-full h-full object-cover" />
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground/50">
                       <ImageIcon className="h-8 w-8 mb-2" />
@@ -355,6 +400,83 @@ export default function AdminStateDetails({ stateName }) {
           
           <form onSubmit={handleChangeAdmin} className="space-y-4 pt-4">
             <div className="space-y-2">
+              <Label htmlFor="st-biz-select">Select Business Owner (Optional)</Label>
+              <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openCombobox}
+                    className="w-full justify-between font-normal h-11"
+                    id="st-biz-select"
+                  >
+                    {selectedBusinessId
+                      ? (() => {
+                          const b = eligibleBusinesses.find((bz) => bz._id === selectedBusinessId);
+                          if (!b) return "Choose a business owner...";
+                          const oName = b.owner?.name || b.contactPerson || b.name;
+                          return `${oName} (${b.name})`;
+                        })()
+                      : "Choose a business owner..."}
+                    <div className="flex items-center gap-1 border-l pl-2 border-border/50">
+                      {selectedBusinessId ? (
+                        <div 
+                          role="button" 
+                          tabIndex={0} 
+                          className="flex items-center justify-center p-0.5 hover:bg-muted/80 rounded-md transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedBusinessId("");
+                            setNewAdmin((prev) => ({ ...prev, name: "", email: "", phone: "" }));
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                        </div>
+                      ) : null}
+                      <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                    </div>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search by name, business or email..." />
+                    <CommandList>
+                      <CommandEmpty>No business owner found.</CommandEmpty>
+                      <CommandGroup>
+                        {eligibleBusinesses.map((b) => {
+                          const oName = b.owner?.name || b.contactPerson || b.name;
+                          const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                          return (
+                            <CommandItem
+                              key={b._id}
+                              value={`${oName} ${b.name} ${oEmail} ${b._id}`}
+                              onSelect={() => {
+                                handleSelectBusinessOwner(b._id);
+                                setOpenCombobox(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedBusinessId === b._id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col text-left py-0.5">
+                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                <span className="text-[11px] text-muted-foreground">{oEmail}</span>
+                              </div>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="admin-name">Full Name *</Label>
               <Input
                 id="admin-name"
@@ -418,7 +540,7 @@ export default function AdminStateDetails({ stateName }) {
                 <div className="space-y-2 text-center w-full relative">
                   {previewImage ? (
                     <div className="relative w-full aspect-video rounded-lg overflow-hidden group">
-                      <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={resolveMediaUrl(previewImage)} alt="Preview" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Button type="button" variant="secondary" size="sm" onClick={() => document.getElementById("profile-image-upload").click()}>
                           <Camera className="w-4 h-4 mr-2" /> Change Image
@@ -465,6 +587,29 @@ export default function AdminStateDetails({ stateName }) {
                 onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
               />
             </div>
+
+            <div className="flex items-start space-x-3 rounded-lg border border-border bg-muted/30 p-3">
+              <Checkbox 
+                id="profile-use-admin-contact" 
+                checked={profileData.useAdminContact}
+                onCheckedChange={(checked) => {
+                  if (checked && admin) {
+                    setProfileData({ ...profileData, useAdminContact: true, email: admin.email || "", phone: admin.phone || "" });
+                  } else {
+                    setProfileData({ ...profileData, useAdminContact: false, email: "", phone: "" });
+                  }
+                }}
+                disabled={!admin}
+              />
+              <div className="space-y-1 leading-none">
+                <label htmlFor="profile-use-admin-contact" className="text-sm font-medium leading-none cursor-pointer">
+                  Use State Admin's Contact Info
+                </label>
+                <p className="text-[11px] text-muted-foreground">
+                  {admin ? "This will automatically use the current State Admin's email and phone." : "No State Admin is currently allocated."}
+                </p>
+              </div>
+            </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -475,6 +620,7 @@ export default function AdminStateDetails({ stateName }) {
                   placeholder="contact@delhi.rifah.in"
                   value={profileData.email}
                   onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                  disabled={profileData.useAdminContact}
                 />
               </div>
 
@@ -486,6 +632,7 @@ export default function AdminStateDetails({ stateName }) {
                   placeholder="+91..."
                   value={profileData.phone}
                   onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                  disabled={profileData.useAdminContact}
                 />
               </div>
             </div>

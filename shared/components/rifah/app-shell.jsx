@@ -83,6 +83,7 @@ const navs = {
       { label: "Messages", to: "/biz/messages", icon: MessageSquare },
       { label: "My Profile", to: "/biz/profile", icon: UserRound },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
+      { label: "Reviews", to: "/biz/reviews", icon: Star },
       { label: "Membership", to: "/biz/membership", icon: Star },
       { label: "Notifications", to: "/biz/notifications", icon: Bell },
       { label: "LMS", to: "/biz/lms", icon: GraduationCap },
@@ -129,11 +130,11 @@ const roleNavs = {
       { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
       { label: "Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
+      { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
-
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },

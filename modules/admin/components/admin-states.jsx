@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, MoreHorizontal, UserCheck, Trash2, Building2, Edit2, Eye } from "lucide-react";
+import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, MoreHorizontal, UserCheck, Trash2, Building2, Edit2, Eye, Check, ChevronsUpDown, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -11,6 +11,7 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@shared/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import {
   Select,
@@ -21,6 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@shared/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@shared/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@shared/components/ui/command";
+import { cn } from "@shared/lib/utils";
+import { Checkbox } from "@shared/components/ui/checkbox";
 import { useStates, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { stateApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -36,23 +41,22 @@ export function AdminStates() {
     ? businessesData
     : (businessesData?.businesses || businessesData?.data || []);
 
-  const isEligibleBusiness = (b) =>
-    b.isPaid === true &&
-    b.membership &&
-    b.membership !== "Free" &&
-    ["verified", "Verified", "approved", "Approved"].includes(b.verification);
-
-  const eligibleBusinesses = rawBusinesses.filter(isEligibleBusiness);
+  const eligibleBusinesses = rawBusinesses.filter(b => b.owner);
 
   const [openModal, setOpenModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [targetState, setTargetState] = useState("");
+  const [stateToDelete, setStateToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState("");
+  const [openCombobox, setOpenCombobox] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
+    phone: "",
     address: "",
     imageFile: null,
+    useAdminContact: false,
   });
 
   const stateBizList = eligibleBusinesses.filter(
@@ -68,8 +72,9 @@ export function AdminStates() {
     if (biz) {
       setForm((f) => ({
         ...f,
-        name: biz.owner?.name || biz.contactPerson || biz.name || "",
         email: biz.owner?.email || biz.ownerEmail || biz.email || "",
+        phone: biz.owner?.phone || biz.phone || "",
+        useAdminContact: true,
       }));
     }
   };
@@ -84,17 +89,17 @@ export function AdminStates() {
   const totalChapters = states.reduce((sum, s) => sum + (s.chaptersCount || 0), 0);
   const totalBusinesses = states.reduce((sum, s) => sum + (s.totalBusinesses || 0), 0);
 
-  const handleOpenAllocate = (prefillState = "") => {
+  const handleOpenAddState = (prefillState = "") => {
     setTargetState(prefillState);
     setSelectedBusinessId("");
-    setForm({ name: "", email: "", address: "", imageFile: null });
+    setForm({ name: "", email: "", phone: "", address: "", imageFile: null, useAdminContact: false });
     setOpenModal(true);
   };
 
-  const handleAssignAdmin = async (e) => {
+  const handleAddState = async (e) => {
     e.preventDefault();
-    if (!selectedBusinessId) {
-      toast.error("Please select a paid, verified business owner to allocate as State Admin.");
+    if (!form.name) {
+      toast.error("State Name is required.");
       return;
     }
     setSubmitting(true);
@@ -105,20 +110,23 @@ export function AdminStates() {
         imageUrl = uploadRes.data?.url || uploadRes.url || "";
       }
 
-      await stateApi.assignAdmin({
-        businessId: selectedBusinessId,
+      await stateApi.createState({
+        name: form.name,
+        businessId: selectedBusinessId || undefined,
         address: form.address,
         image: imageUrl,
+        contactEmail: form.email,
+        contactPhone: form.phone,
       });
 
-      toast.success(`State Admin allocated! Credentials sent via email.`);
+      toast.success(selectedBusinessId ? `State ${form.name} created and Admin allocated!` : `State ${form.name} created successfully!`);
       setOpenModal(false);
       setTargetState("");
       setSelectedBusinessId("");
-      setForm({ name: "", email: "", address: "", imageFile: null });
+      setForm({ name: "", email: "", phone: "", address: "", imageFile: null, useAdminContact: false });
       refetch();
     } catch (err) {
-      toast.error(err.message || "Failed to allocate State Admin.");
+      toast.error(err.message || "Failed to add State.");
     } finally {
       setSubmitting(false);
     }
@@ -135,14 +143,18 @@ export function AdminStates() {
     }
   };
 
-  const handleDeleteState = async (stateName) => {
-    if (!confirm(`Are you sure you want to completely delete the state: ${stateName}?\n\nThis will safely detach all its Chapters, Members, and Businesses and move them to 'Unassigned'.`)) return;
+  const handleDeleteState = async () => {
+    if (!stateToDelete) return;
+    setIsDeleting(true);
     try {
-      await stateApi.deleteState(stateName);
-      toast.success(`State ${stateName} deleted successfully`);
+      await stateApi.deleteState(stateToDelete);
+      toast.success(`State ${stateToDelete} deleted successfully`);
+      setStateToDelete(null);
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to delete State.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -172,8 +184,8 @@ export function AdminStates() {
       subtitle="National structure: Central Admin allocates State Admins to manage Chapter Admins"
       actions={
         isCentralAdmin ? (
-          <Button onClick={() => handleOpenAllocate()} className="gap-2">
-            <Plus className="h-4 w-4" /> Allocate State Admin
+          <Button onClick={() => handleOpenAddState()} className="gap-2">
+            <Plus className="h-4 w-4" /> Add State
           </Button>
         ) : null
       }
@@ -300,7 +312,7 @@ export function AdminStates() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600 focus:bg-red-50 dark:focus:bg-red-950/50"
-                          onClick={() => handleDeleteState(r.state)}
+                          onClick={() => setStateToDelete(r.state)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" /> Delete State
                         </DropdownMenuItem>
@@ -313,81 +325,179 @@ export function AdminStates() {
         </Panel>
       </div>
 
-      {/* Allocate State Admin Dialog */}
+      {/* Add State Dialog */}
       <Dialog open={openModal} onOpenChange={setOpenModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Allocate State Admin</DialogTitle>
+            <DialogTitle>Add State</DialogTitle>
             <DialogDescription>
-              Assign a State Admin — only businesses with an active paid membership and verified status are
-              eligible. The state is taken from the selected business. They will have exclusive executive
-              authority to appoint Chapter Admins for cities in that state.
+              Create a new state profile and optionally assign a State Admin from the registered business owners list.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleAssignAdmin} className="space-y-4 pt-2">
+          <form onSubmit={handleAddState} className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <Label htmlFor="st-biz-select">Select Business Owner *</Label>
-              <Select value={selectedBusinessId || undefined} onValueChange={handleSelectBusinessOwner}>
-                <SelectTrigger id="st-biz-select" className="w-full">
-                  <SelectValue placeholder="Choose a paid, verified business owner..." />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {eligibleBusinesses.length === 0 && (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">
-                      No paid & verified businesses found yet.
+              <Label htmlFor="st-name">State Name *</Label>
+              <Input
+                id="st-name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g. Maharashtra"
+                required
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <Label htmlFor="st-biz-select">Select Business Owner (Optional)</Label>
+              <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openCombobox}
+                    className="w-full justify-between font-normal h-11"
+                    id="st-biz-select"
+                  >
+                    {selectedBusinessId
+                      ? (() => {
+                          const b = eligibleBusinesses.find((bz) => bz._id === selectedBusinessId);
+                          if (!b) return "Choose a business owner...";
+                          const oName = b.owner?.name || b.contactPerson || b.name;
+                          return `${oName} (${b.name})`;
+                        })()
+                      : "Choose a business owner..."}
+                    <div className="flex items-center gap-1 border-l pl-2 border-border/50">
+                      {selectedBusinessId ? (
+                        <div 
+                          role="button" 
+                          tabIndex={0} 
+                          className="flex items-center justify-center p-0.5 hover:bg-muted/80 rounded-md transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedBusinessId("");
+                            setForm((f) => ({ ...f, email: "", phone: "", useAdminContact: false }));
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                        </div>
+                      ) : null}
+                      <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                     </div>
-                  )}
-                  {stateBizList.length > 0 && (
-                    <SelectGroup>
-                      <SelectLabel className="text-xs font-semibold text-primary">{targetState} Owners</SelectLabel>
-                      {stateBizList.map((b) => {
-                        const oName = b.owner?.name || b.contactPerson || b.name;
-                        const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
-                        return (
-                          <SelectItem key={b._id} value={b._id}>
-                            <div className="flex flex-col text-left py-0.5">
-                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
-                              <span className="text-[11px] text-muted-foreground">{oEmail}</span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectGroup>
-                  )}
-                  {otherBizList.length > 0 && (
-                    <SelectGroup>
-                      <SelectLabel className="text-xs font-semibold text-muted-foreground">
-                        {stateBizList.length > 0 ? "Other Businesses" : "Registered Business Owners"}
-                      </SelectLabel>
-                      {otherBizList.map((b) => {
-                        const oName = b.owner?.name || b.contactPerson || b.name;
-                        const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
-                        return (
-                          <SelectItem key={b._id} value={b._id}>
-                            <div className="flex flex-col text-left py-0.5">
-                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
-                              <span className="text-[11px] text-muted-foreground">
-                                {b.state ? `${b.state} · ` : ""}{oEmail}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectGroup>
-                  )}
-                </SelectContent>
-              </Select>
-              <p className="text-[11px] text-muted-foreground">
-                Only businesses with an active paid membership and verified status appear here.
-              </p>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search by name, business or email..." />
+                    <CommandList>
+                      <CommandEmpty>No business owner found.</CommandEmpty>
+                      {stateBizList.length > 0 && (
+                        <CommandGroup heading={`${targetState} Owners`}>
+                          {stateBizList.map((b) => {
+                            const oName = b.owner?.name || b.contactPerson || b.name;
+                            const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                            return (
+                              <CommandItem
+                                key={b._id}
+                                value={`${oName} ${b.name} ${oEmail} ${b._id}`}
+                                onSelect={() => {
+                                  handleSelectBusinessOwner(b._id);
+                                  setOpenCombobox(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedBusinessId === b._id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col text-left py-0.5">
+                                  <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                  <span className="text-[11px] text-muted-foreground">{oEmail}</span>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      )}
+                      {otherBizList.length > 0 && (
+                        <CommandGroup heading={stateBizList.length > 0 ? "Other Businesses" : "Registered Business Owners"}>
+                          {otherBizList.map((b) => {
+                            const oName = b.owner?.name || b.contactPerson || b.name;
+                            const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                            return (
+                              <CommandItem
+                                key={b._id}
+                                value={`${oName} ${b.name} ${oEmail} ${b.state || ""} ${b._id}`}
+                                onSelect={() => {
+                                  handleSelectBusinessOwner(b._id);
+                                  setOpenCombobox(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedBusinessId === b._id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col text-left py-0.5">
+                                  <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                  <span className="text-[11px] text-muted-foreground">
+                                    {b.state ? `${b.state} · ` : ""}{oEmail}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {selectedBusinessId && (
-              <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
-                <p className="font-medium text-foreground">{form.name}</p>
-                <p className="text-xs text-muted-foreground">{form.email}</p>
+              <div className="flex items-start space-x-3 rounded-lg border border-border bg-muted/30 p-3">
+                <Checkbox 
+                  id="use-admin-contact" 
+                  checked={form.useAdminContact}
+                  onCheckedChange={(checked) => setForm({ ...form, useAdminContact: checked })}
+                  className="mt-0.5"
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <Label htmlFor="use-admin-contact" className="text-sm font-medium leading-none cursor-pointer">
+                    Use Admin's contact details for "Our Presence" landing page
+                  </Label>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    If unchecked, you can manually enter a different email and phone number below.
+                  </p>
+                </div>
               </div>
             )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="st-email">Contact Email</Label>
+                <Input
+                  id="st-email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="e.g. hello@state.com"
+                  disabled={selectedBusinessId && form.useAdminContact}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="st-phone">Contact Phone</Label>
+                <Input
+                  id="st-phone"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="e.g. 9876543210"
+                  disabled={selectedBusinessId && form.useAdminContact}
+                />
+              </div>
+            </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="st-image">State Cover Image</Label>
@@ -409,9 +519,9 @@ export function AdminStates() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={submitting || !selectedBusinessId}>
+            <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {submitting ? "Allocating..." : "Allocate & Send Credentials"}
+              {submitting ? "Saving..." : "Add State"}
             </Button>
           </form>
         </DialogContent>
@@ -447,6 +557,30 @@ export function AdminStates() {
           </form>
         </DialogContent>
       </Dialog>
+      {/* Delete State Alert Dialog */}
+      <AlertDialog open={!!stateToDelete} onOpenChange={(open) => !open && setStateToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete {stateToDelete}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the state and safely detach all its Chapters, Members, Roles, and Businesses, moving them to 'Unassigned'.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteState();
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? "Deleting..." : "Delete State"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

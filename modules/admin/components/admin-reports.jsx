@@ -7,7 +7,7 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { reportApi, eventApi } from "@shared/lib/api-services";
 import { toast } from "sonner";
-import { FileDown, Receipt, Users, Megaphone, Eye, Loader2, UserCircle, MapPin, Calendar, Clock } from "lucide-react";
+import { FileDown, Receipt, Users, Megaphone, Eye, Loader2, UserCircle, MapPin, Calendar, Clock, Building2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -362,13 +362,15 @@ function EventAnalyticsTab() {
 }
 
 export function AdminReports() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("exports");
   const [revenueDates, setRevenueDates] = useState({ start: "", end: "" });
   const [memberDates, setMemberDates] = useState({ start: "", end: "" });
   const [leadDates, setLeadDates] = useState({ start: "", end: "" });
+  const [businessDates, setBusinessDates] = useState({ start: "", end: "" });
   
-  const [loading, setLoading] = useState({ revenue: false, members: false, leads: false });
-  const [viewing, setViewing] = useState({ revenue: false, members: false, leads: false });
+  const [loading, setLoading] = useState({ revenue: false, members: false, leads: false, businesses: false });
+  const [viewing, setViewing] = useState({ revenue: false, members: false, leads: false, businesses: false });
   const [viewData, setViewData] = useState(null);
 
   const handleDownload = async (type) => {
@@ -378,6 +380,7 @@ export function AdminReports() {
       if (type === 'revenue') dates = revenueDates;
       else if (type === 'memberships') dates = memberDates;
       else if (type === 'leads') dates = leadDates;
+      else if (type === 'businesses') dates = businessDates;
 
       const params = {};
       if (dates.start) params.startDate = dates.start;
@@ -389,6 +392,8 @@ export function AdminReports() {
         await reportApi.downloadMemberships(params);
       } else if (type === 'leads') {
         await reportApi.downloadLeads(params);
+      } else if (type === 'businesses') {
+        await reportApi.downloadBusinesses(params);
       }
       
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} report downloaded successfully.`);
@@ -406,6 +411,7 @@ export function AdminReports() {
       if (type === 'revenue') dates = revenueDates;
       else if (type === 'memberships') dates = memberDates;
       else if (type === 'leads') dates = leadDates;
+      else if (type === 'businesses') dates = businessDates;
 
       const params = {};
       if (dates.start) params.startDate = dates.start;
@@ -418,12 +424,15 @@ export function AdminReports() {
         res = await reportApi.getMemberships(params);
       } else if (type === 'leads') {
         res = await reportApi.getLeads(params);
+      } else if (type === 'businesses') {
+        res = await reportApi.getBusinesses(params);
       }
       
       setViewData({
         title: `${type.charAt(0).toUpperCase() + type.slice(1)} Report`,
         headers: res?.data?.headers || [],
-        rows: res?.data?.rows || []
+        rows: res?.data?.rows || [],
+        rawBusinesses: res?.data?.rawBusinesses || null
       });
     } catch (err) {
       toast.error(err.message || "Failed to fetch report data.");
@@ -458,42 +467,44 @@ export function AdminReports() {
       {activeTab === 'exports' ? (
         <>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Revenue Report */}
-        <Panel 
-          title="Revenue & Payments" 
-          icon={<Receipt className="h-5 w-5 text-primary" />}
-        >
-          <div className="space-y-4 pt-2">
-            <p className="text-sm text-muted-foreground">Export all paid transactions, invoices, and payment details.</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Start Date (Optional)</Label>
-                <Input type="date" value={revenueDates.start} onChange={e => setRevenueDates({...revenueDates, start: e.target.value})} />
+          {/* Revenue Report - Hidden for chapter admins */}
+          {user?.role !== "chapter_admin" && (
+            <Panel 
+              title="Revenue & Payments" 
+              icon={<Receipt className="h-5 w-5 text-primary" />}
+            >
+              <div className="space-y-4 pt-2">
+                <p className="text-sm text-muted-foreground">Export all paid transactions, invoices, and payment details.</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Start Date (Optional)</Label>
+                    <Input type="date" value={revenueDates.start} onChange={e => setRevenueDates({...revenueDates, start: e.target.value})} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">End Date (Optional)</Label>
+                    <Input type="date" value={revenueDates.end} onChange={e => setRevenueDates({...revenueDates, end: e.target.value})} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline"
+                    className="w-full" 
+                    onClick={() => handleView('revenue')} 
+                    disabled={viewing.revenue}
+                  >
+                    <Eye className="mr-2 h-4 w-4" /> View
+                  </Button>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => handleDownload('revenue')} 
+                    disabled={loading.revenue}
+                  >
+                    <FileDown className="mr-2 h-4 w-4" /> Download
+                  </Button>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">End Date (Optional)</Label>
-                <Input type="date" value={revenueDates.end} onChange={e => setRevenueDates({...revenueDates, end: e.target.value})} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Button 
-                variant="outline"
-                className="w-full" 
-                onClick={() => handleView('revenue')} 
-                disabled={viewing.revenue}
-              >
-                <Eye className="mr-2 h-4 w-4" /> View
-              </Button>
-              <Button 
-                className="w-full" 
-                onClick={() => handleDownload('revenue')} 
-                disabled={loading.revenue}
-              >
-                <FileDown className="mr-2 h-4 w-4" /> Download
-              </Button>
-            </div>
-          </div>
-        </Panel>
+            </Panel>
+          )}
 
         {/* Memberships Report */}
         <Panel 
@@ -534,11 +545,15 @@ export function AdminReports() {
 
         {/* Leads & Enquiries Report */}
         <Panel 
-          title="Leads & Enquiries" 
+          title={user?.role === "chapter_admin" ? "Enquiries" : "Leads & Enquiries"} 
           icon={<Megaphone className="h-5 w-5 text-orange-500" />}
         >
           <div className="space-y-4 pt-2">
-            <p className="text-sm text-muted-foreground">Export lead distribution data, statuses, and enquiry sources.</p>
+            <p className="text-sm text-muted-foreground">
+              {user?.role === "chapter_admin" 
+                ? "Export enquiry data, statuses, and sources." 
+                : "Export lead distribution data, statuses, and enquiry sources."}
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Start Date (Optional)</Label>
@@ -568,6 +583,45 @@ export function AdminReports() {
             </div>
           </div>
         </Panel>
+
+        {/* Businesses Report - Shown only for chapter admins */}
+        {user?.role === "chapter_admin" && (
+          <Panel 
+            title="Businesses" 
+            icon={<Building2 className="h-5 w-5 text-emerald-500" />}
+          >
+            <div className="space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">Export all registered businesses and their verification status.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Start Date (Optional)</Label>
+                  <Input type="date" value={businessDates.start} onChange={e => setBusinessDates({...businessDates, start: e.target.value})} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">End Date (Optional)</Label>
+                  <Input type="date" value={businessDates.end} onChange={e => setBusinessDates({...businessDates, end: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Button 
+                  variant="outline"
+                  className="w-full" 
+                  onClick={() => handleView('businesses')} 
+                  disabled={viewing.businesses}
+                >
+                  <Eye className="mr-2 h-4 w-4" /> View
+                </Button>
+                <Button 
+                  className="w-full" 
+                  onClick={() => handleDownload('businesses')} 
+                  disabled={loading.businesses}
+                >
+                  <FileDown className="mr-2 h-4 w-4" /> Download
+                </Button>
+              </div>
+            </div>
+          </Panel>
+        )}
       </div>
 
       <Dialog open={!!viewData} onOpenChange={(o) => !o && setViewData(null)}>
@@ -576,34 +630,112 @@ export function AdminReports() {
             <DialogTitle>{viewData?.title}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-auto border rounded-md">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs uppercase bg-muted text-muted-foreground sticky top-0">
-                <tr>
-                  {viewData?.headers.map((h, i) => (
-                    <th key={i} className="px-4 py-3 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {viewData?.rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={viewData.headers.length} className="px-4 py-8 text-center text-muted-foreground">
-                      No data found for the selected dates.
-                    </td>
-                  </tr>
+            {viewData?.title === "Memberships Report" && user?.role === "chapter_admin" && viewData?.rawBusinesses ? (
+              <div className="p-4 bg-background">
+                {viewData.rawBusinesses.length === 0 ? (
+                  <div className="text-center py-16 text-muted-foreground">No data found for the selected dates.</div>
                 ) : (
-                  viewData?.rows.map((row, i) => (
-                    <tr key={i} className="hover:bg-muted/50">
-                      {row.map((cell, j) => (
-                        <td key={j} className="px-4 py-3 whitespace-nowrap">
-                          {cell}
-                        </td>
-                      ))}
-                    </tr>
-                  ))
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {viewData.rawBusinesses.map((b, idx) => {
+                      const owner = b.owner || {};
+                      const name = owner.name || b.contactPerson || "Member";
+                      const role = b.roleInBusiness || owner.roleInBusiness || b.designation || "Member";
+                      const location = [b.city, b.state].filter(Boolean).join(", ");
+                      const industry = b.categories?.length > 0 ? b.categories.join(", ") : b.industry;
+                      const ask = owner.sourcingInterest || "Looking for reliable business partners and networking opportunities.";
+                      const give = b.productsSummary?.join(", ") || b.servicesSummary?.join(", ") || b.about || "Quality products and services in our industry.";
+                      
+                      return (
+                        <div key={b._id} className="border border-border rounded-xl bg-card overflow-hidden shadow-sm flex flex-col relative transition-all hover:shadow-md text-left">
+                          <div className="absolute top-3 left-3 text-sm font-bold text-muted-foreground w-6 h-6 flex items-center justify-center">
+                            {idx + 1}.
+                          </div>
+                          <div className="p-4 pl-10 flex gap-4 border-b border-border bg-muted/5">
+                            <div className="h-20 w-20 rounded-md bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border">
+                              {b.logo || owner.avatar ? (
+                                <img src={b.logo || owner.avatar} alt="Profile" className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="h-full w-full bg-primary/10 text-primary flex items-center justify-center font-bold text-2xl">
+                                  {name.charAt(0)}
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1 flex flex-col justify-center">
+                              <h3 className="font-bold text-lg text-foreground truncate pr-2">{name}</h3>
+                              <p className="text-sm font-medium text-foreground leading-tight mt-1">
+                                {b.name} <span className="text-muted-foreground font-normal text-xs ml-1">• {role} • {b.membership?.toUpperCase()}</span>
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1.5 truncate flex items-center gap-1">
+                                {location} <span className="text-border">|</span> {industry}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="p-4 flex flex-col gap-3 flex-1 text-sm bg-background">
+                            <div>
+                              <span className="font-bold text-amber-500 mr-2">ASK:</span>
+                              <span className="text-foreground/90">{ask}</span>
+                            </div>
+                            <div>
+                              <span className="font-bold text-green-600 mr-2">GIVE:</span>
+                              <span className="text-foreground/90">{give}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="p-3 px-4 border-t border-border bg-muted/10 text-xs flex flex-wrap gap-x-6 gap-y-2 items-center">
+                            {b.whatsapp || b.whatsappNumber ? (
+                              <div className="flex gap-1.5 items-center">
+                                <span className="font-bold text-green-600">WhatsApp:</span> 
+                                <span className="font-medium text-foreground">{b.whatsapp || b.whatsappNumber}</span>
+                              </div>
+                            ) : (
+                              <div className="flex gap-1.5 items-center">
+                                <span className="font-bold text-foreground">Phone:</span> 
+                                <span className="font-medium text-foreground">{b.phone || owner.phone}</span>
+                              </div>
+                            )}
+                            
+                            <div className="flex gap-1.5 items-center ml-auto">
+                              <span className="font-bold text-foreground">Email:</span> 
+                              <span className="font-medium text-foreground truncate max-w-[150px]">{b.email || owner.email}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
-              </tbody>
-            </table>
+              </div>
+            ) : (
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs uppercase bg-muted text-muted-foreground sticky top-0">
+                  <tr>
+                    {viewData?.headers.map((h, i) => (
+                      <th key={i} className="px-4 py-3 whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {viewData?.rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={viewData.headers.length} className="px-4 py-8 text-center text-muted-foreground">
+                        No data found for the selected dates.
+                      </td>
+                    </tr>
+                  ) : (
+                    viewData?.rows.map((row, i) => (
+                      <tr key={i} className="hover:bg-muted/50">
+                        {row.map((cell, j) => (
+                          <td key={j} className="px-4 py-3 whitespace-nowrap">
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </DialogContent>
       </Dialog>
