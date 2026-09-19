@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { FaHome, FaBookOpen, FaMicrophone, FaUsers, FaTrophy, FaStar, FaExchangeAlt, FaCalendarAlt, FaStarHalfAlt, FaPrayingHands, FaRegHandshake } from "react-icons/fa";
-import { MdOutlineMoreVert, MdKeyboardArrowUp, MdKeyboardArrowDown } from "react-icons/md";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
-import { Save, Plus, RotateCcw, Edit3, Trash2 } from "lucide-react";
+import { Save, Plus, RotateCcw, Edit3, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { eventApi } from "@shared/lib/api-services";
 import { STAGE_SCRIPTS } from "./scripts-data"; // We can use this to get default names if needed
@@ -133,7 +132,7 @@ export function AgendaCrud({ eventId, agenda, setAgenda }) {
             >
               {/* Drag Handle */}
               <div className="px-1.5 cursor-grab text-muted-foreground/50 hover:text-muted-foreground">
-                <MdOutlineMoreVert className="h-5 w-5" />
+                <GripVertical className="h-5 w-5" />
               </div>
               
               {/* Sequence */}
@@ -148,14 +147,14 @@ export function AgendaCrud({ eventId, agenda, setAgenda }) {
                   disabled={index === 0}
                   className="bg-background border border-border rounded p-0.5 hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <MdKeyboardArrowUp className="h-3 w-3" />
+                  <ChevronUp className="h-3 w-3" />
                 </button>
                 <button 
                   onClick={() => handleMoveDown(index)}
                   disabled={index === agenda.length - 1}
                   className="bg-background border border-border rounded p-0.5 hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <MdKeyboardArrowDown className="h-3 w-3" />
+                  <ChevronDown className="h-3 w-3" />
                 </button>
               </div>
 

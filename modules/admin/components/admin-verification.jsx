@@ -524,6 +524,28 @@ function AdminVerification() {
                 <span>Reject</span>
               </Button>
             )}
+
+            {item.isOrphaned && user?.role === "chapter_admin" && (
+              <Button
+                size="sm"
+                variant="destructive"
+                className="font-semibold gap-1.5 shadow-xs"
+                onClick={async () => {
+                  if (confirm("Are you sure you want to permanently delete this orphaned record?")) {
+                    try {
+                      await verificationApi.delete(item._id);
+                      toast.success("Orphaned record deleted successfully");
+                      refetch();
+                    } catch (err) {
+                      toast.error("Failed to delete record: " + err.message);
+                    }
+                  }
+                }}
+              >
+                <AlertCircle className="h-3.5 w-3.5" />
+                <span>Delete Record</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -130,11 +130,11 @@ const roleNavs = {
       { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
       { label: "Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
+      { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
-
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
