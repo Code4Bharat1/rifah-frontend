@@ -170,7 +170,15 @@ const roleNavs = {
       { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
     ],
   },
+  central_admin: navs.admin,
+  business: navs.business,
+  business_owner: navs.business,
+  customer: navs.business,
 };
+
+navs.business_owner = navs.business;
+navs.customer = navs.business;
+navs.central_admin = navs.admin;
 
 const navRoles = [
   { role: "business", label: "Business", to: "/biz" },
@@ -179,37 +187,78 @@ const navRoles = [
 
 function useResolvedNav(role) {
   const { user } = useAuth();
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // If in Chapter Admin / Operations Center or explicitly requesting chapter_admin, always show RIFAH OPERATIONS CENTER ADMIN PANEL
-  if (role === "chapter_admin" || pathname?.startsWith("/chapter-admin") || pathname === "/admin/operations") {
+  // 1. Explicit path overrides for dedicated admin panels
+  if (pathname?.startsWith("/chapter-admin") || pathname === "/admin/operations") {
     return roleNavs.chapter_admin;
   }
-
-  if (mounted && user?.role && roleNavs[user.role]) {
-    return roleNavs[user.role];
+  if (pathname?.startsWith("/state-admin")) {
+    return roleNavs.state_admin;
   }
-  return navs[role] || roleNavs[role] || navs.admin || navs.business;
+  if (pathname?.startsWith("/admin")) {
+    // If a business user hits /admin, show business workspace
+    if (user && (user.role === "business_owner" || user.role === "customer")) {
+      return navs.business;
+    }
+    return navs.admin;
+  }
+
+  // 2. Strict Role Segregation based on authenticated user's role
+  const userRole = user?.role;
+  if (userRole === "business_owner" || userRole === "customer" || userRole === "business") {
+    return navs.business;
+  }
+  if (userRole === "chapter_admin") {
+    return roleNavs.chapter_admin;
+  }
+  if (userRole === "state_admin") {
+    return roleNavs.state_admin;
+  }
+  if (userRole === "central_admin") {
+    if (role === "business" && pathname === "/biz") {
+      return navs.business;
+    }
+    return navs.admin;
+  }
+
+  // 3. Fallback based on passed role prop or current route
+  if (role === "business" || role === "business_owner" || pathname?.startsWith("/biz")) {
+    return navs.business;
+  }
+  if (role === "chapter_admin" || pathname?.startsWith("/chapter-admin")) {
+    return roleNavs.chapter_admin;
+  }
+  if (role === "state_admin" || pathname?.startsWith("/state-admin")) {
+    return roleNavs.state_admin;
+  }
+  if (role === "admin" || role === "central_admin" || pathname?.startsWith("/admin")) {
+    return navs.admin;
+  }
+
+  return navs.business;
 }
 
 function toRoleAwarePath(path, role, user) {
-  if (role === "admin" && (user?.role === "chapter_admin" || user?.role === "state_admin")) {
-    if (path.startsWith("/admin/notifications")) return `/${user.role.replace("_", "-")}/notifications`;
+  const effectiveRole = user?.role || role;
+  if (effectiveRole === "business_owner" || effectiveRole === "customer" || effectiveRole === "business") {
+    if (path.startsWith("/admin/notifications")) return "/biz/notifications";
+    if (path.startsWith("/admin/messages")) return "/biz/messages";
+    if (path.startsWith("/admin/")) return path.replace(/^\/admin/, "/biz");
+    return path;
   }
-  if (user?.role === "state_admin") {
+  if (effectiveRole === "chapter_admin") {
+    if (path.startsWith("/admin/notifications")) return "/chapter-admin/notifications";
+    if (path.startsWith("/admin/")) return path.replace(/^\/admin/, "/chapter-admin");
+    return path;
+  }
+  if (effectiveRole === "state_admin") {
+    if (path.startsWith("/admin/notifications")) return "/state-admin/notifications";
     if (path === "/admin" || path === "/chapter-admin") return "/state-admin";
     if (path === "/admin/chapters" || path === "/chapter-admin/chapter") return "/state-admin/chapters";
     if (path === "/admin/leads" || path === "/chapter-admin/leads") return "/state-admin/enquiries";
     if (path.startsWith("/admin/")) return path.replace(/^\/admin/, "/state-admin");
     return path;
-  }
-  if (role === "admin" && user?.role === "chapter_admin" && path.startsWith("/admin")) {
-    return path.replace(/^\/admin/, "/chapter-admin");
   }
   return path;
 }
@@ -508,12 +557,32 @@ export function AppShell({
               </div>
             </div>
           )}
+          {user?.role === "state_admin" && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-emerald-500 uppercase tracking-wider">STATE ADMIN</span>
+                <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-bold uppercase truncate max-w-[120px]">
+                  {user?.state || "STATE"}
+                </span>
+              </div>
+            </div>
+          )}
           {(role === "chapter_admin" || user?.role === "chapter_admin" || path?.startsWith("/chapter-admin") || path === "/admin/operations") && (
             <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="font-bold text-cyan-400 uppercase tracking-wider">CHAPTER ADMIN</span>
                 <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold uppercase truncate max-w-[120px]">
-                  {user?.chapter ? user.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "CENTRAL-MUMBAI"}
+                  {user?.chapter ? user.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "CHAPTER"}
+                </span>
+              </div>
+            </div>
+          )}
+          {(user?.role === "business_owner" || user?.role === "customer" || user?.role === "business") && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-primary uppercase tracking-wider">BUSINESS</span>
+                <span className="px-1.5 py-0.5 rounded bg-primary/15 text-primary font-bold uppercase truncate max-w-[120px]">
+                  {user?.chapter ? user.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "MEMBER"}
                 </span>
               </div>
             </div>

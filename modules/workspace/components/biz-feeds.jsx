@@ -1141,7 +1141,7 @@ export function BizFeeds() {
 
   return (
     <AppShell
-      role={userRole || "business"}
+      role={userRole === "central_admin" ? "admin" : "business"}
       title="Feeds"
       subtitle="Connect, share business milestones, and explore updates from fellow members"
       actions={
