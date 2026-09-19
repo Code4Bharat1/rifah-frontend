@@ -48,8 +48,10 @@ function RoleCard({ role, onEdit, onDelete }) {
   };
 
   return (
-    <div className={`group relative flex flex-col rounded-2xl border ${isInactive ? "bg-muted/40 border-border/50" : "bg-card border-border shadow-sm hover:shadow-xl hover:-translate-y-1"} transition-all duration-300 overflow-hidden`}>
-      <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-background/80 backdrop-blur-sm p-1 rounded-xl shadow-sm border border-border">
+    <div className={`group relative h-full bg-background rounded-[2rem] border border-border/50 text-center hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 hover:-translate-y-2 flex flex-col overflow-hidden isolate shadow-sm ${isInactive ? 'opacity-70' : ''}`}>
+      
+      {/* Admin Actions Overlay */}
+      <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-30 bg-background/80 backdrop-blur-sm p-1 rounded-xl shadow-sm border border-border">
         <Button variant="ghost" size="icon" onClick={() => onEdit(role)} className="h-7 w-7 text-muted-foreground hover:text-primary">
           <Pencil className="h-3.5 w-3.5" />
         </Button>
@@ -58,47 +60,65 @@ function RoleCard({ role, onEdit, onDelete }) {
         </Button>
       </div>
 
-      <div className="p-6 flex-1 flex flex-col items-center text-center">
-        <div className="relative mb-5">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={role.userId?.name} className="h-20 w-20 rounded-full object-cover shrink-0 border-4 border-background shadow-md bg-muted" />
-          ) : (
-            <div className="h-20 w-20 rounded-full shrink-0 bg-primary/10 text-primary flex items-center justify-center font-bold text-2xl border-4 border-background shadow-md">
-              {role.userId?.name?.charAt(0)?.toUpperCase() || "U"}
-            </div>
-          )}
-          <div className="absolute -bottom-3 inset-x-0 flex justify-center z-10">
-             {getLevelBadge(role.level)}
+      {/* Full width portrait image container */}
+      <div className="relative w-full aspect-[4/5] bg-muted/40 overflow-hidden flex-shrink-0 border-b border-border/20">
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={role.userId?.name}
+            className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isInactive ? 'grayscale' : ''}`}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/20 text-primary/60 flex items-center justify-center text-[100px] font-black transition-transform duration-700 group-hover:scale-105">
+            {role.userId?.name?.charAt(0)?.toUpperCase()}
           </div>
+        )}
+        
+        {/* Gentle shadow overlay inside image for depth */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none"></div>
+
+        {/* Level Badge overlaid on top left */}
+        <div className="absolute top-4 left-4 z-20 shadow-sm">
+          {getLevelBadge(role.level)}
         </div>
         
-        <h3 className="font-bold text-foreground text-lg truncate w-full mt-2">{role.userId?.name}</h3>
-        <p className="text-[13px] font-bold text-primary mt-1 px-3 py-1 bg-primary/5 rounded-full border border-primary/10">{role.role}</p>
-
-        {role.level === "State" && role.state && (
-          <div className="flex items-center text-xs text-muted-foreground mt-3 font-medium bg-muted/50 px-2.5 py-1 rounded-md border border-border/50">
-            <MapPin className="h-3 w-3 mr-1" /> {role.state}
-          </div>
-        )}
-        {role.level === "Chapter" && role.chapterId && (
-          <div className="flex items-center text-xs text-muted-foreground mt-3 font-medium bg-muted/50 px-2.5 py-1 rounded-md border border-border/50">
-            <MapPin className="h-3 w-3 mr-1" /> {role.chapterId.name || "Chapter"}
-          </div>
-        )}
-
-        {(role.businessId?.name || role.userId?.organization) && (
-          <div className="flex items-center justify-center text-xs text-muted-foreground mt-auto pt-5 max-w-full truncate">
-            <Building2 className="h-3.5 w-3.5 mr-1.5 shrink-0 opacity-70" />
-            <span className="truncate">{role.businessId?.name || role.userId?.organization}</span>
+        {isInactive && (
+          <div className="absolute top-12 left-4 z-20 shadow-sm mt-1">
+             <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider border border-slate-200 shadow-sm">Inactive</span>
           </div>
         )}
       </div>
 
-      {isInactive && (
-        <div className="absolute top-3 left-3 z-10">
-           <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wide border border-slate-200">Inactive</span>
+      {/* Card Content Area */}
+      <div className="relative p-6 bg-background z-10 flex flex-col items-center flex-grow">
+        <h3 className="text-2xl font-extrabold text-foreground w-full mb-1 tracking-tight truncate">{role.userId?.name}</h3>
+        
+        <p className="text-[13px] font-bold text-primary tracking-wide uppercase px-4 py-1.5 bg-primary/5 rounded-full border border-primary/10 mb-5 mt-1 inline-block">
+          {role.role}
+        </p>
+
+        <div className="flex gap-2 w-full justify-center flex-wrap mb-4">
+          {role.level === "State" && role.state && (
+            <div className="flex items-center text-[11px] font-bold text-muted-foreground tracking-wide uppercase bg-muted/50 px-3 py-1 rounded-full border border-border/50">
+              <MapPin className="h-3 w-3 mr-1" /> {role.state}
+            </div>
+          )}
+          {role.level === "Chapter" && role.chapterId && (
+            <div className="flex items-center text-[11px] font-bold text-muted-foreground tracking-wide uppercase bg-muted/50 px-3 py-1 rounded-full border border-border/50">
+              <MapPin className="h-3 w-3 mr-1" /> {role.chapterId.name || "Chapter"}
+            </div>
+          )}
         </div>
-      )}
+
+        {(role.businessId?.name || role.userId?.organization) && (
+          <div className="w-full mt-auto pt-5 border-t border-border/40">
+            <div className="flex items-center justify-center text-sm font-semibold text-muted-foreground">
+              <Building2 className="h-4 w-4 mr-2 opacity-60" />
+              <span className="truncate max-w-[90%]">{role.businessId?.name || role.userId?.organization}</span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
