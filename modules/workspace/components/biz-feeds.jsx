@@ -21,6 +21,7 @@ import {
   RotateCcw,
   Search,
   SlidersHorizontal,
+  Loader2,
 } from "lucide-react";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Button } from "@shared/components/ui/button";
@@ -37,13 +38,32 @@ import { Textarea } from "@shared/components/ui/textarea";
 import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useChapters, useStates, useMyBusiness } from "@shared/hooks/use-rifah-api";
+import { useChapters, useStates, useMyBusiness, usePosts, useCreatePost, useTogglePostLike, useAddPostComment, useDeletePost } from "@shared/hooks/use-rifah-api";
+import { postsApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/media";
 import { toast } from "sonner";
 import { cn } from "@shared/lib/utils";
 
-// Local storage key for user-created posts
-const STORAGE_KEY = "rifah_user_instagram_feed_v3";
+// Format relative time helper
+function formatRelativeTime(dateInput) {
+  if (!dateInput) return "Just now";
+  try {
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return "Just now";
+    const now = new Date();
+    const diffSec = Math.floor((now - date) / 1000);
+    if (diffSec < 60) return "Just now";
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  } catch {
+    return "Just now";
+  }
+}
 
 // User Avatar Component with graceful default icon fallback
 function UserAvatar({ src, name, className = "h-9 w-9", iconClassName = "h-5 w-5" }) {
@@ -125,7 +145,8 @@ function InstagramPostCard({
   const [showHeartPop, setShowHeartPop] = useState(false);
   const commentInputRef = useRef(null);
 
-  const images = Array.isArray(post.images) ? post.images : (post.image ? [post.image] : []);
+  const rawImages = Array.isArray(post.images) ? post.images : (post.image ? [post.image] : []);
+  const images = rawImages.map((img) => resolveMediaUrl(img)).filter(Boolean);
   const totalImages = images.length;
 
   // Handle double-click on media to like with animated heart pop
@@ -133,7 +154,7 @@ function InstagramPostCard({
     setShowHeartPop(true);
     setTimeout(() => setShowHeartPop(false), 900);
     if (!post.isLiked) {
-      onLikeToggle(post.id);
+      onLikeToggle(post.id || post._id);
     }
   };
 
@@ -187,7 +208,7 @@ function InstagramPostCard({
                 <BadgeCheck className="h-4 w-4 fill-sky-500 text-background shrink-0" />
               )}
               <span className="text-muted-foreground text-xs font-normal">•</span>
-              <span className="text-xs text-muted-foreground">{post.author?.timeAgo || "Just now"}</span>
+              <span className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt || post.author?.timeAgo)}</span>
             </div>
 
             {/* Chapter / Location subtitle with interactive quick-filtering */}
@@ -230,7 +251,7 @@ function InstagramPostCard({
         {/* Delete button (automatically controlled by user role & scope) */}
         {canDelete && (
           <button
-            onClick={() => onDeletePost(post.id)}
+            onClick={() => onDeletePost(post.id || post._id)}
             className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors cursor-pointer"
             title="Delete post"
           >
@@ -307,7 +328,7 @@ function InstagramPostCard({
         <div className="flex items-center gap-4">
           {/* Like Heart Button */}
           <button
-            onClick={() => onLikeToggle(post.id)}
+            onClick={() => onLikeToggle(post.id || post._id)}
             className="group flex items-center gap-1.5 text-foreground hover:opacity-80 transition-transform active:scale-125 cursor-pointer"
             aria-label={post.isLiked ? "Unlike post" : "Like post"}
           >
@@ -383,21 +404,21 @@ function InstagramPostCard({
               <div key={comment.id} className="flex items-start justify-between gap-2 text-xs">
                 <div className="flex items-start gap-2 min-w-0">
                   <UserAvatar
-                    src={comment.avatar}
-                    name={comment.username}
+                    src={resolveMediaUrl(comment.avatar)}
+                    name={comment.username || comment.name}
                     className="h-5 w-5 mt-0.5 border"
                     iconClassName="h-3 w-3"
                   />
                   <p className="leading-snug break-words">
                     <span className="font-bold mr-1.5 text-foreground hover:underline cursor-pointer">
-                      {comment.username}
+                      {comment.username || comment.name}
                     </span>
                     <span className="text-foreground/90 font-normal">{comment.text}</span>
                   </p>
                 </div>
-                {comment.timeAgo && (
+                {(comment.createdAt || comment.timeAgo) && (
                   <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
-                    {comment.timeAgo}
+                    {formatRelativeTime(comment.createdAt || comment.timeAgo)}
                   </span>
                 )}
               </div>
@@ -738,8 +759,9 @@ export function BizFeeds() {
   const chapters = chaptersData || [];
   const statesList = statesData || [];
 
-  const [posts, setPosts] = useState([]);
   const [isNewPostOpen, setIsNewPostOpen] = useState(false);
+  const [isSubmittingPost, setIsSubmittingPost] = useState(false);
+  const [formPostImageFile, setFormPostImageFile] = useState(null);
 
   // Form states for creating a new post
   const [formUsername, setFormUsername] = useState("");
@@ -853,27 +875,31 @@ export function BizFeeds() {
     }
   }, [isNewPostOpen, user, businessData, currentUsername, resolvedDefaultAvatar, chapters, formUsername, formProfilePic]);
 
-  // Load posts from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        setPosts(JSON.parse(saved));
-      } else {
-        setPosts([]);
-      }
-    } catch {
-      setPosts([]);
-    }
-  }, []);
+  // Live API query for feed posts — automatically refetches every 10s and on window focus
+  const {
+    data: apiPosts = [],
+    isLoading: isPostsLoading,
+    refetch: refetchPosts,
+  } = usePosts({
+    filterMode,
+    chapter: filterMode === "chapter" ? selectedChapter : undefined,
+    state: filterMode === "state" ? selectedState : undefined,
+    search: searchQuery,
+  });
 
-  // Save changes to localStorage
-  const savePosts = (updatedPosts) => {
-    setPosts(updatedPosts);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPosts));
-    } catch {}
-  };
+  const createPostMutation = useCreatePost();
+  const toggleLikeMutation = useTogglePostLike();
+  const addCommentMutation = useAddPostComment();
+  const deletePostMutation = useDeletePost();
+
+  // Keep local optimistic state synchronized with apiPosts
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    if (apiPosts && Array.isArray(apiPosts)) {
+      setPosts(apiPosts);
+    }
+  }, [apiPosts]);
 
   // Profile Picture File Upload Handler
   const handleProfilePicFileChange = (e) => {
@@ -903,6 +929,7 @@ export function BizFeeds() {
       return;
     }
 
+    setFormPostImageFile(file);
     const reader = new FileReader();
     reader.onload = (event) => {
       setFormPostImage(event.target.result);
@@ -911,57 +938,89 @@ export function BizFeeds() {
     reader.readAsDataURL(file);
   };
 
-  // Live: Toggle Like
-  const handleLikeToggle = (postId) => {
-    const updated = posts.map((p) => {
-      if (p.id === postId) {
-        const isLiked = !p.isLiked;
-        const likesCount = isLiked ? p.likesCount + 1 : Math.max(0, p.likesCount - 1);
-        return { ...p, isLiked, likesCount };
-      }
-      return p;
-    });
-    savePosts(updated);
+  // Live: Toggle Like with instant optimistic feedback + backend sync
+  const handleLikeToggle = async (postId) => {
+    const targetId = String(postId);
+    setPosts((prevPosts) =>
+      prevPosts.map((p) => {
+        if (String(p.id || p._id) === targetId) {
+          const isLiked = !p.isLiked;
+          const likesCount = isLiked ? (p.likesCount || 0) + 1 : Math.max(0, (p.likesCount || 0) - 1);
+          return { ...p, isLiked, likesCount };
+        }
+        return p;
+      })
+    );
+
+    try {
+      await toggleLikeMutation.mutateAsync(targetId);
+    } catch (err) {
+      refetchPosts();
+    }
   };
 
-  // Live: Add Comment
-  const handleAddComment = (postId, text) => {
-    const newComment = {
+  // Live: Add Comment with instant optimistic feedback + backend sync
+  const handleAddComment = async (postId, text) => {
+    const targetId = String(postId);
+    const tempComment = {
       id: "c-" + Date.now(),
-      username: formUsername || currentUsername,
-      avatar: formProfilePic || resolvedDefaultAvatar || null,
+      _id: "c-" + Date.now(),
+      authorId: userId,
+      username: (formUsername || currentUsername).toLowerCase().replace(/\s+/g, "_"),
+      name: formUsername || currentUsername || "Member",
+      avatar: formProfilePic || resolvedDefaultAvatar || "",
       text,
+      createdAt: new Date().toISOString(),
       timeAgo: "Just now",
     };
 
-    const updated = posts.map((p) => {
-      if (p.id === postId) {
-        return {
-          ...p,
-          comments: [...(p.comments || []), newComment],
-        };
-      }
-      return p;
-    });
+    setPosts((prevPosts) =>
+      prevPosts.map((p) => {
+        if (String(p.id || p._id) === targetId) {
+          return {
+            ...p,
+            comments: [...(p.comments || []), tempComment],
+          };
+        }
+        return p;
+      })
+    );
 
-    savePosts(updated);
-    toast.success("Comment posted!");
+    try {
+      await addCommentMutation.mutateAsync({
+        id: targetId,
+        text,
+        authorName: formUsername || currentUsername,
+        authorAvatar: formProfilePic || resolvedDefaultAvatar || "",
+      });
+      toast.success("Comment posted!");
+    } catch (err) {
+      toast.error("Could not post comment");
+      refetchPosts();
+    }
   };
 
-  // Delete post
-  const handleDeletePost = (postId) => {
-    const updated = posts.filter((p) => p.id !== postId);
-    savePosts(updated);
-    toast.success("Post deleted");
+  // Live: Delete post with backend sync
+  const handleDeletePost = async (postId) => {
+    const targetId = String(postId);
+    setPosts((prevPosts) => prevPosts.filter((p) => String(p.id || p._id) !== targetId));
+
+    try {
+      await deletePostMutation.mutateAsync(targetId);
+      toast.success("Post deleted");
+    } catch (err) {
+      toast.error("Could not delete post");
+      refetchPosts();
+    }
   };
 
-  // Live: Create and Publish Post with Scope Tags
-  const handleCreatePost = (e) => {
+  // Live: Create and Publish Post across all devices
+  const handleCreatePost = async (e) => {
     e.preventDefault();
 
-    const finalPostImage = formPostImage || urlInputValue.trim();
+    let finalPostImage = formPostImage || urlInputValue.trim();
 
-    if (!finalPostImage) {
+    if (!finalPostImage && !formPostImageFile) {
       toast.error("Please add an image for your post.");
       return;
     }
@@ -971,50 +1030,52 @@ export function BizFeeds() {
       return;
     }
 
-    const username = (formUsername || currentUsername).trim() || "user";
-    const formattedUsername = username.toLowerCase().replace(/\s+/g, "_");
+    setIsSubmittingPost(true);
 
-    // Resolve chapter and state for this post automatically
-    const targetChapter = formChapter || user?.chapter || businessData?.chapter || "";
-    const matchedChapter = chapters.find(
-      (c) => (c.name || "").toLowerCase() === targetChapter.toLowerCase()
-    );
-    const postState = matchedChapter?.state || formState || user?.state || businessData?.state || "Maharashtra";
+    try {
+      // Upload image file if user picked from disk
+      if (formPostImageFile) {
+        try {
+          const uploadRes = await postsApi.uploadImage(formPostImageFile);
+          if (uploadRes?.data?.url || uploadRes?.url) {
+            finalPostImage = uploadRes?.data?.url || uploadRes?.url;
+          }
+        } catch (uploadErr) {
+          console.warn("Direct upload fallback to payload:", uploadErr);
+        }
+      }
 
-    const newPost = {
-      id: "post-" + Date.now(),
-      createdById: userId || ("u-" + Date.now()),
-      createdByRole: userRole,
-      createdByUsername: formattedUsername,
-      chapter: targetChapter,
-      state: postState,
-      author: {
-        username: formattedUsername,
-        name: username,
-        avatar: formProfilePic || null,
-        role: userRole,
-        verified: (userRole === "central_admin" || userRole === "state_admin" || userRole === "chapter_admin"),
-        subtitle: targetChapter ? `${targetChapter} • ${postState}` : postState,
-        timeAgo: "Just now",
-      },
-      images: [finalPostImage],
-      caption: formCaption.trim(),
-      likesCount: 0,
-      isLiked: false,
-      comments: [],
-      createdAt: new Date().toISOString(),
-    };
+      const username = (formUsername || currentUsername).trim() || "user";
+      const targetChapter = formChapter || user?.chapter || businessData?.chapter || "";
+      const matchedChapter = chapters.find(
+        (c) => (c.name || "").toLowerCase() === targetChapter.toLowerCase()
+      );
+      const postState = matchedChapter?.state || formState || user?.state || businessData?.state || "Maharashtra";
 
-    const updated = [newPost, ...posts];
-    savePosts(updated);
+      await createPostMutation.mutateAsync({
+        caption: formCaption.trim(),
+        image: finalPostImage,
+        images: [finalPostImage],
+        chapter: targetChapter,
+        chapterId: matchedChapter?._id || user?.chapterId || null,
+        state: postState,
+        authorName: username,
+        authorAvatar: formProfilePic || resolvedDefaultAvatar || "",
+      });
 
-    // Reset and close
-    setIsNewPostOpen(false);
-    setFormPostImage("");
-    setFormCaption("");
-    setUrlInputValue("");
-    setUseUrlInput(false);
-    toast.success("Your post has been published!");
+      // Reset and close
+      setIsNewPostOpen(false);
+      setFormPostImage("");
+      setFormPostImageFile(null);
+      setFormCaption("");
+      setUrlInputValue("");
+      setUseUrlInput(false);
+      toast.success("Your post has been published across all devices!");
+    } catch (err) {
+      toast.error(err?.message || "Failed to publish post. Please try again.");
+    } finally {
+      setIsSubmittingPost(false);
+    }
   };
 
   // Active user representation for commenting
@@ -1174,7 +1235,12 @@ export function BizFeeds() {
       {/* Main Feed Stream Column */}
       <div className="max-w-[500px] mx-auto space-y-6">
         <main className="w-full space-y-6">
-          {filteredPosts.length === 0 ? (
+          {isPostsLoading && posts.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card p-12 text-center space-y-3 shadow-xs">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+              <p className="text-xs text-muted-foreground font-medium">Loading live feeds...</p>
+            </div>
+          ) : filteredPosts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center space-y-4 shadow-xs">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted border border-border">
                 <Camera className="h-8 w-8 text-muted-foreground stroke-[1.5]" />
@@ -1210,7 +1276,7 @@ export function BizFeeds() {
             <div className="space-y-6">
               {filteredPosts.map((post) => (
                 <InstagramPostCard
-                  key={post.id}
+                  key={post.id || post._id}
                   post={post}
                   currentUser={activeUser}
                   canDelete={hasDeletePermission(post)}
@@ -1470,10 +1536,16 @@ export function BizFeeds() {
               </Button>
               <Button
                 type="submit"
-                disabled={(!formPostImage && !urlInputValue.trim()) || !formCaption.trim()}
+                disabled={isSubmittingPost || (!formPostImage && !urlInputValue.trim()) || !formCaption.trim()}
                 className="font-semibold"
               >
-                Publish Post
+                {isSubmittingPost ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Publishing...
+                  </>
+                ) : (
+                  "Publish Post"
+                )}
               </Button>
             </DialogFooter>
           </form>

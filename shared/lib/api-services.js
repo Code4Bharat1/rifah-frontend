@@ -415,3 +415,18 @@ export const documentApi = {
   update: (id, data) => apiClient(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/documents/${id}`, { method: "DELETE" }),
 };
+
+export const postsApi = {
+  list: (params = {}) => apiClient(`/posts${toQueryString(params)}`),
+  create: (data) => apiClient("/posts", { method: "POST", body: JSON.stringify(data) }),
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    return apiClient("/posts/upload", { method: "POST", body: formData });
+  },
+  toggleLike: (id) => apiClient(`/posts/${id}/like`, { method: "POST" }),
+  addComment: (id, data) => apiClient(`/posts/${id}/comments`, { method: "POST", body: JSON.stringify(data) }),
+  deleteComment: (id, commentId) => apiClient(`/posts/${id}/comments/${commentId}`, { method: "DELETE" }),
+  delete: (id) => apiClient(`/posts/${id}`, { method: "DELETE" }),
+};
+
