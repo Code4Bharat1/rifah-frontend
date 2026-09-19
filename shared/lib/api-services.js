@@ -402,3 +402,10 @@ export const roleApi = {
   update: (id, data) => apiClient(`/roles/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/roles/${id}`, { method: "DELETE" }),
 };
+
+export const documentApi = {
+  getAll: (params = {}) => apiClient(`/documents${toQueryString(params)}`),
+  create: (data) => apiClient("/documents", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/documents/${id}`, { method: "DELETE" }),
+};

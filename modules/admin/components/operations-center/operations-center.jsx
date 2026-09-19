@@ -74,7 +74,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
-import { eventApi, followupApi, chapterApi, userApi } from "@shared/lib/api-services";
+import { eventApi, followupApi, chapterApi, userApi, documentApi } from "@shared/lib/api-services";
 import { getSocket } from "@shared/lib/socket";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
@@ -241,6 +241,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   });
   const [submittingFinance, setSubmittingFinance] = useState(false);
 
+  // Documents State
+  const [documents, setDocuments] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+
   // Speakers & Guests
   const [speakers, setSpeakers] = useState([]);
   const [speakerDialogOpen, setSpeakerDialogOpen] = useState(false);
@@ -337,7 +341,21 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         setLoadingEvents(false);
       }
     }
+    
+    async function fetchDocuments() {
+      try {
+        setLoadingDocs(true);
+        const res = await documentApi.getAll();
+        if (res.data) setDocuments(res.data);
+      } catch (err) {
+        console.error("Warning loading documents:", err.message);
+      } finally {
+        setLoadingDocs(false);
+      }
+    }
+
     loadData();
+    fetchDocuments();
   }, []);
 
   // Load Chapter Members for My Team Dropdown
@@ -421,14 +439,25 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
           setActiveEvent(ev);
           if (ev.stageStatus) setLiveEventStatus(ev.stageStatus);
           if (ev.currentSlideIndex !== undefined) setCurrentSlideIndex(ev.currentSlideIndex);
-          if (ev.agenda?.length) setAgenda(ev.agenda);
+          if (ev.speakers?.length) setSpeakers(ev.speakers);
           if (ev.projectorMode) setProjectorMode(ev.projectorMode);
           if (ev.activeAnnouncement) {
             setActiveTicker(ev.activeAnnouncement);
             setLiveAnnouncement(ev.activeAnnouncement);
           }
           if (ev.moderatorNotes) setModeratorNotes(ev.moderatorNotes);
-          if (ev.speakers?.length) setSpeakers(ev.speakers);
+          
+          // Render real guest speaker name instead of default placeholder
+          let loadedAgenda = ev.agenda?.length ? ev.agenda : DEFAULT_AGENDA;
+          if (ev.speakers?.length > 0) {
+            loadedAgenda = loadedAgenda.map(item => {
+              if (item.title === "Guest Speaker Session") {
+                return { ...item, speaker: ev.speakers[0].name || ev.speakers[0].title || "Guest of Honour" };
+              }
+              return item;
+            });
+          }
+          setAgenda(loadedAgenda);
           if (ev.teamAssignments) {
             setTeamRoles((prev) => ({ ...prev, ...ev.teamAssignments }));
           }
@@ -4695,31 +4724,24 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { title: "Standard Chapter Event Script", cat: "Formats & Templates", size: "240 KB" },
-                { title: "Membership Induction Guidelines", cat: "Membership", size: "512 KB" },
-                { title: "Annual Chapter Formation Bylaws", cat: "Chapter Formation", size: "1.2 MB" },
-                { title: "Sponsorship & Partner Formats", cat: "Registration & Legal", size: "380 KB" },
-                { title: "Central Secretariat Circular Q3", cat: "Circulars", size: "450 KB" },
-                { title: "Code of Ethics & Conduct", cat: "Registration & Legal", size: "310 KB" },
-              ].map((doc, idx) => (
+              {documents.length > 0 ? documents.map((doc, idx) => (
                 <div
                   key={idx}
                   className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all flex flex-col justify-between"
                 >
                   <div className="space-y-1.5">
                     <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
-                      {doc.cat}
+                      {doc.category || "General"}
                     </span>
                     <h4 className="font-bold text-sm text-foreground">{doc.title}</h4>
-                    <p className="text-[11px] text-muted-foreground">PDF Document · {doc.size}</p>
+                    <p className="text-[11px] text-muted-foreground">{doc.type || "Document"} · {doc.size}</p>
                   </div>
 
                   <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleViewDocument(doc.title)}
+                      onClick={() => handleViewDocument(doc.fileUrl || doc.title)}
                       className="flex-1 text-xs h-8 gap-1"
                     >
                       <Eye className="h-3.5 w-3.5" /> View
@@ -4733,7 +4755,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     </Button>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="col-span-full py-8 text-center text-muted-foreground">
+                  <FileStack className="h-10 w-10 mx-auto opacity-20 mb-3" />
+                  <p>No documents uploaded yet.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
