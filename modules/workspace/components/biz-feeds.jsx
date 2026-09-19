@@ -453,8 +453,8 @@ function InstagramPostCard({
   );
 }
 
-// Multi-Level Filter Panel (All, State-wise, Chapter-wise)
-function FeedFilterSidebar({
+// Multi-Level Filter Navbar (All, State-wise, Chapter-wise - Inline Navbar Layout)
+function FeedFilterBar({
   filterMode,
   setFilterMode,
   selectedState,
@@ -478,62 +478,13 @@ function FeedFilterSidebar({
     Boolean(searchQuery.trim());
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-3.5 border-b border-border/70 flex items-center justify-between bg-muted/20">
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-foreground tracking-tight">Feed Filters</h2>
-            <p className="text-[11px] text-muted-foreground">
-              {filteredCount} of {totalPostsCount} posts
-            </p>
-          </div>
-        </div>
-
-        {isFiltering && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onReset}
-            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer"
-            title="Reset filters"
-          >
-            <RotateCcw className="h-3.5 w-3.5 mr-1" />
-            Reset
-          </Button>
-        )}
-      </div>
-
-      <div className="p-4 space-y-4">
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search posts, captions, members..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 text-xs h-8.5 rounded-lg"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* 3-Mode Filter Segmented Control */}
-        <div className="space-y-1.5">
-          <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Filter View
-          </Label>
-          <div className="grid grid-cols-3 gap-1 bg-muted/40 p-1 rounded-xl border border-border/50">
+    <div className="rounded-2xl border border-border bg-card/95 backdrop-blur-md shadow-xs p-2 sm:px-3 sm:py-2.5 transition-all">
+      {/* Main Inline Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        {/* Left Section: Segmented View Switcher & Contextual Selectors */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Segmented View Control */}
+          <div className="inline-flex items-center bg-muted/60 p-0.5 rounded-xl border border-border/60">
             <button
               type="button"
               onClick={() => {
@@ -542,7 +493,7 @@ function FeedFilterSidebar({
                 setSelectedChapter("");
               }}
               className={cn(
-                "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                "flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                 filterMode === "all"
                   ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
@@ -556,7 +507,7 @@ function FeedFilterSidebar({
               type="button"
               onClick={() => setFilterMode("state")}
               className={cn(
-                "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                "flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                 filterMode === "state"
                   ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
@@ -570,7 +521,7 @@ function FeedFilterSidebar({
               type="button"
               onClick={() => setFilterMode("chapter")}
               className={cn(
-                "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                "flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                 filterMode === "chapter"
                   ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
@@ -580,69 +531,17 @@ function FeedFilterSidebar({
               <span>Chapter</span>
             </button>
           </div>
-        </div>
 
-        {/* Dynamic Controls based on selected Mode */}
-        {filterMode === "all" && (
-          <div className="rounded-xl border border-border/60 bg-muted/15 p-3 space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-              <Globe className="h-3.5 w-3.5 text-sky-500" />
-              <span>All Feeds Active</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Showing updates from all chapters and states across the entire RIFAH network.
-            </p>
-
-            {(userChapter || userState) && (
-              <div className="pt-2 border-t border-border/40 space-y-1.5">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-                  Quick Shortcuts
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {userChapter && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFilterMode("chapter");
-                        setSelectedChapter(userChapter);
-                      }}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                    >
-                      <Building2 className="h-3 w-3" />
-                      My Chapter ({userChapter})
-                    </button>
-                  )}
-                  {userState && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFilterMode("state");
-                        setSelectedState(userState);
-                      }}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                    >
-                      <MapPin className="h-3 w-3" />
-                      My State ({userState})
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {filterMode === "state" && (
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-primary" /> Select State
-              </Label>
+          {/* Contextual Selector: State Mode */}
+          {filterMode === "state" && (
+            <div className="flex items-center gap-1.5">
               <Select
                 value={selectedState || "ALL_STATES"}
                 onValueChange={(val) => setSelectedState(val === "ALL_STATES" ? "" : val)}
               >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Select a state" />
+                <SelectTrigger className="h-8.5 text-xs w-[160px] sm:w-[190px] rounded-lg bg-background">
+                  <MapPin className="h-3 w-3 mr-1 text-primary shrink-0" />
+                  <SelectValue placeholder="All States" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
                   <SelectItem value="ALL_STATES">All States</SelectItem>
@@ -654,53 +553,17 @@ function FeedFilterSidebar({
                 </SelectContent>
               </Select>
             </div>
+          )}
 
-            {/* Quick State Pills */}
-            {availableStates.length > 0 && (
-              <div className="space-y-1.5 pt-1">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-                  Popular States
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {availableStates.slice(0, 6).map((state) => {
-                    const isSelected = selectedState.toLowerCase() === state.toLowerCase();
-                    return (
-                      <button
-                        key={state}
-                        type="button"
-                        onClick={() => setSelectedState(isSelected ? "" : state)}
-                        className={cn(
-                          "px-2 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer",
-                          isSelected
-                            ? "bg-primary text-primary-foreground font-semibold"
-                            : "bg-muted hover:bg-muted/80 text-foreground"
-                        )}
-                      >
-                        {state}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {filterMode === "chapter" && (
-          <div className="space-y-3">
-            {/* Optional state filter to narrow chapters */}
-            {availableStates.length > 1 && (
-              <div className="space-y-1">
-                <Label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> State Filter (Optional)
-                </Label>
+          {/* Contextual Selector: Chapter Mode */}
+          {filterMode === "chapter" && (
+            <div className="flex items-center gap-1.5">
+              {availableStates.length > 1 && (
                 <Select
                   value={selectedState || "ALL_STATES"}
-                  onValueChange={(val) => {
-                    setSelectedState(val === "ALL_STATES" ? "" : val);
-                  }}
+                  onValueChange={(val) => setSelectedState(val === "ALL_STATES" ? "" : val)}
                 >
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-8.5 text-xs w-[130px] sm:w-[150px] rounded-lg bg-background">
                     <SelectValue placeholder="All States" />
                   </SelectTrigger>
                   <SelectContent className="max-h-48">
@@ -712,20 +575,15 @@ function FeedFilterSidebar({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            )}
+              )}
 
-            {/* Select Chapter */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5 text-primary" /> Select Chapter
-              </Label>
               <Select
                 value={selectedChapter || "ALL_CHAPTERS"}
                 onValueChange={(val) => setSelectedChapter(val === "ALL_CHAPTERS" ? "" : val)}
               >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Select a chapter" />
+                <SelectTrigger className="h-8.5 text-xs w-[170px] sm:w-[210px] rounded-lg bg-background">
+                  <Building2 className="h-3 w-3 mr-1 text-primary shrink-0" />
+                  <SelectValue placeholder="Select Chapter" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
                   <SelectItem value="ALL_CHAPTERS">All Chapters</SelectItem>
@@ -737,50 +595,139 @@ function FeedFilterSidebar({
                 </SelectContent>
               </Select>
             </div>
+          )}
 
-            {/* Quick Chapter Shortcuts */}
-            {userChapter && (
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => setSelectedChapter(userChapter)}
-                  className={cn(
-                    "w-full text-left flex items-center justify-between p-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer",
-                    selectedChapter.toLowerCase() === userChapter.toLowerCase()
-                      ? "border-primary bg-primary/10 text-primary font-semibold"
-                      : "border-border bg-muted/20 hover:bg-muted/40 text-foreground"
-                  )}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Building2 className="h-3.5 w-3.5" />
-                    My Chapter: {userChapter}
-                  </span>
-                  {selectedChapter.toLowerCase() === userChapter.toLowerCase() && (
-                    <Badge variant="default" className="text-[10px] h-4 px-1">Active</Badge>
-                  )}
-                </button>
-              </div>
+          {/* Quick Shortcuts: My Chapter / My State */}
+          {userChapter && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilterMode("chapter");
+                setSelectedChapter(userChapter);
+              }}
+              className={cn(
+                "hidden md:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                filterMode === "chapter" && selectedChapter.toLowerCase() === userChapter.toLowerCase()
+                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  : "bg-muted/70 text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+              title={`Filter by my chapter (${userChapter})`}
+            >
+              <Building2 className="h-3 w-3" />
+              <span>{userChapter}</span>
+            </button>
+          )}
+          {userState && filterMode !== "chapter" && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilterMode("state");
+                setSelectedState(userState);
+              }}
+              className={cn(
+                "hidden md:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                filterMode === "state" && selectedState.toLowerCase() === userState.toLowerCase()
+                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  : "bg-muted/70 text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+              title={`Filter by my state (${userState})`}
+            >
+              <MapPin className="h-3 w-3" />
+              <span>{userState}</span>
+            </button>
+          )}
+        </div>
+
+        {/* Right Section: Inline Search Bar, Posts Count & Reset */}
+        <div className="flex items-center gap-2 ml-auto">
+          {/* Search Bar */}
+          <div className="relative w-40 sm:w-52 md:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Search feeds..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-7 text-xs h-8.5 rounded-lg bg-background"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             )}
           </div>
-        )}
 
-        {/* Current Active Filter Summary Tag */}
-        {isFiltering && (
-          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px]">
-            <span className="text-muted-foreground">Active Filter:</span>
-            <span className="font-semibold text-primary truncate max-w-[180px]">
-              {filterMode === "all"
-                ? (searchQuery ? `Search: "${searchQuery}"` : "All Feeds")
-                : filterMode === "state"
-                ? (selectedState ? `State: ${selectedState}` : "All States")
-                : (selectedChapter ? `Chapter: ${selectedChapter}` : "All Chapters")}
-            </span>
-          </div>
-        )}
+          {/* Posts Count Badge */}
+          <Badge
+            variant="outline"
+            className="h-8.5 px-2.5 text-[11px] font-medium text-muted-foreground border-border bg-background shrink-0 hidden sm:inline-flex items-center"
+          >
+            {filteredCount} {filteredCount === 1 ? "post" : "posts"}
+          </Badge>
+
+          {/* Reset Action */}
+          {isFiltering && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReset}
+              className="h-8.5 px-2.5 text-xs text-muted-foreground hover:text-destructive font-medium cursor-pointer shrink-0"
+              title="Reset all filters"
+            >
+              <RotateCcw className="h-3.5 w-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">Reset</span>
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Optional Thin Secondary Pill Row: When State Mode is active with available states */}
+      {filterMode === "state" && availableStates.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-border/40 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider shrink-0 mr-1">
+            States:
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectedState("")}
+            className={cn(
+              "px-2 py-0.5 rounded-md text-[11px] font-medium transition-all shrink-0 cursor-pointer",
+              !selectedState ? "bg-primary text-primary-foreground font-semibold" : "bg-muted/70 hover:bg-muted text-foreground"
+            )}
+          >
+            All States
+          </button>
+          {availableStates.slice(0, 10).map((state) => {
+            const isSelected = selectedState.toLowerCase() === state.toLowerCase();
+            return (
+              <button
+                key={state}
+                type="button"
+                onClick={() => setSelectedState(isSelected ? "" : state)}
+                className={cn(
+                  "px-2 py-0.5 rounded-md text-[11px] font-medium transition-all shrink-0 cursor-pointer",
+                  isSelected
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : "bg-muted/70 hover:bg-muted text-foreground"
+                )}
+              >
+                {state}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
+
+// Alias for backwards compatibility
+const FeedFilterSidebar = FeedFilterBar;
 
 // Main BizFeeds Component
 export function BizFeeds() {
@@ -1203,104 +1150,80 @@ export function BizFeeds() {
         </Button>
       }
     >
-      <div className="max-w-6xl mx-auto py-2">
-        {/* Mobile / Tablet Filter Bar (< lg) */}
-        <div className="lg:hidden mb-5">
-          <FeedFilterSidebar
-            filterMode={filterMode}
-            setFilterMode={setFilterMode}
-            selectedState={selectedState}
-            setSelectedState={setSelectedState}
-            selectedChapter={selectedChapter}
-            setSelectedChapter={setSelectedChapter}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            availableStates={availableStates}
-            availableChapters={availableChapters}
-            totalPostsCount={posts.length}
-            filteredCount={filteredPosts.length}
-            onReset={handleResetFilter}
-            userState={userState}
-            userChapter={userChapter}
-          />
-        </div>
+      {/* Top Inline Filter Navbar */}
+      <div className="w-full max-w-5xl mx-auto mb-6">
+        <FeedFilterBar
+          filterMode={filterMode}
+          setFilterMode={setFilterMode}
+          selectedState={selectedState}
+          setSelectedState={setSelectedState}
+          selectedChapter={selectedChapter}
+          setSelectedChapter={setSelectedChapter}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          availableStates={availableStates}
+          availableChapters={availableChapters}
+          totalPostsCount={posts.length}
+          filteredCount={filteredPosts.length}
+          onReset={handleResetFilter}
+          userState={userState}
+          userChapter={userChapter}
+        />
+      </div>
 
-        {/* 2-Column Responsive Layout: Feed in Center, Filters on Right */}
-        <div className="flex items-start justify-center gap-8">
-          {/* Main Feed Stream Column */}
-          <main className="flex-1 max-w-[520px] w-full min-w-0 space-y-6">
-            {filteredPosts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center space-y-4 shadow-xs">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted border border-border">
-                  <Camera className="h-8 w-8 text-muted-foreground stroke-[1.5]" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-base font-bold text-foreground">No Posts Found</h3>
-                  <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                    {posts.length === 0
-                      ? "No posts published in the network yet. Be the first to share an update!"
-                      : "No posts match the current filter selection. Try choosing another state/chapter or resetting."}
-                  </p>
-                </div>
-                <div className="flex items-center justify-center gap-2 pt-2">
-                  {posts.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleResetFilter}
-                      className="gap-1.5 text-xs font-semibold cursor-pointer"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" /> Show All Posts
-                    </Button>
-                  )}
+      {/* Main Feed Stream Column */}
+      <div className="max-w-[500px] mx-auto space-y-6">
+        <main className="w-full space-y-6">
+          {filteredPosts.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center space-y-4 shadow-xs">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted border border-border">
+                <Camera className="h-8 w-8 text-muted-foreground stroke-[1.5]" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">No Posts Found</h3>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                  {posts.length === 0
+                    ? "No posts published in the network yet. Be the first to share an update!"
+                    : "No posts match the current filter selection. Try choosing another state/chapter or resetting."}
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-2 pt-2">
+                {posts.length > 0 && (
                   <Button
-                    onClick={() => setIsNewPostOpen(true)}
-                    className="gap-2 font-semibold text-xs cursor-pointer"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetFilter}
+                    className="gap-1.5 text-xs font-semibold cursor-pointer"
                   >
-                    <PlusCircle className="h-4 w-4" /> Create Post
+                    <RotateCcw className="h-3.5 w-3.5" /> Show All Posts
                   </Button>
-                </div>
+                )}
+                <Button
+                  onClick={() => setIsNewPostOpen(true)}
+                  className="gap-2 font-semibold text-xs cursor-pointer"
+                >
+                  <PlusCircle className="h-4 w-4" /> Create Post
+                </Button>
               </div>
-            ) : (
-              <div className="space-y-6">
-                {filteredPosts.map((post) => (
-                  <InstagramPostCard
-                    key={post.id}
-                    post={post}
-                    currentUser={activeUser}
-                    canDelete={hasDeletePermission(post)}
-                    onLikeToggle={handleLikeToggle}
-                    onAddComment={handleAddComment}
-                    onDeletePost={handleDeletePost}
-                    onSelectChapter={handleSelectChapter}
-                    onSelectState={handleSelectState}
-                  />
-                ))}
-              </div>
-            )}
-          </main>
-
-          {/* Right Column: Sticky Multi-Level Filter Panel (Desktop lg+) */}
-          <aside className="hidden lg:block w-80 shrink-0 sticky top-20">
-            <FeedFilterSidebar
-              filterMode={filterMode}
-              setFilterMode={setFilterMode}
-              selectedState={selectedState}
-              setSelectedState={setSelectedState}
-              selectedChapter={selectedChapter}
-              setSelectedChapter={setSelectedChapter}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              availableStates={availableStates}
-              availableChapters={availableChapters}
-              totalPostsCount={posts.length}
-              filteredCount={filteredPosts.length}
-              onReset={handleResetFilter}
-              userState={userState}
-              userChapter={userChapter}
-            />
-          </aside>
-        </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {filteredPosts.map((post) => (
+                <InstagramPostCard
+                  key={post.id}
+                  post={post}
+                  currentUser={activeUser}
+                  canDelete={hasDeletePermission(post)}
+                  onLikeToggle={handleLikeToggle}
+                  onAddComment={handleAddComment}
+                  onDeletePost={handleDeletePost}
+                  onSelectChapter={handleSelectChapter}
+                  onSelectState={handleSelectState}
+                />
+              ))}
+            </div>
+          )}
+        </main>
       </div>
 
       {/* Direct Image & Post Creation Modal */}
