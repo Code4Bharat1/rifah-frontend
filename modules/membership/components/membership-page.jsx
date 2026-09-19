@@ -15,17 +15,7 @@ import {
 import { useMembershipPlans } from "@shared/hooks/use-rifah-api";
 import { cn } from "@shared/lib/utils";
 
-const comparison = [
-  { label: "Directory listing", values: ["Standard", "Improved ranking", "Featured placement", "Top-tier placement"] },
-  { label: "Products & services", values: ["Up to 3", "Up to 15", "Unlimited", "Unlimited, multi-catalogue"] },
-  { label: "Lead routing", values: ["Limited", "Standard", "Priority", "Dedicated rules"] },
-  { label: "Verified badge", values: [false, true, true, true] },
-  { label: "Enquiry inbox", values: [false, true, true, true] },
-  { label: "Analytics", values: [false, "Basic", "Full", "Full + exports"] },
-  { label: "Gallery & certifications", values: [false, false, true, true] },
-  { label: "Team accounts", values: [false, false, false, true] },
-  { label: "Chamber liaison", values: [false, false, false, true] },
-];
+import { ChamberMembershipTiers } from "@shared/components/rifah/chamber-membership-tiers";
 
 const faqs = [
   {
@@ -42,17 +32,9 @@ const faqs = [
   },
 ];
 
-function Cell({ value }) {
-  if (value === true) return <Check className="mx-auto h-4 w-4 text-success" aria-label="Included" />;
-  if (value === false) return <Minus className="mx-auto h-4 w-4 text-muted-foreground" aria-label="Not included" />;
-  return <span className="text-sm">{value}</span>;
-}
-
 function MembershipPage() {
   const { data: plansData } = useMembershipPlans();
   const [currency, setCurrency] = useState("INR");
-  const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
-
   const isIntl = currency === "USD";
 
   return (
@@ -95,57 +77,12 @@ function MembershipPage() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {plans.map((plan) => {
-            const displayPrice = isIntl
-              ? (plan.priceUsd ?? (plan.price === 0 ? 0 : Math.round(plan.price / 80)))
-              : plan.price;
-            const formattedPrice = displayPrice === 0
-              ? (isIntl ? "$ 0" : "₹ 0")
-              : isIntl
-              ? `$ ${displayPrice.toLocaleString("en-US")}`
-              : `₹ ${displayPrice.toLocaleString("en-IN")}`;
-
-            return (
-              <article
-                key={plan.id}
-                className={cn(
-                  "flex flex-col rounded-2xl border bg-surface p-5",
-                  plan.id === "premium" ? "border-primary shadow-elevated ring-1 ring-primary/20" : "border-border"
-                )}
-              >
-                {plan.id === "premium" && (
-                  <span className="mb-3 inline-flex w-fit items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
-                    <Star className="h-3 w-3" /> Most chosen
-                  </span>
-                )}
-                <h2 className="text-base font-bold tracking-tight">{plan.name}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.summary || `Annual ${plan.name} chamber membership`}</p>
-                <p className="mt-4 text-2xl font-bold tracking-tight">
-                  {formattedPrice}
-                  <span className="ml-1 text-xs font-medium text-muted-foreground">/ year</span>
-                </p>
-                <ul className="mt-4 flex-1 space-y-2">
-                  {plan.features?.map((f, i) => (
-                    <li key={i} className="flex gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                      <span className="text-muted-foreground">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  asChild
-                  className="mt-5"
-                  variant={plan.id === "premium" ? "default" : "outline"}
-                  size="lg"
-                >
-                  <Link href={`/membership/checkout?plan=${plan.id}&currency=${currency}`}>
-                    {plan.id === "free" ? "Start free listing" : `Choose ${plan.name}`}
-                  </Link>
-                </Button>
-              </article>
-            );
-          })}
+        <div className="mt-8">
+          <ChamberMembershipTiers
+            plansData={plansData}
+            currency={currency}
+            showHeader={false}
+          />
         </div>
 
         <div className="mt-10">

@@ -38,6 +38,7 @@ import {
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
+import { ChamberMembershipTiers } from "@shared/components/rifah/chamber-membership-tiers";
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
@@ -2067,95 +2068,13 @@ function BizMembership() {
 
       {/* Explore All Plans / Upgrade Modal */}
       <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Crown className="h-5 w-5 text-amber-500" />
-              <span>Chamber Membership Tiers</span>
-            </DialogTitle>
-            <DialogDescription>
-              Select the right plan tier to match your enterprise growth and chamber networking requirements.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 py-4">
-            {allAvailablePlans.map((plan) => {
-              const isCurrent = currentTier === plan.id;
-              return (
-                <div
-                  key={plan.id}
-                  className={`relative flex flex-col justify-between rounded-2xl border p-4 transition-all ${
-                    plan.highlight
-                      ? "border-sky-400 bg-sky-50/40 dark:border-sky-800 dark:bg-sky-950/20 shadow-sm"
-                      : isCurrent
-                      ? "border-emerald-400 bg-emerald-50/30 dark:border-emerald-900/40"
-                      : "border-border bg-card"
-                  }`}
-                >
-                  {plan.highlight && !isCurrent && (
-                    <span className="absolute -top-2.5 right-4 rounded-full bg-[#0088d1] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-2xs">
-                      Most Popular
-                    </span>
-                  )}
-
-                  <div>
-                    <div className="flex items-baseline justify-between gap-2">
-                      <h4 className="text-base font-bold text-foreground">{plan.name}</h4>
-                      <div className="text-right">
-                        <span className="text-base font-extrabold text-foreground">{plan.price}</span>
-                        <span className="text-[10px] text-muted-foreground block">{plan.period}</span>
-                      </div>
-                    </div>
-                    <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
-                      {plan.desc}
-                    </p>
-
-                    <ul className="mt-3.5 space-y-1.5 border-t border-border/60 pt-3 text-xs text-foreground">
-                      {plan.features.map((feat, idx) => (
-                        <li key={idx} className="flex items-start gap-1.5">
-                          <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                          <span className="text-[11px] leading-tight">{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-border/40">
-                    {isCurrent ? (
-                      <Button asChild size="sm" variant="outline" className="w-full font-bold text-xs border-emerald-400 text-emerald-700 dark:text-emerald-300">
-                        <Link href={`/membership/checkout?plan=${plan.id}`}>
-                          Renew {plan.name}
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button
-                        asChild
-                        size="sm"
-                        className={`w-full font-bold text-xs shadow-2xs ${
-                          plan.highlight
-                            ? "bg-[#0088d1] hover:bg-[#0077b6] text-white"
-                            : "bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900"
-                        }`}
-                      >
-                        <Link href={`/membership/checkout?plan=${plan.id}`}>
-                          Select {plan.name}
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <DialogFooter className="mt-2 sm:justify-between items-center">
-            <Button asChild variant="ghost" size="sm" className="text-xs text-muted-foreground">
-              <Link href="/membership">View Full Pricing Breakdown →</Link>
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setUpgradeDialogOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
+        <DialogContent className="w-[96vw] sm:max-w-5xl xl:max-w-6xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-border bg-card shadow-2xl">
+          <ChamberMembershipTiers
+            currentTier={currentTier}
+            plansData={plansData}
+            currency="INR"
+            showHeader={true}
+          />
         </DialogContent>
       </Dialog>
 
