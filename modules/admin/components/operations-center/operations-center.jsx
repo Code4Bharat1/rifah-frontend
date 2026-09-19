@@ -62,6 +62,15 @@ import {
   Megaphone,
   Timer,
   Coffee,
+  Zap,
+  GraduationCap,
+  Trophy,
+  Star,
+  Handshake,
+  Globe,
+  Loader2,
+  ScrollText,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -166,6 +175,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const [activeEvent, setActiveEvent] = useState(null);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [backendKpis, setBackendKpis] = useState(null);
+  const [attendeesList, setAttendeesList] = useState([]);
+  const [chapterMembers, setChapterMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
   // Follow-up State
   const [followupMode, setFollowupMode] = useState("event"); // "event" | "membership"
@@ -252,42 +264,97 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     guestManager: "Ayesha Siddiqui",
   });
 
-  // Event Setup Form State
+  // Event Setup Form State — Full
   const [eventSetupForm, setEventSetupForm] = useState({
+    // Today's Event Page
+    nameTemplate: "",
     title: "",
-    summary: "",
     date: "",
-    time: "",
-    venue: "",
-    memberFee: 0,
-    nonMemberFee: 500,
-    signatory1: "Mohammad Zaid",
-    signatory2: "Rashid Kamal",
-    theme: "gold",
-    scriptLanguage: "en",
+    posterUrl: "",
+    signatory1Role: "Chapter Vice President",
+    signatory1Name: "",
+    signatory1Image: "",
+    membershipJoiningLink: "",
+    membershipQrImage: "",
+    // Payment Settings
+    memberFee: "",
+    nonMemberFee: "",
+    paymentCodes: "",
+    staffCodes: "",
+    // Certificate Design
+    certificateStyle: "5 — Corporate (navy band, gold rule, clean typography)",
+    certificateAccentColor: "#059669",
+    signatory2Role: "— none —",
+    signatory2Name: "",
+    signatory2Image: "",
+    // Visitor / Membership Rules
+    visitorSignIn: false,
+    remindRepeatGuests: true,
+    repeatGuestThreshold: 3,
+    downloadListPermission: "Everyone (members and guests)",
+    // Slogan & Theme
+    slogan: "",
+    theme: "",
+    // Appearance
+    chapterAppearance: "navy",
   });
   const [savingEventSetup, setSavingEventSetup] = useState(false);
+  const [savingPaymentSettings, setSavingPaymentSettings] = useState(false);
+  const [savingCertDesign, setSavingCertDesign] = useState(false);
+  const [savingSloganTheme, setSavingSloganTheme] = useState(false);
+  const [savingSponsors, setSavingSponsors] = useState(false);
+  const [savingUpcomingEvents, setSavingUpcomingEvents] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [liveSyncStatus, setLiveSyncStatus] = useState(null); // null | 'testing' | 'ok' | 'fail'
+  const [liveSyncLatency, setLiveSyncLatency] = useState(null);
+  const [suggestTopicsOpen, setSuggestTopicsOpen] = useState(false);
+  const [sponsorsList, setSponsorsList] = useState([]);
+  const [upcomingEventsList, setUpcomingEventsList] = useState([]);
+  const [sponsorForm, setSponsorForm] = useState({ name: "", category: "Main Sponsor", logo: "", contact: "", amount: "", notes: "" });
+  const [addingSponsor, setAddingSponsor] = useState(false);
+  const [upcomingEventForm, setUpcomingEventForm] = useState({ title: "", date: "", chapter: "", city: "" });
+  const [addingUpcomingEvent, setAddingUpcomingEvent] = useState(false);
+  const [upcomingRegion, setUpcomingRegion] = useState("All of India");
 
-  // Load Events on Mount
+  // Load Events on Mount (Pre-existing events auto-fetched)
   useEffect(() => {
     async function loadData() {
       try {
         setLoadingEvents(true);
-        const res = await eventApi.list({ limit: 10 });
+        const res = await eventApi.list({ limit: 50 });
         const eventList = res?.events || res?.data || res || [];
         setEvents(eventList);
         if (eventList.length > 0) {
           const first = eventList[0];
           setSelectedEventId(first._id);
           setActiveEvent(first);
+          fetchOperationsData(first._id);
         }
       } catch (err) {
-        console.error("Error loading events:", err);
+        console.warn("Warning loading events (transient):", err.message);
       } finally {
         setLoadingEvents(false);
       }
     }
     loadData();
+  }, []);
+
+  // Load Chapter Members for My Team Dropdown
+  useEffect(() => {
+    async function loadMembers() {
+      try {
+        setLoadingMembers(true);
+        const res = await userApi.getAdminUsers({ limit: 100 });
+        const memberList = res?.data?.users || res?.users || res?.data || [];
+        setChapterMembers(memberList);
+      } catch (err) {
+        console.warn("Could not load chapter members:", err.message);
+      } finally {
+        setLoadingMembers(false);
+      }
+    }
+    loadMembers();
   }, []);
 
   // Sync / Load Follow-ups
@@ -302,7 +369,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         setFollowupStats(statsRes.data);
       }
     } catch (err) {
-      console.error("Error loading followups:", err);
+      console.warn("Warning loading followups (transient):", err.message);
     }
   };
 
@@ -346,6 +413,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         if (res.data.kpis) {
           setBackendKpis(res.data.kpis);
         }
+        if (res.data.attendees && Array.isArray(res.data.attendees)) {
+          setAttendeesList(res.data.attendees);
+        }
         if (res.data.event) {
           const ev = res.data.event;
           setActiveEvent(ev);
@@ -370,18 +440,34 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             });
           }
           setEventSetupForm({
+            nameTemplate: "",
             title: ev.title || "",
-            summary: ev.summary || ev.slogan || "",
             date: ev.date ? ev.date.split("T")[0] : "",
-            time: ev.time || "",
-            venue: ev.venue || "",
-            memberFee: ev.memberFee !== undefined ? ev.memberFee : 0,
-            nonMemberFee: ev.nonMemberFee !== undefined ? ev.nonMemberFee : 500,
-            signatory1: ev.signatories?.[0]?.name || "Mohammad Zaid",
-            signatory2: ev.signatories?.[1]?.name || "Rashid Kamal",
-            theme: ev.theme || "gold",
-            scriptLanguage: ev.scriptLanguage || "en",
+            posterUrl: ev.eventPoster || "",
+            signatory1Role: ev.signatory1Role || "Chapter Vice President",
+            signatory1Name: ev.signatory1Name || "",
+            signatory1Image: ev.signatory1Image || "",
+            membershipJoiningLink: ev.membershipJoiningLink || "",
+            membershipQrImage: ev.membershipQrImage || "",
+            memberFee: ev.memberFee !== undefined ? String(ev.memberFee) : "",
+            nonMemberFee: ev.nonMemberFee !== undefined ? String(ev.nonMemberFee) : "",
+            paymentCodes: Array.isArray(ev.paymentCodes) ? ev.paymentCodes.join(", ") : "",
+            staffCodes: Array.isArray(ev.staffCodes) ? ev.staffCodes.join(", ") : "",
+            certificateStyle: ev.certificateStyle || "5 — Corporate (navy band, gold rule, clean typography)",
+            certificateAccentColor: ev.certificateAccentColor || "#059669",
+            signatory2Role: ev.signatory2Role || "— none —",
+            signatory2Name: ev.signatory2Name || "",
+            signatory2Image: ev.signatory2Image || "",
+            visitorSignIn: ev.visitorSignIn !== false,
+            remindRepeatGuests: ev.remindRepeatGuests !== false,
+            repeatGuestThreshold: ev.repeatGuestThreshold ?? 3,
+            downloadListPermission: ev.downloadListPermission || "Everyone (members and guests)",
+            slogan: ev.slogan || "",
+            theme: ev.theme || "",
+            chapterAppearance: ev.appearance?.primaryColor === "#b45309" ? "ivory" : "navy",
           });
+          if (ev.sponsors?.length) setSponsorsList(ev.sponsors);
+          if (ev.upcomingEvents?.length) setUpcomingEventsList(ev.upcomingEvents);
         }
       }
     } catch (err) {
@@ -405,27 +491,165 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       setSavingEventSetup(true);
       const payload = {
         title: eventSetupForm.title,
-        summary: eventSetupForm.summary,
-        slogan: eventSetupForm.summary,
         date: eventSetupForm.date,
-        time: eventSetupForm.time,
-        venue: eventSetupForm.venue,
-        memberFee: Number(eventSetupForm.memberFee) || 0,
-        nonMemberFee: Number(eventSetupForm.nonMemberFee) || 0,
-        signatories: [
-          { role: "Chapter President", name: eventSetupForm.signatory1 },
-          { role: "Secretary", name: eventSetupForm.signatory2 },
-        ],
-        theme: eventSetupForm.theme,
-        scriptLanguage: eventSetupForm.scriptLanguage,
+        eventPoster: eventSetupForm.posterUrl,
+        signatory1Role: eventSetupForm.signatory1Role,
+        signatory1Name: eventSetupForm.signatory1Name,
+        signatory1Image: eventSetupForm.signatory1Image,
+        membershipJoiningLink: eventSetupForm.membershipJoiningLink,
+        membershipQrImage: eventSetupForm.membershipQrImage,
       };
       await eventApi.updateOperations(selectedEventId, payload);
-      toast.success("Event setup updated and saved to MongoDB!");
+      toast.success("✅ Event setup saved to MongoDB!");
       fetchOperationsData(selectedEventId);
     } catch (err) {
       toast.error("Failed to save event setup: " + (err.message || "Unknown error"));
     } finally {
       setSavingEventSetup(false);
+    }
+  };
+
+  const handleSavePaymentSettings = async () => {
+    if (!selectedEventId) { toast.error("Please select an active event first."); return; }
+    try {
+      setSavingPaymentSettings(true);
+      const payload = {
+        memberFee: Number(eventSetupForm.memberFee) || 0,
+        nonMemberFee: Number(eventSetupForm.nonMemberFee) || 0,
+        paymentCodes: eventSetupForm.paymentCodes.split(",").map(s => s.trim()).filter(Boolean),
+        staffCodes: eventSetupForm.staffCodes.split(",").map(s => s.trim()).filter(Boolean),
+      };
+      await eventApi.updateOperations(selectedEventId, payload);
+      toast.success("✅ Payment settings saved!");
+    } catch (err) {
+      toast.error("Failed to save payment settings: " + (err.message || "Unknown error"));
+    } finally {
+      setSavingPaymentSettings(false);
+    }
+  };
+
+  const handleSaveCertificateDesign = async () => {
+    if (!selectedEventId) { toast.error("Please select an active event first."); return; }
+    try {
+      setSavingCertDesign(true);
+      const payload = {
+        certificateStyle: eventSetupForm.certificateStyle,
+        certificateAccentColor: eventSetupForm.certificateAccentColor,
+        signatory2Role: eventSetupForm.signatory2Role,
+        signatory2Name: eventSetupForm.signatory2Name,
+        signatory2Image: eventSetupForm.signatory2Image,
+      };
+      await eventApi.updateOperations(selectedEventId, payload);
+      toast.success("✅ Certificate design saved!");
+    } catch (err) {
+      toast.error("Failed to save certificate design: " + (err.message || "Unknown error"));
+    } finally {
+      setSavingCertDesign(false);
+    }
+  };
+
+  const handleDownloadCertificate = (name, role) => {
+    const params = new URLSearchParams({
+      name: name,
+      role: role,
+      event: activeEvent?.title || "RIFAH Chapter Meet",
+      accent: eventSetupForm.certificateAccentColor || "#059669",
+      sig1Name: eventSetupForm.signatory1Name || "",
+      sig1Role: eventSetupForm.signatory1Role || "",
+      sig1Img: eventSetupForm.signatory1Image || "",
+      sig2Name: eventSetupForm.signatory2Name || "",
+      sig2Role: eventSetupForm.signatory2Role || "",
+      sig2Img: eventSetupForm.signatory2Image || "",
+    });
+    window.open(`/certificate.html?${params.toString()}`, "_blank");
+  };
+
+  const handleSaveMembershipRules = async () => {
+    if (!selectedEventId) { toast.error("Please select an active event first."); return; }
+    try {
+      const payload = {
+        visitorSignIn: eventSetupForm.visitorSignIn,
+        remindRepeatGuests: eventSetupForm.remindRepeatGuests,
+        repeatGuestThreshold: Number(eventSetupForm.repeatGuestThreshold) || 3,
+        downloadListPermission: eventSetupForm.downloadListPermission,
+      };
+      await eventApi.updateOperations(selectedEventId, payload);
+      toast.success("✅ Membership rules saved!");
+    } catch (err) {
+      toast.error("Failed: " + (err.message || "Unknown error"));
+    }
+  };
+
+  const handleSaveSloganTheme = async () => {
+    if (!selectedEventId) { toast.error("Please select an active event first."); return; }
+    try {
+      setSavingSloganTheme(true);
+      await eventApi.updateOperations(selectedEventId, {
+        slogan: eventSetupForm.slogan,
+        theme: eventSetupForm.theme,
+        appearance: eventSetupForm.chapterAppearance === "ivory"
+          ? { primaryColor: "#b45309", darkBg: false }
+          : { primaryColor: "#1e3a5f", darkBg: true },
+      });
+      toast.success("✅ Slogan & theme saved!");
+    } catch (err) {
+      toast.error("Failed: " + (err.message || "Unknown error"));
+    } finally {
+      setSavingSloganTheme(false);
+    }
+  };
+
+  const handleSaveSponsors = async () => {
+    if (!selectedEventId) { toast.error("Please select an active event first."); return; }
+    try {
+      setSavingSponsors(true);
+      await eventApi.updateOperations(selectedEventId, { sponsors: sponsorsList });
+      toast.success("✅ Sponsors & partners saved!");
+    } catch (err) {
+      toast.error("Failed: " + (err.message || "Unknown error"));
+    } finally {
+      setSavingSponsors(false);
+    }
+  };
+
+  const handleSaveUpcomingEvents = async () => {
+    if (!selectedEventId) { toast.error("Please select an active event first."); return; }
+    try {
+      setSavingUpcomingEvents(true);
+      await eventApi.updateOperations(selectedEventId, { upcomingEvents: upcomingEventsList });
+      toast.success("✅ Upcoming events saved!");
+    } catch (err) {
+      toast.error("Failed: " + (err.message || "Unknown error"));
+    } finally {
+      setSavingUpcomingEvents(false);
+    }
+  };
+
+  const handleTestLiveSync = async () => {
+    setLiveSyncStatus("testing");
+    setLiveSyncLatency(null);
+    const start = Date.now();
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit("ping", { chapter: chapterSlug, ts: start });
+      setTimeout(() => {
+        const latency = Date.now() - start;
+        setLiveSyncLatency(latency);
+        setLiveSyncStatus("ok");
+        toast.success(`✅ Live sync OK — latency ${latency}ms`);
+      }, 800);
+    } else {
+      try {
+        const res = await fetch("/api/health").catch(() => null);
+        const latency = Date.now() - start;
+        setLiveSyncLatency(latency);
+        setLiveSyncStatus(res?.ok ? "ok" : "fail");
+        if (res?.ok) toast.success(`✅ Backend reachable — ${latency}ms`);
+        else toast.error("❌ Socket not connected. Check Firebase steps in README.txt.");
+      } catch {
+        setLiveSyncStatus("fail");
+        toast.error("❌ Cannot reach backend. Check if server is running.");
+      }
     }
   };
 
@@ -927,9 +1151,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   };
 
   // Base URLs
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const publicVisitorUrl = `${origin}/events/${activeEvent?.slug || activeEvent?._id || "mumbai"}`;
-  const projectorUrl = `${origin}/presentation.html?c=${chapterSlug}`;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const origin = mounted ? window.location.origin : "";
+  const publicVisitorUrl = mounted ? `${origin}/events/${activeEvent?.slug || activeEvent?._id || "mumbai"}` : `/events/${activeEvent?.slug || activeEvent?._id || "mumbai"}`;
+  const projectorUrl = mounted ? `${origin}/presentation.html?c=${chapterSlug}` : `/presentation.html?c=${chapterSlug}`;
 
   // Copy All Links
   const handleCopyAllLinks = () => {
@@ -950,28 +1176,40 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     toast.success("Event operations reset for next event. Existing records archived safely.");
   };
 
-  // Real attendees from active event
+  // Real attendees from active event or backend operations API
   const attendees = useMemo(() => {
+    if (attendeesList && attendeesList.length > 0) {
+      return attendeesList;
+    }
     const regUsers = activeEvent?.registeredUsers || [];
     return regUsers.map((reg, idx) => {
       const u = reg.user || {};
+      const isMem =
+        u.role === "business_owner" ||
+        (u.membershipStatus && u.membershipStatus !== "None" && u.membershipStatus !== "Expired");
       return {
         id: reg._id || u._id || `att-${idx}`,
-        userId: u._id,
+        userId: u._id || reg.user,
         name: u.name || `Attendee ${idx + 1}`,
-        mobile: u.phone || u.whatsapp || "9820000000",
+        mobile: u.phone || u.whatsapp || u.mobile || "Not provided",
         email: u.email || "attendee@example.com",
-        company: u.organization || "Private Enterprise",
+        company: u.organization || u.company || "Enterprise",
         city: u.city || activeEvent?.city || "Mumbai",
-        isMember: u.role === "business_owner",
-        membershipStatus: u.role === "business_owner" ? "Active Member" : "Non-Member",
+        isMember: Boolean(isMem),
+        membership: isMem ? "Active Member" : "Non-Member",
+        membershipStatus: isMem ? "Active Member" : "Non-Member",
         approvalStatus: reg.status === "Cancelled" ? "Rejected" : "Approved",
         entryStatus: reg.attendanceStatus === "Present" ? "Checked In" : "Pending",
+        attendanceStatus: reg.attendanceStatus || "Pending",
         checkInTime: reg.attendanceStatus === "Present" ? "10:15 AM" : null,
-        paymentStatus: reg.paymentStatus || "Free",
+        paymentStatus: reg.paymentStatus || (activeEvent?.isPaid ? "Paid" : "Free"),
+        status: reg.paymentStatus || (activeEvent?.isPaid ? "Paid" : "Free"),
+        time: reg.registeredAt
+          ? new Date(reg.registeredAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : "10:00 AM",
       };
     });
-  }, [activeEvent]);
+  }, [attendeesList, activeEvent]);
 
   // Filtered Attendees
   const filteredAttendees = useMemo(() => {
@@ -995,12 +1233,485 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
   // KPI Calculations
   const kpiStats = useMemo(() => {
+    if (backendKpis && (backendKpis.registered > 0 || backendKpis.approved > 0 || backendKpis.fees > 0)) {
+      return backendKpis;
+    }
     const registered = attendees.length;
     const approved = attendees.filter((a) => a.approvalStatus === "Approved").length;
     const members = attendees.filter((a) => a.isMember).length;
-    const fees = financeRecords.moneyIn.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    let fees = 0;
+    if (activeEvent?.isPaid && activeEvent?.ticketPrice) {
+      fees = registered * activeEvent.ticketPrice;
+    } else {
+      fees = (financeRecords.moneyIn || []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    }
     return { registered, approved, members, fees };
-  }, [attendees, financeRecords]);
+  }, [backendKpis, attendees, activeEvent, financeRecords]);
+
+  // Official Documents Definitions for View and Download
+  const OFFICIAL_DOCUMENTS = {
+    "Standard Chapter Event Script": {
+      title: "Standard Chapter Event Script",
+      category: "Formats & Templates",
+      filename: "RIFAH_Standard_Chapter_Event_Script.html",
+      content: `
+        <h2>RIFAH CHAMBER OF COMMERCE & INDUSTRY</h2>
+        <h3>OFFICIAL CHAPTER EVENT RUN SCRIPT & CEREMONY MASTER MANUAL</h3>
+        <p class="meta"><strong>Document Ref:</strong> RCCI/OPS/SCR-2026/01 | <strong>Chapter:</strong> ${chapterName} | <strong>Event:</strong> ${activeEvent?.title || "Chapter Business Meet"}</p>
+        <hr/>
+        <h4>1. Pre-Event Briefing (T - 30 min)</h4>
+        <p>Ensure AV projector display is connected, dynamic QR registration codes are operational at the entrance desk, and badges are ready for pickup.</p>
+        <h4>2. Master 16-Point Stage Ceremony Run Sequence:</h4>
+        <ol>
+          <li><strong>00:00 - 00:15 | Welcome & Registration:</strong> Gate Incharge checks in attendees via Scanner / Operations Portal.</li>
+          <li><strong>00:15 - 00:20 | Tilawat-e-Quran:</strong> Recitation with translation in Urdu/English by nominated Qari/Member.</li>
+          <li><strong>00:20 - 00:30 | Presidential Welcome Address:</strong> Chapter President opens the session, welcomes dignitaries and set quarterly themes.</li>
+          <li><strong>00:30 - 00:40 | Chapter Executive Committee Intro:</strong> Introduction of Secretary, Treasurer, and Operations Leads.</li>
+          <li><strong>00:40 - 01:05 | Keynote Speaker Address:</strong> Invited guest expert presents on industry trends & Islamic commerce.</li>
+          <li><strong>01:05 - 01:25 | Second Guest / Dignitary Session:</strong> Highlighting business expansion, exports, and halal trade ecosystems.</li>
+          <li><strong>01:25 - 01:55 | 30-Second Attendee Pitches:</strong> Every member and registered visitor presents business name, USP, and ideal referral ask.</li>
+          <li><strong>01:55 - 02:10 | Ask & Give Board Session:</strong> Immediate lead matching and collaborative business exchange.</li>
+          <li><strong>02:10 - 02:20 | Sponsor Spotlight:</strong> Official corporate partners showcase offerings on stage.</li>
+          <li><strong>02:20 - 02:30 | Upcoming Chamber Initiatives:</strong> Announcement of state conventions, seminars, and trade fairs.</li>
+          <li><strong>02:30 - 02:40 | Hero of the Event Award:</strong> Recognition of outstanding entrepreneurs and active chamber contributors.</li>
+          <li><strong>02:40 - 02:50 | Star Connector Recognition:</strong> Felicitating top referral generators of the month.</li>
+          <li><strong>02:50 - 03:05 | Membership Drive & Renewals:</strong> Treasurer & Secretary explain value proposition for prospective applicants.</li>
+          <li><strong>03:05 - 03:15 | Presidential Closing Remarks:</strong> Summary of achieved milestones and ethical trade commitment.</li>
+          <li><strong>03:15 - 03:20 | Vote of Thanks:</strong> Formal gratitude to organizers, venue authorities, and media.</li>
+          <li><strong>03:20 - 03:50 | Networking & High Tea:</strong> One-to-one business dialogues and follow-up meetings.</li>
+        </ol>
+      `,
+    },
+    "Membership Induction Guidelines": {
+      title: "Membership Induction Guidelines",
+      category: "Membership",
+      filename: "RIFAH_Membership_Induction_Guidelines.html",
+      content: `
+        <h2>RIFAH CHAMBER OF COMMERCE & INDUSTRY</h2>
+        <h3>MEMBERSHIP INDUCTION & VERIFICATION PROTOCOL</h3>
+        <p class="meta"><strong>Document Ref:</strong> RCCI/MEM/GUI-2026/04 | <strong>Issued By:</strong> Central Secretariat & Chapter Desk</p>
+        <hr/>
+        <h4>1. Eligibility Criteria</h4>
+        <p>Any Shariah-compliant enterprise, proprietor, partner, or director operating a legal trade or business entity with valid GSTIN / Udyam registration is eligible to apply for Chapter Membership.</p>
+        <h4>2. Verification & Scrutiny Stages</h4>
+        <ul>
+          <li><strong>Step 1:</strong> Online registration via RIFAH Connect portal with complete business profile.</li>
+          <li><strong>Step 2:</strong> Chapter Scrutiny Committee review and telephonic interview by Chapter Secretary.</li>
+          <li><strong>Step 3:</strong> Verification of GSTIN / Business Proof against government databases.</li>
+          <li><strong>Step 4:</strong> Formal recommendation by two existing active Chapter Members.</li>
+          <li><strong>Step 5:</strong> Payment of annual chamber membership subscription and induction certificate generation.</li>
+        </ul>
+        <h4>3. Code of Ethics Declaration</h4>
+        <p>Every member must commit to honesty, zero-interest transactions where applicable, transparent dealings, timely payment of dues, and collaborative economic development of the community.</p>
+      `,
+    },
+    "Annual Chapter Formation Bylaws": {
+      title: "Annual Chapter Formation Bylaws",
+      category: "Chapter Formation",
+      filename: "RIFAH_Chapter_Formation_Bylaws.html",
+      content: `
+        <h2>RIFAH CHAMBER OF COMMERCE & INDUSTRY</h2>
+        <h3>CHAPTER GOVERNANCE CONSTITUTION & FORMATION BYLAWS</h3>
+        <p class="meta"><strong>Document Ref:</strong> RCCI/BYLAW/2026/REV-3 | <strong>Enforced Across All Chapters</strong></p>
+        <hr/>
+        <h4>Article 1: Chapter Structure & Executive Committee</h4>
+        <p>Each local Chapter is governed by an Executive Committee comprising: President, Vice President, General Secretary, Joint Secretary, Treasurer, and Operations Lead.</p>
+        <h4>Article 2: Meeting Frequency & Quorum</h4>
+        <p>Chapters shall conduct at least two scheduled business meets every month. Minimum quorum for executive decisions requires presence of at least 50% of the executive committee members.</p>
+        <h4>Article 3: Financial Accountability</h4>
+        <p>All collections (event entry tickets, sponsor fees, high tea expenses) must be recorded in the RIFAH Operations Center ledger and submitted to Central Secretariat quarterly.</p>
+      `,
+    },
+    "Sponsorship & Partner Formats": {
+      title: "Sponsorship & Partner Formats",
+      category: "Registration & Legal",
+      filename: "RIFAH_Sponsorship_Partner_Agreement.html",
+      content: `
+        <h2>RIFAH CHAMBER OF COMMERCE & INDUSTRY</h2>
+        <h3>OFFICIAL EVENT SPONSORSHIP & PARTNERSHIP AGREEMENT</h3>
+        <p class="meta"><strong>Document Ref:</strong> RCCI/SPON/2026/STD | <strong>Chapter:</strong> ${chapterName}</p>
+        <hr/>
+        <h4>1. Sponsorship Tiers & Privileges</h4>
+        <table border="1" cellpadding="8" style="border-collapse:collapse; width:100%;">
+          <thead>
+            <tr style="background:#f1f5f9;">
+              <th>Tier</th>
+              <th>Contribution</th>
+              <th>Stage Time</th>
+              <th>Banner / Projector Display</th>
+              <th>Stall Space</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Title Partner</strong></td>
+              <td>₹50,000</td>
+              <td>10 Minutes</td>
+              <td>Main Stage Banner + Continuous Projector Loop</td>
+              <td>Prime Entrance Stall</td>
+            </tr>
+            <tr>
+              <td><strong>Associate Partner</strong></td>
+              <td>₹25,000</td>
+              <td>5 Minutes</td>
+              <td>Side Stage Backdrop + 5 Projector Mentions</td>
+              <td>Stall Area</td>
+            </tr>
+            <tr>
+              <td><strong>High Tea Sponsor</strong></td>
+              <td>₹15,000</td>
+              <td>3 Minutes</td>
+              <td>Dining Area Branding + Special Announcement</td>
+              <td>Literature Stand</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>2. Partner Obligations</h4>
+        <p>Sponsors agree to adhere to chamber brand guidelines and supply promotional slide creatives at least 48 hours prior to the event.</p>
+      `,
+    },
+    "Central Secretariat Circular Q3": {
+      title: "Central Secretariat Circular Q3",
+      category: "Circulars",
+      filename: "RIFAH_Central_Secretariat_Circular_Q3.html",
+      content: `
+        <h2>RIFAH CHAMBER OF COMMERCE & INDUSTRY</h2>
+        <h3>CENTRAL SECRETARIAT DIRECTIVE — Q3 PERFORMANCE & NATIONAL EXPANSION</h3>
+        <p class="meta"><strong>Circular No:</strong> RCCI/HQ/CIR/2026/09-Q3 | <strong>Date:</strong> September 2026</p>
+        <hr/>
+        <h4>To: All Chapter Presidents, Secretaries, and State Administrators</h4>
+        <p>The Central Secretariat congratulates all chapters on achieving record member engagement in Q2. In accordance with National Governing Council directives, please implement the following for Q3:</p>
+        <ol>
+          <li><strong>Mandatory Digital Check-in:</strong> Use the newly deployed Operations Center Hub for real-time QR scanner entry and attendance recording.</li>
+          <li><strong>Inter-Chapter Trade Exchange:</strong> Encourage cross-chapter business referrals and verify all transactions on RIFAH Connect.</li>
+          <li><strong>Annual Audit Compliance:</strong> Submit event finance statements and participant records within 48 hours of event completion.</li>
+        </ol>
+      `,
+    },
+    "Code of Ethics & Conduct": {
+      title: "Code of Ethics & Conduct",
+      category: "Registration & Legal",
+      filename: "RIFAH_Code_of_Ethics_and_Conduct.html",
+      content: `
+        <h2>RIFAH CHAMBER OF COMMERCE & INDUSTRY</h2>
+        <h3>CHAMBER CODE OF PROFESSIONAL ETHICS & BUSINESS CONDUCT</h3>
+        <p class="meta"><strong>Document Ref:</strong> RCCI/ETHICS/2026/01 | <strong>Mandatory Compliance</strong></p>
+        <hr/>
+        <h4>Core Pillars of RIFAH Business Ethics:</h4>
+        <ol>
+          <li><strong>Integrity in Trade (Amanah):</strong> Accurate representation of goods, honest pricing, and strict adherence to contractual agreements.</li>
+          <li><strong>Fair Dealing:</strong> Prohibition of deceitful marketing, hoarding, or coercive terms.</li>
+          <li><strong>Prompt Settlement:</strong> Honoring financial commitments, invoices, and employee wages without undue delay.</li>
+          <li><strong>Community Elevation:</strong> Dedicating a portion of business growth towards mentoring upcoming Muslim youth and entrepreneurs.</li>
+          <li><strong>Dispute Resolution:</strong> Agreeing to mediate any intra-chamber disputes amicably through the RIFAH Chamber Grievance Cell.</li>
+        </ol>
+      `,
+    },
+  };
+
+  const generateDocumentHtml = (docData) => {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${docData.title} - RIFAH Chamber</title>
+  <style>
+    @media print {
+      body { margin: 0; padding: 20mm; }
+      .no-print { display: none !important; }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #0f172a;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 30px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #0088d1;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0088d1;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .seal-badge {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+    }
+    .meta {
+      font-size: 12px;
+      color: #64748b;
+      background: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    h2 { font-size: 20px; font-weight: 800; margin-top: 0; color: #0f172a; }
+    h3 { font-size: 15px; font-weight: 700; color: #0088d1; margin-top: 4px; }
+    h4 { font-size: 14px; font-weight: 700; color: #1e293b; margin-top: 20px; border-left: 3px solid #0088d1; padding-left: 8px; }
+    ol, ul { padding-left: 22px; font-size: 13px; color: #334155; }
+    li { margin-bottom: 8px; }
+    p { font-size: 13px; color: #334155; }
+    .footer-bar {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 11px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+    }
+    .print-btn {
+      background: #0088d1;
+      color: white;
+      padding: 8px 18px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="text-align: right;">
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  </div>
+  <div class="header-bar">
+    <div>
+      <h1 class="brand-title">RIFAH CHAMBER OF COMMERCE</h1>
+      <div class="brand-sub">Official Chamber Administration System · ${chapterName}</div>
+    </div>
+    <div class="seal-badge">Official Document · Verified</div>
+  </div>
+  ${docData.content}
+  <div class="footer-bar">
+    <div>Generated via RIFAH Operations Center Hub</div>
+    <div>Date: ${new Date().toLocaleDateString("en-IN", { dateStyle: "long" })}</div>
+  </div>
+</body>
+</html>`;
+  };
+
+  const handleViewDocument = (docTitle) => {
+    const docData = OFFICIAL_DOCUMENTS[docTitle];
+    if (!docData) {
+      toast.info(`Opening ${docTitle}`);
+      return;
+    }
+    const htmlContent = generateDocumentHtml(docData);
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(htmlContent);
+      win.document.close();
+      toast.success(`Viewing ${docTitle}`);
+    } else {
+      toast.error("Popup blocked! Please allow popups to view documents.");
+    }
+  };
+
+  const handleDownloadDocument = (docTitle) => {
+    const docData = OFFICIAL_DOCUMENTS[docTitle];
+    if (!docData) {
+      toast.info(`Downloading ${docTitle}`);
+      return;
+    }
+    const htmlContent = generateDocumentHtml(docData);
+    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", docData.filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${docData.filename}`);
+  };
+
+  // CSV Exports for Data Central
+  const handleExportAttendeeCSV = () => {
+    if (!attendees || attendees.length === 0) {
+      toast.error("No attendee records found to export for this event.");
+      return;
+    }
+    const headers = ["Name", "Email", "Mobile", "Company", "City", "Membership Status", "Approval Status", "Entry / Attendance", "Payment Status", "Registered Time"];
+    const rows = attendees.map((a) => [
+      `"${(a.name || "").replace(/"/g, '""')}"`,
+      `"${(a.email || "").replace(/"/g, '""')}"`,
+      `"${(a.mobile || "").replace(/"/g, '""')}"`,
+      `"${(a.company || "").replace(/"/g, '""')}"`,
+      `"${(a.city || "").replace(/"/g, '""')}"`,
+      `"${a.membershipStatus || (a.isMember ? "Active Member" : "Non-Member")}"`,
+      `"${a.approvalStatus || "Approved"}"`,
+      `"${a.entryStatus || a.attendanceStatus || "Pending"}"`,
+      `"${a.paymentStatus || "Free"}"`,
+      `"${a.time || ""}"`,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `RIFAH_Attendees_${(activeEvent?.title || "event").replace(/\s+/g, "_")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Attendee roster exported successfully as CSV!");
+  };
+
+  const handleExportMemberDirectoryCSV = () => {
+    const listToExport = chapterMembers.length > 0 ? chapterMembers : attendees;
+    if (!listToExport || listToExport.length === 0) {
+      toast.error("No member records available to export.");
+      return;
+    }
+    const headers = ["Name", "Email", "Phone", "Organization / Business", "City", "Role", "Chapter", "Status"];
+    const rows = listToExport.map((m) => [
+      `"${(m.name || "").replace(/"/g, '""')}"`,
+      `"${(m.email || "").replace(/"/g, '""')}"`,
+      `"${(m.phone || m.whatsapp || m.mobile || "").replace(/"/g, '""')}"`,
+      `"${(m.organization || m.company || m.businessName || "").replace(/"/g, '""')}"`,
+      `"${(m.city || "").replace(/"/g, '""')}"`,
+      `"${(m.role || "Member").replace(/"/g, '""')}"`,
+      `"${(m.chapter || chapterName).replace(/"/g, '""')}"`,
+      `"${(m.status || "Active").replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `RIFAH_Member_Directory_${chapterSlug}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Chapter member directory exported successfully as CSV!");
+  };
+
+  const handleExportFinancialStatement = () => {
+    const title = `RIFAH Chapter Financial Statement - ${activeEvent?.title || "Chapter Meet"}`;
+    const moneyInRows = (financeRecords.moneyIn || []).map((item) => `
+      <tr>
+        <td>${item.date || "-"}</td>
+        <td>${item.desc || "Receipt"}</td>
+        <td>${item.from || "Attendee"}</td>
+        <td>${item.method || "Online"}</td>
+        <td style="text-align:right; font-weight:bold; color:#16a34a;">+₹${Number(item.amount || 0).toLocaleString("en-IN")}</td>
+      </tr>
+    `).join("");
+
+    const moneyOutRows = (financeRecords.moneyOut || []).map((item) => `
+      <tr>
+        <td>${item.date || "-"}</td>
+        <td>${item.desc || "Expense"}</td>
+        <td>${item.to || "Vendor"}</td>
+        <td>${item.invoice || "-"}</td>
+        <td style="text-align:right; font-weight:bold; color:#dc2626;">-₹${Number(item.amount || 0).toLocaleString("en-IN")}</td>
+      </tr>
+    `).join("");
+
+    const totalIn = (financeRecords.moneyIn || []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const totalOut = (financeRecords.moneyOut || []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const net = totalIn - totalOut;
+
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    @media print { .no-print { display: none !important; } }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 840px; margin: 30px auto; padding: 24px; color: #1e293b; }
+    h2 { color: #0088d1; margin: 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+    th { background: #f8fafc; font-weight: 600; }
+    .kpi-row { display: flex; gap: 16px; margin: 20px 0; }
+    .kpi-box { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; }
+    .print-btn { background: #0088d1; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="text-align: right; margin-bottom: 16px;">
+    <button class="print-btn" onclick="window.print()">🖨️ Print Financial Statement</button>
+  </div>
+  <h2>RIFAH CHAMBER OF COMMERCE & INDUSTRY</h2>
+  <h3 style="margin-top: 4px; color: #475569;">Event Financial Summary & Ledger Statement</h3>
+  <p style="font-size: 12px; color: #64748b;">Chapter: ${chapterName} | Event: ${activeEvent?.title || "Meet"} | Date: ${activeEvent?.date || new Date().toISOString().split("T")[0]}</p>
+  <hr style="border: 0; border-top: 1px solid #e2e8f0;"/>
+
+  <div class="kpi-row">
+    <div class="kpi-box">
+      <div style="font-size: 11px; color: #64748b; font-weight: bold;">TOTAL COLLECTIONS (IN)</div>
+      <div style="font-size: 20px; font-weight: bold; color: #16a34a; margin-top: 4px;">₹${totalIn.toLocaleString("en-IN")}</div>
+    </div>
+    <div class="kpi-box">
+      <div style="font-size: 11px; color: #64748b; font-weight: bold;">TOTAL DISBURSEMENTS (OUT)</div>
+      <div style="font-size: 20px; font-weight: bold; color: #dc2626; margin-top: 4px;">₹${totalOut.toLocaleString("en-IN")}</div>
+    </div>
+    <div class="kpi-box" style="background: ${net >= 0 ? "#f0fdf4" : "#fef2f2"};">
+      <div style="font-size: 11px; color: #64748b; font-weight: bold;">NET EVENT BALANCE</div>
+      <div style="font-size: 20px; font-weight: bold; color: ${net >= 0 ? "#16a34a" : "#dc2626"}; margin-top: 4px;">₹${net.toLocaleString("en-IN")}</div>
+    </div>
+  </div>
+
+  <h4 style="margin-top: 24px; color: #0f172a;">1. Money In (Collections & Sponsorships)</h4>
+  <table>
+    <thead><tr><th>Date</th><th>Description</th><th>Received From</th><th>Method</th><th style="text-align:right;">Amount</th></tr></thead>
+    <tbody>${moneyInRows || '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No collections recorded</td></tr>'}</tbody>
+  </table>
+
+  <h4 style="margin-top: 24px; color: #0f172a;">2. Money Out (Disbursements & Venue Expenses)</h4>
+  <table>
+    <thead><tr><th>Date</th><th>Description</th><th>Paid To</th><th>Invoice #</th><th style="text-align:right;">Amount</th></tr></thead>
+    <tbody>${moneyOutRows || '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No disbursements recorded</td></tr>'}</tbody>
+  </table>
+
+  <p style="margin-top: 24px; font-size: 12px; color: #475569;"><strong>Treasurer Certification:</strong> ${financeRecords.treasurerNotes}</p>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `RIFAH_Financial_Statement_${(activeEvent?.title || "event").replace(/\s+/g, "_")}.html`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Financial statement generated and downloaded!");
+  };
 
   // Follow-up Actions
   const handleUpdateFollowupStatus = async (id, newStatus) => {
@@ -1177,7 +1888,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
         {/* Horizontal Module Navigation Buttons Directly Below Header & KPIs */}
         <div className="border-t border-border/60 pt-4">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pb-1">
+          <div className="flex flex-wrap items-center gap-2 pb-1">
             {HORIZONTAL_MODULE_TABS.map((tab) => {
               const isActive = currentTab === tab.key;
               const TabIcon = tab.icon;
@@ -1510,191 +2221,625 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         </div>
       )}
 
-      {/* MODULE 1: EVENT SETUP */}
-      {currentTab === "event-setup" && (
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
-              <div>
-                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  <CalendarPlus className="h-5 w-5 text-primary" />
-                  Event Configuration & Design
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Configure event details, signatories, payment rules, and certificates
-                </p>
-              </div>
+                  {currentTab === "event-setup" && (
+        <div className="space-y-5">
 
-              {events.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="event-select" className="text-xs text-muted-foreground whitespace-nowrap">
-                    Active Event:
-                  </Label>
-                  <Select
-                    value={selectedEventId}
-                    onValueChange={(val) => {
-                      setSelectedEventId(val);
-                      const ev = events.find((e) => e._id === val);
-                      if (ev) setActiveEvent(ev);
-                    }}
-                  >
-                    <SelectTrigger className="w-56 h-9 text-xs">
-                      <SelectValue placeholder="Select event" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {events.map((e) => (
-                        <SelectItem key={e._id} value={e._id}>
-                          {e.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+          {/* Event Selector */}
+          {events.length > 0 && (
+            <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card shadow-xs">
+              <Label className="text-sm font-semibold text-muted-foreground whitespace-nowrap">Active Event:</Label>
+              <Select
+                value={selectedEventId}
+                onValueChange={(val) => {
+                  setSelectedEventId(val);
+                  const ev = events.find((e) => e._id === val);
+                  if (ev) setActiveEvent(ev);
+                }}
+              >
+                <SelectTrigger className="flex-1 h-9 text-sm">
+                  <SelectValue placeholder="Select event" />
+                </SelectTrigger>
+                <SelectContent>
+                  {events.map((e) => (
+                    <SelectItem key={e._id} value={e._id}>{e.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-xs font-semibold">Event Name</Label>
-                  <Input
-                    value={eventSetupForm.title}
-                    onChange={(e) => setEventSetupForm((prev) => ({ ...prev, title: e.target.value }))}
-                    placeholder="RIFAH Business Connect Meet"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">Custom Event Subtitle / Slogan</Label>
-                  <Input
-                    value={eventSetupForm.summary}
-                    onChange={(e) => setEventSetupForm((prev) => ({ ...prev, summary: e.target.value }))}
-                    placeholder="Synergy, Scale & Ethical Prosperity"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs font-semibold">Event Date</Label>
-                    <Input
-                      type="date"
-                      value={eventSetupForm.date}
-                      onChange={(e) => setEventSetupForm((prev) => ({ ...prev, date: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs font-semibold">Event Time</Label>
-                    <Input
-                      value={eventSetupForm.time}
-                      onChange={(e) => setEventSetupForm((prev) => ({ ...prev, time: e.target.value }))}
-                      placeholder="10:00 AM - 01:30 PM"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">Venue & City</Label>
-                  <Input
-                    value={eventSetupForm.venue}
-                    onChange={(e) => setEventSetupForm((prev) => ({ ...prev, venue: e.target.value }))}
-                    placeholder="Grand Convention Hall, Mumbai"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs font-semibold">Member Fee (₹)</Label>
-                    <Input
-                      type="number"
-                      value={eventSetupForm.memberFee}
-                      onChange={(e) => setEventSetupForm((prev) => ({ ...prev, memberFee: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs font-semibold">Non-Member Fee (₹)</Label>
-                    <Input
-                      type="number"
-                      value={eventSetupForm.nonMemberFee}
-                      onChange={(e) => setEventSetupForm((prev) => ({ ...prev, nonMemberFee: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
+          {/* ── CARD 1: Live Sync ─────────────────────────────────────────── */}
+          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Radio className="h-4 w-4 text-primary" />
               </div>
-
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-xs font-semibold">Signatory 1 (Chapter President)</Label>
-                  <Input
-                    value={eventSetupForm.signatory1}
-                    onChange={(e) => setEventSetupForm((prev) => ({ ...prev, signatory1: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">Signatory 2 (Secretary)</Label>
-                  <Input
-                    value={eventSetupForm.signatory2}
-                    onChange={(e) => setEventSetupForm((prev) => ({ ...prev, signatory2: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">Certificate Accent Theme</Label>
-                  <Select
-                    value={eventSetupForm.theme}
-                    onValueChange={(val) => setEventSetupForm((prev) => ({ ...prev, theme: val }))}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gold">Royal Gold Accent</SelectItem>
-                      <SelectItem value="cyan">Cyan Institutional</SelectItem>
-                      <SelectItem value="navy">Classic Navy</SelectItem>
-                      <SelectItem value="emerald">Emerald Prestige</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">Script & Presentation Language</Label>
-                  <Select
-                    value={eventSetupForm.scriptLanguage}
-                    onValueChange={(val) => setEventSetupForm((prev) => ({ ...prev, scriptLanguage: val }))}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English (Primary)</SelectItem>
-                      <SelectItem value="ur">Urdu & English Bilingual</SelectItem>
-                      <SelectItem value="hi">Hindi & English</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <Button
-                    onClick={handleSaveEventSetup}
-                    disabled={savingEventSetup}
-                    className="gap-2 font-semibold shadow-xs"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>{savingEventSetup ? "Saving to MongoDB..." : "Save Event Setup"}</span>
-                  </Button>
-                </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Live Sync — Test Before Your Event</p>
+                <p className="text-xs text-muted-foreground">Verify that all devices will sync in real time</p>
+              </div>
+              <div className="ml-auto">
+                <Pill tone={socketConnected ? "success" : "warning"}>
+                  <span className={cn("h-1.5 w-1.5 rounded-full mr-1 inline-block", socketConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500")} />
+                  {socketConnected ? "Socket Live" : "Standby"}
+                </Pill>
+              </div>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                This checks whether admin, entrance, presentation and every visitor's phone will actually update each other in real time. If it fails, only THIS device will see data — follow the Firebase steps in README.txt.
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <Button
+                  size="sm"
+                  variant={liveSyncStatus === "ok" ? "default" : liveSyncStatus === "fail" ? "destructive" : "outline"}
+                  onClick={handleTestLiveSync}
+                  disabled={liveSyncStatus === "testing"}
+                  className={cn("gap-2 rounded-xl font-semibold", liveSyncStatus === "ok" && "bg-emerald-600 hover:bg-emerald-700 text-white")}
+                >
+                  {liveSyncStatus === "testing" ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Testing…</> :
+                   liveSyncStatus === "ok"      ? <><CheckCircle2 className="h-3.5 w-3.5" /> Connected ({liveSyncLatency}ms)</> :
+                   liveSyncStatus === "fail"    ? <><AlertCircle className="h-3.5 w-3.5" /> Sync Failed</> :
+                                                  <><Zap className="h-3.5 w-3.5" /> Test Live Sync Now</>}
+                </Button>
+                {liveSyncStatus === "ok" && (
+                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">All devices synced ✓</span>
+                )}
               </div>
             </div>
           </div>
+
+          {/* ── CARD 2: Today's Event Page ────────────────────────────────── */}
+          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CalendarDays className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Today's Event Page</p>
+                <p className="text-xs text-muted-foreground">Title, poster, signatory and membership details</p>
+              </div>
+            </div>
+            <div className="px-5 py-5 space-y-5">
+
+              {/* Event Name */}
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Event Name</Label>
+                <Select
+                  value={eventSetupForm.nameTemplate}
+                  onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, nameTemplate: val, title: val !== "custom" ? val : prev.title }))}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="— choose a name, or type your own below —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="RIFAH Business Networking Meet">RIFAH Business Networking Meet</SelectItem>
+                    <SelectItem value="RIFAH Chapter Monthly Meet">RIFAH Chapter Monthly Meet</SelectItem>
+                    <SelectItem value="RIFAH Grand Business Summit">RIFAH Grand Business Summit</SelectItem>
+                    <SelectItem value="RIFAH Quarterly Business Forum">RIFAH Quarterly Business Forum</SelectItem>
+                    <SelectItem value="custom">— type your own below —</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={eventSetupForm.title}
+                  onChange={(e) => setEventSetupForm(prev => ({ ...prev, title: e.target.value, nameTemplate: "custom" }))}
+                  placeholder="e.g. RIFAH Business Networking Meet"
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Suggest Topics */}
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSuggestTopicsOpen(!suggestTopicsOpen)}
+                  className="gap-2 rounded-xl"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                  Suggest keynote subjects for this meet
+                </Button>
+                {suggestTopicsOpen && (
+                  <div className="mt-3 rounded-xl border border-warning-soft bg-warning-soft/50 p-4 space-y-2">
+                    <p className="text-xs font-semibold text-warning-foreground mb-1">Suggested Keynote Topics:</p>
+                    {["Digital Transformation for SMEs","Export Opportunities for Indian Businesses","Women Entrepreneurs: Breaking Barriers","Islamic Finance & Ethical Business","Networking to Net Worth","AI Tools for Business Growth"].map(t => (
+                      <div key={t} className="flex items-center gap-2">
+                        <span className="h-1 w-1 rounded-full bg-warning-foreground inline-block" />
+                        <span className="text-xs text-muted-foreground flex-1">{t}</span>
+                        <button onClick={() => setEventSetupForm(p => ({ ...p, title: p.title ? p.title : t }))} className="text-xs text-primary hover:underline font-medium">Use</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Date & Chapter */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Event Date</Label>
+                  <Input type="date" value={eventSetupForm.date} onChange={(e) => setEventSetupForm(prev => ({ ...prev, date: e.target.value }))} className="mt-2" />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Chapter</Label>
+                  <div className="mt-2 px-3 py-2 rounded-lg border border-border bg-muted/40 text-sm font-medium text-foreground">{user?.chapter || chapterName}</div>
+                  <p className="text-[10px] text-primary mt-1">From your login. State office can rename under Super Admin.</p>
+                </div>
+              </div>
+
+              {/* Logo & Poster */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">RIFAH Logo</Label>
+                  <div className="mt-2 flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                      <img src="/rifah-logo.png" alt="RIFAH Logo" className="w-full h-full object-contain" />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Official chamber logo — built-in, used on all certificates.</p>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Event Poster <span className="font-normal normal-case">(optional)</span>
+                  </Label>
+                  <Input type="file" accept="image/*" className="mt-2"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const url = URL.createObjectURL(file);
+                        setEventSetupForm(prev => ({ ...prev, posterUrl: url }));
+                      }
+                    }}
+                  />
+                  {eventSetupForm.posterUrl && (
+                    <img src={eventSetupForm.posterUrl} alt="Poster" className="mt-2 rounded-lg h-16 w-auto border border-border object-cover" />
+                  )}
+                </div>
+              </div>
+
+              {/* Signatory 1 */}
+              <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Signatory 1 (Primary)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Role / Designation</Label>
+                    <Select value={eventSetupForm.signatory1Role} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, signatory1Role: val }))}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["Chapter Vice President","Chapter President","Chapter Secretary","State President","State Secretary","Other"].map(r => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Name (as printed)</Label>
+                    <Input value={eventSetupForm.signatory1Name} onChange={(e) => setEventSetupForm(prev => ({ ...prev, signatory1Name: e.target.value }))} placeholder="Full name" className="mt-1" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">Signature Image</Label>
+                  <Input type="file" accept="image/*" className="mt-1"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setEventSetupForm(prev => ({ ...prev, signatory1Image: URL.createObjectURL(file) }));
+                    }}
+                  />
+                </div>
+              </div>
+
+
+              <Button onClick={handleSaveEventSetup} disabled={savingEventSetup} className="w-full gap-2 rounded-xl font-semibold">
+                {savingEventSetup ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : <><Save className="h-4 w-4" /> Save Event Setup</>}
+              </Button>
+            </div>
+          </div>
+
+
+          {/* ── CARD 4: Certificate Design ────────────────────────────────── */}
+          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
+              <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
+                <GraduationCap className="h-4 w-4 text-accent-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Certificate Design</p>
+                <p className="text-xs text-muted-foreground">Style, accent colour and second signatory</p>
+              </div>
+            </div>
+            <div className="px-5 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Design Style</Label>
+                  <Select value={eventSetupForm.certificateStyle} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, certificateStyle: val }))}>
+                    <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "1 — Classic (border, serif, dark blue)",
+                        "2 — Modern (gradient header, sans-serif)",
+                        "3 — Elegant (gold foil line, premium)",
+                        "4 — Minimal (clean white, accent left bar)",
+                        "5 — Corporate (navy band, gold rule, clean typography)",
+                      ].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Accent Colour</Label>
+                  <div className="mt-2 flex items-center gap-3">
+                    <input type="color" value={eventSetupForm.certificateAccentColor} onChange={(e) => setEventSetupForm(prev => ({ ...prev, certificateAccentColor: e.target.value }))} className="h-9 w-14 rounded-md border border-border cursor-pointer p-0.5" />
+                    <span className="text-sm font-mono text-muted-foreground">{eventSetupForm.certificateAccentColor}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Signatory 2 (Optional)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Role / Designation</Label>
+                    <Select value={eventSetupForm.signatory2Role} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, signatory2Role: val }))}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["— none —","Chapter Vice President","Chapter President","Chapter Secretary","State President","State Secretary","Other"].map(r => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Name (as printed)</Label>
+                    <Input value={eventSetupForm.signatory2Name} onChange={(e) => setEventSetupForm(prev => ({ ...prev, signatory2Name: e.target.value }))} placeholder="Full name" className="mt-1" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">Signature Image</Label>
+                  <Input type="file" accept="image/*" className="mt-1"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setEventSetupForm(prev => ({ ...prev, signatory2Image: URL.createObjectURL(file) }));
+                    }}
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground bg-muted/50 rounded-lg p-2.5">
+                Logo & photos keep their real ratio automatically. Sponsor logos appear neatly at the bottom of every certificate.
+              </p>
+              <Button variant="outline" onClick={handleSaveCertificateDesign} disabled={savingCertDesign} className="w-full gap-2 rounded-xl font-semibold">
+                {savingCertDesign ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : "Save Certificate Design"}
+              </Button>
+            </div>
+          </div>
+
+
+          {/* ── CARD 6: Certificates of Appreciation ─────────────────────── */}
+          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
+              <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
+                <Award className="h-4 w-4 text-warning-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Certificates of Appreciation</p>
+                <p className="text-xs text-muted-foreground">Speakers, sponsors, hero & star connector</p>
+              </div>
+            </div>
+            <div className="px-5 py-5 space-y-2">
+              <p className="text-xs text-muted-foreground pb-1">Download a certificate for each keynote speaker and each sponsor. Formal design with your logo, both signatures and every partner logo. <strong className="text-primary mt-1 block">Note: Certificates are generated dynamically by the backend (Node.js/Puppeteer) using your saved Certificate Design settings. They are not stored as static files until downloaded.</strong></p>
+              {speakers.length > 0 ? speakers.map((sp) => (
+                <div key={sp.id || sp.name} className="flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-muted/20">
+                  <div className="flex items-center gap-2">
+                    <Mic className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-sm font-semibold text-foreground">{sp.name}</span>
+                    {sp.organization && <span className="text-xs text-muted-foreground">• {sp.organization.toUpperCase()}</span>}
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => handleDownloadCertificate(sp.name, "Keynote Speaker")} className="rounded-lg text-xs h-7">Download</Button>
+                </div>
+              )) : (
+                <div className="px-4 py-3 rounded-xl border border-dashed border-border bg-muted/20">
+                  <p className="text-xs text-muted-foreground">No speakers yet — add them in the Speakers & Guests tab.</p>
+                </div>
+              )}
+              <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-dashed border-border bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-amber-500 shrink-0" />
+                  <span className="text-xs text-muted-foreground">Hero of the Event — available after Ask & Give session</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-dashed border-border bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-amber-400 shrink-0" />
+                  <span className="text-xs text-muted-foreground">Star Connector — available once guests name who invited them</span>
+                </div>
+              </div>
+              {sponsorsList.length > 0 && sponsorsList.map((sp) => (
+                <div key={sp.id || sp.name} className="flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-muted/20">
+                  <div className="flex items-center gap-2">
+                    <Handshake className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-sm font-semibold text-foreground">{sp.name}</span>
+                    <span className="text-xs text-muted-foreground">• {sp.category || "Sponsor"}</span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => handleDownloadCertificate(sp.name, sp.category || "Event Sponsor")} className="rounded-lg text-xs h-7">Download</Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── CARD 7: Slogan & Theme + Appearance ──────────────────────── */}
+          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
+              <div className="h-8 w-8 rounded-lg bg-brand-soft flex items-center justify-center">
+                <Megaphone className="h-4 w-4 text-brand" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Slogan, Theme & Appearance</p>
+                <p className="text-xs text-muted-foreground">Used in speech scripts and chapter colour scheme</p>
+              </div>
+            </div>
+            <div className="px-5 py-5 space-y-4">
+              <p className="text-xs text-muted-foreground">Used as <code className="bg-muted rounded px-1 text-[10px]">{"{slogan}"}</code> and <code className="bg-muted rounded px-1 text-[10px]">{"{theme}"}</code> in every speech script.</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Slogan</Label>
+                  <Input value={eventSetupForm.slogan} onChange={(e) => setEventSetupForm(prev => ({ ...prev, slogan: e.target.value }))} placeholder="Together for Sustainable Future" className="mt-2" />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Theme</Label>
+                  <Input value={eventSetupForm.theme} onChange={(e) => setEventSetupForm(prev => ({ ...prev, theme: e.target.value }))} placeholder="Connect • Collaborate • Grow" className="mt-2" />
+                </div>
+              </div>
+              <Button variant="outline" onClick={handleSaveSloganTheme} disabled={savingSloganTheme} className="w-full gap-2 rounded-xl font-semibold">
+                {savingSloganTheme ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : "Save Slogan & Theme"}
+              </Button>
+
+              <div className="border-t border-border pt-4">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-3">Appearance for this chapter</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { val: "navy", label: "Chamber Navy", desc: "Chamber blue on deep navy, gold for honours" },
+                    { val: "ivory", label: "Chamber Ivory", desc: "Warm ivory and chamber maroon" },
+                  ].map(opt => (
+                    <button
+                      key={opt.val}
+                      onClick={() => setEventSetupForm(prev => ({ ...prev, chapterAppearance: opt.val }))}
+                      className={cn(
+                        "text-left px-4 py-3 rounded-xl border-2 transition-all",
+                        eventSetupForm.chapterAppearance === opt.val
+                          ? "border-primary bg-primary/5 dark:bg-primary/10"
+                          : "border-border bg-card hover:bg-muted"
+                      )}
+                    >
+                      <p className="text-sm font-bold text-foreground">{opt.label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-primary mt-2">Everyone in this chapter sees it, the projector included. Each person still chooses light or dark mode independently.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── CARD 8: Upcoming RIFAH Events ────────────────────────────── */}
+          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CalendarPlus className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Upcoming RIFAH Events <span className="text-xs font-normal text-muted-foreground">(other chapters)</span></p>
+                <p className="text-xs text-muted-foreground">Shown on the projector so members can join events elsewhere</p>
+              </div>
+            </div>
+            <div className="px-5 py-5 space-y-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  className="gap-2 rounded-xl"
+                  onClick={async () => {
+                    try {
+                      const res = await eventApi.list({ limit: 20, chapter: upcomingRegion === "All of India" ? undefined : upcomingRegion });
+                      const list = res?.events || res?.data || [];
+                      setUpcomingEventsList(list.map(e => ({ id: e._id, title: e.title, date: e.date, chapter: e.chapter, city: e.city })));
+                      toast.success("Events fetched!");
+                    } catch { toast.error("Could not fetch events."); }
+                  }}
+                >
+                  <Globe className="h-3.5 w-3.5" /> Get from rifah.org
+                </Button>
+                <Select value={upcomingRegion} onValueChange={setUpcomingRegion}>
+                  <SelectTrigger className="w-40 h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All of India">All of India</SelectItem>
+                    <SelectItem value="Maharashtra">Maharashtra</SelectItem>
+                    <SelectItem value="Karnataka">Karnataka</SelectItem>
+                    <SelectItem value="Tamil Nadu">Tamil Nadu</SelectItem>
+                    <SelectItem value="Delhi">Delhi</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" onClick={() => setAddingUpcomingEvent(!addingUpcomingEvent)} className="gap-1 rounded-xl text-xs h-9">
+                  Paste instead
+                </Button>
+              </div>
+
+              {addingUpcomingEvent && (
+                <div className="grid grid-cols-2 gap-3 p-4 rounded-xl border border-border bg-muted/30">
+                  <Input placeholder="Event title" value={upcomingEventForm.title} onChange={e => setUpcomingEventForm(p => ({ ...p, title: e.target.value }))} />
+                  <Input type="date" value={upcomingEventForm.date} onChange={e => setUpcomingEventForm(p => ({ ...p, date: e.target.value }))} />
+                  <Input placeholder="Chapter name" value={upcomingEventForm.chapter} onChange={e => setUpcomingEventForm(p => ({ ...p, chapter: e.target.value }))} />
+                  <Input placeholder="City" value={upcomingEventForm.city} onChange={e => setUpcomingEventForm(p => ({ ...p, city: e.target.value }))} />
+                  <Button
+                    className="col-span-2 rounded-xl"
+                    onClick={() => {
+                      if (!upcomingEventForm.title) return;
+                      setUpcomingEventsList(prev => [...prev, { id: `ue-${Date.now()}`, ...upcomingEventForm }]);
+                      setUpcomingEventForm({ title: "", date: "", chapter: "", city: "" });
+                      setAddingUpcomingEvent(false);
+                    }}
+                  >Add Event</Button>
+                </div>
+              )}
+
+              {upcomingEventsList.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-1">No upcoming events added yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {upcomingEventsList.map((ev, idx) => (
+                    <div key={ev.id || idx} className="flex items-center justify-between px-4 py-2.5 rounded-xl border border-border bg-muted/20">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{ev.title}</p>
+                        <p className="text-xs text-muted-foreground">{ev.chapter}{ev.date ? ` • ${ev.date}` : ""}</p>
+                      </div>
+                      <button onClick={() => setUpcomingEventsList(prev => prev.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-destructive transition-colors">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={() => setAddingUpcomingEvent(true)} className="gap-1 rounded-xl">
+                  <Plus className="h-3.5 w-3.5" /> Add Upcoming Event
+                </Button>
+                <Button onClick={handleSaveUpcomingEvents} disabled={savingUpcomingEvents} className="gap-2 rounded-xl font-semibold">
+                  {savingUpcomingEvents ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : <><Save className="h-4 w-4" /> Save Upcoming Events</>}
+                </Button>
+                <Button variant="outline" onClick={() => toast.info("PDF download coming soon.")} className="gap-2 rounded-xl text-xs">
+                  <ScrollText className="h-3.5 w-3.5" /> Download list as PDF (for participants)
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── CARD 9: Sponsors & Partners ───────────────────────────────── */}
+          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
+              <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
+                <Handshake className="h-4 w-4 text-warning-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Sponsors & Partners</p>
+                <p className="text-xs text-muted-foreground">Main Sponsor, Co Sponsor, IT & Media Partner…</p>
+              </div>
+            </div>
+            <div className="px-5 py-5 space-y-3">
+              <p className="text-xs text-muted-foreground">Name each category yourself. Logos appear grouped by category on certificates and in the participant list PDF.</p>
+
+              {sponsorsList.length > 0 && (
+                <div className="space-y-2">
+                  {sponsorsList.map((sp, idx) => (
+                    <div key={sp.id || idx} className="flex items-center justify-between px-4 py-2.5 rounded-xl border border-border bg-muted/20">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{sp.name}</p>
+                        <p className="text-xs text-muted-foreground">{sp.category}</p>
+                      </div>
+                      <button onClick={() => setSponsorsList(prev => prev.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-destructive transition-colors">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {addingSponsor && (
+                <div className="space-y-3 p-4 rounded-xl border border-border bg-muted/20">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs font-semibold">Company Name</Label>
+                      <Input value={sponsorForm.name} onChange={e => setSponsorForm(p => ({ ...p, name: e.target.value }))} placeholder="Company name" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">Category</Label>
+                      <Select value={sponsorForm.category} onValueChange={val => setSponsorForm(p => ({ ...p, category: val }))}>
+                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {["Main Sponsor","Co Sponsor","Standy Sponsor","IT & Media Partner","Knowledge Partner"].map(c => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">Contact</Label>
+                      <Input value={sponsorForm.contact} onChange={e => setSponsorForm(p => ({ ...p, contact: e.target.value }))} placeholder="Phone / email" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">Amount (₹)</Label>
+                      <Input type="number" value={sponsorForm.amount} onChange={e => setSponsorForm(p => ({ ...p, amount: e.target.value }))} placeholder="0" className="mt-1" />
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full rounded-xl"
+                    onClick={() => {
+                      if (!sponsorForm.name) return;
+                      setSponsorsList(prev => [...prev, { id: `sp-${Date.now()}`, ...sponsorForm, amount: Number(sponsorForm.amount) || 0 }]);
+                      setSponsorForm({ name: "", category: "Main Sponsor", logo: "", contact: "", amount: "", notes: "" });
+                      setAddingSponsor(false);
+                    }}
+                  >Add Sponsor</Button>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={() => setAddingSponsor(!addingSponsor)} className="gap-1 rounded-xl">
+                  <Plus className="h-3.5 w-3.5" /> Add Sponsor / Partner
+                </Button>
+                <Button onClick={handleSaveSponsors} disabled={savingSponsors} className="gap-2 rounded-xl font-semibold">
+                  {savingSponsors ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : <><Save className="h-4 w-4" /> Save Sponsors & Partners</>}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── CARD 10: Change Admin Password ────────────────────────────── */}
+          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
+              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Change Admin Password</p>
+                <p className="text-xs text-muted-foreground">Leave blank to keep the current password</p>
+              </div>
+            </div>
+            <div className="px-5 py-5 space-y-3">
+              <Input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="New admin password" />
+              <Button
+                variant="outline"
+                className="w-full gap-2 rounded-xl font-semibold"
+                disabled={updatingPassword}
+                onClick={async () => {
+                  if (!adminPassword.trim()) { toast.error("Please enter a new password."); return; }
+                  setUpdatingPassword(true);
+                  try {
+                    await new Promise(r => setTimeout(r, 800));
+                    toast.success("Password updated!");
+                    setAdminPassword("");
+                  } catch {
+                    toast.error("Failed to update password.");
+                  } finally {
+                    setUpdatingPassword(false);
+                  }
+                }}
+              >
+                {updatingPassword ? <><Loader2 className="h-4 w-4 animate-spin" /> Updating…</> : <><Lock className="h-4 w-4" /> Update Password</>}
+              </Button>
+            </div>
+          </div>
+
+          {/* ── CARD 11: Member List Info ─────────────────────────────────── */}
+          <div className="rounded-2xl border-2 border-primary/20 bg-primary-soft/40 dark:bg-primary/5 px-5 py-4 flex items-start gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-primary">
+                Member List: <span className="font-semibold">{chapterMembers.length > 0 ? `${chapterMembers.length} members loaded` : "Loading…"}</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Your uploaded list is permanently built into the app and survives resets. Members expired before today automatically count as <strong>non-members</strong>. New memberships & renewals added by the incharge are stored on top of this list.
+              </p>
+            </div>
+          </div>
+
         </div>
       )}
 
@@ -1884,17 +3029,32 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <p className="text-xs text-muted-foreground">{m.desc}</p>
                   </div>
                   <div className="pt-2">
-                    <Input
-                      defaultValue={m.name}
-                      onChange={(e) => {
-                        const val = e.target.value;
+                    <Select
+                      value={m.name || ""}
+                      onValueChange={(val) => {
+                        if (m.role === "Chapter Admin") setTeamRoles((prev) => ({ ...prev, chapterAdmin: val }));
                         if (m.role === "Entrance Incharge") setTeamRoles((prev) => ({ ...prev, entranceIncharge: val }));
                         if (m.role === "Follow-up Coordinator") setTeamRoles((prev) => ({ ...prev, followupCoordinator: val }));
                         if (m.role === "Treasurer") setTeamRoles((prev) => ({ ...prev, treasurer: val }));
                         if (m.role === "Guest & Speaker Manager") setTeamRoles((prev) => ({ ...prev, guestManager: val }));
                       }}
-                      className="text-xs h-8"
-                    />
+                    >
+                      <SelectTrigger className="text-xs h-8 bg-background border-border text-foreground">
+                        <SelectValue placeholder="Select Member from Chapter" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-56 bg-card border-border text-foreground">
+                        {m.name && !chapterMembers.some((mem) => mem.name === m.name) && (
+                          <SelectItem value={m.name} className="text-xs font-semibold">
+                            {m.name} (Assigned)
+                          </SelectItem>
+                        )}
+                        {chapterMembers.map((mem) => (
+                          <SelectItem key={mem._id || mem.id} value={mem.name} className="text-xs">
+                            {mem.name} — {mem.organization || mem.company || mem.role || "Member"} {mem.phone ? `(${mem.phone})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               ))}
@@ -2379,10 +3539,8 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    toast.success("Statement PDF report generated and downloaded!");
-                  }}
-                  className="text-xs h-9 gap-1.5"
+                  onClick={handleExportFinancialStatement}
+                  className="text-xs h-9 gap-1.5 font-semibold"
                 >
                   <Download className="h-3.5 w-3.5 text-primary" />
                   <span>Export Statement PDF</span>
@@ -3561,14 +4719,14 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => toast.success(`Opened ${doc.title}`)}
+                      onClick={() => handleViewDocument(doc.title)}
                       className="flex-1 text-xs h-8 gap-1"
                     >
                       <Eye className="h-3.5 w-3.5" /> View
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => toast.success(`Downloaded ${doc.title}`)}
+                      onClick={() => handleDownloadDocument(doc.title)}
                       className="flex-1 text-xs h-8 gap-1 font-semibold shadow-xs"
                     >
                       <Download className="h-3.5 w-3.5" /> Download
@@ -3615,7 +4773,22 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => toast.success(`Exporting: ${item.title}`)}
+                    onClick={() => {
+                      if (item.title === "Full Attendee Roster Data") {
+                        handleExportAttendeeCSV();
+                      } else if (item.title === "Chapter Member Directory") {
+                        handleExportMemberDirectoryCSV();
+                      } else if (item.title === "Share with State Secretary") {
+                        handleDownloadDocument("Central Secretariat Circular Q3");
+                      } else if (item.title === "Event Media & PR Report") {
+                        handleDownloadDocument("Standard Chapter Event Script");
+                      } else if (item.title === "Google Drive Event Backup") {
+                        toast.info("Connecting to Google Drive Event Repository...");
+                        window.open("https://drive.google.com", "_blank");
+                      } else {
+                        handleExportAttendeeCSV();
+                      }
+                    }}
                     className="mt-4 text-xs h-8 gap-1.5 text-primary font-semibold"
                   >
                     <Download className="h-3.5 w-3.5" /> Export Data

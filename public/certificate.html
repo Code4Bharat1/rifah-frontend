@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Certificate of Appreciation</title>
+  <style>
+    body, html {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: #e2e8f0; font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    .cert-container {
+      width: 1056px; height: 816px; /* 11x8.5 inches at 96dpi (US Letter Landscape) */
+      background: white; position: relative; padding: 40px; box-sizing: border-box;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; border: 15px solid #0f172a; /* Navy band */
+    }
+    .accent-rule { width: 80%; height: 4px; background: #ca8a04; margin: 30px 0; }
+    .logo { height: 80px; margin-bottom: 20px; }
+    h1 { font-size: 48px; text-transform: uppercase; letter-spacing: 4px; color: #0f172a; margin: 0; }
+    .subtitle { font-size: 24px; color: #64748b; margin-top: 10px; font-weight: 300; }
+    .presented-to { font-size: 18px; color: #94a3b8; text-transform: uppercase; margin-top: 50px; letter-spacing: 2px; }
+    .name { font-size: 56px; font-weight: bold; color: #0f172a; margin: 20px 0; font-family: Georgia, serif; }
+    .reason { font-size: 20px; color: #475569; max-width: 700px; line-height: 1.5; }
+    .signatures { display: flex; justify-content: space-between; width: 80%; margin-top: 80px; }
+    .sig-block { display: flex; flex-direction: column; align-items: center; width: 250px; }
+    .sig-img { height: 60px; object-fit: contain; margin-bottom: 10px; }
+    .sig-line { width: 100%; height: 1px; background: #94a3b8; margin-bottom: 10px; }
+    .sig-name { font-weight: bold; font-size: 18px; color: #0f172a; }
+    .sig-role { font-size: 14px; color: #64748b; text-transform: uppercase; }
+    
+    @media print {
+      body { background: white; }
+      .cert-container { box-shadow: none; border-width: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cert-container" id="cert">
+    <img src="/rifah-logo.png" alt="Logo" class="logo" />
+    <h1>Certificate of Appreciation</h1>
+    <div class="subtitle" id="event-title">RIFAH Chamber Event</div>
+    
+    <div class="presented-to">Proudly Presented To</div>
+    <div class="name" id="cert-name">John Doe</div>
+    
+    <div class="accent-rule" id="accent"></div>
+    
+    <div class="reason" id="cert-reason">
+      For your valuable contribution and insightful presence as a <strong id="cert-role">Speaker</strong> at our event.
+    </div>
+    
+    <div class="signatures">
+      <div class="sig-block">
+        <img src="" alt="" class="sig-img" id="sig1-img" style="display:none;" />
+        <div class="sig-line"></div>
+        <div class="sig-name" id="sig1-name">Name 1</div>
+        <div class="sig-role" id="sig1-role">Chapter President</div>
+      </div>
+      <div class="sig-block">
+        <img src="" alt="" class="sig-img" id="sig2-img" style="display:none;" />
+        <div class="sig-line"></div>
+        <div class="sig-name" id="sig2-name">Name 2</div>
+        <div class="sig-role" id="sig2-role">Chapter Secretary</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('cert-name').textContent = params.get('name') || 'Guest Name';
+    document.getElementById('cert-role').textContent = params.get('role') || 'Participant';
+    document.getElementById('event-title').textContent = params.get('event') || 'RIFAH Chamber Event';
+    
+    if (params.get('accent')) {
+      document.getElementById('accent').style.backgroundColor = params.get('accent');
+    }
+    
+    // Fill Signatories
+    if (params.get('sig1Name')) document.getElementById('sig1-name').textContent = params.get('sig1Name');
+    if (params.get('sig1Role')) document.getElementById('sig1-role').textContent = params.get('sig1Role');
+    if (params.get('sig1Img')) {
+      const img = document.getElementById('sig1-img');
+      img.src = params.get('sig1Img');
+      img.style.display = 'block';
+    }
+    
+    if (params.get('sig2Name')) document.getElementById('sig2-name').textContent = params.get('sig2Name');
+    if (params.get('sig2Role')) document.getElementById('sig2-role').textContent = params.get('sig2Role');
+    if (params.get('sig2Img')) {
+      const img = document.getElementById('sig2-img');
+      img.src = params.get('sig2Img');
+      img.style.display = 'block';
+    }
+
+    // Auto-trigger print dialog after images load
+    window.onload = () => {
+      setTimeout(() => window.print(), 500);
+    };
+  </script>
+</body>
+</html>

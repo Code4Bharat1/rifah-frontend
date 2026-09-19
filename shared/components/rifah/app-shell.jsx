@@ -99,7 +99,7 @@ const navs = {
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Operations Center Hub", to: "/admin/operations", icon: Radio },
+
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
@@ -132,7 +132,7 @@ const roleNavs = {
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Operations Center Hub", to: "/chapter-admin/operations", icon: Radio },
+
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
@@ -156,7 +156,7 @@ const roleNavs = {
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Operations Center Hub", to: "/chapter-admin/operations", icon: Radio },
+
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
