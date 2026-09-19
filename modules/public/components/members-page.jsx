@@ -156,63 +156,63 @@ export function MembersDirectoryPage() {
               }}>Clear Filters</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
               {roles.map(role => {
                 const user = role.userId;
                 const business = role.businessId;
                 const avatarUrl = user?.avatar ? resolveMediaUrl(user.avatar) : null;
 
                 return (
-                  <div key={role._id} className="group relative h-full bg-background rounded-[2rem] border border-border/50 text-center hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 hover:-translate-y-2 flex flex-col overflow-hidden isolate shadow-sm">
+                  <div key={role._id} className="group relative h-full bg-background rounded-3xl border border-border/50 text-center hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 hover:-translate-y-2 flex flex-col overflow-hidden isolate shadow-sm">
                     
                     {/* Full width portrait image container */}
-                    <div className="relative w-full aspect-[4/5] bg-muted/40 overflow-hidden flex-shrink-0 border-b border-border/20">
+                    <div className="relative w-full aspect-square bg-muted/40 overflow-hidden flex-shrink-0 border-b border-border/20">
                       {avatarUrl ? (
                         <img
                           src={avatarUrl}
                           alt={user?.name}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/20 text-primary/60 flex items-center justify-center text-[100px] font-black transition-transform duration-700 group-hover:scale-105">
+                        <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/20 text-primary/60 flex items-center justify-center text-[70px] font-black transition-transform duration-700 group-hover:scale-105">
                           {user?.name?.charAt(0)?.toUpperCase()}
                         </div>
                       )}
                       
                       {/* Gentle shadow overlay inside image for depth */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none"></div>
 
                       {/* Level Badge overlaid on top left */}
-                      <div className="absolute top-4 left-4 z-20 shadow-sm">
+                      <div className="absolute top-3 left-3 z-20 shadow-sm">
                         {getLevelBadge(role.level)}
                       </div>
                     </div>
 
                     {/* Card Content Area */}
-                    <div className="relative p-6 bg-background z-10 flex flex-col items-center flex-grow">
-                      <h3 className="text-2xl font-extrabold text-foreground w-full mb-1 tracking-tight truncate">{user?.name}</h3>
+                    <div className="relative p-5 bg-background z-10 flex flex-col items-center flex-grow">
+                      <h3 className="text-[1.15rem] font-extrabold text-foreground w-full mb-1 tracking-tight truncate">{user?.name}</h3>
                       
-                      <p className="text-[13px] font-bold text-primary tracking-wide uppercase px-4 py-1.5 bg-primary/5 rounded-full border border-primary/10 mb-5 mt-1 inline-block">
+                      <p className="text-[11px] font-bold text-primary tracking-wider uppercase px-3 py-1 bg-primary/5 rounded-full border border-primary/10 mb-4 mt-0.5 inline-block">
                         {role.role}
                       </p>
 
-                      <div className="flex gap-2 w-full justify-center flex-wrap mb-4">
+                      <div className="flex gap-1.5 w-full justify-center flex-wrap mb-4">
                         {role.level === "State" && role.state && (
-                          <div className="flex items-center justify-center text-[11px] uppercase tracking-widest text-muted-foreground font-bold bg-muted/60 px-3 py-1.5 rounded-lg">
-                            <MapPin className="h-3 w-3 mr-1 text-primary/60" /> {role.state}
+                          <div className="flex items-center justify-center text-[10px] uppercase tracking-widest text-muted-foreground font-bold bg-muted/60 px-2.5 py-1 rounded-md">
+                            <MapPin className="h-2.5 w-2.5 mr-1 text-primary/60" /> {role.state}
                           </div>
                         )}
                         {role.level === "Chapter" && role.chapterId && (
-                          <div className="flex items-center justify-center text-[11px] uppercase tracking-widest text-muted-foreground font-bold bg-muted/60 px-3 py-1.5 rounded-lg">
-                            <MapPin className="h-3 w-3 mr-1 text-primary/60" /> {role.chapterId.name || "Chapter"}
+                          <div className="flex items-center justify-center text-[10px] uppercase tracking-widest text-muted-foreground font-bold bg-muted/60 px-2.5 py-1 rounded-md">
+                            <MapPin className="h-2.5 w-2.5 mr-1 text-primary/60" /> {role.chapterId.name || "Chapter"}
                           </div>
                         )}
                       </div>
 
                       {(business?.name || user?.organization) && (
-                        <div className="mt-auto flex flex-col items-center justify-center gap-1.5 w-full text-foreground/80 pt-4 border-t border-border/40">
-                          <Building2 className="h-4 w-4 text-primary/40" />
-                          <span className="text-sm font-semibold truncate w-full text-center">
+                        <div className="mt-auto flex flex-col items-center justify-center gap-1 w-full text-foreground/80 pt-3 border-t border-border/40">
+                          <Building2 className="h-3.5 w-3.5 text-primary/40" />
+                          <span className="text-xs font-semibold truncate w-full text-center">
                             {business?.name || user?.organization}
                           </span>
                         </div>

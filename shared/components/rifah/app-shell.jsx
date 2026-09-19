@@ -102,7 +102,6 @@ const navs = {
     more: [
 
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
-      { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
       { label: "Memberships", to: "/admin/memberships", icon: Star },
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
@@ -137,7 +136,6 @@ const roleNavs = {
     more: [
 
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
-      { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
       { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
       { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },

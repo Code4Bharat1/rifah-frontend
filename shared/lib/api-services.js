@@ -428,7 +428,7 @@ export const powerNetworkingApi = {
 
 export const roleApi = {
   getAll: (params = {}) => apiClient(`/roles${toQueryString(params)}`),
-  getPublic: () => apiClient("/roles/public"),
+  getPublic: (params = {}) => apiClient(`/roles/public${toQueryString(params)}`),
   create: (data) => apiClient("/roles", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/roles/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/roles/${id}`, { method: "DELETE" }),
