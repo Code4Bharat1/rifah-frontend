@@ -2478,7 +2478,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 </div>
                 <div>
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Event Poster <span className="font-normal normal-case">(optional)</span>
+                    Event Poster <span className="font-normal normal-case">(optional - Size 4:5)</span>
                   </Label>
                   <Input type="file" accept="image/*" className="mt-2"
                     onChange={(e) => {
