@@ -31,6 +31,7 @@ import {
   birthdayApi,
   anniversaryApi,
   powerNetworkingApi,
+  postsApi,
 } from "../lib/api-services";
 
 // ==================== BUSINESS HOOKS ====================
@@ -834,6 +835,61 @@ export function useCancelPowerConnection() {
     mutationFn: (id) => powerNetworkingApi.cancelRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["power-networking"] });
+    },
+  });
+}
+
+// ==================== FEED POSTS HOOKS ====================
+
+export function usePosts(params = {}) {
+  return useQuery({
+    queryKey: ["posts", params],
+    queryFn: async () => {
+      const res = await postsApi.list(params);
+      return res?.data || res || [];
+    },
+    // Auto-refetch every 10 seconds and on window focus so multi-PC posts sync automatically
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useCreatePost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => postsApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+}
+
+export function useTogglePostLike() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => postsApi.toggleLike(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+}
+
+export function useAddPostComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }) => postsApi.addComment(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+}
+
+export function useDeletePost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => postsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
     },
   });
 }

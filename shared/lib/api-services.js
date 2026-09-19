@@ -269,6 +269,26 @@ export const eventApi = {
   },
   addFinanceTransaction: (id, data) =>
     apiClient(`/events/${id}/finance`, { method: "POST", body: JSON.stringify(data) }),
+  
+  // ─── Ask & Give Board ──────────────────────────────────────────────────────
+  getAskGiveBoard: (id) => apiClient(`/events/${id}/ask-give-board`),
+  updateAttendeeAskGive: (id, attendeeId, data) => 
+    apiClient(`/events/${id}/attendees/${attendeeId}/ask-give`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  // ─── Entrance Desk Gate Action ─────────────────────────────────────────────
+  gateAction: (id, attendeeId, action) => 
+    apiClient(`/events/${id}/attendees/${attendeeId}/gate-action`, { method: "PATCH", body: JSON.stringify({ action }) }),
+
+  // ─── Certificate Generation ────────────────────────────────────────────────
+  getCertificateUrl: (id, attendeeId, style, accentColor) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") || "http://localhost:5000";
+    return `${baseUrl}/api/v1/events/${id}/certificates/${attendeeId}?style=${style}&accentColor=${encodeURIComponent(accentColor)}`;
+  },
+
+  // ─── Event Scripts ─────────────────────────────────────────────────────────
+  getScripts: (id) => apiClient(`/events/${id}/scripts`),
+  updateScript: (id, segmentId, data) => 
+    apiClient(`/events/${id}/scripts/${segmentId}`, { method: "PATCH", body: JSON.stringify(data) }),
 };
 
 export const followupApi = {
@@ -420,3 +440,18 @@ export const documentApi = {
   update: (id, data) => apiClient(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/documents/${id}`, { method: "DELETE" }),
 };
+
+export const postsApi = {
+  list: (params = {}) => apiClient(`/posts${toQueryString(params)}`),
+  create: (data) => apiClient("/posts", { method: "POST", body: JSON.stringify(data) }),
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    return apiClient("/posts/upload", { method: "POST", body: formData });
+  },
+  toggleLike: (id) => apiClient(`/posts/${id}/like`, { method: "POST" }),
+  addComment: (id, data) => apiClient(`/posts/${id}/comments`, { method: "POST", body: JSON.stringify(data) }),
+  deleteComment: (id, commentId) => apiClient(`/posts/${id}/comments/${commentId}`, { method: "DELETE" }),
+  delete: (id) => apiClient(`/posts/${id}`, { method: "DELETE" }),
+};
+
