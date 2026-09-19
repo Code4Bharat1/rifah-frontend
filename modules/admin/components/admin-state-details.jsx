@@ -267,7 +267,7 @@ export default function AdminStateDetails({ stateName }) {
               </div>
             </Panel>
 
-            <Panel title="State Admin" className="h-full border-t-4 border-t-blue-500">
+            <Panel title="State Admin" className="border-t-4 border-t-blue-500">
               <div className="space-y-6">
                 {admin ? (
                   <div className="space-y-4">

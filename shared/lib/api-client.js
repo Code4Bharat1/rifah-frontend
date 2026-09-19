@@ -166,6 +166,8 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
         "/events",
         "/contact",
         "/membership",
+        "/presence",
+        "/members",
         "/login",
         "/register-business",
       ];
