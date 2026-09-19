@@ -83,6 +83,7 @@ const navs = {
       { label: "Messages", to: "/biz/messages", icon: MessageSquare },
       { label: "My Profile", to: "/biz/profile", icon: UserRound },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
+      { label: "Reviews", to: "/biz/reviews", icon: Star },
       { label: "Membership", to: "/biz/membership", icon: Star },
       { label: "Notifications", to: "/biz/notifications", icon: Bell },
       { label: "LMS", to: "/biz/lms", icon: GraduationCap },
