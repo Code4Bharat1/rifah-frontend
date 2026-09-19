@@ -63,43 +63,33 @@ export function BirthdayDialog({ open, onOpenChange, birthdays = [] }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-[780px] max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-[28px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl font-sans">
+      <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-[780px] max-h-[88vh] flex flex-col p-0 sm:p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl font-sans">
         
-        {/* TOP CELEBRATION HEADER WITH GRADIENT BANNER */}
-        <div className="relative m-3.5 mb-0 overflow-hidden rounded-2xl bg-gradient-to-r from-amber-100/90 via-orange-100/80 to-amber-100/90 dark:from-amber-950/40 dark:via-orange-950/40 dark:to-amber-950/40 border border-amber-200/50 dark:border-amber-900/30 p-5 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-            
-            {/* Left: Icon + Title */}
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="h-14 w-14 shrink-0 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 text-white shadow-lg flex items-center justify-center">
-                <Cake className="h-7 w-7" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                  Today's Chapter Birthdays <span className="text-amber-500 font-normal">🎂</span>
-                </DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium mt-0.5">
-                  <strong className="text-slate-900 dark:text-white font-bold">{birthdays.length} {birthdays.length === 1 ? "member is" : "members are"}</strong> celebrating their birthday today!
-                  <br className="hidden sm:inline" /> Connect and send your warm wishes.
-                </DialogDescription>
-              </div>
+        {/* TOP CELEBRATION HEADER WITH SEAMLESS GRADIENT BANNER */}
+        <div className="relative border-b border-amber-100/90 dark:border-amber-900/50 bg-gradient-to-r from-amber-50 via-orange-50/70 to-amber-50 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 px-6 py-5 pr-14 shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 text-white shadow-md shadow-amber-500/20 flex items-center justify-center">
+              <Cake className="h-6 w-6" />
             </div>
-
-            {/* Right: Tagline Pill Box */}
-            <div className="hidden md:flex flex-col justify-center px-4 py-2.5 rounded-xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-white/60 dark:border-slate-800/80 shadow-2xs shrink-0 text-left">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Celebrating Milestones.
-              </span>
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                Growing Together.
-              </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-100/90 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300">
+                  <Sparkles className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                  Chapter Birthdays
+                </span>
+              </div>
+              <DialogTitle className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">
+                Today's Chapter Birthdays
+              </DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+                Celebrating <strong className="font-bold text-slate-900 dark:text-slate-200">{birthdays.length} {birthdays.length === 1 ? "member" : "members"}</strong> having a birthday today.
+              </DialogDescription>
             </div>
-
           </div>
         </div>
 
         {/* MEMBERS SCROLLABLE LIST */}
-        <div className="p-3.5 sm:p-4 overflow-y-auto flex-1 space-y-3">
+        <div className="p-4 sm:p-5 overflow-y-auto max-h-[58vh] space-y-3.5 bg-slate-50/40 dark:bg-slate-950/40">
           {birthdays.map((item, idx) => {
             const isSending = sendingMap[item.userId];
             const isSent = sentMap[item.userId];
@@ -114,97 +104,111 @@ export function BirthdayDialog({ open, onOpenChange, birthdays = [] }) {
             return (
               <div
                 key={String(item.userId || item.businessId || idx)}
-                className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+                className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs hover:border-amber-200 dark:hover:border-amber-800 hover:shadow-md transition-all duration-200"
               >
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
                   
-                  {/* Left: Avatar & Member Info */}
-                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                    <div className={`h-14 w-14 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-lg shadow-2xs ${themeClass}`}>
-                      {item.userAvatar ? (
-                        <img
-                          src={item.userAvatar}
-                          alt={item.userName}
-                          className="h-full w-full object-cover rounded-2xl"
-                        />
-                      ) : (
-                        initials
+                  {/* Left: Avatar Block */}
+                  <div className={`h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-base sm:text-lg shadow-xs ${themeClass}`}>
+                    {item.userAvatar ? (
+                      <img
+                        src={item.userAvatar}
+                        alt={item.userName}
+                        className="h-full w-full object-cover rounded-2xl"
+                      />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+
+                  {/* Right: Member Details & Actions */}
+                  <div className="min-w-0 flex-1 flex flex-col justify-between gap-2.5">
+                    
+                    {/* Top Row: Member Name in single clean line */}
+                    <div className="flex items-center justify-between gap-3 min-w-0">
+                      <h4 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight truncate">
+                        {item.userName}
+                      </h4>
+                      {item.isSelf && (
+                        <span className="inline-flex items-center text-[11px] bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full shrink-0">
+                          You!
+                        </span>
                       )}
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      {/* Name & Birthday Pill */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-extrabold text-base text-slate-900 dark:text-white tracking-tight">
-                          {item.userName}
-                        </h4>
-                        {item.isSelf ? (
-                          <span className="text-[11px] bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full">
-                            You!
-                          </span>
-                        ) : (
-                          <span className="text-[11px] bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 font-bold px-2.5 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-800">
-                            Birthday Today 🎂
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Details Row */}
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
+                    {/* Bottom Row: Business & Chapter on Left, Birthday Badge & Buttons on Right */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                      
+                      {/* Left: Business & Chapter info */}
+                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                         {item.businessName && (
-                          <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
-                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                            {item.businessName}
+                          <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                            <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate">{item.businessName}</span>
                           </span>
                         )}
                         {item.chapter && (
                           <span className="flex items-center gap-1 text-slate-500">
-                            <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                            {item.chapter} Chapter
+                            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span>{item.chapter} Chapter</span>
                           </span>
                         )}
                       </div>
+
+                      {/* Right: Birthday Badge + WhatsApp + Say Happy Birthday */}
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        {!item.isSelf && (
+                          <span className="inline-flex items-center gap-1.5 text-xs bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 font-semibold px-3 py-1.5 rounded-xl border border-amber-200/80 dark:border-amber-800 shrink-0">
+                            <Sparkles className="h-3.5 w-3.5 text-amber-500 fill-amber-400 shrink-0" />
+                            <span>Birthday Today</span>
+                          </span>
+                        )}
+
+                        {whatsappUrl && (
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                          >
+                            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                              <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" />
+                              <span>WhatsApp</span>
+                            </a>
+                          </Button>
+                        )}
+
+                        {!item.isSelf && (
+                          isSent ? (
+                            <Button
+                              size="sm"
+                              disabled
+                              className="h-8.5 px-3.5 text-xs bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 font-semibold rounded-xl gap-1.5 border border-amber-300 dark:border-amber-800"
+                            >
+                              <Check className="h-3.5 w-3.5 text-amber-600" />
+                              <span>Wished</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              disabled={isSending}
+                              onClick={() => handleSendWish(item)}
+                              className="h-8.5 px-3.5 text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl gap-1.5 shadow-2xs transition-all cursor-pointer"
+                            >
+                              {isSending ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-3.5 w-3.5 text-amber-200 fill-amber-200" />
+                              )}
+                              <span>Say Happy Birthday</span>
+                            </Button>
+                          )
+                        )}
+                      </div>
+
                     </div>
+
                   </div>
-
-                  {/* Right: Actions (WhatsApp & Say Happy Birthday) */}
-                  {!item.isSelf && (
-                    <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-end lg:self-center">
-                      {whatsappUrl && (
-                        <Button
-                          asChild
-                          size="sm"
-                          className="h-9 px-4 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full gap-1.5 shadow-sm transition-all cursor-pointer"
-                        >
-                          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                            <WhatsAppIcon className="h-4 w-4" />
-                            <span>WhatsApp</span>
-                          </a>
-                        </Button>
-                      )}
-
-                      {isSent ? (
-                        <Button
-                          size="sm"
-                          disabled
-                          className="h-9 px-4 text-xs bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 font-bold rounded-full gap-1.5 border border-amber-300 dark:border-amber-800"
-                        >
-                          <Check className="h-4 w-4 text-amber-600" />
-                          <span>Wished</span>
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          disabled={isSending}
-                          onClick={() => handleSendWish(item)}
-                          className="h-9 px-4 text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-full gap-1.5 shadow-sm transition-all cursor-pointer"
-                        >
-                          {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>🎂</span>}
-                          <span>Say Happy Birthday</span>
-                        </Button>
-                      )}
-                    </div>
-                  )}
 
                 </div>
               </div>

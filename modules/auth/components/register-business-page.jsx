@@ -176,6 +176,8 @@ function RegisterBusiness({ isAdmin = false }) {
     logo: "",
     avatar: "",
     contactPerson: "",
+    roleInBusiness: "Founder / Owner",
+    customRoleInBusiness: "",
     phone: "",
     businessEmail: "",
     email: convertEmail || "",
@@ -597,12 +599,20 @@ function RegisterBusiness({ isAdmin = false }) {
         }
       }
 
+      const finalRole = (
+        formData.roleInBusiness === "Other" && formData.customRoleInBusiness
+          ? formData.customRoleInBusiness
+          : (formData.roleInBusiness || "Founder / Owner")
+      ).trim();
+
       // If Admin and Cash Payment
       if (isAdmin && paymentMethod === "cash") {
          await businessApi.createAdmin({
             businessName: formData.businessName,
             ownerName: formData.contactPerson || formData.businessName,
             contactPerson: formData.contactPerson || formData.businessName,
+            roleInBusiness: finalRole,
+            designation: finalRole,
             businessEmail: (formData.businessEmail || formData.email).toLowerCase().trim(),
             email: formData.email.toLowerCase().trim(),
             phone: formData.phone,
@@ -637,6 +647,8 @@ function RegisterBusiness({ isAdmin = false }) {
       await registerBusiness({
         name: formData.contactPerson || formData.businessName,
         contactPerson: formData.contactPerson || formData.businessName,
+        roleInBusiness: finalRole,
+        designation: finalRole,
         businessEmail: (formData.businessEmail || formData.email).toLowerCase().trim(),
         email: formData.email.toLowerCase().trim(),
         password: formData.password,
@@ -987,6 +999,10 @@ function RegisterBusiness({ isAdmin = false }) {
               if (step === 1) {
                 if (!formData.contactPerson || formData.contactPerson.trim().length < 2) {
                   setError("Authorised contact person name is mandatory. Please enter the contact person's name.");
+                  return;
+                }
+                if (formData.roleInBusiness === "Other" && (!formData.customRoleInBusiness || formData.customRoleInBusiness.trim().length < 2)) {
+                  setError("Please specify your role / designation in the business.");
                   return;
                 }
                 if (!formData.phone || formData.phone.trim().length < 7) {
@@ -1670,7 +1686,42 @@ function RegisterBusiness({ isAdmin = false }) {
                       placeholder="Authorised representative"
                     />
                   </div>
+
                   <div className="space-y-1.5">
+                    <Label htmlFor="roleInBusiness">Your Role in Business *</Label>
+                    <Select
+                      value={formData.roleInBusiness || "Founder / Owner"}
+                      onValueChange={(val) => setFormData({ ...formData, roleInBusiness: val })}
+                    >
+                      <SelectTrigger id="roleInBusiness" className="h-10">
+                        <SelectValue placeholder="Select your role in business" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Founder / Owner">Founder / Owner</SelectItem>
+                        <SelectItem value="Proprietor">Proprietor</SelectItem>
+                        <SelectItem value="Managing Director (MD)">Managing Director (MD)</SelectItem>
+                        <SelectItem value="Partner">Partner</SelectItem>
+                        <SelectItem value="Director / CEO">Director / CEO</SelectItem>
+                        <SelectItem value="General Manager / COO">General Manager / COO</SelectItem>
+                        <SelectItem value="Authorized Representative">Authorized Representative</SelectItem>
+                        <SelectItem value="Other">Other (Specify below)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.roleInBusiness === "Other" && (
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="customRole">Specify Your Role / Designation *</Label>
+                      <FastInput
+                        id="customRole"
+                        value={formData.customRoleInBusiness || ""}
+                        onValueChange={(val) => setFormData({ ...formData, customRoleInBusiness: val })}
+                        placeholder="e.g. Chief Marketing Officer, Co-Founder, Operations Head"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="bphone">Mobile / Phone Number *</Label>
                     <FastInput
                       id="bphone"
