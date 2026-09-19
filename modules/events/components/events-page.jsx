@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
-import { Clock, MapPin, Ticket, Users, Share2 } from "lucide-react";
+import { Clock, MapPin, Ticket, Users, Share2, ImageIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Pill } from "@shared/components/rifah/badges";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 import { SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
@@ -53,6 +54,19 @@ function EventsPage() {
                   href={`/events/${ev.slug || ev._id}`}
                   className="flex h-full flex-col rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/40 sm:p-5"
                 >
+                  <div className="w-full h-40 sm:h-48 overflow-hidden rounded-xl bg-muted/20 mb-4">
+                    {ev.posterImage || ev.coverImage ? (
+                      <img 
+                        src={resolveMediaUrl(ev.posterImage || ev.coverImage)} 
+                        alt={ev.title}
+                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-slate-100 text-slate-300">
+                        <ImageIcon className="h-10 w-10 opacity-50" />
+                      </div>
+                    )}
+                  </div>
                   <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3">
                     <div className="grid h-14 w-14 shrink-0 place-content-center rounded-xl bg-primary-soft text-center text-primary px-1">
                       {(() => {

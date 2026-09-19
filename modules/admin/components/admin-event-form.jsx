@@ -193,6 +193,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         scheduledDate: initialSchDate,
         scheduledTime: initialSchTime,
         cover: null, // Keep cover null to allow new upload
+        poster: null,
       });
     }
   }, [initialData]);
@@ -346,6 +347,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       delete payload.scheduledDate;
       delete payload.scheduledTime;
       delete payload.cover;
+      delete payload.poster;
 
       let eventId = isEditMode ? initialData._id : null;
 
@@ -359,9 +361,15 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       }
 
       if (formData.cover && eventId) {
-        toast.info("Uploading cover image...");
+        toast.info("Uploading banner image...");
         await eventApi.uploadCover(eventId, formData.cover);
-        toast.success("Cover image uploaded");
+        toast.success("Banner image uploaded");
+      }
+      
+      if (formData.poster && eventId) {
+        toast.info("Uploading poster image...");
+        await eventApi.uploadPoster(eventId, formData.poster);
+        toast.success("Poster image uploaded");
       }
 
       router.push(basePath);
@@ -536,13 +544,13 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
             </div>
 
             <div className="space-y-2 pt-2 border-t">
-              <Label htmlFor="cover">Cover Image (Optional)</Label>
+              <Label htmlFor="cover">Banner Image (Optional)</Label>
               <div className="flex items-center gap-4">
                 {formData.cover ? (
                   <div className="relative h-24 w-40 rounded-lg overflow-hidden border border-border shadow-sm group">
                     <img
                       src={URL.createObjectURL(formData.cover)}
-                      alt="Cover preview"
+                      alt="Banner preview"
                       className="h-full w-full object-cover"
                     />
                     <button
@@ -563,7 +571,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 ) : (
                   <div className="h-24 w-40 bg-muted rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground gap-1">
                     <ImageIcon className="h-6 w-6" />
-                    <span className="text-[10px]">No image selected</span>
+                    <span className="text-[10px]">No banner selected</span>
                   </div>
                 )}
                 <div className="flex flex-col gap-2">
@@ -579,6 +587,54 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     className="max-w-xs"
                   />
                   <p className="text-[11px] text-muted-foreground">Recommended: 1200×630px, max 5MB</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t">
+              <Label htmlFor="poster">Poster Image (Optional)</Label>
+              <div className="flex items-center gap-4">
+                {formData.poster ? (
+                  <div className="relative h-32 w-32 rounded-lg overflow-hidden border border-border shadow-sm group">
+                    <img
+                      src={URL.createObjectURL(formData.poster)}
+                      alt="Poster preview"
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, poster: null });
+                        const fileInput = document.getElementById('poster');
+                        if (fileInput) fileInput.value = '';
+                      }}
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/70 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-md"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-2 py-0.5 truncate">
+                      {formData.poster.name}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-32 w-32 bg-muted rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground gap-1">
+                    <ImageIcon className="h-6 w-6" />
+                    <span className="text-[10px]">No poster selected</span>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2">
+                  <Input
+                    id="poster"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setFormData({ ...formData, poster: e.target.files[0] });
+                      }
+                    }}
+                    className="max-w-xs"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Recommended: 1080×1080px (1:1) or 1080×1350px (4:5)</p>
                 </div>
               </div>
             </div>

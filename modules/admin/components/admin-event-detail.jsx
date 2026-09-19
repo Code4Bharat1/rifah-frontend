@@ -88,15 +88,30 @@ export function AdminEventDetail() {
       }
     >
       <div className="space-y-4">
-        {event.coverImage && (
-          <div className="overflow-hidden rounded-2xl border border-border">
-            <div className="w-full h-48 sm:h-64 lg:h-72 overflow-hidden bg-muted/20">
-              <img
-                src={coverUrl}
-                alt={event.title}
-                className="h-full w-full object-cover"
-              />
-            </div>
+        {(event.coverImage || event.posterImage) && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {event.coverImage && (
+              <div className={`overflow-hidden rounded-2xl border border-border ${event.posterImage ? 'md:col-span-2' : 'md:col-span-3'}`}>
+                <div className="w-full h-48 sm:h-64 lg:h-72 overflow-hidden bg-muted/20">
+                  <img
+                    src={coverUrl}
+                    alt={event.title + " Banner"}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
+            {event.posterImage && (
+              <div className={`overflow-hidden rounded-2xl border border-border ${event.coverImage ? 'md:col-span-1' : 'md:col-span-3'}`}>
+                <div className="w-full h-48 sm:h-64 lg:h-72 overflow-hidden bg-muted/20 flex justify-center items-center bg-black/5">
+                  <img
+                    src={resolveMediaUrl(event.posterImage)}
+                    alt={event.title + " Poster"}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 

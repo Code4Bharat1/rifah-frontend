@@ -409,6 +409,16 @@ const loadRazorpayScript = () => {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+            {event.posterImage && (
+              <div className="overflow-hidden rounded-2xl border border-border shadow-sm bg-surface">
+                <img 
+                  src={resolveMediaUrl(event.posterImage)} 
+                  alt={`${event.title} Poster`}
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+            )}
+            
             {["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (
               <Panel title="Admin View">
                 <div className="space-y-3 text-center">

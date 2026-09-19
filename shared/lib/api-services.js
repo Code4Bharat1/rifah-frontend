@@ -269,6 +269,11 @@ export const eventApi = {
     formData.append("cover", file);
     return apiClient(`/events/${id}/cover`, { method: "POST", body: formData });
   },
+  uploadPoster: (id, file) => {
+    const formData = new FormData();
+    formData.append("poster", file);
+    return apiClient(`/events/${id}/poster`, { method: "POST", body: formData });
+  },
   addFinanceTransaction: (id, data) =>
     apiClient(`/events/${id}/finance`, { method: "POST", body: JSON.stringify(data) }),
   
