@@ -11,6 +11,7 @@ import {
   Building2,
   Laptop,
   ArrowRight,
+  Share2,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -22,6 +23,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 import { useEvents } from "@shared/hooks/use-rifah-api";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { eventImage } from "@shared/lib/media";
+import { EventShareModal } from "@shared/components/rifah/event-share-modal";
 import { cn } from "@shared/lib/utils";
 
 export function BizEvents() {
@@ -30,6 +32,7 @@ export function BizEvents() {
 
   const [activeView, setActiveView] = useState("all"); // "all" | "my-passes"
   const [searchQuery, setSearchQuery] = useState("");
+  const [sharingEvent, setSharingEvent] = useState(null);
 
   // Fetch all chamber events (nationwide + all chapters)
   const { data: eventsData, isLoading } = useEvents({ all: "true", limit: 100 });
@@ -368,11 +371,22 @@ export function BizEvents() {
                       </p>
                     </div>
                   </div>
-                  <div className="p-4.5 pt-0">
-                    <Button asChild size="sm" variant="outline" className="w-full">
+                  <div className="p-4.5 pt-0 flex items-center gap-2">
+                    <Button asChild size="sm" variant="outline" className="flex-1 rounded-xl">
                       <Link href={`/events/${ev._id || ev.slug}`}>
                         View Event Details
                       </Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSharingEvent(ev)}
+                      className="rounded-xl h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:border-primary/50 shrink-0"
+                      title="Share Event"
+                      aria-label={`Share ${ev.title}`}
+                    >
+                      <Share2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </article>
@@ -407,6 +421,14 @@ export function BizEvents() {
           </div>
         </div>
       </div>
+
+      <EventShareModal
+        event={sharingEvent}
+        open={Boolean(sharingEvent)}
+        onOpenChange={(open) => {
+          if (!open) setSharingEvent(null);
+        }}
+      />
     </AppShell>
   );
 }

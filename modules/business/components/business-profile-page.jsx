@@ -92,6 +92,40 @@ import {
 import { reviewApi, userApi, enquiryApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
 
+function formatSocialUrl(type, rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string") return "#";
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return "#";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+  switch (type) {
+    case "instagram": {
+      const handle = trimmed
+        .replace(/^@/, "")
+        .replace(/^https?:\/\//i, "")
+        .replace(/^(www\.)?instagram\.com\/?/i, "")
+        .trim();
+      return `https://www.instagram.com/${handle}`;
+    }
+    case "linkedin": {
+      const handle = trimmed
+        .replace(/^@/, "")
+        .replace(/^https?:\/\//i, "")
+        .replace(/^(www\.)?linkedin\.com\/?/i, "")
+        .trim();
+      if (handle.startsWith("in/") || handle.startsWith("company/")) {
+        return `https://www.linkedin.com/${handle}`;
+      }
+      return `https://www.linkedin.com/in/${handle}`;
+    }
+    case "website":
+    default: {
+      if (trimmed.startsWith("//")) return `https:${trimmed}`;
+      return `https://${trimmed}`;
+    }
+  }
+}
+
 function BusinessNotFound() {
   return (
     <PublicLayout>
