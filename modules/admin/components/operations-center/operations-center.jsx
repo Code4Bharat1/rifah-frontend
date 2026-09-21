@@ -1328,7 +1328,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     return regUsers.map((reg, idx) => {
       const u = reg.user || {};
       const isMem =
-        u.role === "business_owner" ||
+        ["central_admin", "state_admin", "chapter_admin", "business_owner"].includes(u.role) ||
         (u.membershipStatus && u.membershipStatus !== "None" && u.membershipStatus !== "Expired");
       return {
         id: reg._id || u._id || `att-${idx}`,

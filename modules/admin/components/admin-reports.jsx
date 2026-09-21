@@ -19,7 +19,8 @@ import { useStates, useChapters } from "@shared/hooks/use-rifah-api";
 import { ArrowLeft } from "lucide-react";
 
 function EventAnalyticsDetailView({ event, onBack }) {
-  const [activeTab, setActiveTab] = useState("All");
+  const [attendanceFilter, setAttendanceFilter] = useState("All");
+  const [membershipFilter, setMembershipFilter] = useState("All");
 
   const { data: registrations, isLoading } = useQuery({
     queryKey: ["event_registrations_analytics", event?._id || event?.id],
@@ -61,23 +62,61 @@ function EventAnalyticsDetailView({ event, onBack }) {
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             {event?.title}
           </h2>
-          <div className="mt-4 flex flex-wrap gap-6 text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-muted text-foreground">
-                <Users className="h-4 w-4" />
-              </span>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Registered</p>
-                <p className="text-sm font-bold text-foreground">{event?.registeredCount}</p>
+          <div className="mt-4 flex flex-col xl:flex-row xl:items-center gap-6 justify-between">
+            <div className="flex flex-wrap items-center gap-6 text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-muted text-foreground">
+                  <Users className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Registered</p>
+                  <p className="text-sm font-bold text-foreground">{event?.registeredCount}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-muted text-foreground">
+                  <UserCircle className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Attended</p>
+                  <p className="text-sm font-bold text-foreground">{presentCount}</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-muted text-foreground">
-                <UserCircle className="h-4 w-4" />
-              </span>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Attended</p>
-                <p className="text-sm font-bold text-foreground">{presentCount}</p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground border border-border">
+                {["All", "Registered", "Attendee"].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      setAttendanceFilter(tab);
+                      if (tab === "All") setMembershipFilter("All");
+                    }}
+                    className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium ring-offset-background transition-all ${
+                      attendanceFilter === tab
+                        ? "bg-background text-foreground shadow-sm"
+                        : "hover:text-foreground/80"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+              <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground border border-border">
+                {["All", "Member", "Non-Member"].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setMembershipFilter(tab)}
+                    className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium ring-offset-background transition-all ${
+                      membershipFilter === tab
+                        ? "bg-background text-foreground shadow-sm"
+                        : "hover:text-foreground/80"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -86,22 +125,6 @@ function EventAnalyticsDetailView({ event, onBack }) {
         <div className="p-6 md:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h3 className="text-lg font-bold tracking-tight">Attendee Details</h3>
-            
-            <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground border border-border">
-              {["All", "Registered", "Attendee", "Member", "Non-Member"].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium ring-offset-background transition-all ${
-                    activeTab === tab
-                      ? "bg-background text-foreground shadow-sm"
-                      : "hover:text-foreground/80"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
           </div>
           
           {isLoading ? (
@@ -117,21 +140,21 @@ function EventAnalyticsDetailView({ event, onBack }) {
           ) : (
             (() => {
               const filteredRegistrations = (registrations || []).filter(r => {
-                if (activeTab === "All" || activeTab === "Registered") return true;
-                if (activeTab === "Attendee") return r.attendanceStatus === "Present";
+                if (attendanceFilter === "Attendee" && r.attendanceStatus !== "Present") return false;
                 
-                const isMem = r.user?.role === "business_owner" || 
+                const isMem = ["central_admin", "state_admin", "chapter_admin", "business_owner"].includes(r.user?.role) || 
                              (r.user?.membershipStatus && r.user?.membershipStatus !== "None" && r.user?.membershipStatus !== "Expired");
                              
-                if (activeTab === "Member") return isMem;
-                if (activeTab === "Non-Member") return !isMem;
+                if (membershipFilter === "Member" && !isMem) return false;
+                if (membershipFilter === "Non-Member" && isMem) return false;
+                
                 return true;
               });
 
               if (filteredRegistrations.length === 0) {
                 return (
                   <div className="text-center py-12 border border-dashed rounded-2xl bg-muted/10">
-                    <p className="text-sm font-medium text-muted-foreground">No attendees found in '{activeTab}' category.</p>
+                    <p className="text-sm font-medium text-muted-foreground">No attendees found matching the selected filters.</p>
                   </div>
                 );
               }
@@ -142,7 +165,7 @@ function EventAnalyticsDetailView({ event, onBack }) {
                     rows={filteredRegistrations}
                     empty={
                       <div className="text-center py-12 border border-dashed rounded-2xl bg-muted/10">
-                        <p className="text-sm font-medium text-muted-foreground">No attendees found in '{activeTab}' category.</p>
+                        <p className="text-sm font-medium text-muted-foreground">No attendees found matching the selected filters.</p>
                       </div>
                     }
                     columns={[
@@ -185,7 +208,7 @@ function EventAnalyticsDetailView({ event, onBack }) {
                         key: "membership",
                         header: "Membership",
                         cell: (r) => {
-                          const isMem = r.user?.role === "business_owner" || 
+                          const isMem = ["central_admin", "state_admin", "chapter_admin", "business_owner"].includes(r.user?.role) || 
                                        (r.user?.membershipStatus && r.user?.membershipStatus !== "None" && r.user?.membershipStatus !== "Expired");
                           return (
                             <span className={isMem ? "text-primary font-semibold text-sm" : "text-muted-foreground text-sm"}>
