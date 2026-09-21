@@ -47,6 +47,7 @@ import {
 import { enquiryApi } from "@shared/lib/api-services";
 import { eventImage, resolveMediaUrl } from "@shared/lib/media";
 import { cn } from "@shared/lib/utils";
+import { getEventStatus, getEventStatusConfig } from "@shared/lib/event-utils";
 import {
   useBusinesses,
   useCatalogue,
@@ -436,7 +437,17 @@ function HomePage() {
                         }}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
-                      <div className="absolute left-3 top-3">
+                      <div className="absolute left-3 top-3 flex items-center gap-1.5 flex-wrap">
+                        {(() => {
+                          const status = getEventStatus(e);
+                          const cfg = getEventStatusConfig(status);
+                          return (
+                            <Pill tone={cfg.tone} className={cfg.className}>
+                              {cfg.dot && <span className="w-1.5 h-1.5 rounded-full bg-white inline-block mr-1" />}
+                              {cfg.label}
+                            </Pill>
+                          );
+                        })()}
                         <Pill tone="navy" className="bg-navy text-white text-[10px] font-semibold">
                           {e.mode}
                         </Pill>

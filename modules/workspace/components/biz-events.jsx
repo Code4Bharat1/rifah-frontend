@@ -25,6 +25,7 @@ import { resolveMediaUrl } from "@shared/lib/api-client";
 import { eventImage } from "@shared/lib/media";
 import { EventShareModal } from "@shared/components/rifah/event-share-modal";
 import { cn } from "@shared/lib/utils";
+import { getEventStatus, getEventStatusConfig } from "@shared/lib/event-utils";
 
 export function BizEvents() {
   const { user } = useAuth();
@@ -340,7 +341,17 @@ export function BizEvents() {
                         }}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
-                      <div className="absolute left-3 top-3 flex items-center gap-1.5">
+                      <div className="absolute left-3 top-3 flex items-center gap-1.5 flex-wrap">
+                        {(() => {
+                          const status = getEventStatus(ev);
+                          const cfg = getEventStatusConfig(status);
+                          return (
+                            <Pill tone={cfg.tone} className={cn("text-[10px] font-bold shadow-xs", cfg.className)}>
+                              {cfg.dot && <span className="w-1.5 h-1.5 rounded-full bg-white inline-block mr-1" />}
+                              {cfg.label}
+                            </Pill>
+                          );
+                        })()}
                         <Pill tone="navy" className="bg-navy text-white text-[10px] font-semibold">
                           {ev.mode || "In-person"}
                         </Pill>

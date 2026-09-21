@@ -23,6 +23,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from "rechar
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
+import { getEventStatus, getEventStatusConfig } from "@shared/lib/event-utils";
 import { MoreLink, Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
@@ -446,9 +447,16 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                               {evt.chapter || evt.city || stateName} · {evt.startDate ? new Date(evt.startDate).toLocaleDateString() : "Upcoming"}
                             </p>
                           </div>
-                          <Pill tone={evt.status === "published" || evt.status === "Active" ? "success" : "default"}>
-                            {evt.status || "Upcoming"}
-                          </Pill>
+                          {(() => {
+                            const st = getEventStatus(evt);
+                            const cfg = getEventStatusConfig(st);
+                            return (
+                              <Pill tone={cfg.tone} className={cfg.className}>
+                                {cfg.dot && <span className="w-1.5 h-1.5 rounded-full bg-white inline-block mr-1" />}
+                                {cfg.label}
+                              </Pill>
+                            );
+                          })()}
                         </li>
                       ))}
                     </ul>
