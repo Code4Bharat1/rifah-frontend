@@ -9,6 +9,7 @@ import { reportApi, eventApi } from "@shared/lib/api-services";
 import { toast } from "sonner";
 import { FileDown, Receipt, Users, Megaphone, Eye, Loader2, UserCircle, MapPin, Calendar, Clock, Building2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@shared/providers/auth-provider";
 import { Pill } from "@shared/components/rifah/badges";
@@ -18,6 +19,8 @@ import { useStates, useChapters } from "@shared/hooks/use-rifah-api";
 import { ArrowLeft } from "lucide-react";
 
 function EventAnalyticsDetailView({ event, onBack }) {
+  const [activeTab, setActiveTab] = useState("All");
+
   const { data: registrations, isLoading } = useQuery({
     queryKey: ["event_registrations_analytics", event?._id || event?.id],
     queryFn: async () => {
@@ -81,7 +84,25 @@ function EventAnalyticsDetailView({ event, onBack }) {
         </div>
 
         <div className="p-6 md:p-8">
-          <h3 className="text-lg font-bold tracking-tight mb-6">Attendee Details</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h3 className="text-lg font-bold tracking-tight">Attendee Details</h3>
+            
+            <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground border border-border">
+              {["All", "Registered", "Attendee", "Member", "Non-Member"].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium ring-offset-background transition-all ${
+                    activeTab === tab
+                      ? "bg-background text-foreground shadow-sm"
+                      : "hover:text-foreground/80"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
           
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -94,34 +115,102 @@ function EventAnalyticsDetailView({ event, onBack }) {
               <p className="text-base font-medium text-muted-foreground">No registrations found for this event.</p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {registrations.map((r, i) => (
-                <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-border bg-card shadow-sm hover:border-primary/30 hover:shadow-md transition-all group">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="h-12 w-12 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary text-lg font-bold shadow-sm group-hover:scale-105 transition-transform">
-                      {r.user?.name?.charAt(0)?.toUpperCase() || "U"}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-foreground truncate">{r.user?.name || "Unknown User"}</p>
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 mt-0.5 truncate">
-                        <span className="capitalize">{r.user?.role?.replace("_", " ")}</span>
-                        {r.user?.chapter && (
-                          <>
-                            <span className="h-1 w-1 shrink-0 rounded-full bg-border" />
-                            <span className="truncate">{r.user.chapter}</span>
-                          </>
-                        )}
-                      </p>
-                    </div>
+            (() => {
+              const filteredRegistrations = (registrations || []).filter(r => {
+                if (activeTab === "All" || activeTab === "Registered") return true;
+                if (activeTab === "Attendee") return r.attendanceStatus === "Present";
+                
+                const isMem = r.user?.role === "business_owner" || 
+                             (r.user?.membershipStatus && r.user?.membershipStatus !== "None" && r.user?.membershipStatus !== "Expired");
+                             
+                if (activeTab === "Member") return isMem;
+                if (activeTab === "Non-Member") return !isMem;
+                return true;
+              });
+
+              if (filteredRegistrations.length === 0) {
+                return (
+                  <div className="text-center py-12 border border-dashed rounded-2xl bg-muted/10">
+                    <p className="text-sm font-medium text-muted-foreground">No attendees found in '{activeTab}' category.</p>
                   </div>
-                  <div className="text-right shrink-0 ml-2">
-                    <Pill tone={r.attendanceStatus === "Present" ? "success" : "neutral"} className="text-[10px] uppercase tracking-wider font-bold">
-                      {r.attendanceStatus || "Pending"}
-                    </Pill>
-                  </div>
+                );
+              }
+
+              return (
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <ResponsiveTable
+                    rows={filteredRegistrations}
+                    empty={
+                      <div className="text-center py-12 border border-dashed rounded-2xl bg-muted/10">
+                        <p className="text-sm font-medium text-muted-foreground">No attendees found in '{activeTab}' category.</p>
+                      </div>
+                    }
+                    columns={[
+                      {
+                        key: "name",
+                        header: "Name",
+                        cell: (r) => (
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                              {r.user?.name?.charAt(0)?.toUpperCase() || "U"}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm">{r.user?.name || "Unknown User"}</p>
+                              <p className="text-xs text-muted-foreground capitalize">{r.user?.role?.replace("_", " ")}</p>
+                            </div>
+                          </div>
+                        )
+                      },
+                      {
+                        key: "contact",
+                        header: "Contact Details",
+                        cell: (r) => (
+                          <div className="text-sm text-muted-foreground">
+                            <p className="truncate max-w-[180px]" title={r.user?.email}>{r.user?.email || "N/A"}</p>
+                            <p className="text-xs">{r.user?.phone || r.user?.whatsapp || r.user?.mobile || "N/A"}</p>
+                          </div>
+                        )
+                      },
+                      {
+                        key: "company",
+                        header: "Company & City",
+                        cell: (r) => (
+                          <div className="text-sm text-muted-foreground">
+                            <p className="font-medium">{r.user?.businessName || r.user?.company || r.user?.organization || "N/A"}</p>
+                            <p className="text-xs">{r.user?.city || r.user?.chapter || "N/A"}</p>
+                          </div>
+                        )
+                      },
+                      {
+                        key: "membership",
+                        header: "Membership",
+                        cell: (r) => {
+                          const isMem = r.user?.role === "business_owner" || 
+                                       (r.user?.membershipStatus && r.user?.membershipStatus !== "None" && r.user?.membershipStatus !== "Expired");
+                          return (
+                            <span className={isMem ? "text-primary font-semibold text-sm" : "text-muted-foreground text-sm"}>
+                              {isMem ? "Active Member" : "Non-Member"}
+                            </span>
+                          );
+                        }
+                      },
+                      {
+                        key: "gate",
+                        header: "Gate Status",
+                        className: "text-right",
+                        cell: (r) => (
+                          <div className="flex justify-end">
+                            <Pill tone={r.attendanceStatus === "Present" ? "success" : "neutral"} className="text-[10px] uppercase font-bold">
+                              {r.attendanceStatus === "Present" ? "Checked In" : "Pending"}
+                            </Pill>
+                          </div>
+                        )
+                      }
+                    ]}
+                  />
                 </div>
-              ))}
-            </div>
+              );
+            })()
           )}
         </div>
       </div>

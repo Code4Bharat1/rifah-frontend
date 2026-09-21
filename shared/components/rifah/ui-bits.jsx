@@ -176,13 +176,13 @@ export function TrendNote({ children }) {
 
 /** Responsive table: real table from md up, stacked cards on mobile. */
 export function ResponsiveTable({
-  rows,
-  columns,
+  rows = [],
+  columns = [],
   mobile,
   empty,
   onRowClick,
 }) {
-  if (rows.length === 0 && empty) return <>{empty}</>;
+  if (!rows || rows.length === 0) return empty ? <>{empty}</> : null;
 
   const renderMobileItem = typeof mobile === "function" ? mobile : (r) => (
     <div 
