@@ -1,7 +1,7 @@
 "use client";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Building2, CalendarDays, ShieldCheck, Users, Wallet, ArrowRight, Activity } from "lucide-react";
+import { Building2, CalendarDays, ShieldCheck, Users, Wallet, ArrowRight, Activity, Plus } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell, YAxis } from "recharts";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -49,9 +49,16 @@ function AdminHome() {
       title="Central administration"
       subtitle="RIFAH Central Admin · all chapters"
       actions={
-        <Button asChild variant="outline" className="rounded-full">
-          <Link href="/admin/reports">View reports</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="rounded-full">
+            <Link href="/admin/reports">View reports</Link>
+          </Button>
+          <Button asChild className="rounded-full gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+            <Link href="/admin/businesses/new">
+              <Plus className="h-4 w-4" /> Add Business
+            </Link>
+          </Button>
+        </div>
       }
     >
       <div className="space-y-6">
@@ -133,7 +140,7 @@ function AdminHome() {
           </div>
           
           <div className="space-y-6">
-            <Panel title="Chapters Distribution" action={<MoreLink href="/admin/states" />}>
+            <Panel title="Chapters Distribution" action={<MoreLink href="/admin/chapters" />}>
               <div className="space-y-5 mt-2">
                 {chaptersDist.length === 0 ? (
                    <p className="text-xs text-muted-foreground">No chapters data available.</p>
@@ -153,7 +160,7 @@ function AdminHome() {
                 )}
               </div>
             </Panel>
-            <Panel title="Membership mix">
+            <Panel title="Membership mix" action={<MoreLink href="/admin/memberships" />}>
                <div className="space-y-3 mt-2">
                   <div className="flex items-center justify-between bg-primary text-primary-foreground p-3 rounded-lg">
                      <div className="flex items-center gap-2">
@@ -187,7 +194,7 @@ function AdminHome() {
               <Panel
                 title="Verification queue"
                 description="Businesses awaiting chapter document verification"
-                action={<MoreLink href="/chapter-admin/verification" />}
+                action={<MoreLink href="/admin/verification" />}
               >
                 {queue.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted-foreground">
@@ -212,7 +219,7 @@ function AdminHome() {
                               {item.documents?.length || 0} document{(item.documents?.length || 0) === 1 ? "" : "s"} submitted
                             </span>
                             <Button asChild size="sm" variant="outline" className="h-8 gap-1 text-xs font-semibold text-primary hover:bg-primary/10">
-                              <Link href="/chapter-admin/verification">
+                              <Link href="/admin/verification">
                                 Inspect & Review <ArrowRight className="h-3 w-3" />
                               </Link>
                             </Button>
@@ -251,7 +258,7 @@ function AdminHome() {
           <div className="space-y-4">
             {isCentralAdmin && (
               <>
-                <Panel title="Chapters & Units" action={<MoreLink href="/admin/states" />}>
+                <Panel title="Chapters & Units" action={<MoreLink href="/admin/chapters" />}>
                   <ul className="space-y-3">
                     {chapters.slice(0, 5).map((c, idx) => (
                       <li key={c._id || c.id || c.name || idx} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">

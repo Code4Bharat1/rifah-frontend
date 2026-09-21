@@ -63,6 +63,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 import { useNotifications, useConversations, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { VerificationBadge } from "@shared/components/rifah/badges";
 import { BirthdayBanner } from "@shared/components/rifah/birthday-banner";
+import { RifahCopilotWidget } from "@shared/components/rifah/rifah-copilot-widget";
 
 let globalSidebarScrollTop = typeof window !== "undefined"
   ? Number(sessionStorage.getItem("rifah_sidebar_scroll_top") || 0)
@@ -922,6 +923,9 @@ export function AppShell({
           </div>
         </main>
       </div>
+
+      {/* Floating AI Copilot across all panels */}
+      <RifahCopilotWidget role={role} user={user} />
 
       {/* Mobile Bottom Navigation Bar */}
       <BottomNav role={role} isBizVerified={isBizVerified} />
