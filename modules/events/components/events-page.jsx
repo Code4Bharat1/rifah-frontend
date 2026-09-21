@@ -15,8 +15,12 @@ import { cn } from "@shared/lib/utils";
 
 function EventsPage() {
   const [tab, setTab] = useState("Upcoming");
+  const [creatorRole, setCreatorRole] = useState("all");
   const [sharingEvent, setSharingEvent] = useState(null);
-  const { data: eventsData, isLoading } = useEvents({ status: tab });
+  const { data: eventsData, isLoading } = useEvents({ 
+    status: tab, 
+    creatorRole: creatorRole === "all" ? undefined : creatorRole 
+  });
   const list = Array.isArray(eventsData)
     ? eventsData
     : (eventsData?.events || eventsData?.data || []);
@@ -29,12 +33,36 @@ function EventsPage() {
           description="Structured networking, capability showcases and advisory clinics run by RIFAH chapters and units."
         />
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v)} className="mt-5">
-          <TabsList>
-            <TabsTrigger value="Upcoming">Upcoming</TabsTrigger>
-            <TabsTrigger value="Past">Past</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-5">
+          <Tabs value={tab} onValueChange={(v) => setTab(v)}>
+            <TabsList>
+              <TabsTrigger value="Upcoming">Upcoming</TabsTrigger>
+              <TabsTrigger value="Past">Past</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { id: "all", label: "All Events" },
+              { id: "central_admin", label: "Central" },
+              { id: "state_admin", label: "State" },
+              { id: "chapter_admin", label: "Chapter" },
+            ].map((role) => (
+              <button
+                key={role.id}
+                onClick={() => setCreatorRole(role.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
+                  creatorRole === role.id 
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                    : "bg-surface text-muted-foreground border-border hover:bg-muted"
+                )}
+              >
+                {role.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {isLoading ? (
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
