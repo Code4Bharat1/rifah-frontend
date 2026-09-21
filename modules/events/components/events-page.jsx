@@ -86,8 +86,8 @@ function EventsPage() {
           </div>
         ) : (
           <ul className="mt-4 grid gap-3 lg:grid-cols-2">
-            {list.map((ev) => (
-              <li key={ev._id || ev.slug}>
+            {list.map((ev, evIdx) => (
+              <li key={ev._id || ev.slug || `ev-${evIdx}`}>
                 <Link
                   href={`/events/${ev.slug || ev._id}`}
                   className="flex h-full flex-col rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/40 sm:p-5"

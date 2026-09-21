@@ -113,7 +113,7 @@ function resolveCustomerName(r) {
     }
   }
 
-  return "Raj Sharma";
+  return "Customer";
 }
 
 function formatEnquiryCode(item, index = 0) {
