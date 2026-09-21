@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Plus, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, CalendarPlus, History, Ticket, CalendarCheck } from "lucide-react";
+import { CalendarDays, Plus, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, CalendarPlus, History, Ticket, CalendarCheck, Radio } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
+import { getEventStatus, getEventStatusConfig, parseEventTiming } from "@shared/lib/event-utils";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
@@ -90,21 +91,33 @@ function CalendarView({ events, onEventClick }) {
                 {date.getDate()}
               </span>
               <div className="mt-2 space-y-1.5 max-h-[80px] overflow-y-auto">
-                {dayEvents.map(e => (
-                  <div 
-                    key={e._id} 
-                    onClick={() => onEventClick(e)}
-                    className="text-xs truncate px-2 py-1 rounded bg-primary/10 text-primary cursor-pointer hover:bg-primary/20"
-                    title={e.title}
-                  >
-                    {e.status === "Scheduled" && e.scheduledAt ? (
-                      <span className="font-semibold mr-1">{new Date(e.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                    ) : (
-                      <span className="font-semibold mr-1">{e.time && e.time.split(' ')[0]}</span>
-                    )}
-                    {e.title}
-                  </div>
-                ))}
+                {dayEvents.map(e => {
+                  const status = getEventStatus(e);
+                  const isLive = status === "Live";
+                  const isEnded = status === "Ended";
+                  const bgClass = isLive 
+                    ? "bg-emerald-100 text-emerald-800 font-semibold border border-emerald-300"
+                    : isEnded 
+                    ? "bg-slate-100 text-slate-500 opacity-80"
+                    : "bg-primary/10 text-primary hover:bg-primary/20";
+
+                  return (
+                    <div 
+                      key={e._id} 
+                      onClick={() => onEventClick(e)}
+                      className={`text-xs truncate px-2 py-1 rounded cursor-pointer transition-colors ${bgClass}`}
+                      title={`${e.title} · ${status}`}
+                    >
+                      {isLive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block mr-1.5 align-middle" />}
+                      {e.status === "Scheduled" && e.scheduledAt ? (
+                        <span className="font-semibold mr-1">{new Date(e.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      ) : (
+                        <span className="font-semibold mr-1">{e.time && e.time.split(' ')[0]}</span>
+                      )}
+                      {e.title}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -125,23 +138,26 @@ function AdminEvents() {
   const [filterMode, setFilterMode] = useState("all");
   const [viewMode, setViewMode] = useState("table");
 
-  const today = new Date().toISOString().split("T")[0];
-
-  const upcomingEvents = events.filter(e => e.date >= today);
-  const pastEvents = events.filter(e => e.date < today);
-  const todayEvents = events.filter(e => e.date === today);
+  const now = new Date();
+  const liveEvents = events.filter((e) => getEventStatus(e, now) === "Live");
+  const upcomingEvents = events.filter((e) => getEventStatus(e, now) === "Upcoming");
+  const endedEvents = events.filter((e) => getEventStatus(e, now) === "Ended");
+  const todayEvents = events.filter((e) => parseEventTiming(e.date, e.time).isToday);
+  const scheduledEvents = events.filter((e) => getEventStatus(e, now) === "Scheduled");
+  const paidEvents = events.filter((e) => e.isPaid);
 
   const totalCount = events.length;
   const inPersonCount = events.filter((e) => e.mode === "In-person").length;
   const onlineCount = events.filter((e) => e.mode === "Online").length;
   const pendingCount = events.filter((e) => e.status === "Pending Approval").length;
-  const scheduledCount = events.filter((e) => e.status === "Scheduled").length;
 
   let displayEvents = events;
-  if (filterMode === "upcoming") {
+  if (filterMode === "live") {
+    displayEvents = liveEvents;
+  } else if (filterMode === "upcoming") {
     displayEvents = upcomingEvents;
-  } else if (filterMode === "past") {
-    displayEvents = pastEvents;
+  } else if (filterMode === "past" || filterMode === "ended") {
+    displayEvents = endedEvents;
   } else if (filterMode === "today") {
     displayEvents = todayEvents;
   } else if (filterMode === "In-person") {
@@ -151,9 +167,9 @@ function AdminEvents() {
   } else if (filterMode === "Pending") {
     displayEvents = events.filter((e) => e.status === "Pending Approval");
   } else if (filterMode === "Scheduled") {
-    displayEvents = events.filter((e) => e.status === "Scheduled");
+    displayEvents = scheduledEvents;
   } else if (filterMode === "Paid") {
-    displayEvents = events.filter((e) => e.isPaid);
+    displayEvents = paidEvents;
   }
 
   const [deleteId, setDeleteId] = useState(null);
@@ -202,12 +218,12 @@ function AdminEvents() {
             onClick={() => setFilterMode("all")}
           />
           <StatCard
-            label="Today"
-            value={String(todayEvents.length)}
-            icon={Clock}
-            tone="success"
-            active={filterMode === "today"}
-            onClick={() => setFilterMode("today")}
+            label="Live Now"
+            value={String(liveEvents.length)}
+            icon={Radio}
+            tone={liveEvents.length > 0 ? "success" : "default"}
+            active={filterMode === "live"}
+            onClick={() => setFilterMode("live")}
           />
           <StatCard
             label="Upcoming"
@@ -218,33 +234,33 @@ function AdminEvents() {
             onClick={() => setFilterMode("upcoming")}
           />
           <StatCard
-            label="Past Events"
-            value={String(pastEvents.length)}
+            label="Ended"
+            value={String(endedEvents.length)}
             icon={History}
             tone="default"
-            active={filterMode === "past"}
-            onClick={() => setFilterMode("past")}
+            active={filterMode === "ended" || filterMode === "past"}
+            onClick={() => setFilterMode("ended")}
           />
           <StatCard
-            label="Paid Events"
-            value={String(events.filter((e) => e.isPaid).length)}
-            icon={Ticket}
-            tone="warning"
-            active={filterMode === "Paid"}
-            onClick={() => setFilterMode("Paid")}
+            label="Today"
+            value={String(todayEvents.length)}
+            icon={Clock}
+            tone="primary"
+            active={filterMode === "today"}
+            onClick={() => setFilterMode("today")}
           />
           <StatCard
             label="Scheduled"
-            value={String(scheduledCount)}
+            value={String(scheduledEvents.length)}
             icon={CalendarCheck}
-            tone="primary"
+            tone="warning"
             active={filterMode === "Scheduled"}
             onClick={() => setFilterMode("Scheduled")}
           />
         </div>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-semibold tracking-tight">
-            {filterMode === "today" ? "Today's Events" : filterMode === "upcoming" ? "Upcoming Events" : filterMode === "past" ? "Past Events" : filterMode === "Scheduled" ? "Scheduled Events" : filterMode === "Paid" ? "Paid Events" : "All Events"}
+            {filterMode === "live" ? "Live Events Now" : filterMode === "today" ? "Today's Events" : filterMode === "upcoming" ? "Upcoming Events" : (filterMode === "past" || filterMode === "ended") ? "Ended Events" : filterMode === "Scheduled" ? "Scheduled Events" : filterMode === "Paid" ? "Paid Events" : "All Events"}
           </h2>
           <div className="bg-muted p-1 flex items-center gap-1 rounded-lg">
             <button onClick={() => setViewMode("table")} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === "table" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
@@ -268,17 +284,20 @@ function AdminEvents() {
                 key: "title", 
                 header: "Event", 
                 cell: (r) => {
-                  const isToday = r.date === today;
+                  const status = getEventStatus(r);
+                  const cfg = getEventStatusConfig(status);
+                  const timing = parseEventTiming(r.date, r.time);
+
                   return (
                     <div className="flex flex-col gap-1">
-                      <span className="font-semibold">{r.title}</span>
-                      <div className="flex gap-1.5 flex-wrap">
-                        <Pill tone={r.status === "Pending Approval" ? "warning" : r.status === "Draft" ? "neutral" : "success"}>
-                          {r.status || "Upcoming"}
+                      <span className="font-semibold text-foreground">{r.title}</span>
+                      <div className="flex gap-1.5 flex-wrap items-center">
+                        <Pill tone={cfg.tone} className={cfg.className}>
+                          {cfg.dot && <span className="w-2 h-2 rounded-full bg-white inline-block shadow-xs" />}
+                          {cfg.label}
                         </Pill>
                         {r.eventCategory === "Sports" && <Pill tone="warning">Sports</Pill>}
-                        {isToday && <Pill tone="success">Today</Pill>}
-                        {r.date < today && <Pill tone="neutral">Past</Pill>}
+                        {timing.isToday && status !== "Live" && status !== "Ended" && <Pill tone="success">Today</Pill>}
                         {r.isPaid ? <Pill tone="warning">Paid (₹{r.ticketPrice})</Pill> : <Pill tone="neutral">Free</Pill>}
                       </div>
                     </div>
@@ -286,11 +305,14 @@ function AdminEvents() {
                 }
               },
               { key: "date", header: "Date", cell: (r) => {
-                  const isToday = r.date === today;
+                  const status = getEventStatus(r);
+                  const isLive = status === "Live";
+                  const isEnded = status === "Ended";
+
                   if (r.status === "Scheduled" && r.scheduledAt) {
                     const d = new Date(r.scheduledAt);
                     return (
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col gap-0.5 whitespace-nowrap">
                         <span className="text-xs font-medium text-primary">
                           Publishes: {d.toLocaleDateString()} · {d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </span>
@@ -301,7 +323,7 @@ function AdminEvents() {
                     );
                   }
                   return (
-                    <span className={isToday ? "font-bold text-emerald-600" : ""}>
+                    <span className={`whitespace-nowrap ${isLive ? "font-semibold text-emerald-700 dark:text-emerald-400" : isEnded ? "text-muted-foreground" : "font-medium text-foreground"}`}>
                       {new Date(r.date).toLocaleDateString()} · {r.time}
                     </span>
                   );
@@ -377,25 +399,34 @@ function AdminEvents() {
               ),
             },
             ]}
-            mobile={(r) => (
-              <div className="rounded-xl border border-border p-3.5">
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{r.title}</p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {new Date(r.date).toLocaleDateString()} · {r.city} · {r.mode}
-                    </p>
+            mobile={(r) => {
+              const status = getEventStatus(r);
+              const cfg = getEventStatusConfig(status);
+              return (
+                <div className="rounded-xl border border-border p-3.5">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{r.title}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {new Date(r.date).toLocaleDateString()} · {r.time} · {r.city}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <Pill tone={cfg.tone} className={cfg.className}>
+                        {cfg.dot && <span className="w-1.5 h-1.5 rounded-full bg-white inline-block mr-1" />}
+                        {cfg.label}
+                      </Pill>
+                      <Pill tone="neutral">{r.mode}</Pill>
+                    </div>
                   </div>
-                  <Pill tone="success">{r.mode}</Pill>
-                  {r.eventCategory === "Sports" && <Pill tone="warning">Sports</Pill>}
+                  <Button asChild size="sm" variant="outline" className="mt-3">
+                    <Link href={`/events/${r.slug || r._id}`}>
+                      View event
+                    </Link>
+                  </Button>
                 </div>
-                <Button asChild size="sm" variant="outline" className="mt-3">
-                  <Link href={`/events/${r.slug || r._id}`}>
-                    View event
-                  </Link>
-                </Button>
-              </div>
-            )}
+              );
+            }}
           />
         </Panel>
         )}

@@ -19,6 +19,7 @@ import { useEventDetail, useEvents } from "@shared/hooks/use-rifah-api";
 import { eventApi, paymentApi, authApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { EventShareModal } from "@shared/components/rifah/event-share-modal";
+import { getEventStatus, getEventStatusConfig, parseEventTiming } from "@shared/lib/event-utils";
 
 function EventDetail() {
   const params = useParams();
@@ -319,11 +320,20 @@ const loadRazorpayScript = () => {
             </Button>
           </div>
           
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Pill tone={event.mode === "Online" ? "primary" : "neutral"} className="bg-white/10 text-white border-white/20 backdrop-blur-md shadow-sm">{event.mode}</Pill>
-            <Pill className="bg-white/10 text-white border-white/20 backdrop-blur-md shadow-sm">{event.chapter}</Pill>
-            <Pill tone={event.status === "Upcoming" ? "success" : "neutral"} className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 backdrop-blur-md shadow-sm">{event.status}</Pill>
-          </div>
+          {(() => {
+            const computedStatus = getEventStatus(event);
+            const statusConfig = getEventStatusConfig(computedStatus);
+            return (
+              <div className="flex flex-wrap gap-2 mb-4 items-center">
+                <Pill tone={event.mode === "Online" ? "primary" : "neutral"} className="bg-white/10 text-white border-white/20 backdrop-blur-md shadow-sm">{event.mode}</Pill>
+                <Pill className="bg-white/10 text-white border-white/20 backdrop-blur-md shadow-sm">{event.chapter}</Pill>
+                <Pill tone={statusConfig.tone} className={`${statusConfig.className} shadow-sm backdrop-blur-md`}>
+                  {statusConfig.dot && <span className="w-1.5 h-1.5 rounded-full bg-white inline-block mr-1" />}
+                  {statusConfig.label}
+                </Pill>
+              </div>
+            );
+          })()}
           
           <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl max-w-4xl leading-[1.15]">
             {event.title}
@@ -466,6 +476,16 @@ const loadRazorpayScript = () => {
                       <span>Invite Colleagues & Partners</span>
                     </Button>
                   </div>
+                </div>
+              ) : getEventStatus(event) === "Ended" ? (
+                <div className="rounded-xl border border-border bg-muted/40 p-5 text-center">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <Clock className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-base font-bold text-foreground">Event Ended</p>
+                  <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+                    This event has concluded. Registrations and attendance submissions are closed.
+                  </p>
                 </div>
               ) : isEligibleToRegister ? (
                 <div className="space-y-5">

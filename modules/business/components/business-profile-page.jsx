@@ -25,6 +25,9 @@ import {
   Image as ImageIcon,
   Loader2,
   AlertCircle,
+  Tag,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -187,14 +190,25 @@ function BusinessProfile() {
   const [enquirySuccess, setEnquirySuccess] = useState(false);
   const [enquiryError, setEnquiryError] = useState("");
   const [enquiryForm, setEnquiryForm] = useState({
-    guestName: "",
-    guestEmail: "",
-    guestPhone: "",
+    guestName: user?.name || "",
+    guestEmail: user?.email || "",
+    guestPhone: user?.phone || "",
     title: "",
     description: "",
     quantity: "",
     location: "",
   });
+
+  useEffect(() => {
+    if (user) {
+      setEnquiryForm((prev) => ({
+        ...prev,
+        guestName: prev.guestName || user.name || "",
+        guestEmail: prev.guestEmail || user.email || "",
+        guestPhone: prev.guestPhone || user.phone || "",
+      }));
+    }
+  }, [user]);
 
   const handleEnquirySubmit = async (e) => {
     e.preventDefault();
@@ -215,7 +229,15 @@ function BusinessProfile() {
         guestPhone: enquiryForm.guestPhone,
       });
       setEnquirySuccess(true);
-      setEnquiryForm({ guestName: "", guestEmail: "", guestPhone: "", title: "", description: "", quantity: "", location: "" });
+      setEnquiryForm({
+        guestName: user?.name || "",
+        guestEmail: user?.email || "",
+        guestPhone: user?.phone || "",
+        title: "",
+        description: "",
+        quantity: "",
+        location: "",
+      });
     } catch (err) {
       setEnquiryError(err.message || "Failed to submit enquiry. Please try again.");
     } finally {
@@ -682,8 +704,8 @@ function BusinessProfile() {
                 <Panel title="About the business">
                   <p className="text-sm leading-relaxed text-muted-foreground">{business.about}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {business.categories?.map((c) => (
-                      <Pill key={c} tone="primary">
+                    {business.categories?.map((c, idx) => (
+                      <Pill key={`${c}-${idx}`} tone="primary">
                         {c}
                       </Pill>
                     ))}
@@ -692,8 +714,8 @@ function BusinessProfile() {
                 {business.certifications?.length > 0 && (
                   <Panel title="Certifications">
                     <ul className="grid gap-2 sm:grid-cols-2">
-                      {business.certifications.map((c) => (
-                        <li key={c} className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm">
+                      {business.certifications.map((c, idx) => (
+                        <li key={`${c}-${idx}`} className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm">
                           <Award className="h-4 w-4 shrink-0 text-primary" /> {c}
                         </li>
                       ))}
@@ -711,9 +733,9 @@ function BusinessProfile() {
                     </div>
                   ) : (
                     <ul className="grid gap-4 sm:grid-cols-2">
-                      {catalogue.map((item) => (
+                      {catalogue.map((item, idx) => (
                         <li
-                          key={item._id || item.slug}
+                          key={item._id || item.slug || `item-${idx}`}
                           onClick={() => handleOpenCatalogueItem(item)}
                           role="button"
                           tabIndex={0}
@@ -974,8 +996,8 @@ function BusinessProfile() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {reviews.map((r) => (
-                      <article key={r._id || r.id} className="rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-xs transition-colors hover:border-primary/20">
+                    {reviews.map((r, idx) => (
+                      <article key={r._id || r.id || `rev-${idx}`} className="rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-xs transition-colors hover:border-primary/20">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary font-bold text-sm uppercase shadow-xs">
@@ -1199,8 +1221,8 @@ function BusinessProfile() {
 
           {related.length > 0 ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {related.map((b) => (
-                <BusinessCard key={b._id || b.slug || b.id} business={b} />
+              {related.map((b, bIdx) => (
+                <BusinessCard key={b._id || b.slug || b.id || `rel-${bIdx}`} business={b} />
               ))}
             </div>
           ) : (
@@ -1542,6 +1564,10 @@ function BusinessProfile() {
         }}
       >
         <DialogContent className="w-[94vw] sm:max-w-lg md:max-w-xl max-h-[88vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden p-0 gap-0 rounded-2xl sm:rounded-3xl border border-border shadow-2xl bg-card">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{selectedCatalogueItem?.name || "Product Offering"}</DialogTitle>
+            <DialogDescription>Details and specifications for {selectedCatalogueItem?.name || "this item"}</DialogDescription>
+          </DialogHeader>
           {selectedCatalogueItem && (
             <div className="flex flex-col">
               {/* Media Stage (Top of Vertical Stack) */}

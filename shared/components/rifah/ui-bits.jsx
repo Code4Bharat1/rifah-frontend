@@ -152,15 +152,23 @@ export function Panel({
   );
 }
 
-export function MoreLink({ to, href, children = "View all" }) {
+export function MoreLink({ to, href, children, label, className, onClick }) {
   const destination = href ?? to ?? "#";
+  let content = children ?? label ?? "View all";
+  if (typeof content === "string") {
+    content = content.replace(/[→\->]/g, "").trim();
+  }
   return (
     <Link
       href={destination}
-      className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline"
+      onClick={onClick}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:text-primary/80 hover:underline cursor-pointer transition-colors select-none",
+        className
+      )}
     >
-      {children}
-      <ArrowRight className="h-4 w-4" />
+      <span>{content || "View all"}</span>
+      <ArrowRight className="h-4 w-4 shrink-0" />
     </Link>
   );
 }

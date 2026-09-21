@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe, FileText, X, Copy, Camera, Image as ImageIcon } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Upload, Loader2, AlertCircle, RotateCcw, Shield, Mail, Sparkles, Building2, Zap, Check, Globe, FileText, X, Copy, Camera, Image as ImageIcon, Pencil } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import React from "react";
 
@@ -397,6 +397,23 @@ function RegisterBusiness({ isAdmin = false }) {
     if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
       otpInputRefs.current[index - 1]?.focus();
     }
+  };
+
+  const handleEditEmail = () => {
+    setEmailVerified(false);
+    setOtpSent(false);
+    setVerifiedToken(null);
+    setOtpDigits(["", "", "", "", "", ""]);
+    setOtpError("");
+    setOtpSuccess("");
+    setError("");
+    setTimeout(() => {
+      const el = document.getElementById("reg-email");
+      if (el) {
+        el.focus();
+        el.select();
+      }
+    }, 50);
   };
 
   const handleSendOtp = async () => {
@@ -1931,22 +1948,6 @@ function RegisterBusiness({ isAdmin = false }) {
                             <span>Same as official business email</span>
                           </button>
                         )}
-                        {emailVerified && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEmailVerified(false);
-                              setOtpSent(false);
-                              setVerifiedToken(null);
-                              setOtpDigits(["", "", "", "", "", ""]);
-                              setOtpError("");
-                              setOtpSuccess("");
-                            }}
-                            className="text-xs font-semibold text-[#0060df] hover:underline"
-                          >
-                            Change Email
-                          </button>
-                        )}
                       </div>
                     </div>
                     <div className="relative">
@@ -1963,18 +1964,41 @@ function RegisterBusiness({ isAdmin = false }) {
                         className={cn(
                           "h-11",
                           (!isAdmin && emailVerified)
-                            ? "bg-emerald-50/50 border-emerald-200 text-emerald-900 pr-24 focus-visible:ring-emerald-500"
+                            ? "bg-emerald-50/50 border-emerald-200 text-emerald-900 pr-36 focus-visible:ring-emerald-500"
                             : (!isAdmin && otpSent) || (isAdmin && convertEmail)
-                              ? "bg-slate-50 text-slate-500 pr-24"
+                              ? "bg-slate-50 text-slate-600 pr-24"
                               : ""
                         )}
                         disabled={(!isAdmin && (emailVerified || otpSent)) || (isAdmin && !!convertEmail)}
                       />
                       {(!isAdmin && emailVerified) ? (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                          <span>Verified</span>
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>Verified</span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleEditEmail}
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            <span>Edit</span>
+                          </Button>
                         </div>
+                      ) : (!isAdmin && otpSent && !emailVerified) ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleEditEmail}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 px-3 text-xs text-[#0060df] hover:text-[#0051bd] border-slate-200 hover:bg-slate-100 bg-white rounded-lg font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          <span>Edit</span>
+                        </Button>
                       ) : (
                         !isAdmin && !otpSent && (
                           <Button

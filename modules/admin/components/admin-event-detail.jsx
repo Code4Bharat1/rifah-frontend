@@ -15,6 +15,7 @@ import { resolveMediaUrl } from "@shared/lib/api-client";
 import { eventImage } from "@shared/lib/media";
 import { useAuth } from "@shared/providers/auth-provider";
 import { EventRegistrationsModal } from "./event-registrations-modal";
+import { getEventStatus } from "@shared/lib/event-utils";
 
 export function AdminEventDetail() {
   const params = useParams();
@@ -117,7 +118,11 @@ export function AdminEventDetail() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Status" value={event.status || "Draft"} tone={event.status === "Upcoming" ? "success" : "warning"} />
+          <StatCard 
+            label="Status" 
+            value={getEventStatus(event)} 
+            tone={getEventStatus(event) === "Live" ? "success" : getEventStatus(event) === "Upcoming" ? "info" : getEventStatus(event) === "Ended" ? "default" : "warning"} 
+          />
           <StatCard label="Registered" value={String(event.registeredCount || 0)} icon={Users} tone="primary" />
           <StatCard label="Seats Remaining" value={String(seatsRemaining)} />
           <StatCard label="Mode" value={event.mode || "In-person"} />

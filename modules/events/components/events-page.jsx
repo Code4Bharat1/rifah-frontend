@@ -12,18 +12,26 @@ import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { useEvents } from "@shared/hooks/use-rifah-api";
 import { EventShareModal } from "@shared/components/rifah/event-share-modal";
 import { cn } from "@shared/lib/utils";
+import { getEventStatus, getEventStatusConfig } from "@shared/lib/event-utils";
 
 function EventsPage() {
-  const [tab, setTab] = useState("Upcoming");
+  const [tab, setTab] = useState("All");
   const [creatorRole, setCreatorRole] = useState("all");
   const [sharingEvent, setSharingEvent] = useState(null);
   const { data: eventsData, isLoading } = useEvents({ 
-    status: tab, 
     creatorRole: creatorRole === "all" ? undefined : creatorRole 
   });
-  const list = Array.isArray(eventsData)
+  const rawList = Array.isArray(eventsData)
     ? eventsData
     : (eventsData?.events || eventsData?.data || []);
+
+  const list = rawList.filter((ev) => {
+    const status = getEventStatus(ev);
+    if (tab === "Upcoming") return status === "Upcoming";
+    if (tab === "Live") return status === "Live";
+    if (tab === "Past" || tab === "Ended") return status === "Ended";
+    return true;
+  });
 
   return (
     <PublicLayout>
@@ -36,8 +44,10 @@ function EventsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-5">
           <Tabs value={tab} onValueChange={(v) => setTab(v)}>
             <TabsList>
+              <TabsTrigger value="All">All</TabsTrigger>
               <TabsTrigger value="Upcoming">Upcoming</TabsTrigger>
-              <TabsTrigger value="Past">Past</TabsTrigger>
+              <TabsTrigger value="Live">Live</TabsTrigger>
+              <TabsTrigger value="Ended">Ended</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -76,8 +86,8 @@ function EventsPage() {
           </div>
         ) : (
           <ul className="mt-4 grid gap-3 lg:grid-cols-2">
-            {list.map((ev) => (
-              <li key={ev._id || ev.slug}>
+            {list.map((ev, evIdx) => (
+              <li key={ev._id || ev.slug || `ev-${evIdx}`}>
                 <Link
                   href={`/events/${ev.slug || ev._id}`}
                   className="flex h-full flex-col rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/40 sm:p-5"
@@ -137,8 +147,18 @@ function EventsPage() {
                   </dl>
                   <div className="mt-3 flex flex-1 flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40">
                     <div className="flex flex-wrap items-center gap-1.5">
+                      {(() => {
+                        const status = getEventStatus(ev);
+                        const cfg = getEventStatusConfig(status);
+                        return (
+                          <Pill tone={cfg.tone} className={cfg.className}>
+                            {cfg.dot && <span className="w-1.5 h-1.5 rounded-full bg-white inline-block mr-1" />}
+                            {cfg.label}
+                          </Pill>
+                        );
+                      })()}
                       <Pill tone={ev.mode === "Online" ? "primary" : "neutral"}>{ev.mode}</Pill>
-                      <Pill>{ev.chapter}</Pill>
+                      {ev.chapter && <Pill>{ev.chapter}</Pill>}
                       {ev.isPaid ? <Pill tone="warning">Paid (₹{ev.ticketPrice})</Pill> : <Pill tone="success">Free</Pill>}
                     </div>
                     <Button

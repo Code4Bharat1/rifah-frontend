@@ -497,3 +497,12 @@ export const galleryApi = {
   },
   removeMedia: (mediaId) => apiClient(`/gallery/media/${mediaId}`, { method: "DELETE" }),
 };
+
+export const copilotApi = {
+  chat: (message, conversationHistory = [], role = null) =>
+    apiClient("/copilot/chat", {
+      method: "POST",
+      body: JSON.stringify({ message, conversationHistory, role }),
+    }),
+  getSuggestions: () => apiClient("/copilot/suggestions"),
+};

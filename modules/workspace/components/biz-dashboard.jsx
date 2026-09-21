@@ -864,7 +864,7 @@ function BusinessHome() {
             </Panel>
 
             {/* Box 4: Reviews */}
-            <Panel title="Reviews" action={<MoreLink href={bizSlugOrId ? `/business/${bizSlugOrId}` : "/biz/profile"} label="View all →" />}>
+            <Panel title="Reviews" action={<MoreLink href="/biz/reviews" label="View all" />}>
               {reviews.length === 0 ? (
                 <div className="py-5 px-3 text-center">
                   <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-400">

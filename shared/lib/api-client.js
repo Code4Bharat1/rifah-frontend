@@ -128,16 +128,21 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
       headers,
     });
   } catch (netErr) {
-    // If it's a transient connection failure (e.g. dev server reloading), retry once after a short delay
+    // If it's a transient connection failure (e.g. dev server reloading), retry after a short delay
     if (!isRetry) {
-      await new Promise((r) => setTimeout(r, 800));
+      await new Promise((r) => setTimeout(r, 1200));
       try {
         return await apiClient(endpoint, options, true);
       } catch (retryErr) {
-        // Continue to logging if second attempt fails
+        // Second attempt with 1500ms delay for full DB reconnection
+        await new Promise((r) => setTimeout(r, 1500));
+        try {
+          return await apiClient(endpoint, options, true);
+        } catch (finalRetryErr) {
+          // Fall through to logging
+        }
       }
     }
-    // Use warn (not error) — polling hooks cause transient failures that are handled gracefully
     console.warn(`[API] Network unreachable for ${endpoint}. Backend may be starting up.`);
     throw new Error(`Unable to connect to the backend server. Please check if the server is running.`);
   }

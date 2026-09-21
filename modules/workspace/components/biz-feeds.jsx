@@ -32,6 +32,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@shared/components/ui/dialog";
 import { Textarea } from "@shared/components/ui/textarea";
@@ -1338,6 +1339,7 @@ export function BizFeeds() {
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
               <PlusCircle className="h-5 w-5 text-sky-500" /> Create New Post
             </DialogTitle>
+            <DialogDescription className="sr-only">Create and share an update with your network</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreatePost} className="space-y-4 py-2">

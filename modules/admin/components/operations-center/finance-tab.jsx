@@ -8,9 +8,83 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@shared/components/ui/label";
 import { toast } from "sonner";
 import { eventApi } from "@shared/lib/api-services";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { cn } from "@shared/lib/utils";
+
+// Native PDF table renderer for jsPDF without requiring jspdf-autotable dependency
+function autoTable(doc, options) {
+  const {
+    startY = 70,
+    head = [],
+    body = [],
+    foot = [],
+    headStyles = {},
+    footStyles = {},
+    margin = { left: 20, right: 20 },
+  } = options;
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const tableWidth = pageWidth - margin.left - margin.right;
+  const colCount = Math.max(
+    head[0]?.length || 0,
+    body[0]?.length || 0,
+    foot[0]?.length || 0,
+    1
+  );
+  const colWidth = tableWidth / colCount;
+  const rowHeight = 7.5;
+  let currentY = startY;
+
+  const drawRow = (row, isHeader = false, isFooter = false) => {
+    if (currentY + rowHeight > doc.internal.pageSize.getHeight() - 15) {
+      doc.addPage();
+      currentY = 20;
+    }
+
+    if (isHeader) {
+      const fill = headStyles.fillColor || [40, 167, 69];
+      doc.setFillColor(fill[0], fill[1], fill[2]);
+      doc.rect(margin.left, currentY, tableWidth, rowHeight, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+    } else if (isFooter) {
+      const fill = footStyles.fillColor || [240, 240, 240];
+      doc.setFillColor(fill[0], fill[1], fill[2]);
+      doc.rect(margin.left, currentY, tableWidth, rowHeight, "F");
+      const textCol = footStyles.textColor || [0, 0, 0];
+      doc.setTextColor(textCol[0], textCol[1], textCol[2]);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+    } else {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(margin.left, currentY, tableWidth, rowHeight, "F");
+      doc.setTextColor(50, 50, 50);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+    }
+
+    doc.setDrawColor(220, 220, 220);
+    doc.rect(margin.left, currentY, tableWidth, rowHeight, "S");
+
+    row.forEach((cellText, idx) => {
+      const cellX = margin.left + idx * colWidth;
+      if (idx > 0) {
+        doc.line(cellX, currentY, cellX, currentY + rowHeight);
+      }
+      const str = String(cellText ?? "");
+      doc.text(str, cellX + 3, currentY + 5.2, { maxWidth: colWidth - 6 });
+    });
+
+    currentY += rowHeight;
+  };
+
+  head.forEach((r) => drawRow(r, true, false));
+  body.forEach((r) => drawRow(r, false, false));
+  foot.forEach((r) => drawRow(r, false, true));
+
+  doc.lastAutoTable = { finalY: currentY };
+  return currentY;
+}
 
 export function FinanceTab({ eventId, financeRecords, setFinanceRecords, attendees, chapterMembers, activeEvent }) {
   const [saving, setSaving] = useState(false);
@@ -95,7 +169,8 @@ export function FinanceTab({ eventId, financeRecords, setFinanceRecords, attende
   };
 
   const generateStatementPDF = async () => {
-    const doc = new jsPDF();
+    const { default: jsPDFClass } = await import("jspdf");
+    const doc = new jsPDFClass();
     try {
       const logo = await getBase64ImageFromUrl("/rifah-logo.png");
       doc.addImage(logo, 'PNG', 20, 15, 30, 12);
@@ -172,7 +247,8 @@ export function FinanceTab({ eventId, financeRecords, setFinanceRecords, attende
   };
 
   const generateLedgerPDF = async () => {
-    const doc = new jsPDF();
+    const { default: jsPDFClass } = await import("jspdf");
+    const doc = new jsPDFClass();
     try {
       const logo = await getBase64ImageFromUrl("/rifah-logo.png");
       doc.addImage(logo, 'PNG', 20, 15, 30, 12);

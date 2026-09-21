@@ -59,9 +59,11 @@ function AdminBusinesses() {
       actions={
         <div className="flex items-center gap-3">
           <Button variant="outline" className="rounded-full">Export directory</Button>
-          <Button asChild className="rounded-full bg-blue-600 hover:bg-blue-700">
-            <Link href={`${basePath}/businesses/new`}>Add Business</Link>
-          </Button>
+          {(user?.role === "central_admin" || user?.role === "super_admin") && (
+            <Button asChild className="rounded-full bg-blue-600 hover:bg-blue-700">
+              <Link href={`${basePath}/businesses/new`}>Add Business</Link>
+            </Button>
+          )}
         </div>
       }
     >
