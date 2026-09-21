@@ -10,6 +10,7 @@ import {
   Building2,
   CalendarDays,
   ChartNoAxesColumn,
+  ChevronDown,
   ChevronLeft,
   Compass,
   CreditCard,
@@ -72,22 +73,49 @@ const navs = {
     title: "Business workspace",
     primary: [
       { label: "Dashboard", to: "/biz", icon: Gauge },
+      { label: "Operations", to: "/biz/operations", icon: Radio },
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Enquiries", to: "/biz/enquiries", icon: FileStack },
-      { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },
       { label: "Networking", to: "/biz/networking", icon: Handshake },
-      { label: "Power Networking", to: "/biz/power-networking", icon: Zap },
       { label: "More", to: "/biz/profile", icon: LayoutGrid },
     ],
-    more: [
-      { label: "Operations Center", to: "/biz/operations", icon: Radio },
-      { label: "Messages", to: "/biz/messages", icon: MessageSquare },
-      { label: "My Profile", to: "/biz/profile", icon: UserRound },
-      { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
-      { label: "Membership", to: "/biz/membership", icon: Star },
-      { label: "Notifications", to: "/biz/notifications", icon: Bell },
-      { label: "LMS", to: "/biz/lms", icon: GraduationCap },
-      { label: "Events", to: "/biz/events", icon: CalendarDays },
+    categories: [
+      {
+        category: "OVERVIEW",
+        items: [
+          { label: "Dashboard", to: "/biz", icon: Gauge },
+          { label: "Operations Center", to: "/biz/operations", icon: Radio },
+         
+          { label: "Feeds", to: "/biz/feeds", icon: Compass },
+          { label: "Events", to: "/biz/events", icon: CalendarDays },
+        ],
+      },
+      {
+        category: "BUSINESS",
+        items: [
+          { label: "Enquiries", to: "/biz/enquiries", icon: FileStack },
+          { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },
+          { label: "My Profile", to: "/biz/profile", icon: UserRound },
+          { label: "Reviews", to: "/biz/reviews", icon: MessageSquare },
+        ],
+      },
+      {
+        category: "NETWORKING",
+        items: [
+          { label: "Networking", to: "/biz/networking", icon: Handshake },
+          { label: "Power Networking", to: "/biz/power-networking", icon: Zap },
+          { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
+          { label: "LMS", to: "/biz/lms", icon: GraduationCap },
+        ],
+      },
+      {
+        category: "ACCOUNT",
+        items: [
+          { label: "Messages", to: "/biz/messages", icon: MessageSquare },
+          { label: "Notifications", to: "/biz/notifications", icon: Bell },
+          { label: "Membership", to: "/biz/membership", icon: Star },
+        ],
+      },
     ],
   },
   admin: {
@@ -100,24 +128,54 @@ const navs = {
       { label: "Users", to: "/admin/users", icon: Users },
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
-    more: [
-      { label: "Feeds", to: "/biz/feeds", icon: Compass },
-      { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
-      { label: "Memberships", to: "/admin/memberships", icon: Star },
-      { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
-      { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
-      { label: "States", to: "/admin/states", icon: MapPin },
-      { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
-      { label: "Units", to: "/admin/units", icon: Users },
-      { label: "Events", to: "/admin/events", icon: Ticket },
-      { label: "Payments", to: "/admin/payments", icon: CreditCard },
-      { label: "Announcements", to: "/admin/announcements", icon: Megaphone },
-      { label: "Notifications", to: "/admin/notifications", icon: Bell },
-      { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
-      { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
-      { label: "Roles", to: "/admin/roles", icon: Award },
-      { label: "Settings", to: "/admin/settings", icon: Settings },
-      { label: "LMS", to: "/admin/lms", icon: GraduationCap },
+    categories: [
+      {
+        category: "OVERVIEW & OPERATIONS",
+        items: [
+          { label: "Overview", to: "/admin", icon: Gauge },
+          { label: "Operations Center", to: "/admin/operations", icon: Radio },
+        ],
+      },
+      {
+        category: "ORGANIZATION",
+        items: [
+          { label: "Businesses", to: "/admin/businesses", icon: Building2 },
+          { label: "Users", to: "/admin/users", icon: Users },
+          { label: "States", to: "/admin/states", icon: MapPin },
+          { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
+          { label: "Units", to: "/admin/units", icon: Users },
+          { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
+        ],
+      },
+      {
+        category: "FINANCE",
+        items: [
+          { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
+          { label: "Memberships", to: "/admin/memberships", icon: Star },
+          { label: "Payments", to: "/admin/payments", icon: CreditCard },
+          { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
+        ],
+      },
+      {
+        category: "COMMUNITY & EVENTS",
+        items: [
+          { label: "Events", to: "/admin/events", icon: Ticket },
+          { label: "Feeds", to: "/biz/feeds", icon: Compass },
+          { label: "Announcements", to: "/admin/announcements", icon: Megaphone },
+          { label: "Notifications", to: "/admin/notifications", icon: Bell },
+        ],
+      },
+      {
+        category: "SYSTEM & ANALYTICS",
+        items: [
+          { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
+          { label: "LMS", to: "/admin/lms", icon: GraduationCap },
+          { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
+          { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
+          { label: "Roles", to: "/admin/roles", icon: Award },
+          { label: "Settings", to: "/admin/settings", icon: Settings },
+        ],
+      },
     ],
   },
 };
@@ -134,16 +192,43 @@ const roleNavs = {
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
-    more: [
-      { label: "Feeds", to: "/biz/feeds", icon: Compass },
-      { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
-      { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
-      { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
-      { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
-      { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
-      { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
-      { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
-      { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
+    categories: [
+      {
+        category: "OVERVIEW & OPERATIONS",
+        items: [
+          { label: "Dashboard", to: "/chapter-admin", icon: Gauge },
+          { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
+          { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
+        ],
+      },
+      {
+        category: "ORGANIZATION",
+        items: [
+          { label: "Members", to: "/chapter-admin/members", icon: Users },
+          { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
+        ],
+      },
+      {
+        category: "ACTIVITIES & NETWORKING",
+        items: [
+          { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
+          { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
+          { label: "Gallery", to: "/chapter-admin/gallery", icon: Sparkles },
+          { label: "Feeds", to: "/biz/feeds", icon: Compass },
+          { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
+        ],
+      },
+      {
+        category: "COMMUNICATION & SYSTEM",
+        items: [
+          { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
+          { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
+          { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
+          { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
+          { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
+          { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
+        ],
+      },
     ],
   },
   state_admin: {
@@ -156,24 +241,53 @@ const roleNavs = {
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
-    more: [
-
-      { label: "Feeds", to: "/biz/feeds", icon: Compass },
-      { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
-      { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
-      { label: "Events", to: "/state-admin/events", icon: CalendarDays },
-      { label: "Announcements", to: "/state-admin/announcements", icon: Megaphone },
-      { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
-      { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
-      { label: "Settings", to: "/state-admin/settings", icon: Settings },
-      { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
+    categories: [
+      {
+        category: "OVERVIEW & OPERATIONS",
+        items: [
+          { label: "Dashboard", to: "/state-admin", icon: Gauge },
+          { label: "Operations Center", to: "/state-admin/operations", icon: Radio },
+        ],
+      },
+      {
+        category: "ORGANIZATION",
+        items: [
+          { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
+          { label: "Members", to: "/state-admin/members", icon: Users },
+          { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
+        ],
+      },
+      {
+        category: "ACTIVITIES & NETWORKING",
+        items: [
+          { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
+          { label: "Events", to: "/state-admin/events", icon: CalendarDays },
+          { label: "Feeds", to: "/biz/feeds", icon: Compass },
+          { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
+        ],
+      },
+      {
+        category: "COMMUNICATION & SYSTEM",
+        items: [
+          { label: "Announcements", to: "/state-admin/announcements", icon: Megaphone },
+          { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
+          { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
+          { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
+          { label: "Settings", to: "/state-admin/settings", icon: Settings },
+        ],
+      },
     ],
   },
-  central_admin: navs.admin,
-  business: navs.business,
-  business_owner: navs.business,
-  customer: navs.business,
+  central_admin: null,
+  business: null,
+  business_owner: null,
+  customer: null,
 };
+
+roleNavs.central_admin = navs.admin;
+roleNavs.business = navs.business;
+roleNavs.business_owner = navs.business;
+roleNavs.customer = navs.business;
 
 navs.business_owner = navs.business;
 navs.customer = navs.business;
@@ -285,7 +399,11 @@ function isAccessibleUnverifiedPath(pathname) {
     clean === "/biz/lms" ||
     clean.startsWith("/biz/lms/") ||
     clean === "/biz/events" ||
-    clean.startsWith("/biz/events/")
+    clean.startsWith("/biz/events/") ||
+    clean === "/biz/operations" ||
+    clean.startsWith("/biz/operations/") ||
+    clean === "/biz/my-duty" ||
+    clean.startsWith("/biz/my-duty/")
   );
 }
 
@@ -311,7 +429,7 @@ function SidebarLink({ item, active, badge, isLocked, onSelect }) {
       onClick={onSelect}
       data-sidebar-active={active ? "true" : undefined}
       className={cn(
-        "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         active && "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-bold shadow-xs hover:bg-cyan-500/20 hover:text-cyan-300",
         isLocked && "opacity-75"
       )}
@@ -360,6 +478,102 @@ function UserSidebarAvatar({ user }) {
   );
 }
 
+function SidebarCategoryGroup({
+  group,
+  isActive,
+  unreadMsgs,
+  unreadNotifs,
+  isBizLoading,
+  businessData,
+  hasEverBeenVerified,
+  isAdminSwitchedToBusiness,
+  role,
+  onSelect,
+}) {
+  if (group.isStandalone && group.item) {
+    const item = group.item;
+    let badge = null;
+    if (item.label === "Messages") badge = unreadMsgs;
+    if (item.label === "Notifications") badge = unreadNotifs;
+    const isItemLocked =
+      role === "business" &&
+      !isBizLoading &&
+      Boolean(businessData) &&
+      !hasEverBeenVerified &&
+      !isAccessibleUnverifiedPath(item.to) &&
+      !isAdminSwitchedToBusiness;
+
+    return (
+      <div className="py-1">
+        <SidebarLink
+          item={item}
+          active={isActive(item.to)}
+          badge={badge}
+          isLocked={isItemLocked}
+          onSelect={onSelect}
+        />
+      </div>
+    );
+  }
+
+  const items = group.items || [];
+  const hasActiveChild = items.some((item) => isActive(item.to));
+  // Keep closed by default unless the active route belongs to this category
+  const [isOpen, setIsOpen] = useState(hasActiveChild);
+
+  useEffect(() => {
+    if (hasActiveChild) {
+      setIsOpen(true);
+    }
+  }, [hasActiveChild]);
+
+  return (
+    <div className="py-1">
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-sidebar-foreground/75 hover:text-sidebar-foreground rounded-md hover:bg-sidebar-accent/50 transition-colors group cursor-pointer"
+        aria-expanded={isOpen}
+      >
+        <span className="truncate">{group.category}</span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 text-sidebar-foreground/60 transition-transform duration-200 shrink-0",
+            isOpen ? "rotate-180" : "rotate-0"
+          )}
+        />
+      </button>
+      {isOpen && (
+        <div className="mt-1 space-y-0.5 pl-1.5">
+          {items.map((item, index) => {
+            let badge = null;
+            if (item.label === "Messages") badge = unreadMsgs;
+            if (item.label === "Notifications") badge = unreadNotifs;
+            const isItemLocked =
+              role === "business" &&
+              !isBizLoading &&
+              Boolean(businessData) &&
+              !hasEverBeenVerified &&
+              !isAccessibleUnverifiedPath(item.to) &&
+              !isAdminSwitchedToBusiness;
+
+            return (
+              <SidebarLink
+                key={`sidebar-${group.category}-${item.to}-${item.label}-${index}`}
+                item={item}
+                active={isActive(item.to)}
+                badge={badge}
+                isLocked={isItemLocked}
+                onSelect={onSelect}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AppShell({
   role,
   title,
@@ -372,10 +586,6 @@ export function AppShell({
   const router = useRouter();
   const { user, logout, switchRole, loading } = useAuth();
   const nav = useResolvedNav(role) || navs.admin || navs.customer;
-  const primary = nav?.primary || [];
-  const more = nav?.more || [];
-  const rawAll = [...primary.filter((i) => i.label !== "More"), ...more];
-  const all = Array.from(new Map(rawAll.map((item) => [item.to, item])).values());
 
   useEffect(() => {
     if (!loading && !user) {
@@ -518,22 +728,21 @@ export function AppShell({
           onScroll={handleNavScroll}
           className="mt-2 flex-1 space-y-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-4"
         >
-          {all.map((item, index) => {
-            let badge = null;
-            if (item.label === "Messages") badge = unreadMsgs;
-            if (item.label === "Notifications") badge = unreadNotifs;
-            const isItemLocked = role === "business" && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to) && !isAdminSwitchedToBusiness;
-            return (
-              <SidebarLink
-                key={`sidebar-${item.to}-${item.label}-${index}`}
-                item={item}
-                active={isActive(item.to)}
-                badge={badge}
-                isLocked={isItemLocked}
-                onSelect={recordScroll}
-              />
-            );
-          })}
+          {(nav?.categories || []).map((group, index) => (
+            <SidebarCategoryGroup
+              key={`nav-group-${group.category || group.item?.label || index}`}
+              group={group}
+              isActive={isActive}
+              unreadMsgs={unreadMsgs}
+              unreadNotifs={unreadNotifs}
+              isBizLoading={isBizLoading}
+              businessData={businessData}
+              hasEverBeenVerified={hasEverBeenVerified}
+              isAdminSwitchedToBusiness={isAdminSwitchedToBusiness}
+              role={role}
+              onSelect={recordScroll}
+            />
+          ))}
         </nav>
         <div className="border-t border-sidebar-border p-3">
           {user && (
@@ -895,10 +1104,75 @@ function UnderApprovalAccessGate({ business, path }) {
   );
 }
 
+function MobileCategoryGroup({ group, isActive, role, isBizVerified, onSelect }) {
+  const items = group.items || [];
+  const hasActiveChild = items.some((item) => isActive(item.to));
+  // Keep closed by default unless the active route belongs to this category
+  const [isOpen, setIsOpen] = useState(hasActiveChild);
+
+  useEffect(() => {
+    if (hasActiveChild) {
+      setIsOpen(true);
+    }
+  }, [hasActiveChild]);
+
+  return (
+    <div className="py-1">
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground rounded-md hover:bg-muted/60 transition-colors cursor-pointer"
+        aria-expanded={isOpen}
+      >
+        <span className="truncate">{group.category}</span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
+            isOpen ? "rotate-180" : "rotate-0"
+          )}
+        />
+      </button>
+      {isOpen && (
+        <div className="mt-1 space-y-0.5 pl-1.5">
+          {items.map((i, idx) => {
+            const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
+            return (
+              <Link
+                key={`ms-${group.category}-${i.to}-${i.label}-${idx}`}
+                href={i.to}
+                scroll={false}
+                onClick={onSelect}
+                className={cn(
+                  "flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted transition-colors",
+                  isActive(i.to) && "bg-primary/10 text-primary font-bold",
+                  isLocked && "opacity-75"
+                )}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <i.icon className="h-[18px] w-[18px] text-primary shrink-0" />
+                  <span className="truncate">{i.label}</span>
+                </div>
+                {isLocked && <Lock className="h-3 w-3 text-muted-foreground shrink-0" />}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MoreSheet({ role, isBizVerified = true }) {
   const [open, setOpen] = useState(false);
+  const path = useCurrentPath();
   const nav = useResolvedNav(role);
-  const items = role === "chapter_admin" ? [...(nav?.primary || []), ...(nav?.more || [])] : (nav?.more || []);
+  const categories = nav?.categories || [];
+  const isActive = (to) => {
+    if (path === to) return true;
+    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
+    if (rootRoutes.includes(to)) return false;
+    return to !== "/" && path.startsWith(to + "/");
+  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -907,7 +1181,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72 p-4">
+      <SheetContent side="left" className="w-72 p-4 flex flex-col">
         <SheetHeader className="text-left">
           <SheetTitle className="flex items-center gap-2">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
@@ -923,32 +1197,48 @@ export function MoreSheet({ role, isBizVerified = true }) {
             </div>
           </SheetTitle>
         </SheetHeader>
-        <nav className="mt-6 flex flex-col gap-1">
+        <nav className="mt-4 flex-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pr-1">
           <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {nav.title}
           </p>
-          {items.map((i, idx) => {
-            const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
-            return (
-              <Link
-                key={`moresheet-${i.to}-${i.label}-${idx}`}
-                href={i.to}
-                scroll={false}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted",
-                  isLocked && "opacity-75"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <i.icon className="h-[18px] w-[18px] text-primary" />
-                  <span>{i.label}</span>
+          {categories.map((group, gIdx) => {
+            if (group.isStandalone && group.item) {
+              const i = group.item;
+              const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
+              return (
+                <div key={`ms-standalone-${i.to}-${gIdx}`} className="py-1">
+                  <Link
+                    href={i.to}
+                    scroll={false}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted",
+                      isActive(i.to) && "bg-primary/10 text-primary font-bold",
+                      isLocked && "opacity-75"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <i.icon className="h-[18px] w-[18px] text-primary" />
+                      <span>{i.label}</span>
+                    </div>
+                    {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  </Link>
                 </div>
-                {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
-              </Link>
+              );
+            }
+
+            return (
+              <MobileCategoryGroup
+                key={`ms-cat-${group.category}-${gIdx}`}
+                group={group}
+                isActive={isActive}
+                role={role}
+                isBizVerified={isBizVerified}
+                onSelect={() => setOpen(false)}
+              />
             );
           })}
-          <div className="mt-2 border-t border-border pt-3">
+          <div className="mt-4 border-t border-border pt-3">
             <Link href="/" scroll={false} className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted">
               Public website
             </Link>
