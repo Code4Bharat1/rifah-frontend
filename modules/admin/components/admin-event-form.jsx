@@ -95,7 +95,7 @@ function MultiSelectDropdown({ options, selected, toggleOption, placeholder = "S
 export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const router = useRouter();
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
+  const isCentralAdmin = user?.role === "central_admin";
   const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -149,6 +149,10 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     startTime: "10:00",
     endTime: "13:00",
     mode: "In-person",
+    eventCategory: "Meet",
+    sportName: "",
+    sportVenue: "",
+    teamsAllowed: "",
     location: "Chamber Conference Hall",
     city: "Mumbai",
     chapter: "Mumbai Chapter",
@@ -192,6 +196,10 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         endTime: parsedTime.endTime,
         scheduledDate: initialSchDate,
         scheduledTime: initialSchTime,
+        eventCategory: initialData.eventCategory || "Meet",
+        sportName: initialData.sportDetails?.sportName || "",
+        sportVenue: initialData.sportDetails?.venue || "",
+        teamsAllowed: initialData.sportDetails?.teamsAllowed || "",
         cover: null, // Keep cover null to allow new upload
         poster: null,
       });
@@ -330,8 +338,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       const ticketPrice = isPaid ? Number(formData.ticketPrice) : 0;
       const fee = isPaid ? `₹${ticketPrice}` : "Free";
 
-      const payload = { 
-        ...formData, 
+      const payload = {
+        ...formData,
         isPaid,
         ticketPrice,
         memberCouponCode: isPaid ? formData.memberCouponCode : "",
@@ -341,6 +349,11 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         venue: formData.location,
         status: targetStatus,
         scheduledAt,
+        sportDetails: formData.eventCategory === "Sports" ? {
+          sportName: formData.sportName,
+          venue: formData.sportVenue,
+          teamsAllowed: Number(formData.teamsAllowed) || 0,
+        } : undefined,
       };
       delete payload.startTime;
       delete payload.endTime;
@@ -348,6 +361,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       delete payload.scheduledTime;
       delete payload.cover;
       delete payload.poster;
+      delete payload.sportName;
+      delete payload.sportVenue;
+      delete payload.teamsAllowed;
 
       let eventId = isEditMode ? initialData._id : null;
 
@@ -467,6 +483,55 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="eventCategory">Event Category</Label>
+                <Select value={formData.eventCategory} onValueChange={(val) => setFormData({ ...formData, eventCategory: val })}>
+                  <SelectTrigger id="eventCategory">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Meet">Meet</SelectItem>
+                    <SelectItem value="Sports">Sports</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {formData.eventCategory === "Sports" && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border border-border rounded-xl p-5 bg-muted/10 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-primary/50" />
+                <div className="space-y-2">
+                  <Label htmlFor="sportName">Sport Name</Label>
+                  <Input
+                    id="sportName"
+                    placeholder="e.g. Cricket, Badminton"
+                    value={formData.sportName}
+                    onChange={(e) => setFormData({ ...formData, sportName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sportVenue">Ground / Court</Label>
+                  <Input
+                    id="sportVenue"
+                    placeholder="Sports venue name"
+                    value={formData.sportVenue}
+                    onChange={(e) => setFormData({ ...formData, sportVenue: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="teamsAllowed">Teams Allowed</Label>
+                  <Input
+                    id="teamsAllowed"
+                    type="number"
+                    min="0"
+                    value={formData.teamsAllowed}
+                    onChange={(e) => setFormData({ ...formData, teamsAllowed: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">

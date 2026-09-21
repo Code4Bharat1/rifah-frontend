@@ -542,7 +542,9 @@
         <h2 class="qr-title">Scan to Register & Check-In</h2>
         <p class="qr-desc">Open your phone camera to scan the code below for instant attendee registration, visitor access pass, and digital verification.</p>
         <div class="qr-frame">
-          <img id="qrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=https://rifah.org" alt="Event Registration QR" />
+          <a id="qrLink" href="https://rifah.org" target="_blank" rel="noopener noreferrer">
+            <img id="qrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=https://rifah.org" alt="Event Registration QR" />
+          </a>
         </div>
         <div class="qr-url-pill" id="qrUrlDisplay">https://rifah.org/events/mumbai</div>
       </div>
@@ -749,6 +751,7 @@
       if (data.qrUrl) {
         document.getElementById('qrUrlDisplay').textContent = data.qrUrl;
         document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(data.qrUrl)}`;
+        document.getElementById('qrLink').href = data.qrUrl;
       }
 
       // Announcement / Ticker

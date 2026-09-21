@@ -35,6 +35,8 @@ export function MyTeamTab({ teamRoles, setTeamRoles, chapterMembers, handleSaveT
     { key: "eventEnd", label: "Event End / Farewell by", icon: LogOut },
   ];
 
+  const activeMembers = chapterMembers.filter((mem) => !mem.status || mem.status === "Active");
+
   const renderSelect = (roleKey, label) => (
     <Select
       value={teamRoles[roleKey] || ""}
@@ -44,12 +46,12 @@ export function MyTeamTab({ teamRoles, setTeamRoles, chapterMembers, handleSaveT
         <SelectValue placeholder="-- Select participant --" />
       </SelectTrigger>
       <SelectContent className="max-h-56 bg-card border-border text-foreground">
-        {teamRoles[roleKey] && !chapterMembers.some((mem) => mem.name === teamRoles[roleKey]) && (
+        {teamRoles[roleKey] && !activeMembers.some((mem) => mem.name === teamRoles[roleKey]) && (
           <SelectItem value={teamRoles[roleKey]} className="text-xs font-semibold">
             {teamRoles[roleKey]} (Assigned)
           </SelectItem>
         )}
-        {chapterMembers.map((mem) => (
+        {activeMembers.map((mem) => (
           <SelectItem key={mem._id || mem.id} value={mem.name} className="text-xs">
             {mem.name} — {mem.organization || mem.company || mem.role || "Member"} {mem.phone ? `(${mem.phone})` : ""}
           </SelectItem>

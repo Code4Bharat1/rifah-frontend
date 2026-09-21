@@ -134,6 +134,19 @@ function EventAnalyticsTab() {
   const [filters, setFilters] = useState({ state: "All", chapter: "All", status: "All" });
   const [viewMode, setViewMode] = useState("grid"); // "grid" or "table"
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [downloadingAnalytics, setDownloadingAnalytics] = useState(false);
+
+  const handleDownloadAnalyticsPdf = async () => {
+    setDownloadingAnalytics(true);
+    try {
+      await reportApi.downloadEventsAnalyticsPdf(filters);
+      toast.success("Events analytics report downloaded successfully.");
+    } catch (err) {
+      toast.error(err.message || "Failed to download report.");
+    } finally {
+      setDownloadingAnalytics(false);
+    }
+  };
 
   const { data: statesData } = useStates();
   const { data: chaptersData } = useChapters();
@@ -232,8 +245,17 @@ function EventAnalyticsTab() {
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h2 className="text-xl font-bold tracking-tight">Events Attendance Breakdown</h2>
-          
-          <div className="flex items-center p-1 bg-muted/50 rounded-lg border border-border">
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadAnalyticsPdf}
+              disabled={downloadingAnalytics}
+            >
+              <FileDown className="mr-2 h-4 w-4" /> Download PDF
+            </Button>
+            <div className="flex items-center p-1 bg-muted/50 rounded-lg border border-border">
             <button
               onClick={() => setViewMode("grid")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
@@ -256,6 +278,7 @@ function EventAnalyticsTab() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
               Table
             </button>
+            </div>
           </div>
         </div>
         
@@ -373,7 +396,7 @@ export function AdminReports() {
   const [viewing, setViewing] = useState({ revenue: false, members: false, leads: false, businesses: false });
   const [viewData, setViewData] = useState(null);
 
-  const handleDownload = async (type) => {
+  const handleDownload = async (type, format = "csv") => {
     setLoading(prev => ({ ...prev, [type]: true }));
     try {
       let dates = {};
@@ -386,16 +409,17 @@ export function AdminReports() {
       if (dates.start) params.startDate = dates.start;
       if (dates.end) params.endDate = dates.end;
 
+      const isPdf = format === "pdf";
       if (type === 'revenue') {
-        await reportApi.downloadRevenue(params);
+        await (isPdf ? reportApi.downloadRevenuePdf(params) : reportApi.downloadRevenue(params));
       } else if (type === 'memberships') {
-        await reportApi.downloadMemberships(params);
+        await (isPdf ? reportApi.downloadMembershipsPdf(params) : reportApi.downloadMemberships(params));
       } else if (type === 'leads') {
-        await reportApi.downloadLeads(params);
+        await (isPdf ? reportApi.downloadLeadsPdf(params) : reportApi.downloadLeads(params));
       } else if (type === 'businesses') {
-        await reportApi.downloadBusinesses(params);
+        await (isPdf ? reportApi.downloadBusinessesPdf(params) : reportApi.downloadBusinesses(params));
       }
-      
+
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} report downloaded successfully.`);
     } catch (err) {
       toast.error(err.message || "Failed to download report.");
@@ -485,21 +509,29 @@ export function AdminReports() {
                     <Input type="date" value={revenueDates.end} onChange={e => setRevenueDates({...revenueDates, end: e.target.value})} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button 
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
                     variant="outline"
-                    className="w-full" 
-                    onClick={() => handleView('revenue')} 
+                    className="w-full"
+                    onClick={() => handleView('revenue')}
                     disabled={viewing.revenue}
                   >
                     <Eye className="mr-2 h-4 w-4" /> View
                   </Button>
-                  <Button 
-                    className="w-full" 
-                    onClick={() => handleDownload('revenue')} 
+                  <Button
+                    className="w-full"
+                    onClick={() => handleDownload('revenue', 'csv')}
                     disabled={loading.revenue}
                   >
-                    <FileDown className="mr-2 h-4 w-4" /> Download
+                    <FileDown className="mr-2 h-4 w-4" /> CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleDownload('revenue', 'pdf')}
+                    disabled={loading.revenue}
+                  >
+                    <FileDown className="mr-2 h-4 w-4" /> PDF
                   </Button>
                 </div>
               </div>
@@ -523,21 +555,29 @@ export function AdminReports() {
                 <Input type="date" value={memberDates.end} onChange={e => setMemberDates({...memberDates, end: e.target.value})} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Button 
+            <div className="grid grid-cols-3 gap-2">
+              <Button
                 variant="outline"
-                className="w-full" 
-                onClick={() => handleView('memberships')} 
+                className="w-full"
+                onClick={() => handleView('memberships')}
                 disabled={viewing.members}
               >
                 <Eye className="mr-2 h-4 w-4" /> View
               </Button>
-              <Button 
-                className="w-full" 
-                onClick={() => handleDownload('memberships')} 
+              <Button
+                className="w-full"
+                onClick={() => handleDownload('memberships', 'csv')}
                 disabled={loading.members}
               >
-                <FileDown className="mr-2 h-4 w-4" /> Download
+                <FileDown className="mr-2 h-4 w-4" /> CSV
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleDownload('memberships', 'pdf')}
+                disabled={loading.members}
+              >
+                <FileDown className="mr-2 h-4 w-4" /> PDF
               </Button>
             </div>
           </div>
@@ -564,21 +604,29 @@ export function AdminReports() {
                 <Input type="date" value={leadDates.end} onChange={e => setLeadDates({...leadDates, end: e.target.value})} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Button 
+            <div className="grid grid-cols-3 gap-2">
+              <Button
                 variant="outline"
-                className="w-full" 
-                onClick={() => handleView('leads')} 
+                className="w-full"
+                onClick={() => handleView('leads')}
                 disabled={viewing.leads}
               >
                 <Eye className="mr-2 h-4 w-4" /> View
               </Button>
-              <Button 
-                className="w-full" 
-                onClick={() => handleDownload('leads')} 
+              <Button
+                className="w-full"
+                onClick={() => handleDownload('leads', 'csv')}
                 disabled={loading.leads}
               >
-                <FileDown className="mr-2 h-4 w-4" /> Download
+                <FileDown className="mr-2 h-4 w-4" /> CSV
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleDownload('leads', 'pdf')}
+                disabled={loading.leads}
+              >
+                <FileDown className="mr-2 h-4 w-4" /> PDF
               </Button>
             </div>
           </div>
@@ -602,21 +650,29 @@ export function AdminReports() {
                   <Input type="date" value={businessDates.end} onChange={e => setBusinessDates({...businessDates, end: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Button 
+              <div className="grid grid-cols-3 gap-2">
+                <Button
                   variant="outline"
-                  className="w-full" 
-                  onClick={() => handleView('businesses')} 
+                  className="w-full"
+                  onClick={() => handleView('businesses')}
                   disabled={viewing.businesses}
                 >
                   <Eye className="mr-2 h-4 w-4" /> View
                 </Button>
-                <Button 
-                  className="w-full" 
-                  onClick={() => handleDownload('businesses')} 
+                <Button
+                  className="w-full"
+                  onClick={() => handleDownload('businesses', 'csv')}
                   disabled={loading.businesses}
                 >
-                  <FileDown className="mr-2 h-4 w-4" /> Download
+                  <FileDown className="mr-2 h-4 w-4" /> CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => handleDownload('businesses', 'pdf')}
+                  disabled={loading.businesses}
+                >
+                  <FileDown className="mr-2 h-4 w-4" /> PDF
                 </Button>
               </div>
             </div>

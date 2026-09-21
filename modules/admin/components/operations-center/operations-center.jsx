@@ -70,12 +70,12 @@ import {
   Globe,
   Loader2,
   ScrollText,
-  Lock,
   Trash,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
 import { eventApi, followupApi, chapterApi, userApi, documentApi } from "@shared/lib/api-services";
+import { resolveMediaUrl, downloadFile } from "@shared/lib/api-client";
 import { getSocket } from "@shared/lib/socket";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
@@ -87,7 +87,6 @@ import { DynamicQrCode } from "@shared/components/rifah/dynamic-qr";
 import { cn } from "@shared/lib/utils";
 import { StatCard } from "@shared/components/rifah/ui-bits";
 import { Pill } from "@shared/components/rifah/badges";
-import { EntranceDesk } from "./entrance-desk";
 import { FinanceTab } from "./finance-tab";
 import { CertificatesTab } from "./certificates-tab";
 import { ScriptsTab } from "./scripts-tab";
@@ -124,7 +123,6 @@ const HORIZONTAL_MODULE_TABS = [
   { key: "speakers-guests", label: "Speakers & Guests", icon: Mic },
   { key: "follow-up", label: "Follow-up", icon: MessageSquareText },
   { key: "ask-give", label: "Ask & Give", icon: Users },
-  { key: "entrance-desk", label: "Entrance Desk", icon: ShieldCheck },
   { key: "certificates", label: "Certificates", icon: FileStack },
   { key: "scripts", label: "Scripts", icon: ScrollText },
   { key: "documents", label: "Documents", icon: FileStack },
@@ -356,11 +354,8 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const [savingSloganTheme, setSavingSloganTheme] = useState(false);
   const [savingSponsors, setSavingSponsors] = useState(false);
   const [savingUpcomingEvents, setSavingUpcomingEvents] = useState(false);
-  const [updatingPassword, setUpdatingPassword] = useState(false);
-  const [adminPassword, setAdminPassword] = useState("");
   const [liveSyncStatus, setLiveSyncStatus] = useState(null); // null | 'testing' | 'ok' | 'fail'
   const [liveSyncLatency, setLiveSyncLatency] = useState(null);
-  const [suggestTopicsOpen, setSuggestTopicsOpen] = useState(false);
   const [sponsorsList, setSponsorsList] = useState([]);
   const [upcomingEventsList, setUpcomingEventsList] = useState([]);
   const [sponsorForm, setSponsorForm] = useState({ name: "", category: "Main Sponsor", logo: "", contact: "", amount: "", notes: "" });
@@ -381,7 +376,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
           const first = eventList[0];
           setSelectedEventId(first._id);
           setActiveEvent(first);
-          fetchOperationsData(first._id);
+          fetchOperationsData(first._id, { syncSlide: true });
         }
       } catch (err) {
         console.warn("Warning loading events (transient):", err.message);
@@ -471,7 +466,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   }, [chapterSlug]);
 
   // Fetch full operations data from backend
-  const fetchOperationsData = async (eventId) => {
+  // syncSlide: only apply the backend's currentSlideIndex on initial load / explicit event switch —
+  // refetches triggered by unrelated saves (finance, checkin, announcements) must not clobber in-progress slide navigation
+  const fetchOperationsData = async (eventId, { syncSlide = false } = {}) => {
     if (!eventId) return;
     try {
       const res = await eventApi.getOperations(eventId);
@@ -486,7 +483,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
           const ev = res.data.event;
           setActiveEvent(ev);
           if (ev.stageStatus) setLiveEventStatus(ev.stageStatus);
-          if (ev.currentSlideIndex !== undefined) setCurrentSlideIndex(ev.currentSlideIndex);
+          if (syncSlide && ev.currentSlideIndex !== undefined) setCurrentSlideIndex(ev.currentSlideIndex);
           if (ev.speakers?.length) setSpeakers(ev.speakers);
           if (ev.projectorMode) setProjectorMode(ev.projectorMode);
           if (ev.activeAnnouncement) {
@@ -554,7 +551,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
   useEffect(() => {
     if (selectedEventId) {
-      fetchOperationsData(selectedEventId);
+      fetchOperationsData(selectedEventId, { syncSlide: true });
     }
   }, [selectedEventId]);
 
@@ -955,6 +952,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         await eventApi.updateOperations(selectedEventId, { currentSlideIndex: newIndex });
       } catch (err) {
         console.warn("Failed to persist slide index:", err.message);
+        toast.error("Failed to save slide position — it may not survive a refresh.");
       }
     }
   };
@@ -1815,7 +1813,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   // Follow-up Actions
   const handleUpdateFollowupStatus = async (id, newStatus) => {
     try {
-      await followupApi.update(id, { status: newStatus });
+      await followupApi.updateStatus(id, newStatus);
       toast.success(`Follow-up marked as ${newStatus}`);
       fetchFollowups();
     } catch (err) {
@@ -1826,7 +1824,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const handleSaveNote = async () => {
     if (!editingNoteItem) return;
     try {
-      await followupApi.update(editingNoteItem._id, { notes: noteText });
+      await followupApi.addNote(editingNoteItem._id, noteText);
       toast.success("Notes updated successfully!");
       setEditingNoteItem(null);
       fetchFollowups();
@@ -2427,31 +2425,6 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 />
               </div>
 
-              {/* Suggest Topics */}
-              <div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSuggestTopicsOpen(!suggestTopicsOpen)}
-                  className="gap-2 rounded-xl"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                  Suggest keynote subjects for this meet
-                </Button>
-                {suggestTopicsOpen && (
-                  <div className="mt-3 rounded-xl border border-warning-soft bg-warning-soft/50 p-4 space-y-2">
-                    <p className="text-xs font-semibold text-warning-foreground mb-1">Suggested Keynote Topics:</p>
-                    {["Digital Transformation for SMEs","Export Opportunities for Indian Businesses","Women Entrepreneurs: Breaking Barriers","Islamic Finance & Ethical Business","Networking to Net Worth","AI Tools for Business Growth"].map(t => (
-                      <div key={t} className="flex items-center gap-2">
-                        <span className="h-1 w-1 rounded-full bg-warning-foreground inline-block" />
-                        <span className="text-xs text-muted-foreground flex-1">{t}</span>
-                        <button onClick={() => setEventSetupForm(p => ({ ...p, title: p.title ? p.title : t }))} className="text-xs text-primary hover:underline font-medium">Use</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               {/* Date & Chapter */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -2478,19 +2451,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 </div>
                 <div>
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Event Poster <span className="font-normal normal-case">(optional - Size 4:5)</span>
+                    Event Poster
                   </Label>
-                  <Input type="file" accept="image/*" className="mt-2"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const url = URL.createObjectURL(file);
-                        setEventSetupForm(prev => ({ ...prev, posterUrl: url }));
-                      }
-                    }}
-                  />
-                  {eventSetupForm.posterUrl && (
-                    <img src={eventSetupForm.posterUrl} alt="Poster" className="mt-2 rounded-lg h-16 w-auto border border-border object-cover" />
+                  {eventSetupForm.posterUrl ? (
+                    <img src={resolveMediaUrl(eventSetupForm.posterUrl)} alt="Poster" className="mt-2 rounded-lg h-16 w-auto border border-border object-cover" />
+                  ) : (
+                    <p className="mt-2 text-[11px] text-muted-foreground">No poster set. Set a poster from the Event editor.</p>
                   )}
                 </div>
               </div>
@@ -2764,14 +2730,14 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   className="gap-2 rounded-xl"
                   onClick={async () => {
                     try {
-                      const res = await eventApi.list({ limit: 20, chapter: upcomingRegion === "All of India" ? undefined : upcomingRegion });
+                      const res = await eventApi.list({ limit: 20, state: upcomingRegion === "All of India" ? undefined : upcomingRegion });
                       const list = res?.events || res?.data || [];
-                      setUpcomingEventsList(list.map(e => ({ id: e._id, title: e.title, date: e.date, chapter: e.chapter, city: e.city })));
+                      setUpcomingEventsList(list.map(e => ({ id: e._id, title: e.title, date: e.date, chapter: e.chapter, city: e.city, eventCategory: e.eventCategory })));
                       toast.success("Events fetched!");
                     } catch { toast.error("Could not fetch events."); }
                   }}
                 >
-                  <Globe className="h-3.5 w-3.5" /> Get from rifah.org
+                  <Globe className="h-3.5 w-3.5" /> Fetch RIFAH Events
                 </Button>
                 <Select value={upcomingRegion} onValueChange={setUpcomingRegion}>
                   <SelectTrigger className="w-40 h-9 text-xs"><SelectValue /></SelectTrigger>
@@ -2813,7 +2779,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   {upcomingEventsList.map((ev, idx) => (
                     <div key={ev.id || idx} className="flex items-center justify-between px-4 py-2.5 rounded-xl border border-border bg-muted/20">
                       <div>
-                        <p className="text-sm font-medium text-foreground">{ev.title}</p>
+                        <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                          {ev.title}
+                          {ev.eventCategory === "Sports" && <Pill tone="warning">Sports</Pill>}
+                        </p>
                         <p className="text-xs text-muted-foreground">{ev.chapter}{ev.date ? ` • ${ev.date}` : ""}</p>
                       </div>
                       <button onClick={() => setUpcomingEventsList(prev => prev.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-destructive transition-colors">
@@ -2831,7 +2800,21 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <Button onClick={handleSaveUpcomingEvents} disabled={savingUpcomingEvents} className="gap-2 rounded-xl font-semibold">
                   {savingUpcomingEvents ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : <><Save className="h-4 w-4" /> Save Upcoming Events</>}
                 </Button>
-                <Button variant="outline" onClick={() => toast.info("PDF download coming soon.")} className="gap-2 rounded-xl text-xs">
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (!selectedEventId) {
+                      toast.error("Please select an active event first.");
+                      return;
+                    }
+                    try {
+                      await downloadFile(`/events/${selectedEventId}/participants/pdf`, `Participants-${eventSetupForm.title || "Event"}.pdf`);
+                    } catch (err) {
+                      toast.error("Failed to download PDF: " + (err.message || "Unknown error"));
+                    }
+                  }}
+                  className="gap-2 rounded-xl text-xs"
+                >
                   <ScrollText className="h-3.5 w-3.5" /> Download list as PDF (for participants)
                 </Button>
               </div>
@@ -2915,57 +2898,6 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   {savingSponsors ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : <><Save className="h-4 w-4" /> Save Sponsors & Partners</>}
                 </Button>
               </div>
-            </div>
-          </div>
-
-          {/* ── CARD 10: Change Admin Password ────────────────────────────── */}
-          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
-              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-foreground">Change Admin Password</p>
-                <p className="text-xs text-muted-foreground">Leave blank to keep the current password</p>
-              </div>
-            </div>
-            <div className="px-5 py-5 space-y-3">
-              <Input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="New admin password" />
-              <Button
-                variant="outline"
-                className="w-full gap-2 rounded-xl font-semibold"
-                disabled={updatingPassword}
-                onClick={async () => {
-                  if (!adminPassword.trim()) { toast.error("Please enter a new password."); return; }
-                  setUpdatingPassword(true);
-                  try {
-                    await new Promise(r => setTimeout(r, 800));
-                    toast.success("Password updated!");
-                    setAdminPassword("");
-                  } catch {
-                    toast.error("Failed to update password.");
-                  } finally {
-                    setUpdatingPassword(false);
-                  }
-                }}
-              >
-                {updatingPassword ? <><Loader2 className="h-4 w-4 animate-spin" /> Updating…</> : <><Lock className="h-4 w-4" /> Update Password</>}
-              </Button>
-            </div>
-          </div>
-
-          {/* ── CARD 11: Member List Info ─────────────────────────────────── */}
-          <div className="rounded-2xl border-2 border-primary/20 bg-primary-soft/40 dark:bg-primary/5 px-5 py-4 flex items-start gap-3">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-              <Users className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-primary">
-                Member List: <span className="font-semibold">{chapterMembers.length > 0 ? `${chapterMembers.length} members loaded` : "Loading…"}</span>
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Your uploaded list is permanently built into the app and survives resets. Members expired before today automatically count as <strong>non-members</strong>. New memberships & renewals added by the incharge are stored on top of this list.
-              </p>
             </div>
           </div>
 
@@ -3253,6 +3185,19 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                       </span>
                     </div>
                   </div>
+
+                  {projectorMode === "qr" && (
+                    <div className="py-4 flex justify-center">
+                      <DynamicQrCode
+                        value={publicVisitorUrl}
+                        size={140}
+                        title="Live on Projector"
+                        subtitle="Check-in QR currently broadcast"
+                        showDownload={false}
+                        className="!bg-slate-950/90 !border-slate-800"
+                      />
+                    </div>
+                  )}
 
                   {/* Dual Stage Content: Current on Stage vs Next Up */}
                   <div className="py-6 space-y-4">
@@ -4488,37 +4433,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   Business requirements and offerings from all registered attendees
                 </p>
               </div>
-              <Button
-                variant="outline"
-                className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
-              >
-                <Download className="h-4 w-4" />
-                <span>Export Board (CSV)</span>
-              </Button>
             </div>
-            
-            <AskGiveBoard eventId={selectedEventId} />
-          </div>
-        </div>
-      )}
 
-      {/* ========================================================================= */}
-      {/* MODULE 12: ENTRANCE DESK                                                  */}
-      {/* ========================================================================= */}
-      {currentTab === "entrance-desk" && (
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
-            <div className="border-b border-border pb-4 mb-6">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-primary" />
-                Entrance Desk Gate Management
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Real-time queue of arriving attendees. Verify fees and approve entry.
-              </p>
-            </div>
-            
-            <EntranceDesk eventId={selectedEventId} chapterMembers={chapterMembers} />
+            <AskGiveBoard eventId={selectedEventId} />
           </div>
         </div>
       )}

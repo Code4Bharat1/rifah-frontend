@@ -117,7 +117,7 @@ function CalendarView({ events, onEventClick }) {
 function AdminEvents() {
   const router = useRouter();
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
+  const isCentralAdmin = user?.role === "central_admin";
   const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
   const { data: eventsData, refetch } = useEvents();
   const events = Array.isArray(eventsData) ? eventsData : [];
@@ -276,6 +276,7 @@ function AdminEvents() {
                         <Pill tone={r.status === "Pending Approval" ? "warning" : r.status === "Draft" ? "neutral" : "success"}>
                           {r.status || "Upcoming"}
                         </Pill>
+                        {r.eventCategory === "Sports" && <Pill tone="warning">Sports</Pill>}
                         {isToday && <Pill tone="success">Today</Pill>}
                         {r.date < today && <Pill tone="neutral">Past</Pill>}
                         {r.isPaid ? <Pill tone="warning">Paid (₹{r.ticketPrice})</Pill> : <Pill tone="neutral">Free</Pill>}
@@ -386,6 +387,7 @@ function AdminEvents() {
                     </p>
                   </div>
                   <Pill tone="success">{r.mode}</Pill>
+                  {r.eventCategory === "Sports" && <Pill tone="warning">Sports</Pill>}
                 </div>
                 <Button asChild size="sm" variant="outline" className="mt-3">
                   <Link href={`/events/${r.slug || r._id}`}>

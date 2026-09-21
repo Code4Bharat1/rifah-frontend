@@ -17,7 +17,7 @@ function getApiBaseUrl() {
 const API_BASE_URL = getApiBaseUrl();
 
 // Automatically determine backend root server URL from API_BASE_URL or env
-function getBackendServerBase() {
+export function getBackendServerBase() {
   const currentApiUrl = getApiBaseUrl();
   if (currentApiUrl && (currentApiUrl.startsWith("http://") || currentApiUrl.startsWith("https://"))) {
     try {
@@ -69,6 +69,38 @@ export function resolveMediaUrl(path) {
   // 5. Relative paths
   const cleanPath = cleanStr.startsWith("/") ? cleanStr : `/${cleanStr}`;
   return `${SERVER_BASE_URL}${cleanPath}`;
+}
+
+// Fetches a binary file (e.g. PDF) from an authenticated endpoint and triggers a browser download
+export async function downloadFile(endpoint, filename) {
+  const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
+  const activeApiUrl = getApiBaseUrl();
+  const url = endpoint.startsWith("http") ? endpoint : `${activeApiUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!response.ok) {
+    let message = "Failed to download file.";
+    try {
+      const data = await response.json();
+      message = data?.error?.message || data?.message || message;
+    } catch (e) {
+      // response wasn't JSON
+    }
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(blobUrl);
 }
 
 export async function apiClient(endpoint, options = {}, isRetry = false) {

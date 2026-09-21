@@ -188,7 +188,7 @@ function useResolvedNav(role) {
   const pathname = usePathname();
 
   // 1. Explicit path overrides for dedicated admin panels
-  if (pathname?.startsWith("/chapter-admin") || pathname === "/admin/operations") {
+  if (pathname?.startsWith("/chapter-admin")) {
     return roleNavs.chapter_admin;
   }
   if (pathname?.startsWith("/state-admin")) {
@@ -573,7 +573,7 @@ export function AppShell({
               </div>
             </div>
           )}
-          {(role === "chapter_admin" || user?.role === "chapter_admin" || path?.startsWith("/chapter-admin") || path === "/admin/operations") && (
+          {(role === "chapter_admin" || user?.role === "chapter_admin" || path?.startsWith("/chapter-admin")) && (
             <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="font-bold text-cyan-400 uppercase tracking-wider">CHAPTER ADMIN</span>

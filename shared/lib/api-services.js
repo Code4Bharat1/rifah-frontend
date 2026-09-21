@@ -282,10 +282,6 @@ export const eventApi = {
   updateAttendeeAskGive: (id, attendeeId, data) => 
     apiClient(`/events/${id}/attendees/${attendeeId}/ask-give`, { method: "PATCH", body: JSON.stringify(data) }),
 
-  // ─── Entrance Desk Gate Action ─────────────────────────────────────────────
-  gateAction: (id, attendeeId, action) => 
-    apiClient(`/events/${id}/attendees/${attendeeId}/gate-action`, { method: "PATCH", body: JSON.stringify({ action }) }),
-
   // ─── Certificate Generation ────────────────────────────────────────────────
   getCertificateUrl: (id, attendeeId, style, accentColor) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") || "http://localhost:5000";
@@ -303,7 +299,6 @@ export const followupApi = {
   getStats: (params = {}) => apiClient(`/followups/stats${toQueryString(params)}`),
   getAnalytics: (params = {}) => apiClient(`/followups/stats${toQueryString(params)}`),
   create: (data) => apiClient("/followups", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/followups/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   updateStatus: (id, status, note) => apiClient(`/followups/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) }),
   addNote: (id, content) => apiClient(`/followups/${id}/note`, { method: "POST", body: JSON.stringify({ content }) }),
   logMessage: (id, channel, message) => apiClient(`/followups/${id}/message`, { method: "POST", body: JSON.stringify({ channel, message }) }),
@@ -331,6 +326,12 @@ export const reportApi = {
   downloadBusinesses: (params) => downloadFile(`/reports/admin/export/businesses${toQueryString(params)}`, "businesses_report.csv"),
   downloadMemberships: (params) => downloadFile(`/reports/admin/export/memberships${toQueryString(params)}`, "memberships_report.csv"),
   downloadLeads: (params) => downloadFile(`/reports/admin/export/leads${toQueryString(params)}`, "leads_report.csv"),
+  downloadAdminPdf: () => downloadFile("/reports/admin/export/csv?format=pdf", "admin_reports.pdf"),
+  downloadRevenuePdf: (params) => downloadFile(`/reports/admin/export/revenue${toQueryString({ ...params, format: "pdf" })}`, "revenue_report.pdf"),
+  downloadBusinessesPdf: (params) => downloadFile(`/reports/admin/export/businesses${toQueryString({ ...params, format: "pdf" })}`, "businesses_report.pdf"),
+  downloadMembershipsPdf: (params) => downloadFile(`/reports/admin/export/memberships${toQueryString({ ...params, format: "pdf" })}`, "memberships_report.pdf"),
+  downloadLeadsPdf: (params) => downloadFile(`/reports/admin/export/leads${toQueryString({ ...params, format: "pdf" })}`, "leads_report.pdf"),
+  downloadEventsAnalyticsPdf: (params) => downloadFile(`/reports/admin/events-analytics${toQueryString({ ...params, format: "pdf" })}`, "events_analytics_report.pdf"),
   getRevenue: (params) => apiClient(`/reports/admin/export/revenue${toQueryString({ ...params, format: 'json' })}`),
   getBusinesses: (params) => apiClient(`/reports/admin/export/businesses${toQueryString({ ...params, format: 'json' })}`),
   getMemberships: (params) => apiClient(`/reports/admin/export/memberships${toQueryString({ ...params, format: 'json' })}`),

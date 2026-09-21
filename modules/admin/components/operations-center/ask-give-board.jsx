@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Users, Search, Download, ExternalLink, Briefcase } from "lucide-react";
+import { Users, Search, Download, ExternalLink, Briefcase, Plus, Loader2 } from "lucide-react";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { Textarea } from "@shared/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { toast } from "sonner";
 import { eventApi } from "@shared/lib/api-services";
 
@@ -12,9 +14,16 @@ export function AskGiveBoard({ eventId }) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [registrations, setRegistrations] = useState([]);
+  const [selectedAttendeeId, setSelectedAttendeeId] = useState("");
+  const [asksText, setAsksText] = useState("");
+  const [givesText, setGivesText] = useState("");
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     if (eventId) {
       fetchBoard();
+      fetchRegistrations();
     }
   }, [eventId]);
 
@@ -30,6 +39,44 @@ export function AskGiveBoard({ eventId }) {
       toast.error("Failed to load Ask & Give board");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRegistrations = async () => {
+    if (!eventId) return;
+    try {
+      const res = await eventApi.getRegistrations(eventId);
+      setRegistrations(res?.data || res || []);
+    } catch (err) {
+      // registrations list is a convenience for the entry form; board still works without it
+    }
+  };
+
+  const selectAttendeeForEdit = (attendeeId, existing) => {
+    setSelectedAttendeeId(attendeeId);
+    setAsksText((existing?.asks || []).join("\n"));
+    setGivesText((existing?.gives || []).join("\n"));
+  };
+
+  const handleSaveAskGive = async () => {
+    if (!selectedAttendeeId) {
+      toast.error("Select an attendee first.");
+      return;
+    }
+    const asks = asksText.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 3);
+    const gives = givesText.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 3);
+    try {
+      setSaving(true);
+      await eventApi.updateAttendeeAskGive(eventId, selectedAttendeeId, { asks, gives });
+      toast.success("Ask & Give saved!");
+      setSelectedAttendeeId("");
+      setAsksText("");
+      setGivesText("");
+      fetchBoard();
+    } catch (err) {
+      toast.error("Failed to save: " + (err.message || "Unknown error"));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -75,11 +122,48 @@ export function AskGiveBoard({ eventId }) {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-foreground flex items-center gap-1.5">
+          <Plus className="h-3.5 w-3.5" /> Add / Edit Ask & Give
+        </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Select value={selectedAttendeeId} onValueChange={(val) => {
+            const existing = attendees.find((a) => a.attendeeId === val);
+            selectAttendeeForEdit(val, existing);
+          }}>
+            <SelectTrigger className="sm:col-span-2"><SelectValue placeholder="Select attendee..." /></SelectTrigger>
+            <SelectContent>
+              {registrations.map((r) => (
+                <SelectItem key={r._id} value={r._id}>
+                  {r.user?.name || "Unknown"} {r.user?.businessName ? `— ${r.user.businessName}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Textarea
+            placeholder="Asks (one per line, up to 3)"
+            value={asksText}
+            onChange={(e) => setAsksText(e.target.value)}
+            rows={3}
+          />
+          <Textarea
+            placeholder="Gives (one per line, up to 3)"
+            value={givesText}
+            onChange={(e) => setGivesText(e.target.value)}
+            rows={3}
+          />
+        </div>
+        <Button onClick={handleSaveAskGive} disabled={saving} size="sm" className="gap-1.5">
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+          Save Ask & Give
+        </Button>
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search by name, company, need, or offering..." 
+          <Input
+            placeholder="Search by name, company, need, or offering..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
@@ -109,6 +193,9 @@ export function AskGiveBoard({ eventId }) {
                     <Briefcase className="h-3 w-3" /> {attendee.user?.company || attendee.user?.businessName || "Independent"}
                   </p>
                 </div>
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => selectAttendeeForEdit(attendee.attendeeId, attendee)}>
+                  Edit
+                </Button>
               </div>
               
               <div className="p-4 space-y-4 flex-1">
