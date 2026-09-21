@@ -225,7 +225,7 @@ export function RifahCopilotWidget({ role, user }) {
           text: m.content,
         }));
 
-      const res = await copilotApi.chat(query, history);
+      const res = await copilotApi.chat(query, history, effectiveRole);
 
       if (res && res.data && res.data.reply) {
         setMessages((prev) => [
@@ -382,22 +382,29 @@ export function RifahCopilotWidget({ role, user }) {
           </div>
 
           {/* Suggested Quick Prompt Chips */}
-          <div className="px-3 pt-2 pb-1 border-t border-border/60 bg-muted/20 shrink-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">
-              Suggested for you:
-            </p>
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-              {preset.suggestions.map((s, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSend(s)}
-                  disabled={isLoading}
-                  className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-foreground/80 hover:text-foreground border border-border transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {s}
-                </button>
-              ))}
+          <div className="px-3 pt-2 pb-1.5 border-t border-border/60 bg-muted/20 shrink-0">
+            <div className="flex items-center justify-between mb-1.5 px-0.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Suggested for you:
+              </p>
+              <span className="text-[10px] text-muted-foreground/60">Click to ask</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 max-h-[105px] overflow-y-auto no-scrollbar">
+              {(preset.suggestions || []).map((s, idx) => {
+                const text = typeof s === "string" ? s : (s?.label || s?.prompt || "");
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSend(text)}
+                    disabled={isLoading}
+                    title={text}
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-muted/80 hover:bg-muted text-foreground/85 hover:text-foreground border border-border/80 hover:border-primary/40 transition-all cursor-pointer disabled:opacity-50 active:scale-95 inline-flex items-center shadow-2xs"
+                  >
+                    <span>{text}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

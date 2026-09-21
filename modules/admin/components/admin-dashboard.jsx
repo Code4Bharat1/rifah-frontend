@@ -21,7 +21,8 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminHome() {
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
+  const isCentralAdmin = user?.role === "central_admin";
+
   const { data: overviewData, refetch: refetchOverview } = useAdminOverview();
   const { data: queueData, refetch: refetchQueue } = useVerificationQueue();
   const { data: enquiriesData } = useAllEnquiries();
@@ -51,13 +52,15 @@ function AdminHome() {
       actions={
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" className="rounded-full">
-            <Link href="/admin/reports">View reports</Link>
+            <Link href={user?.role === "chapter_admin" ? "/chapter-admin/reports" : "/admin/reports"}>View reports</Link>
           </Button>
-          <Button asChild className="rounded-full gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
-            <Link href="/admin/businesses/new">
-              <Plus className="h-4 w-4" /> Add Business
-            </Link>
-          </Button>
+          {isCentralAdmin && (
+            <Button asChild className="rounded-full gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+              <Link href="/admin/businesses/new">
+                <Plus className="h-4 w-4" /> Add Business
+              </Link>
+            </Button>
+          )}
         </div>
       }
     >

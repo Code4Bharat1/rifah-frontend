@@ -499,10 +499,10 @@ export const galleryApi = {
 };
 
 export const copilotApi = {
-  chat: (message, conversationHistory = []) =>
+  chat: (message, conversationHistory = [], role = null) =>
     apiClient("/copilot/chat", {
       method: "POST",
-      body: JSON.stringify({ message, conversationHistory }),
+      body: JSON.stringify({ message, conversationHistory, role }),
     }),
   getSuggestions: () => apiClient("/copilot/suggestions"),
 };
