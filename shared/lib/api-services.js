@@ -286,8 +286,18 @@ export const eventApi = {
   // ─── Event Role Assignments (functional roles → real access) ──────────────
   assignRole: (id, role, userId) =>
     apiClient(`/events/${id}/role-assignments`, { method: "PATCH", body: JSON.stringify({ role, userId }) }),
+  assignRolesBulk: (id, assignments) =>
+    apiClient(`/events/${id}/role-assignments/bulk`, {
+      method: "PATCH",
+      body: JSON.stringify({ assignments }),
+    }),
   getRoleAssignments: (id) => apiClient(`/events/${id}/role-assignments`),
   getMyDuty: (id) => apiClient(`/events/${id}/my-duty`),
+  setGateStatus: (id, attendeeId, gateStatus) =>
+    apiClient(`/events/${id}/attendees/${attendeeId}/gate`, {
+      method: "PATCH",
+      body: JSON.stringify({ gateStatus }),
+    }),
 
   // ─── Certificate Generation ────────────────────────────────────────────────
   getCertificateUrl: (id, attendeeId, style, accentColor) => {
@@ -473,3 +483,16 @@ export const postsApi = {
   delete: (id) => apiClient(`/posts/${id}`, { method: "DELETE" }),
 };
 
+
+export const galleryApi = {
+  // One folder per event, filtered by title / date range / state / chapter / scope.
+  listFolders: (params = {}) => apiClient(`/gallery/folders${toQueryString(params)}`),
+  getFolder: (eventId) => apiClient(`/gallery/folders/${eventId}`),
+  addMedia: (eventId, files, caption = "") => {
+    const formData = new FormData();
+    for (const file of files) formData.append("media", file);
+    if (caption) formData.append("caption", caption);
+    return apiClient(`/gallery/folders/${eventId}/media`, { method: "POST", body: formData });
+  },
+  removeMedia: (mediaId) => apiClient(`/gallery/media/${mediaId}`, { method: "DELETE" }),
+};

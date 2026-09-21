@@ -1,14 +1,9 @@
-import { AppShell } from "@shared/components/rifah/app-shell";
-import { OperationsCenter } from "@modules/admin/components/operations-center/operations-center";
+import { OperationsShell } from "@modules/admin/components/operations-center/operations-shell";
 
 export const metadata = {
-  title: "Operations Center | RIFAH Operations Center Admin Panel",
+  title: "Operations Center | RIFAH Central Admin Panel",
 };
 
-export default function AdminOperationsPage(props) {
-  return (
-    <AppShell role="chapter_admin" title="Operations Center" subtitle="RIFAH Operations Center Admin Panel">
-      <OperationsCenter initialTab="event-setup" {...props} />
-    </AppShell>
-  );
+export default function AdminOperationsPage() {
+  return <OperationsShell panel="central_admin" initialTab="event-setup" />;
 }

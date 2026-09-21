@@ -80,7 +80,7 @@ const navs = {
       { label: "More", to: "/biz/profile", icon: LayoutGrid },
     ],
     more: [
-      { label: "My Event Duty", to: "/biz/my-duty", icon: ShieldCheck },
+      { label: "Operations Center", to: "/biz/operations", icon: Radio },
       { label: "Messages", to: "/biz/messages", icon: MessageSquare },
       { label: "My Profile", to: "/biz/profile", icon: UserRound },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
@@ -150,7 +150,7 @@ const roleNavs = {
     title: "State admin",
     primary: [
       { label: "Dashboard", to: "/state-admin", icon: Gauge },
-      { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
+      { label: "Operations Center", to: "/state-admin/operations", icon: Radio },
       { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
       { label: "Members", to: "/state-admin/members", icon: Users },
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
@@ -574,7 +574,7 @@ export function AppShell({
               </div>
             </div>
           )}
-          {(role === "chapter_admin" || user?.role === "chapter_admin" || path?.startsWith("/chapter-admin")) && (
+          {user?.role === "chapter_admin" && (
             <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="font-bold text-cyan-400 uppercase tracking-wider">CHAPTER ADMIN</span>

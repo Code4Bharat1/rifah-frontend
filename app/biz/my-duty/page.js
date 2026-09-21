@@ -1,10 +1,6 @@
-import { MyDuty } from "@modules/workspace/components/my-duty";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "My Event Duty | Business Workspace | RIFAH Connect",
-  description: "Tasks and access for events you're assigned a role in.",
-};
-
-export default function MyDutyPage() {
-  return <MyDuty />;
+// "My Event Duty" now lives as a tab inside the business Operations Center.
+export default function Page() {
+  redirect("/biz/operations");
 }

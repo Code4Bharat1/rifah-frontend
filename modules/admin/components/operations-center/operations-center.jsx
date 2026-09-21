@@ -71,6 +71,7 @@ import {
   Loader2,
   ScrollText,
   Trash,
+  Images,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -87,6 +88,7 @@ import { DynamicQrCode } from "@shared/components/rifah/dynamic-qr";
 import { cn } from "@shared/lib/utils";
 import { StatCard } from "@shared/components/rifah/ui-bits";
 import { Pill } from "@shared/components/rifah/badges";
+import { EventGallery } from "@shared/components/rifah/event-gallery";
 import { FinanceTab } from "./finance-tab";
 import { CertificatesTab } from "./certificates-tab";
 import { ScriptsTab } from "./scripts-tab";
@@ -123,6 +125,7 @@ const HORIZONTAL_MODULE_TABS = [
   { key: "speakers-guests", label: "Speakers & Guests", icon: Mic },
   { key: "follow-up", label: "Follow-up", icon: MessageSquareText },
   { key: "ask-give", label: "Ask & Give", icon: Users },
+  { key: "gallery", label: "Gallery", icon: Images },
   { key: "certificates", label: "Certificates", icon: FileStack },
   { key: "scripts", label: "Scripts", icon: ScrollText },
   { key: "documents", label: "Documents", icon: FileStack },
@@ -757,10 +760,29 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     }
   };
 
-  // Role keys that grant real Operations Centre access/tasks once assigned (mirrors
-  // FUNCTIONAL_ROLES in rifah-backend/src/modules/events/event.service.js). All other
-  // teamRoles keys (stage/ceremonial roles) remain display-only, unaffected by this.
-  const FUNCTIONAL_ROLES = ["entranceIncharge", "followupCoordinator", "treasurer", "guestManager", "eventCoordinator"];
+  // Every role key that gets linked to a real user account on save (mirrors
+  // ASSIGNABLE_ROLES in rifah-backend/src/modules/events/event.service.js). The functional
+  // ones unlock tools in the member's Operations Centre; the stage ones tell the member
+  // they are presenting. Free-text fields (keynote topics, posters) are not roles.
+  const ASSIGNABLE_ROLES = [
+    "entranceIncharge",
+    "followupCoordinator",
+    "treasurer",
+    "guestManager",
+    "eventCoordinator",
+    "photosVideo",
+    "chapterAdmin",
+    "tilawatEquran",
+    "presidentWelcome",
+    "secretaryIntro",
+    "keynote1",
+    "keynote2",
+    "heroOfEvent",
+    "best60SecPitch",
+    "closingRemarks",
+    "voteOfThanks",
+    "eventEnd",
+  ];
 
   const handleSaveTeamRoles = async () => {
     if (!selectedEventId) {
@@ -770,12 +792,14 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     try {
       await eventApi.updateOperations(selectedEventId, { teamAssignments: teamRoles });
 
-      // Also mirror the 5 functional roles into structured, permission-relevant assignments
-      await Promise.all(
-        FUNCTIONAL_ROLES.map((roleKey) => {
+      // Also mirror every assignable role into structured, permission-relevant assignments.
+      // Sent as one bulk call so the roles cannot overwrite each other on the same document.
+      await eventApi.assignRolesBulk(
+        selectedEventId,
+        ASSIGNABLE_ROLES.map((roleKey) => {
           const assignedName = teamRoles[roleKey];
           const matchedMember = assignedName ? eligibleTeamMembers.find((m) => m.name === assignedName) : null;
-          return eventApi.assignRole(selectedEventId, roleKey, matchedMember?._id || null);
+          return { role: roleKey, userId: matchedMember?._id || null };
         })
       );
 
@@ -1933,7 +1957,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </Pill>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight mt-2 flex items-center gap-2">
-              RIFAH Operations Center Admin Panel
+              RIFAH Operations Center {isCentralAdmin ? "Central" : isStateAdmin ? "State" : "Chapter"} Admin Panel
             </h1>
             <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground mt-1">
               <span>
@@ -4502,6 +4526,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {/* ========================================================================= */}
       {/* MODULE 13: CERTIFICATES                                                   */}
       {/* ========================================================================= */}
+      {/* MODULE: GALLERY */}
+      {currentTab === "gallery" && <EventGallery />}
+
       {currentTab === "certificates" && (
         <div className="space-y-6">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
