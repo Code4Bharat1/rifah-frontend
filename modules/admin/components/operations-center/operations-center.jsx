@@ -1378,11 +1378,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     });
   }, [attendeesList, activeEvent]);
 
-  // My Team role-assignment eligibility: only users actually registered for the
-  // currently selected event (not the whole chapter roster) are assignable to any role.
+  // My Team role-assignment eligibility: only Members who have been allowed entry
+  // by the Gate Incharge (entryStatus === "Checked In") are assignable to any role.
+  // Non-members and pending/not-yet-checked-in attendees are excluded.
   const eligibleTeamMembers = useMemo(() => {
     return attendees
-      .filter((a) => a.approvalStatus !== "Rejected")
+      .filter((a) => a.isMember === true && a.entryStatus === "Checked In")
       .map((a) => ({
         _id: a.userId || a.id,
         name: a.name,
