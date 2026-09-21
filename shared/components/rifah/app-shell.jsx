@@ -80,6 +80,7 @@ const navs = {
       { label: "More", to: "/biz/profile", icon: LayoutGrid },
     ],
     more: [
+      { label: "My Event Duty", to: "/biz/my-duty", icon: ShieldCheck },
       { label: "Messages", to: "/biz/messages", icon: MessageSquare },
       { label: "My Profile", to: "/biz/profile", icon: UserRound },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },

@@ -44,6 +44,7 @@ export const userApi = {
   updateUserStatus: (id, data) => apiClient(`/users/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   deactivateAccount: (data = {}) => apiClient("/users/me/deactivate", { method: "POST", body: JSON.stringify(data) }),
   inviteUser: (data) => apiClient("/users/invite", { method: "POST", body: JSON.stringify(data) }),
+  getMyEventAssignments: () => apiClient("/users/me/event-assignments"),
 };
 
 export const businessApi = {
@@ -279,8 +280,14 @@ export const eventApi = {
   
   // ─── Ask & Give Board ──────────────────────────────────────────────────────
   getAskGiveBoard: (id) => apiClient(`/events/${id}/ask-give-board`),
-  updateAttendeeAskGive: (id, attendeeId, data) => 
+  updateAttendeeAskGive: (id, attendeeId, data) =>
     apiClient(`/events/${id}/attendees/${attendeeId}/ask-give`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  // ─── Event Role Assignments (functional roles → real access) ──────────────
+  assignRole: (id, role, userId) =>
+    apiClient(`/events/${id}/role-assignments`, { method: "PATCH", body: JSON.stringify({ role, userId }) }),
+  getRoleAssignments: (id) => apiClient(`/events/${id}/role-assignments`),
+  getMyDuty: (id) => apiClient(`/events/${id}/my-duty`),
 
   // ─── Certificate Generation ────────────────────────────────────────────────
   getCertificateUrl: (id, attendeeId, style, accentColor) => {
@@ -447,6 +454,7 @@ export const roleApi = {
 export const documentApi = {
   getAll: (params = {}) => apiClient(`/documents${toQueryString(params)}`),
   create: (data) => apiClient("/documents", { method: "POST", body: JSON.stringify(data) }),
+  upload: (formData) => apiClient("/documents/upload", { method: "POST", body: formData }),
   update: (id, data) => apiClient(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/documents/${id}`, { method: "DELETE" }),
 };

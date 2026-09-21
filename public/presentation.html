@@ -612,6 +612,13 @@
     const urlParams = new URLSearchParams(window.location.search);
     const chapter = urlParams.get('c') || 'central-mumbai';
     const chapterSlug = chapter.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+    // Backend Socket.IO origin — this static file has no Next.js env injection, so the
+    // admin console passes its resolved backend origin explicitly via the 's' query param.
+    // If opened directly without that param (e.g. pasted by hand), fall back to localhost:5000
+    // on local dev (frontend/backend run on different ports there), else same-origin (works
+    // when frontend/backend share a domain or are proxied in production).
+    const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const socketServerUrl = urlParams.get('s') || (isLocalHost ? 'http://localhost:5000' : window.location.origin);
     document.getElementById('chapterDisplay').textContent = `${chapter.toUpperCase()} CHAPTER · OPERATIONS CENTER`;
 
     // Audio Chime Synthesizer using Web Audio API
@@ -683,7 +690,7 @@
     }
 
     // Socket Connection
-    const socket = io(window.location.origin, { transports: ['websocket', 'polling'] });
+    const socket = io(socketServerUrl, { transports: ['websocket', 'polling'] });
     socket.on('connect', () => {
       document.getElementById('connStatus').textContent = 'Socket: 🟢 Connected';
       socket.emit('projector:join', chapterSlug);

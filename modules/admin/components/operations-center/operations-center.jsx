@@ -75,7 +75,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
 import { eventApi, followupApi, chapterApi, userApi, documentApi } from "@shared/lib/api-services";
-import { resolveMediaUrl, downloadFile } from "@shared/lib/api-client";
+import { resolveMediaUrl, downloadFile, getBackendServerBase } from "@shared/lib/api-client";
 import { getSocket } from "@shared/lib/socket";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
@@ -363,6 +363,45 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const [upcomingEventForm, setUpcomingEventForm] = useState({ title: "", date: "", chapter: "", city: "" });
   const [addingUpcomingEvent, setAddingUpcomingEvent] = useState(false);
   const [upcomingRegion, setUpcomingRegion] = useState("All of India");
+  const [documentUploadOpen, setDocumentUploadOpen] = useState(false);
+  const [documentUploadForm, setDocumentUploadForm] = useState({ title: "", type: "PDF", category: "General", file: null });
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+
+  const fetchDocuments = async () => {
+    try {
+      setLoadingDocs(true);
+      const res = await documentApi.getAll();
+      if (res.data) setDocuments(res.data);
+    } catch (err) {
+      console.error("Warning loading documents:", err.message);
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
+
+  const handleUploadDocument = async () => {
+    if (!documentUploadForm.file || !documentUploadForm.title.trim()) {
+      toast.error("Please provide a title and choose a file.");
+      return;
+    }
+    try {
+      setUploadingDocument(true);
+      const formData = new FormData();
+      formData.append("file", documentUploadForm.file);
+      formData.append("title", documentUploadForm.title.trim());
+      formData.append("type", documentUploadForm.type);
+      formData.append("category", documentUploadForm.category);
+      await documentApi.upload(formData);
+      toast.success("Document uploaded!");
+      setDocumentUploadOpen(false);
+      setDocumentUploadForm({ title: "", type: "PDF", category: "General", file: null });
+      fetchDocuments();
+    } catch (err) {
+      toast.error("Failed to upload document: " + (err.message || "Unknown error"));
+    } finally {
+      setUploadingDocument(false);
+    }
+  };
 
   // Load Events on Mount (Pre-existing events auto-fetched)
   useEffect(() => {
@@ -382,18 +421,6 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         console.warn("Warning loading events (transient):", err.message);
       } finally {
         setLoadingEvents(false);
-      }
-    }
-    
-    async function fetchDocuments() {
-      try {
-        setLoadingDocs(true);
-        const res = await documentApi.getAll();
-        if (res.data) setDocuments(res.data);
-      } catch (err) {
-        console.error("Warning loading documents:", err.message);
-      } finally {
-        setLoadingDocs(false);
       }
     }
 
@@ -425,7 +452,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         followupApi.list({ type: followupMode, status: followupFilter, search: followupSearch }),
         followupApi.getAnalytics({ eventId: selectedEventId, chapter: chapterName }),
       ]);
-      setFollowups(listRes?.data?.items || listRes?.items || []);
+      setFollowups(Array.isArray(listRes?.data) ? listRes.data : (listRes?.data?.items || listRes?.items || []));
       if (statsRes?.data) {
         setFollowupStats(statsRes.data);
       }
@@ -730,6 +757,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     }
   };
 
+  // Role keys that grant real Operations Centre access/tasks once assigned (mirrors
+  // FUNCTIONAL_ROLES in rifah-backend/src/modules/events/event.service.js). All other
+  // teamRoles keys (stage/ceremonial roles) remain display-only, unaffected by this.
+  const FUNCTIONAL_ROLES = ["entranceIncharge", "followupCoordinator", "treasurer", "guestManager", "eventCoordinator"];
+
   const handleSaveTeamRoles = async () => {
     if (!selectedEventId) {
       toast.error("Please select an active event first.");
@@ -737,6 +769,16 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     }
     try {
       await eventApi.updateOperations(selectedEventId, { teamAssignments: teamRoles });
+
+      // Also mirror the 5 functional roles into structured, permission-relevant assignments
+      await Promise.all(
+        FUNCTIONAL_ROLES.map((roleKey) => {
+          const assignedName = teamRoles[roleKey];
+          const matchedMember = assignedName ? eligibleTeamMembers.find((m) => m.name === assignedName) : null;
+          return eventApi.assignRole(selectedEventId, roleKey, matchedMember?._id || null);
+        })
+      );
+
       toast.success("Team assignments saved to MongoDB!");
     } catch (err) {
       toast.error("Failed to save team assignments: " + (err.message || "Unknown error"));
@@ -1252,7 +1294,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   useEffect(() => setMounted(true), []);
   const origin = mounted ? window.location.origin : "";
   const publicVisitorUrl = mounted ? `${origin}/events/${activeEvent?.slug || activeEvent?._id || "mumbai"}` : `/events/${activeEvent?.slug || activeEvent?._id || "mumbai"}`;
-  const projectorUrl = mounted ? `${origin}/presentation.html?c=${chapterSlug}` : `/presentation.html?c=${chapterSlug}`;
+  // presentation.html is a static file (no Next.js env injection), so the backend socket
+  // origin is passed explicitly via query param rather than guessed from window.location.
+  const projectorUrl = mounted
+    ? `${origin}/presentation.html?c=${chapterSlug}&s=${encodeURIComponent(getBackendServerBase())}`
+    : `/presentation.html?c=${chapterSlug}`;
 
   // Copy All Links
   const handleCopyAllLinks = () => {
@@ -1307,6 +1353,19 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       };
     });
   }, [attendeesList, activeEvent]);
+
+  // My Team role-assignment eligibility: only users actually registered for the
+  // currently selected event (not the whole chapter roster) are assignable to any role.
+  const eligibleTeamMembers = useMemo(() => {
+    return attendees
+      .filter((a) => a.approvalStatus !== "Rejected")
+      .map((a) => ({
+        _id: a.userId || a.id,
+        name: a.name,
+        organization: a.company,
+        phone: a.mobile,
+      }));
+  }, [attendees]);
 
   // Filtered Attendees
   const filteredAttendees = useMemo(() => {
@@ -3056,7 +3115,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         <MyTeamTab
           teamRoles={teamRoles}
           setTeamRoles={setTeamRoles}
-          chapterMembers={chapterMembers}
+          chapterMembers={eligibleTeamMembers}
           handleSaveTeamRoles={handleSaveTeamRoles}
         />
       )}
@@ -3260,7 +3319,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                             size="sm"
                             variant="outline"
                             onClick={() => handleResetTimer()}
-                            className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-7 px-2.5 gap-1"
+                            className="bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-7 px-2.5 gap-1"
                           >
                             <RotateCcw className="h-3 w-3" /> Reset
                           </Button>
@@ -3269,7 +3328,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                             size="sm"
                             variant="outline"
                             onClick={() => handleAdjustTimer(60)}
-                            className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-7 px-2"
+                            className="bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-7 px-2"
                           >
                             +1m
                           </Button>
@@ -3278,7 +3337,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                             size="sm"
                             variant="outline"
                             onClick={() => handleAdjustTimer(300)}
-                            className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-7 px-2"
+                            className="bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-7 px-2"
                           >
                             +5m
                           </Button>
@@ -3306,7 +3365,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                       variant="outline"
                       disabled={currentSlideIndex === 0}
                       onClick={handlePrevSlide}
-                      className="border-slate-700 text-white hover:bg-slate-800 text-xs h-9 gap-1.5"
+                      className="bg-slate-900 border-slate-700 text-white hover:bg-slate-800 text-xs h-9 gap-1.5"
                     >
                       <ChevronLeft className="h-4 w-4" /> Previous Slide
                     </Button>
@@ -4486,20 +4545,25 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {currentTab === "documents" && (
         <div className="space-y-6">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="border-b border-border pb-4 mb-5">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <FileStack className="h-5 w-5 text-primary" />
-                Formats, Templates & Chapter Circulars
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Official RIFAH templates, membership forms, and state circulars
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-5">
+              <div>
+                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <FileStack className="h-5 w-5 text-primary" />
+                  Formats, Templates & Chapter Circulars
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Official RIFAH templates, membership forms, and state circulars
+                </p>
+              </div>
+              <Button size="sm" onClick={() => setDocumentUploadOpen(true)} className="gap-1.5 font-semibold shadow-xs">
+                <Plus className="h-3.5 w-3.5" /> Upload Document
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {documents.length > 0 ? documents.map((doc, idx) => (
                 <div
-                  key={idx}
+                  key={doc._id || idx}
                   className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all flex flex-col justify-between"
                 >
                   <div className="space-y-1.5">
@@ -4514,14 +4578,30 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleViewDocument(doc.fileUrl || doc.title)}
+                      onClick={() => doc.fileUrl ? window.open(resolveMediaUrl(doc.fileUrl), "_blank") : handleViewDocument(doc.title)}
                       className="flex-1 text-xs h-8 gap-1"
                     >
                       <Eye className="h-3.5 w-3.5" /> View
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => handleDownloadDocument(doc.title)}
+                      onClick={async () => {
+                        if (!doc.fileUrl) { handleDownloadDocument(doc.title); return; }
+                        try {
+                          const res = await fetch(resolveMediaUrl(doc.fileUrl));
+                          const blob = await res.blob();
+                          const blobUrl = URL.createObjectURL(blob);
+                          const link = document.createElement("a");
+                          link.href = blobUrl;
+                          link.setAttribute("download", doc.title || "document");
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(blobUrl);
+                        } catch (err) {
+                          toast.error("Failed to download document.");
+                        }
+                      }}
                       className="flex-1 text-xs h-8 gap-1 font-semibold shadow-xs"
                     >
                       <Download className="h-3.5 w-3.5" /> Download
@@ -4536,6 +4616,68 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               )}
             </div>
           </div>
+
+          <Dialog open={documentUploadOpen} onOpenChange={setDocumentUploadOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload Document</DialogTitle>
+                <DialogDescription>Visible to all admin roles by default, scoped to your chapter for Chapter Admins.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs font-semibold">Title</Label>
+                  <Input
+                    value={documentUploadForm.title}
+                    onChange={(e) => setDocumentUploadForm((p) => ({ ...p, title: e.target.value }))}
+                    placeholder="e.g. Membership Application Form"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Type</Label>
+                    <Select value={documentUploadForm.type} onValueChange={(val) => setDocumentUploadForm((p) => ({ ...p, type: val }))}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PDF">PDF</SelectItem>
+                        <SelectItem value="Word">Word</SelectItem>
+                        <SelectItem value="Excel">Excel</SelectItem>
+                        <SelectItem value="Image">Image</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Category</Label>
+                    <Select value={documentUploadForm.category} onValueChange={(val) => setDocumentUploadForm((p) => ({ ...p, category: val }))}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="General">General</SelectItem>
+                        <SelectItem value="Membership">Membership</SelectItem>
+                        <SelectItem value="Circular">Circular</SelectItem>
+                        <SelectItem value="Template">Template</SelectItem>
+                        <SelectItem value="Certificate">Certificate</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">File</Label>
+                  <Input
+                    type="file"
+                    className="mt-1"
+                    onChange={(e) => setDocumentUploadForm((p) => ({ ...p, file: e.target.files?.[0] || null }))}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDocumentUploadOpen(false)}>Cancel</Button>
+                <Button onClick={handleUploadDocument} disabled={uploadingDocument} className="gap-1.5">
+                  {uploadingDocument ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</> : <><Plus className="h-4 w-4" /> Upload</>}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
