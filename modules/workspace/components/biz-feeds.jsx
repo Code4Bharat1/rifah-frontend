@@ -909,27 +909,32 @@ export function BizFeeds() {
     }
   }, [isNewPostOpen, user, businessData, currentUsername, resolvedDefaultAvatar, chapters, formUsername, formProfilePic]);
 
+  const postsQueryParams = useMemo(
+    () => ({
+      filterMode,
+      chapter: filterMode === "chapter" ? selectedChapter : undefined,
+      state: filterMode === "state" ? selectedState : undefined,
+      search: searchQuery,
+    }),
+    [filterMode, selectedChapter, selectedState, searchQuery]
+  );
+
   // Live API query for feed posts — automatically refetches every 10s and on window focus
   const {
-    data: apiPosts = [],
+    data: apiPosts,
     isLoading: isPostsLoading,
     refetch: refetchPosts,
-  } = usePosts({
-    filterMode,
-    chapter: filterMode === "chapter" ? selectedChapter : undefined,
-    state: filterMode === "state" ? selectedState : undefined,
-    search: searchQuery,
-  });
+  } = usePosts(postsQueryParams);
 
   const createPostMutation = useCreatePost();
   const toggleLikeMutation = useTogglePostLike();
   const addCommentMutation = useAddPostComment();
   const deletePostMutation = useDeletePost();
 
-  // Keep local optimistic state synchronized with apiPosts
+  // Keep local optimistic state synchronized with apiPosts without causing infinite loop
   useEffect(() => {
-    if (apiPosts && Array.isArray(apiPosts)) {
-      setPosts(apiPosts);
+    if (Array.isArray(apiPosts)) {
+      setPosts((prev) => (prev === apiPosts ? prev : apiPosts));
     }
   }, [apiPosts]);
 

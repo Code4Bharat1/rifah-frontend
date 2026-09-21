@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Check,
@@ -48,6 +48,59 @@ function getAvatarColor(name = "") {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   return AVATAR_PALETTES[Math.abs(hash) % AVATAR_PALETTES.length];
+}
+
+/**
+ * ScrollableContainer prevents Radix Dialog's RemoveScroll from locking mouse wheel & touch
+ * events when Popovers are portalled outside the DialogContent.
+ */
+function ScrollableContainer({ className, style, children, ...props }) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      e.stopPropagation();
+      const { scrollHeight, clientHeight } = el;
+      if (scrollHeight > clientHeight) {
+        el.scrollTop += e.deltaY;
+      }
+    };
+
+    const handleTouch = (e) => {
+      e.stopPropagation();
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false, capture: true });
+    el.addEventListener("wheel", handleWheel, { passive: false, capture: false });
+    el.addEventListener("touchmove", handleTouch, { passive: false, capture: true });
+    el.addEventListener("touchmove", handleTouch, { passive: false, capture: false });
+
+    return () => {
+      el.removeEventListener("wheel", handleWheel, { capture: true });
+      el.removeEventListener("wheel", handleWheel, { capture: false });
+      el.removeEventListener("touchmove", handleTouch, { capture: true });
+      el.removeEventListener("touchmove", handleTouch, { capture: false });
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className={className}
+      style={{
+        overscrollBehavior: "contain",
+        WebkitOverflowScrolling: "touch",
+        touchAction: "pan-y",
+        ...style,
+      }}
+      {...props}
+    >
+      {children}
+    </div>
+  );
 }
 
 /**
@@ -297,7 +350,10 @@ export function MemberPicker({
                   )}
                 </div>
               </div>
-              <div className="max-h-60 overflow-y-auto p-1 text-sm">
+              <ScrollableContainer
+                className="max-h-60 overflow-y-auto p-1 text-sm"
+                style={{ maxHeight: "240px", overflowY: "auto" }}
+              >
                 {filteredStates.length === 0 ? (
                   <div className="py-6 text-center text-xs text-muted-foreground">
                     No states matching "{stateSearch}"
@@ -322,7 +378,7 @@ export function MemberPicker({
                     );
                   })
                 )}
-              </div>
+              </ScrollableContainer>
             </PopoverContent>
           </Popover>
         </div>
@@ -401,7 +457,10 @@ export function MemberPicker({
                   )}
                 </div>
               </div>
-              <div className="max-h-60 overflow-y-auto p-1 text-sm">
+              <ScrollableContainer
+                className="max-h-60 overflow-y-auto p-1 text-sm"
+                style={{ maxHeight: "240px", overflowY: "auto" }}
+              >
                 {filteredChapters.length === 0 ? (
                   <div className="py-6 text-center text-xs text-muted-foreground">
                     No chapters found {selectedState ? `in ${selectedState}` : ""}
@@ -433,7 +492,7 @@ export function MemberPicker({
                     );
                   })
                 )}
-              </div>
+              </ScrollableContainer>
             </PopoverContent>
           </Popover>
         </div>
@@ -584,7 +643,10 @@ export function MemberPicker({
             </div>
 
             {/* Members List */}
-            <div className="max-h-76 overflow-y-auto p-2 space-y-1.5">
+            <ScrollableContainer
+              className="max-h-72 overflow-y-auto p-2 space-y-1.5"
+              style={{ maxHeight: "300px", overflowY: "auto" }}
+            >
               {isMembersLoading ? (
                 <div className="py-8 flex flex-col items-center justify-center text-xs text-muted-foreground gap-2">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -681,7 +743,7 @@ export function MemberPicker({
                   );
                 })
               )}
-            </div>
+            </ScrollableContainer>
           </PopoverContent>
         </Popover>
       </div>

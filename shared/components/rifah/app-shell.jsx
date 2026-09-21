@@ -391,8 +391,13 @@ export function AppShell({
 
   const { data: businessData, isLoading: isBizLoading } = useMyBusiness();
   const rawVerification = businessData?.verification || businessData?.verificationStatus;
-  const isBizVerified = (rawVerification || "").toLowerCase() === "verified";
-  const hasEverBeenVerified = businessData?.isVerified === true || isBizVerified;
+  const isBizVerified =
+    (rawVerification || "").toLowerCase() === "verified" ||
+    (rawVerification || "").toLowerCase() === "approved" ||
+    businessData?.isVerified === true ||
+    (businessData?.status || "").toLowerCase() === "active" ||
+    (businessData?.status || "").toLowerCase() === "live";
+  const hasEverBeenVerified = isBizVerified;
 
   // If the user is an admin who switched to business_owner, bypass the verification gate
   // Central/State/Chapter admins who own a business should always see the full workspace

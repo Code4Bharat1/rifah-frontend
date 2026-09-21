@@ -32,6 +32,7 @@ import {
   useChapters,
   useMyBusiness,
 } from "@shared/hooks/use-rifah-api";
+import { useAuth } from "@shared/providers/auth-provider";
 import { enquiryApi } from "@shared/lib/api-services";
 
 const B2B_CATEGORIES = [
@@ -81,6 +82,7 @@ export function BizNewEnquiry() {
   const [createdRef, setCreatedRef] = useState(null);
 
   // Queries for dynamic dropdowns
+  const { user } = useAuth();
   const { data: myBiz } = useMyBusiness();
   const { data: chaptersData, isLoading: loadingChapters } = useChapters();
   const { data: categoriesData } = useCategories();
@@ -153,6 +155,10 @@ export function BizNewEnquiry() {
     setLoading(true);
 
     try {
+      const senderName = user?.name || myBiz?.contactPerson || myBiz?.name || "Business Member";
+      const senderEmail = user?.email || myBiz?.email || "";
+      const senderPhone = user?.phone || myBiz?.phone || "";
+
       const payload = {
         title: formData.title.trim(),
         category: formData.category,
@@ -162,6 +168,9 @@ export function BizNewEnquiry() {
         requiredBy: formData.requiredBy,
         description: formData.description.trim(),
         targetType,
+        guestName: senderName,
+        guestEmail: senderEmail,
+        guestPhone: senderPhone,
         ...(targetType === "chamber" ? { chapter: selectedChapter } : {}),
         ...(targetType === "business" ? { targetBusiness: selectedBusiness } : {}),
       };

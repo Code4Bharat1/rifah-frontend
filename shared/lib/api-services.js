@@ -169,6 +169,7 @@ export const catalogueApi = {
   list: (params = {}) => apiClient(`/catalogue${toQueryString(params)}`),
   getByBusiness: (businessId) => apiClient(`/catalogue/business/${businessId}`),
   getById: (id) => apiClient(`/catalogue/${id}`),
+  recordView: (id) => apiClient(`/catalogue/${id}/view`, { method: "POST" }),
   create: (data) => apiClient("/catalogue", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/catalogue/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/catalogue/${id}`, { method: "DELETE" }),
