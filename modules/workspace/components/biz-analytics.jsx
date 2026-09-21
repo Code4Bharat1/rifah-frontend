@@ -101,7 +101,7 @@ function BizAnalytics() {
             }
             icon={Star}
             tone="warning"
-            href="/biz/reviews"
+            href="/biz/profile?tab=reviews"
           />
         </div>
 

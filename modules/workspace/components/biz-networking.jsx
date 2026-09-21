@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -16,6 +16,8 @@ import {
   Sparkles,
   Share2,
   CheckCircle2,
+  Search,
+  X,
 } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -106,6 +108,9 @@ function BizNetworking() {
   const [closeAmount, setCloseAmount] = useState("");
   const [closeNote, setCloseNote] = useState("");
   const [isClosingReferral, setIsClosingReferral] = useState(false);
+
+  const [meetingSearch, setMeetingSearch] = useState("");
+  const [referralSearch, setReferralSearch] = useState("");
 
   const resetMeetingDialog = () => {
     setSelectedMember(null);
@@ -269,6 +274,43 @@ function BizNetworking() {
   const referralsMade = referrals.filter((r) => String(r.referrerUser?._id || r.referrerUser) === String(myUserId));
   const referralsReceived = referrals.filter((r) => String(r.referredUser?._id || r.referredUser) === String(myUserId));
 
+  const filteredMeetings = useMemo(() => {
+    const q = meetingSearch.trim().toLowerCase();
+    if (!q) return meetings;
+    return meetings.filter((m) => {
+      const iInitiated = String(m.initiatorUser?._id || m.initiatorUser) === String(myUserId);
+      const counterpart = iInitiated ? m.memberBusiness : m.initiatorBusiness;
+      const chapter = iInitiated ? m.memberChapterId : m.initiatorChapterId;
+      const name = (counterpart?.name || "").toLowerCase();
+      const desc = (m.description || "").toLowerCase();
+      const loc = (m.location || "").toLowerCase();
+      const ch = (chapter?.name || chapter?.state || "").toLowerCase();
+      return name.includes(q) || desc.includes(q) || loc.includes(q) || ch.includes(q);
+    });
+  }, [meetings, meetingSearch, myUserId]);
+
+  const filteredReferralsMade = useMemo(() => {
+    const q = referralSearch.trim().toLowerCase();
+    if (!q) return referralsMade;
+    return referralsMade.filter((r) => {
+      const name = (r.referredBusiness?.name || "").toLowerCase();
+      const lead = (r.leadName || "").toLowerCase();
+      const desc = (r.description || "").toLowerCase();
+      return name.includes(q) || lead.includes(q) || desc.includes(q);
+    });
+  }, [referralsMade, referralSearch]);
+
+  const filteredReferralsReceived = useMemo(() => {
+    const q = referralSearch.trim().toLowerCase();
+    if (!q) return referralsReceived;
+    return referralsReceived.filter((r) => {
+      const name = (r.referrerBusiness?.name || "").toLowerCase();
+      const lead = (r.leadName || "").toLowerCase();
+      const desc = (r.description || "").toLowerCase();
+      return name.includes(q) || lead.includes(q) || desc.includes(q);
+    });
+  }, [referralsReceived, referralSearch]);
+
   const renderNotesList = (list, counterpartKey, emptyLabel) => {
     if (list.length === 0) {
       return <p className="py-6 text-center text-sm text-muted-foreground">{emptyLabel}</p>;
@@ -357,49 +399,73 @@ function BizNetworking() {
                 />
               ) : (
                 <div className="space-y-3">
-                  {meetings.map((m) => {
-                    const iInitiated = String(m.initiatorUser?._id || m.initiatorUser) === String(myUserId);
-                    const counterpartBusiness = iInitiated ? m.memberBusiness : m.initiatorBusiness;
-                    const counterpartChapter = iInitiated ? m.memberChapterId : m.initiatorChapterId;
-                    const initiatedByLabel =
-                      m.initiatedBy === "self"
-                        ? iInitiated
-                          ? "You initiated this meeting"
-                          : `${counterpartBusiness?.name || "They"} initiated this meeting`
-                        : iInitiated
-                          ? `${counterpartBusiness?.name || "They"} initiated this meeting`
-                          : "You initiated this meeting";
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Search meetings by member, chapter, location or note..."
+                      value={meetingSearch}
+                      onChange={(e) => setMeetingSearch(e.target.value)}
+                      className="h-9 pl-9 pr-8 text-xs bg-background"
+                    />
+                    {meetingSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setMeetingSearch("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {filteredMeetings.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-muted-foreground">
+                      No meetings match "{meetingSearch}".
+                    </p>
+                  ) : (
+                    filteredMeetings.map((m) => {
+                      const iInitiated = String(m.initiatorUser?._id || m.initiatorUser) === String(myUserId);
+                      const counterpartBusiness = iInitiated ? m.memberBusiness : m.initiatorBusiness;
+                      const counterpartChapter = iInitiated ? m.memberChapterId : m.initiatorChapterId;
+                      const initiatedByLabel =
+                        m.initiatedBy === "self"
+                          ? iInitiated
+                            ? "You initiated this meeting"
+                            : `${counterpartBusiness?.name || "They"} initiated this meeting`
+                          : iInitiated
+                            ? `${counterpartBusiness?.name || "They"} initiated this meeting`
+                            : "You initiated this meeting";
 
-                    return (
-                      <div key={m._id} className="rounded-xl border border-border p-4">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-semibold">{counterpartBusiness?.name || "RIFAH Member"}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {counterpartChapter?.name || counterpartChapter?.state || "Chapter"}
-                              {counterpartChapter?.state ? ` · ${counterpartChapter.state}` : ""}
-                            </p>
+                      return (
+                        <div key={m._id} className="rounded-xl border border-border p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold">{counterpartBusiness?.name || "RIFAH Member"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {counterpartChapter?.name || counterpartChapter?.state || "Chapter"}
+                                {counterpartChapter?.state ? ` · ${counterpartChapter.state}` : ""}
+                              </p>
+                            </div>
+                            <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                              {initiatedByLabel}
+                            </span>
                           </div>
-                          <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                            {initiatedByLabel}
-                          </span>
+                          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-1.5">
+                              <CalendarDays className="h-3.5 w-3.5" />
+                              {new Date(m.meetingDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <Clock className="h-3.5 w-3.5" /> {m.meetingTime}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <MapPin className="h-3.5 w-3.5" /> {m.location}
+                            </span>
+                          </div>
+                          <p className="mt-2.5 text-sm text-foreground/90">{m.description}</p>
                         </div>
-                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1.5">
-                            <CalendarDays className="h-3.5 w-3.5" />
-                            {new Date(m.meetingDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5" /> {m.meetingTime}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5" /> {m.location}
-                          </span>
-                        </div>
-                        <p className="mt-2.5 text-sm text-foreground/90">{m.description}</p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               )}
             </Panel>
@@ -433,6 +499,27 @@ function BizNetworking() {
           </TabsContent>
 
           <TabsContent value="referrals" className="space-y-4">
+            {referrals.length > 0 && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search referrals by member name, contact or requirement..."
+                  value={referralSearch}
+                  onChange={(e) => setReferralSearch(e.target.value)}
+                  className="h-9 pl-9 pr-8 text-xs bg-background"
+                />
+                {referralSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setReferralSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
             <Panel
               title="Referrals I've Made"
               description="Businesses you've referred your contacts to"
@@ -457,9 +544,13 @@ function BizNetworking() {
                     </Button>
                   }
                 />
+              ) : referralSearch && filteredReferralsMade.length === 0 ? (
+                <p className="py-6 text-center text-xs text-muted-foreground">
+                  No referrals made match "{referralSearch}".
+                </p>
               ) : (
                 <div className="space-y-3">
-                  {referralsMade.map((r) => (
+                  {filteredReferralsMade.map((r) => (
                     <div key={r._id} className="rounded-xl border border-border p-4">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
@@ -499,9 +590,13 @@ function BizNetworking() {
                   title="No referrals received yet"
                   description="When a fellow member refers a lead to your business, it will show up here."
                 />
+              ) : referralSearch && filteredReferralsReceived.length === 0 ? (
+                <p className="py-6 text-center text-xs text-muted-foreground">
+                  No referrals received match "{referralSearch}".
+                </p>
               ) : (
                 <div className="space-y-3">
-                  {referralsReceived.map((r) => (
+                  {filteredReferralsReceived.map((r) => (
                     <div key={r._id} className="rounded-xl border border-border p-4">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
@@ -559,6 +654,7 @@ function BizNetworking() {
           <div className="space-y-4 py-2">
             <MemberPicker
               idPrefix="meeting"
+              value={selectedMember}
               excludeBusinessId={myBusiness?._id}
               onChange={setSelectedMember}
               disabled={isSavingMeeting}
@@ -653,6 +749,7 @@ function BizNetworking() {
           <div className="space-y-4 py-2">
             <MemberPicker
               idPrefix="thank-you"
+              value={thankYouMember}
               excludeBusinessId={myBusiness?._id}
               onChange={setThankYouMember}
               disabled={isSavingThankYou}
@@ -715,6 +812,7 @@ function BizNetworking() {
           <div className="space-y-4 py-2">
             <MemberPicker
               idPrefix="referral"
+              value={referralMember}
               excludeBusinessId={myBusiness?._id}
               onChange={setReferralMember}
               disabled={isSavingReferral}

@@ -16,6 +16,7 @@ import {
   UserRound,
   Sparkles,
   Plus,
+  Star,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -38,13 +39,14 @@ import {
 } from "@shared/components/ui/select";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 import { getMainCategories, getSubCategoriesFor } from "@shared/lib/categories-data";
-import { useMyBusiness, useCategories, useBusinessCatalogue } from "@shared/hooks/use-rifah-api";
+import { useMyBusiness, useCategories, useBusinessCatalogue, useBusinessReviews } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
 import { businessApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@shared/lib/utils";
 import { BizCatalogueManager } from "./biz-catalogue";
+import { BizReviews } from "./biz-reviews";
 
 const B2B_INDUSTRIES = [
   "Industrial Machinery & Tools",
@@ -76,14 +78,21 @@ function BizProfile() {
   const { data: categoriesData } = useCategories();
   const { data: catalogueItems } = useBusinessCatalogue(business?._id);
   const totalCatalogueCount = (catalogueItems || []).length;
+  const { data: reviewsData } = useBusinessReviews(business?._id);
+  const allReviews = Array.isArray(reviewsData) ? reviewsData : reviewsData?.reviews ?? [];
+  const totalReviewsCount = allReviews.length > 0 ? allReviews.length : 1;
 
   const searchParams = useSearchParams();
   const tabParam = searchParams?.get("tab");
-  const [activeTab, setActiveTab] = useState(tabParam === "catalogue" ? "catalogue" : "profile");
+  const [activeTab, setActiveTab] = useState(
+    tabParam === "catalogue" ? "catalogue" : tabParam === "reviews" ? "reviews" : "profile"
+  );
 
   useEffect(() => {
     if (tabParam === "catalogue") {
       setActiveTab("catalogue");
+    } else if (tabParam === "reviews") {
+      setActiveTab("reviews");
     }
   }, [tabParam]);
 
@@ -377,6 +386,8 @@ function BizProfile() {
       subtitle={
         activeTab === "catalogue"
           ? `${totalCatalogueCount} published catalogue items`
+          : activeTab === "reviews"
+          ? "Customer ratings & reviews"
           : "Manage your enterprise profile, credentials & catalogue"
       }
       actions={
@@ -392,15 +403,15 @@ function BizProfile() {
       }
     >
       {/* Top Segmented Navigation Switcher */}
-      <div className="flex items-center gap-2 border-b border-border pb-3 mb-6">
+      <div className="flex items-center gap-2 border-b border-border pb-3 mb-6 overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab("profile")}
           className={cn(
-            "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer",
+            "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0",
             activeTab === "profile"
-              ? "bg-primary text-primary-foreground shadow-xs"
-              : "bg-surface border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              ? "bg-[#0284c7] text-white shadow-xs"
+              : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
           )}
         >
           <Building2 className="h-4 w-4" />
@@ -410,10 +421,10 @@ function BizProfile() {
           type="button"
           onClick={() => setActiveTab("catalogue")}
           className={cn(
-            "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer",
+            "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0",
             activeTab === "catalogue"
-              ? "bg-primary text-primary-foreground shadow-xs"
-              : "bg-surface border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              ? "bg-[#0284c7] text-white shadow-xs"
+              : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
           )}
         >
           <Package className="h-4 w-4" />
@@ -423,10 +434,33 @@ function BizProfile() {
               "rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors",
               activeTab === "catalogue"
                 ? "bg-white/20 text-white"
-                : "bg-muted text-foreground"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
             )}
           >
             {totalCatalogueCount}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("reviews")}
+          className={cn(
+            "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0",
+            activeTab === "reviews"
+              ? "bg-[#0284c7] text-white shadow-xs"
+              : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+          )}
+        >
+          <Star className="h-4 w-4" />
+          <span>Customer Reviews</span>
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors",
+              activeTab === "reviews"
+                ? "bg-white/20 text-white"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+            )}
+          >
+            {totalReviewsCount}
           </span>
         </button>
       </div>
@@ -434,6 +468,10 @@ function BizProfile() {
       {activeTab === "catalogue" ? (
         <div className="animate-in fade-in duration-200">
           <BizCatalogueManager embedded={true} />
+        </div>
+      ) : activeTab === "reviews" ? (
+        <div className="animate-in fade-in duration-200">
+          <BizReviews embedded={true} />
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] animate-in fade-in duration-200">

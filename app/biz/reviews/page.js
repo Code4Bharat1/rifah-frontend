@@ -1,5 +1,5 @@
-import { BizReviews } from "@modules/workspace";
+import { redirect } from "next/navigation";
 
-export default function Page(props) {
-  return <BizReviews {...props} />;
+export default function Page() {
+  redirect("/biz/profile?tab=reviews");
 }

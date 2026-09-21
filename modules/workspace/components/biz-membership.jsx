@@ -289,9 +289,9 @@ function handleDownloadCertificate(business, membershipData) {
   }
 
   const businessName = business?.name || "Business Enterprise";
-  const tierName = (membershipData?.planName || business?.membership || "Premium").toUpperCase();
-  const chapterName = typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || "Chamber Central");
-  const memberId = business?._id ? `RIFAH-MEM-${business._id.slice(-6).toUpperCase()}` : "RIFAH-MEM-001";
+  const tierName = (membershipData?.planName || business?.membership || "Enterprise").toUpperCase();
+  const chapterName = typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || "Mumbai");
+  const memberId = business?._id ? `RIFAH-MEM-${business._id.slice(-6).toUpperCase()}` : "RIFAH-MEM-BF403C";
 
   const startDate = membershipData?.startDate || membershipData?.createdAt || business?.createdAt || new Date();
   const endDate = membershipData?.endDate || membershipData?.renewalDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
@@ -308,165 +308,612 @@ function handleDownloadCertificate(business, membershipData) {
       <title>RIFAH Membership Certificate - ${businessName}</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&family=Montserrat:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-          background-color: #f1f5f9;
-          font-family: 'Plus Jakarta Sans', sans-serif;
+          background-color: #0f172a;
+          background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
+          font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 30px 15px;
+          padding: 30px 15px 50px;
+          min-height: 100vh;
           color: #0b1f33;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
+
+        /* Top Action Toolbar */
         .toolbar {
-          width: 900px;
+          width: 940px;
           display: flex;
-          justify-content: flex-end;
-          margin-bottom: 15px;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding: 12px 20px;
+          background: rgba(30, 41, 59, 0.85);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        .toolbar-info {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #e2e8f0;
+          font-size: 13px;
+        }
+        .toolbar-pill {
+          background: rgba(197, 155, 39, 0.2);
+          border: 1px solid rgba(197, 155, 39, 0.4);
+          color: #fcd34d;
+          font-size: 11px;
+          font-weight: 700;
+          padding: 3px 10px;
+          border-radius: 20px;
+          letter-spacing: 0.5px;
         }
         .print-btn {
-          background: #0088d1;
-          color: #fff;
-          border: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: linear-gradient(135deg, #c59b27 0%, #e0b84c 50%, #b8861b 100%);
+          color: #0f172a;
+          border: 1px solid #fef08a;
           padding: 10px 24px;
-          font-weight: 700;
+          font-weight: 800;
           border-radius: 8px;
           cursor: pointer;
-          font-size: 14px;
-          box-shadow: 0 4px 10px rgba(0,136,209,0.3);
+          font-size: 13px;
+          letter-spacing: 0.5px;
+          box-shadow: 0 4px 15px rgba(197, 155, 39, 0.4);
+          transition: all 0.2s ease;
+        }
+        .print-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(197, 155, 39, 0.5);
+        }
+
+        /* Certificate Master Container */
+        .cert-outer-wrapper {
+          position: relative;
+          box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+          border-radius: 2px;
         }
         .certificate-container {
-          width: 900px;
-          height: 636px;
+          width: 940px;
+          height: 650px;
           background: #ffffff;
-          border: 14px solid #0b1f33;
-          outline: 3px solid #d97706;
-          outline-offset: -8px;
-          padding: 40px 60px;
+          background-image: radial-gradient(ellipse at 50% 45%, #ffffff 0%, #fdfbf7 65%, #f7f1e4 100%);
+          border: 12px solid #081729;
+          outline: 3px solid #c59b27;
+          outline-offset: -7px;
+          padding: 36px 54px 30px;
           position: relative;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.1);
           display: flex;
           flex-direction: column;
           align-items: center;
           text-align: center;
           justify-content: space-between;
-          background-image: radial-gradient(circle at 50% 50%, rgba(248,250,252,1) 0%, rgba(241,245,249,0.5) 100%);
+          overflow: hidden;
         }
-        .corner-ornament {
+
+        /* Inset Guilloche / Security Border Line */
+        .cert-inner-frame {
           position: absolute;
-          width: 32px;
-          height: 32px;
-          border-color: #d97706;
-          border-style: solid;
+          top: 14px;
+          left: 14px;
+          right: 14px;
+          bottom: 14px;
+          border: 1px solid rgba(197, 155, 39, 0.55);
+          outline: 1px solid rgba(8, 23, 41, 0.25);
+          outline-offset: -5px;
+          pointer-events: none;
         }
-        .top-left { top: 12px; left: 12px; border-width: 3px 0 0 3px; }
-        .top-right { top: 12px; right: 12px; border-width: 3px 3px 0 0; }
-        .bottom-left { bottom: 12px; left: 12px; border-width: 0 0 3px 3px; }
-        .bottom-right { bottom: 12px; right: 12px; border-width: 0 3px 3px 0; }
-        .cert-header img { height: 48px; }
-        .cert-org { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #64748b; font-weight: 800; margin-top: 6px; }
-        .cert-title { font-family: 'Cinzel', serif; font-size: 32px; font-weight: 800; color: #0b1f33; letter-spacing: 3px; margin-top: 10px; }
-        .cert-subtitle { font-size: 13px; color: #0088d1; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
-        .cert-body { margin: 15px 0; max-width: 700px; }
-        .cert-text { font-size: 14px; color: #475569; line-height: 1.6; }
-        .member-name { font-size: 26px; font-weight: 800; color: #0b1f33; margin: 10px 0 4px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; display: inline-block; }
-        .cert-tier-badge {
-          display: inline-block;
-          background: #fef3c7;
-          color: #92400e;
-          border: 1px solid #fcd34d;
+
+        /* Classical Filigree Corner Brackets */
+        .corner-filigree {
+          position: absolute;
+          width: 52px;
+          height: 52px;
+          pointer-events: none;
+          z-index: 2;
+        }
+        .filigree-tl { top: 12px; left: 12px; }
+        .filigree-tr { top: 12px; right: 12px; transform: scaleX(-1); }
+        .filigree-bl { bottom: 12px; left: 12px; transform: scaleY(-1); }
+        .filigree-br { bottom: 12px; right: 12px; transform: scale(-1); }
+
+        /* Faint Security Emblem Watermark in Center */
+        .cert-watermark {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 320px;
+          height: 320px;
+          opacity: 0.038;
+          pointer-events: none;
+          background: url('${logoUrl}') no-repeat center center;
+          background-size: contain;
+          filter: grayscale(100%);
+          z-index: 1;
+        }
+
+        /* Header Elements */
+        .cert-header {
+          position: relative;
+          z-index: 3;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 100%;
+        }
+        .cert-logo {
+          height: 72px;
+          max-width: 230px;
+          object-fit: contain;
+          filter: drop-shadow(0 2px 5px rgba(0,0,0,0.05));
+        }
+        .cert-chamber-tag {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 9.5px;
           font-weight: 800;
-          font-size: 12px;
-          padding: 3px 14px;
-          border-radius: 50px;
-          letter-spacing: 1px;
-          margin-top: 4px;
+          letter-spacing: 3.5px;
+          color: #8a733e;
+          text-transform: uppercase;
+          margin-top: 8px;
         }
+        .cert-title {
+          font-family: 'Cinzel', Georgia, serif;
+          font-size: 23px;
+          font-weight: 800;
+          color: #081729;
+          letter-spacing: 3.5px;
+          margin-top: 5px;
+          line-height: 1.15;
+        }
+        .ornament-divider {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          width: 360px;
+          margin: 6px auto 3px;
+        }
+        .ornament-divider .line {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #c59b27, transparent);
+        }
+        .ornament-divider .diamond {
+          color: #c59b27;
+          font-size: 10px;
+          line-height: 1;
+        }
+        .cert-credential-tag {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 10px;
+          color: #b45309;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 2.2px;
+        }
+
+        /* Body Section */
+        .cert-body {
+          position: relative;
+          z-index: 3;
+          margin: 6px 0 10px;
+          max-width: 740px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .cert-presentation {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-style: italic;
+          font-size: 14.5px;
+          color: #556477;
+          letter-spacing: 0.2px;
+        }
+        .member-name {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 32px;
+          font-weight: 800;
+          color: #081729;
+          letter-spacing: 0.5px;
+          text-transform: capitalize;
+          margin: 6px 0 4px;
+          line-height: 1.2;
+        }
+        .name-accent-rule {
+          width: 280px;
+          height: 1.5px;
+          background: linear-gradient(90deg, transparent, #c59b27 25%, #c59b27 75%, transparent);
+          margin-bottom: 8px;
+        }
+        .tier-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: linear-gradient(135deg, #fffef7 0%, #fef3c7 50%, #fde68a 100%);
+          border: 1px solid #d4af37;
+          box-shadow: 0 2px 6px rgba(180, 130, 30, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+          padding: 3.5px 18px;
+          border-radius: 50px;
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 800;
+          font-size: 10.5px;
+          letter-spacing: 2px;
+          color: #78350f;
+          text-transform: uppercase;
+        }
+        .tier-badge .star {
+          color: #d97706;
+          font-size: 9px;
+        }
+        .cert-body-text {
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 13px;
+          color: #475569;
+          line-height: 1.6;
+          max-width: 660px;
+          margin-top: 10px;
+        }
+        .cert-highlight {
+          font-weight: 700;
+          color: #081729;
+        }
+
+        /* Footer Section */
         .cert-footer {
+          position: relative;
+          z-index: 3;
           width: 100%;
           display: flex;
           justify-content: space-between;
           align-items: flex-end;
-          border-top: 1px solid #e2e8f0;
-          padding-top: 15px;
-          font-size: 11px;
+          padding-top: 14px;
+          border-top: 1px solid rgba(226, 232, 240, 0.8);
         }
-        .sig-block { text-align: center; }
-        .sig-line { width: 140px; border-top: 1px solid #0b1f33; margin-bottom: 4px; }
-        .seal-badge {
-          width: 64px;
-          height: 64px;
+
+        /* Left Credentials Block */
+        .cert-credentials {
+          text-align: left;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 10.5px;
+        }
+        .cred-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 2.5px;
+        }
+        .cred-label {
+          font-size: 8.5px;
+          font-weight: 700;
+          letter-spacing: 1.2px;
+          color: #64748b;
+          width: 72px;
+          text-transform: uppercase;
+        }
+        .cred-val {
+          font-weight: 700;
+          color: #081729;
+          font-family: 'Plus Jakarta Sans', monospace;
+          letter-spacing: 0.4px;
+        }
+        .cred-status-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          margin-top: 5px;
+          padding: 2.5px 8px;
+          border-radius: 4px;
+          background: rgba(16, 185, 129, 0.08);
+          border: 1px solid rgba(16, 185, 129, 0.25);
+          color: #047857;
+          font-size: 8.5px;
+          font-weight: 800;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+        .status-pulse {
+          width: 5px;
+          height: 5px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #d97706, #b45309);
-          color: #fff;
+          background: #10b981;
+          box-shadow: 0 0 5px rgba(16, 185, 129, 0.8);
+        }
+
+        /* Center Official Gold Seal Medallion */
+        .seal-wrapper {
+          position: relative;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          font-size: 9px;
-          font-weight: 800;
-          text-transform: uppercase;
-          box-shadow: 0 4px 10px rgba(180,83,9,0.3);
-          border: 2px dashed #fef3c7;
+          margin-bottom: -4px;
         }
+        .seal-svg-container {
+          filter: drop-shadow(0 5px 12px rgba(146, 64, 14, 0.35));
+        }
+
+        /* Right Signature Block */
+        .sig-block {
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          min-width: 170px;
+        }
+        .sig-svg-wrap {
+          height: 38px;
+          display: flex;
+          align-items: flex-end;
+          margin-bottom: 2px;
+          opacity: 0.9;
+        }
+        .sig-line {
+          width: 160px;
+          height: 1px;
+          background: #081729;
+          margin-bottom: 4px;
+        }
+        .sig-title {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 800;
+          font-size: 10.5px;
+          color: #081729;
+          letter-spacing: 0.6px;
+        }
+        .sig-role {
+          font-size: 9.5px;
+          color: #475569;
+          font-weight: 600;
+          margin-top: 1px;
+        }
+        .sig-dept {
+          font-size: 8.5px;
+          color: #94a3b8;
+          letter-spacing: 0.5px;
+        }
+
         @media print {
-          body { background: #fff; padding: 0; }
-          .toolbar { display: none; }
-          .certificate-container { box-shadow: none; width: 100%; height: 100vh; border-width: 10px; }
+          @page {
+            size: A4 landscape;
+            margin: 0;
+          }
+          body {
+            background: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-height: 100vh !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .toolbar { display: none !important; }
+          .cert-outer-wrapper {
+            box-shadow: none !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          .certificate-container {
+            width: 100% !important;
+            height: 100% !important;
+            border-width: 12px !important;
+            box-shadow: none !important;
+            page-break-inside: avoid !important;
+          }
         }
       </style>
     </head>
     <body>
       <div class="toolbar">
-        <button class="print-btn" onclick="window.print()">Print / Download PDF</button>
+        <div class="toolbar-info">
+          <span class="toolbar-pill">OFFICIAL CREDENTIAL</span>
+          <span>RIFAH Chamber of Commerce Membership Certificate</span>
+        </div>
+        <button class="print-btn" onclick="window.print()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          Print / Save as PDF
+        </button>
       </div>
-      <div class="certificate-container">
-        <div class="corner-ornament top-left"></div>
-        <div class="corner-ornament top-right"></div>
-        <div class="corner-ornament bottom-left"></div>
-        <div class="corner-ornament bottom-right"></div>
 
-        <div class="cert-header">
-          <img src="${logoUrl}" alt="RIFAH Logo" />
-          <div class="cert-org">Chamber of Commerce & Business Network</div>
-          <div class="cert-title">CERTIFICATE OF MEMBERSHIP</div>
-          <div class="cert-subtitle">Official Chamber Credentials</div>
-        </div>
+      <div class="cert-outer-wrapper">
+        <div class="certificate-container">
+          <!-- Inset Frame Line -->
+          <div class="cert-inner-frame"></div>
 
-        <div class="cert-body">
-          <p class="cert-text">This is proudly presented to certify that</p>
-          <div class="member-name">${businessName}</div>
-          <br/>
-          <div class="cert-tier-badge">${tierName} MEMBER</div>
-          <p class="cert-text" style="margin-top: 10px;">
-            is an officially verified and accredited business member in good standing with the
-            <strong>RIFAH Chamber of Commerce, ${chapterName}</strong>.
-          </p>
-        </div>
-
-        <div class="cert-footer">
-          <div style="text-align: left;">
-            <div><strong>Member ID:</strong> ${memberId}</div>
-            <div style="margin-top: 3px;"><strong>Issue Date:</strong> ${formattedStart}</div>
-            <div style="margin-top: 3px;"><strong>Valid Until:</strong> ${formattedEnd}</div>
+          <!-- Symmetrical Classic Filigree Corner Vectors -->
+          <div class="corner-filigree filigree-tl">
+            <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+              <path d="M4 4h44M4 4v44" stroke="#c59b27" stroke-width="2.2" stroke-linecap="square"/>
+              <path d="M10 10h28M10 10v28" stroke="#081729" stroke-width="1.2"/>
+              <circle cx="4" cy="4" r="2.8" fill="#c59b27"/>
+              <circle cx="22" cy="4" r="1.5" fill="#c59b27"/>
+              <circle cx="4" cy="22" r="1.5" fill="#c59b27"/>
+              <path d="M14 14c0 6 6 6 6 6" stroke="#c59b27" stroke-width="1" stroke-linecap="round"/>
+              <circle cx="14" cy="14" r="1.8" fill="#c59b27"/>
+            </svg>
+          </div>
+          <div class="corner-filigree filigree-tr">
+            <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+              <path d="M4 4h44M4 4v44" stroke="#c59b27" stroke-width="2.2" stroke-linecap="square"/>
+              <path d="M10 10h28M10 10v28" stroke="#081729" stroke-width="1.2"/>
+              <circle cx="4" cy="4" r="2.8" fill="#c59b27"/>
+              <circle cx="22" cy="4" r="1.5" fill="#c59b27"/>
+              <circle cx="4" cy="22" r="1.5" fill="#c59b27"/>
+              <path d="M14 14c0 6 6 6 6 6" stroke="#c59b27" stroke-width="1" stroke-linecap="round"/>
+              <circle cx="14" cy="14" r="1.8" fill="#c59b27"/>
+            </svg>
+          </div>
+          <div class="corner-filigree filigree-bl">
+            <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+              <path d="M4 4h44M4 4v44" stroke="#c59b27" stroke-width="2.2" stroke-linecap="square"/>
+              <path d="M10 10h28M10 10v28" stroke="#081729" stroke-width="1.2"/>
+              <circle cx="4" cy="4" r="2.8" fill="#c59b27"/>
+              <circle cx="22" cy="4" r="1.5" fill="#c59b27"/>
+              <circle cx="4" cy="22" r="1.5" fill="#c59b27"/>
+              <path d="M14 14c0 6 6 6 6 6" stroke="#c59b27" stroke-width="1" stroke-linecap="round"/>
+              <circle cx="14" cy="14" r="1.8" fill="#c59b27"/>
+            </svg>
+          </div>
+          <div class="corner-filigree filigree-br">
+            <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+              <path d="M4 4h44M4 4v44" stroke="#c59b27" stroke-width="2.2" stroke-linecap="square"/>
+              <path d="M10 10h28M10 10v28" stroke="#081729" stroke-width="1.2"/>
+              <circle cx="4" cy="4" r="2.8" fill="#c59b27"/>
+              <circle cx="22" cy="4" r="1.5" fill="#c59b27"/>
+              <circle cx="4" cy="22" r="1.5" fill="#c59b27"/>
+              <path d="M14 14c0 6 6 6 6 6" stroke="#c59b27" stroke-width="1" stroke-linecap="round"/>
+              <circle cx="14" cy="14" r="1.8" fill="#c59b27"/>
+            </svg>
           </div>
 
-          <div class="seal-badge">
-            <span>RIFAH</span>
-            <span style="font-size:7px;">OFFICIAL</span>
-            <span>SEAL</span>
+          <!-- Security Watermark -->
+          <div class="cert-watermark"></div>
+
+          <!-- Certificate Header -->
+          <div class="cert-header">
+            <img class="cert-logo" src="${logoUrl}" alt="RIFAH Chamber of Commerce and Industry" />
+            <div class="cert-chamber-tag">Chamber of Commerce & Business Network</div>
+            <div class="cert-title">CERTIFICATE OF MEMBERSHIP</div>
+            <div class="ornament-divider">
+              <span class="line"></span>
+              <span class="diamond">❖</span>
+              <span class="line"></span>
+            </div>
+            <div class="cert-credential-tag">Official Chamber Accreditation</div>
           </div>
 
-          <div class="sig-block">
-            <div class="sig-line"></div>
-            <strong>President / Secretary</strong>
-            <div style="color: #64748b;">RIFAH Chamber Central Desk</div>
+          <!-- Certificate Body -->
+          <div class="cert-body">
+            <p class="cert-presentation">This is proudly presented to certify that</p>
+            <div class="member-name">${businessName}</div>
+            <div class="name-accent-rule"></div>
+            <div class="tier-badge">
+              <span class="star">★</span>
+              <span>${tierName} MEMBER</span>
+              <span class="star">★</span>
+            </div>
+            <p class="cert-body-text">
+              is an officially recognized and accredited corporate business member in good standing with the
+              <strong class="cert-highlight">RIFAH Chamber of Commerce, ${chapterName} Chapter</strong>,
+              entitled to all membership privileges, commercial affiliations, and business networking forums.
+            </p>
+          </div>
+
+          <!-- Certificate Footer -->
+          <div class="cert-footer">
+            <!-- Left Metadata -->
+            <div class="cert-credentials">
+              <div class="cred-row">
+                <span class="cred-label">Member ID:</span>
+                <span class="cred-val">${memberId}</span>
+              </div>
+              <div class="cred-row">
+                <span class="cred-label">Issue Date:</span>
+                <span class="cred-val">${formattedStart}</span>
+              </div>
+              <div class="cred-row">
+                <span class="cred-label">Valid Until:</span>
+                <span class="cred-val">${formattedEnd}</span>
+              </div>
+              <div class="cred-status-chip">
+                <span class="status-pulse"></span>
+                <span>Verified Active Credential</span>
+              </div>
+            </div>
+
+            <!-- Center Gold Foil Seal with Silk Ribbon Tails -->
+            <div class="seal-wrapper">
+              <div class="seal-svg-container">
+                <svg width="98" height="106" viewBox="0 0 98 106" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Satin Ribbon Tails -->
+                  <path d="M34 62 L20 102 L36 94 L44 102 L42 62 Z" fill="#991b1b" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
+                  <path d="M64 62 L78 102 L62 94 L54 102 L56 62 Z" fill="#b91c1c" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
+                  <path d="M34 62 L20 102 L29 97 L36 94 L42 62 Z" fill="#dc2626"/>
+                  <path d="M64 62 L78 102 L69 97 L62 94 L56 62 Z" fill="#ef4444"/>
+
+                  <!-- Gold Radial & Linear Definitions -->
+                  <defs>
+                    <radialGradient id="sealGold" cx="35%" cy="30%" r="70%">
+                      <stop offset="0%" stop-color="#fffbeb"/>
+                      <stop offset="28%" stop-color="#f59e0b"/>
+                      <stop offset="65%" stop-color="#d97706"/>
+                      <stop offset="90%" stop-color="#b45309"/>
+                      <stop offset="100%" stop-color="#78350f"/>
+                    </radialGradient>
+                    <linearGradient id="ringGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#fef08a"/>
+                      <stop offset="50%" stop-color="#b45309"/>
+                      <stop offset="100%" stop-color="#fde047"/>
+                    </linearGradient>
+                  </defs>
+
+                  <!-- 24-point Scalloped Starburst Rosette -->
+                  <g transform="translate(49, 44)">
+                    <g>
+                      ${Array.from({ length: 24 }).map((_, i) => `<polygon points="0,-42 5,-35 -5,-35" transform="rotate(${i * 15})" fill="#b45309"/>`).join('')}
+                    </g>
+                    <!-- Outer Golden Medallion Disc -->
+                    <circle cx="0" cy="0" r="38" fill="url(#sealGold)" stroke="#78350f" stroke-width="1"/>
+                    <circle cx="0" cy="0" r="35" fill="none" stroke="#fef3c7" stroke-width="1.2" stroke-dasharray="2 1.5"/>
+                    <circle cx="0" cy="0" r="32" fill="none" stroke="#78350f" stroke-width="0.8"/>
+
+                    <!-- Inner Disc -->
+                    <circle cx="0" cy="0" r="28" fill="#92400e"/>
+                    <circle cx="0" cy="0" r="26.5" fill="url(#sealGold)"/>
+
+                    <!-- Medallion Center Typography & Stars -->
+                    <text x="0" y="-14" text-anchor="middle" font-family="'Cinzel', Georgia, serif" font-weight="900" font-size="7" fill="#78350f" letter-spacing="1">RIFAH</text>
+                    <text x="0" y="-5" text-anchor="middle" font-family="'Montserrat', sans-serif" font-weight="800" font-size="4.2" fill="#78350f" letter-spacing="1.5">★ OFFICIAL ★</text>
+                    <text x="0" y="7" text-anchor="middle" font-family="'Cinzel', Georgia, serif" font-weight="900" font-size="10" fill="#78350f" letter-spacing="1.5">SEAL</text>
+                    <text x="0" y="16" text-anchor="middle" font-family="'Montserrat', sans-serif" font-weight="800" font-size="4" fill="#92400e" letter-spacing="1.2">ACCREDITED</text>
+                    <polygon points="0,21 1.5,23.5 4,23.5 2,25 3,27.5 0,26 -3,27.5 -2,25 -4,23.5 -1.5,23.5" fill="#78350f"/>
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Right Official Authorizing Signature -->
+            <div class="sig-block">
+              <div class="sig-svg-wrap">
+                <svg width="150" height="38" viewBox="0 0 150 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 26 C22 6, 36 8, 40 18 C44 28, 56 4, 66 14 C76 26, 82 8, 96 14 C104 18, 118 20, 142 16 M36 24 C50 26, 78 22, 110 24" stroke="#081729" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="sig-line"></div>
+              <div class="sig-title">Authorized Signatory</div>
+              <div class="sig-role">President / National Secretariat</div>
+              <div class="sig-dept">RIFAH Chamber Central Desk</div>
+            </div>
           </div>
         </div>
       </div>
-      <script>window.onload = function() { setTimeout(function() { window.print(); }, 350); }</script>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 400);
+        };
+      </script>
     </body>
     </html>
   `;

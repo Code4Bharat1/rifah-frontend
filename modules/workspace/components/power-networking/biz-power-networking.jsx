@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   Zap,
@@ -23,19 +23,30 @@ import {
   Layers,
   FileText,
   UserPlus,
+  ChevronDown,
+  Check,
+  X,
 } from "lucide-react";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Badge } from "@shared/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@shared/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@shared/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@shared/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@shared/components/ui/command";
 import { AppShell } from "@shared/components/rifah/app-shell";
+import { cn } from "@shared/lib/utils";
+import { CATEGORIES_DATA } from "@shared/lib/categories-data";
 import {
   usePowerNetworkingStats,
   usePowerRequirements,
@@ -55,6 +66,123 @@ import { CreateRequirementModal } from "./create-requirement-modal";
 import { RequirementDetailsView } from "./requirement-details-view";
 import { ConnectRequestModal } from "./connect-request-modal";
 import { RequestQuoteModal } from "./request-quote-modal";
+
+function SearchableFilterSelect({
+  value,
+  onValueChange,
+  placeholder,
+  searchPlaceholder,
+  allLabel = "All",
+  options = [],
+  className,
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const selectedLabel = useMemo(() => {
+    if (!value || value === "all") return allLabel;
+    const found = options.find((o) => (typeof o === "string" ? o : o.value) === value);
+    if (!found) return value;
+    return typeof found === "string" ? found : found.label || found.value;
+  }, [value, allLabel, options]);
+
+  const filteredOptions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => {
+      const label = typeof o === "string" ? o : o.label || o.value || "";
+      return label.toLowerCase().includes(q);
+    });
+  }, [options, search]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            "h-10 w-full justify-between font-normal text-xs border-input bg-background hover:bg-muted/50 px-3 cursor-pointer",
+            value && value !== "all" ? "text-foreground font-medium" : "text-muted-foreground",
+            className
+          )}
+        >
+          <span className="truncate">{selectedLabel}</span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-(--radix-popover-trigger-width) min-w-[260px] p-0 shadow-lg border border-border"
+        align="start"
+      >
+        <Command shouldFilter={false} className="rounded-lg">
+          <CommandInput
+            placeholder={searchPlaceholder || `Search ${placeholder?.toLowerCase() || "options"}...`}
+            value={search}
+            onValueChange={setSearch}
+            className="text-xs h-9"
+          />
+          <CommandList className="max-h-60 overflow-y-auto p-1">
+            <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
+              No results found.
+            </CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="all"
+                onSelect={() => {
+                  onValueChange("all");
+                  setSearch("");
+                  setOpen(false);
+                }}
+                className="text-xs cursor-pointer rounded-md py-1.5"
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-3.5 w-3.5",
+                    !value || value === "all" ? "opacity-100 text-primary" : "opacity-0"
+                  )}
+                />
+                <span className={cn(!value || value === "all" ? "font-semibold text-primary" : "")}>
+                  {allLabel}
+                </span>
+              </CommandItem>
+
+              {filteredOptions.map((opt, idx) => {
+                const optValue = typeof opt === "string" ? opt : opt.value;
+                const optLabel = typeof opt === "string" ? opt : opt.label || opt.value;
+                const isSelected = value === optValue;
+                return (
+                  <CommandItem
+                    key={`${optValue}-${idx}`}
+                    value={optValue}
+                    onSelect={() => {
+                      onValueChange(optValue);
+                      setSearch("");
+                      setOpen(false);
+                    }}
+                    className="text-xs cursor-pointer rounded-md py-1.5"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-3.5 w-3.5",
+                        isSelected ? "opacity-100 text-primary" : "opacity-0"
+                      )}
+                    />
+                    <span className={cn("truncate", isSelected ? "font-semibold text-primary" : "")}>
+                      {optLabel}
+                    </span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function BizPowerNetworking() {
   const [activeTab, setActiveTab] = useState("network");
@@ -144,9 +272,27 @@ export function BizPowerNetworking() {
   const { data: chaptersData } = useChapters();
   const chapters = Array.isArray(chaptersData) ? chaptersData : chaptersData?.chapters || [];
   const { data: dynamicCategories } = useCategories();
-  const categories = Array.isArray(dynamicCategories)
-    ? dynamicCategories.map((c) => (typeof c === "string" ? c : c.name || c.title))
-    : [];
+  const rawCategories = Array.isArray(dynamicCategories)
+    ? dynamicCategories
+    : dynamicCategories?.categories || [];
+  const fetchedCategories = rawCategories
+    .map((c) => (typeof c === "string" ? c : c?.name || c?.title))
+    .filter(Boolean);
+  const categories = fetchedCategories.length > 0 ? fetchedCategories : Object.keys(CATEGORIES_DATA);
+
+  const categoryOptions = useMemo(() => {
+    return categories.map((cat) => ({
+      value: cat,
+      label: cat,
+    }));
+  }, [categories]);
+
+  const chapterOptions = useMemo(() => {
+    return chapters.map((ch) => ({
+      value: ch.name,
+      label: `${ch.name} Chapter`,
+    }));
+  }, [chapters]);
 
   const handleQuickNeedSubmit = (e) => {
     e.preventDefault();
@@ -479,38 +625,70 @@ export function BizPowerNetworking() {
                   />
                 </div>
 
-                <Select value={discoverCategory} onValueChange={setDiscoverCategory}>
-                  <SelectTrigger className="text-xs">
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-56">
-                    <SelectItem value="all" className="text-xs">
-                      All Categories
-                    </SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat} className="text-xs">
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableFilterSelect
+                  value={discoverCategory}
+                  onValueChange={setDiscoverCategory}
+                  placeholder="All Categories"
+                  searchPlaceholder="Search category..."
+                  allLabel="All Categories"
+                  options={categoryOptions}
+                />
 
-                <Select value={discoverChapter} onValueChange={setDiscoverChapter}>
-                  <SelectTrigger className="text-xs">
-                    <SelectValue placeholder="All Chapters" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-56">
-                    <SelectItem value="all" className="text-xs">
-                      All Chapters
-                    </SelectItem>
-                    {chapters.map((ch) => (
-                      <SelectItem key={ch._id || ch.name} value={ch.name} className="text-xs">
-                        {ch.name} Chapter
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableFilterSelect
+                  value={discoverChapter}
+                  onValueChange={setDiscoverChapter}
+                  placeholder="All Chapters"
+                  searchPlaceholder="Search chapter..."
+                  allLabel="All Chapters"
+                  options={chapterOptions}
+                />
               </div>
+
+              {/* Active filter tags & clear button */}
+              {(discoverSearch.trim() || discoverCategory !== "all" || discoverChapter !== "all") && (
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/60">
+                  <span className="text-[11px] font-medium text-muted-foreground">Active filters:</span>
+                  {discoverSearch.trim() && (
+                    <Badge variant="secondary" className="gap-1 text-xs font-normal">
+                      <span>Keyword: "{discoverSearch}"</span>
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-foreground"
+                        onClick={() => setDiscoverSearch("")}
+                      />
+                    </Badge>
+                  )}
+                  {discoverCategory !== "all" && (
+                    <Badge variant="secondary" className="gap-1 text-xs font-normal">
+                      <span>Category: {discoverCategory}</span>
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-foreground"
+                        onClick={() => setDiscoverCategory("all")}
+                      />
+                    </Badge>
+                  )}
+                  {discoverChapter !== "all" && (
+                    <Badge variant="secondary" className="gap-1 text-xs font-normal">
+                      <span>Chapter: {discoverChapter} Chapter</span>
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-foreground"
+                        onClick={() => setDiscoverChapter("all")}
+                      />
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setDiscoverSearch("");
+                      setDiscoverCategory("all");
+                      setDiscoverChapter("all");
+                    }}
+                    className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    Clear all
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Discovered Businesses Grid */}
