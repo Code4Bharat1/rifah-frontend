@@ -162,10 +162,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     cover: null,
     scheduledDate: "",
     scheduledTime: "08:00",
-    scheduledTime: "08:00",
     isPaid: false,
     ticketPrice: "",
-    memberCouponCode: "",
     memberPrice: "",
   };
 
@@ -188,7 +186,6 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         ...initialData,
         isPaid: Boolean(initialData.isPaid),
         ticketPrice: initialData.isPaid ? (initialData.ticketPrice ?? "") : "",
-        memberCouponCode: initialData.memberCouponCode || "",
         memberPrice: initialData.memberPrice || "",
         location: initialData.venue || initialData.location || "",
         date: initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : "",
@@ -315,9 +312,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
-      if (formData.memberCouponCode) {
+      if (formData.memberPrice !== "") {
         const memPriceNum = Number(formData.memberPrice);
-        if (formData.memberPrice === "" || isNaN(memPriceNum) || memPriceNum < 0 || memPriceNum >= priceNum) {
+        if (isNaN(memPriceNum) || memPriceNum < 0 || memPriceNum >= priceNum) {
           toast.error("Please enter a valid Member Price (must be 0 or greater, and less than Non-Member base price)");
           window.scrollTo({ top: 0, behavior: "smooth" });
           return;
@@ -342,7 +339,6 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         ...formData,
         isPaid,
         ticketPrice,
-        memberCouponCode: isPaid ? formData.memberCouponCode : "",
         memberPrice: isPaid ? (Number(formData.memberPrice) || 0) : 0,
         fee,
         time: formatTimeStr(formData.startTime, formData.endTime),
@@ -547,7 +543,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 </Select>
               </div>
               {formData.isPaid && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 col-span-full border border-border rounded-xl p-5 bg-muted/10 shadow-sm relative overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-full border border-border rounded-xl p-5 bg-muted/10 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-primary/50" />
                   <div className="space-y-2">
                     <Label htmlFor="ticketPrice">Non-Member Price (₹) <span className="text-destructive">*</span></Label>
@@ -561,16 +557,6 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                       placeholder="e.g. 500"
                     />
                     <p className="text-[10px] text-muted-foreground mt-1 font-medium">Standard price for Guests.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="memberCouponCode">Member Coupon Code</Label>
-                    <Input
-                      id="memberCouponCode"
-                      value={formData.memberCouponCode}
-                      onChange={(e) => setFormData({ ...formData, memberCouponCode: e.target.value.toUpperCase().replace(/\s/g, '') })}
-                      placeholder="e.g. RIFAHMEM26"
-                    />
-                    <p className="text-[10px] text-muted-foreground mt-1 font-medium">Leave empty if no member discount.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="memberPrice">Member Price (₹)</Label>

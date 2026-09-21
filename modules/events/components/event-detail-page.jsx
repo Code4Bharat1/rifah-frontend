@@ -50,10 +50,6 @@ function EventDetail() {
   
   // Guest Form State
   const [guestForm, setGuestForm] = useState({ name: "", email: "", phone: "", businessName: "" });
-  
-  // Member Coupon State
-  const [couponCode, setCouponCode] = useState("");
-  const [discountApplied, setDiscountApplied] = useState(false);
 
   const isUserAttended = Boolean(attended || userRegistration?.attendanceStatus === "Present");
 
@@ -113,17 +109,6 @@ const loadRazorpayScript = () => {
     }
   };
 
-  const handleApplyCoupon = () => {
-    if (!couponCode) return;
-    if (couponCode.trim().toUpperCase() === event?.memberCouponCode?.toUpperCase()) {
-      setDiscountApplied(true);
-      toast.success("Coupon applied! Discount added.");
-    } else {
-      toast.error("Invalid coupon code.");
-      setDiscountApplied(false);
-    }
-  };
-
   const handleFinalRegister = async () => {
     if (regPath === "guest") {
       if (!guestForm.name || !guestForm.email || !guestForm.phone) {
@@ -161,9 +146,8 @@ const loadRazorpayScript = () => {
           return;
         }
       }
-
       const isPaidEvent = Boolean(event?.isPaid && Number(event?.ticketPrice) > 0);
-      const finalAmount = (isPaidEvent && discountApplied && event?.memberPrice !== undefined) 
+      const finalAmount = (isPaidEvent && regPath === "member" && event?.memberPrice !== undefined) 
         ? event.memberPrice 
         : (event?.ticketPrice || 0);
 
@@ -212,7 +196,6 @@ const loadRazorpayScript = () => {
                   paymentId: response.razorpay_payment_id,
                   transactionId: response.razorpay_order_id,
                   guest: regPath === "guest" ? guestForm : undefined,
-                  couponApplied: discountApplied ? event?.memberCouponCode : null,
                 }),
               ]);
 
@@ -634,49 +617,32 @@ const loadRazorpayScript = () => {
                 <h3 className="font-semibold">Member Checkout</h3>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Have a Member Coupon Code?</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      value={couponCode} 
-                      onChange={e => setCouponCode(e.target.value.toUpperCase().replace(/\s/g, ''))} 
-                      placeholder="Enter code..." 
-                      disabled={discountApplied}
-                    />
-                    <Button 
-                      variant={discountApplied ? "outline" : "default"} 
-                      onClick={discountApplied ? () => { setDiscountApplied(false); setCouponCode(""); } : handleApplyCoupon}
-                      className={discountApplied ? "text-destructive hover:text-destructive" : ""}
-                    >
-                      {discountApplied ? "Remove" : "Apply"}
-                    </Button>
+              {Boolean(event?.isPaid && Number(event?.ticketPrice) > 0) ? (
+                <div className="mt-6 p-4 rounded-xl bg-muted/30 border space-y-2">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Non-Member Price</span>
+                    <span><del>₹{event?.ticketPrice || 0}</del></span>
                   </div>
-                  {discountApplied && (
-                    <p className="text-xs font-semibold text-emerald-600">Code applied successfully! Member Price unlocked.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 rounded-xl bg-muted/30 border space-y-2">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Non-Member Price</span>
-                  <span><del>₹{event?.ticketPrice || 0}</del></span>
-                </div>
-                {discountApplied && (
                   <div className="flex justify-between text-sm text-emerald-600 font-medium">
                     <span>Member Price Applied</span>
                     <span>₹{event?.memberPrice || 0}</span>
                   </div>
-                )}
-                <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                  <span>Total Payable</span>
-                  <span>₹{discountApplied ? (event?.memberPrice || 0) : (event?.ticketPrice || 0)}</span>
+                  <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                    <span>Total Payable</span>
+                    <span>₹{event?.memberPrice || 0}</span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="mt-6 p-4 rounded-xl bg-muted/30 border">
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Total Payable</span>
+                    <span className="text-emerald-600">Free</span>
+                  </div>
+                </div>
+              )}
               
               <Button className="w-full mt-4" size="lg" onClick={handleFinalRegister} disabled={registering}>
-                {registering ? "Processing..." : `Pay ₹${discountApplied ? (event?.memberPrice || 0) : (event?.ticketPrice || 0)} & Register`}
+                {registering ? "Processing..." : (Boolean(event?.isPaid && Number(event?.ticketPrice) > 0) ? `Pay ₹${event?.memberPrice || 0} & Register` : "Register for Free")}
               </Button>
             </div>
           )}
