@@ -3,161 +3,187 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Certificate of Appreciation</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+  <title>RIFAH Certificate of Completion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body, html {
-      margin: 0; padding: 0; width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      background: #f1f5f9; font-family: 'Montserrat', Arial, sans-serif;
-    }
-    .cert-wrapper {
-      width: 1100px; height: 800px; /* Landscape aspect ratio */
-      background: white;
-      padding: 40px;
-      box-sizing: border-box; /* Crucial to prevent overflow */
-      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-      position: relative;
-    }
-    .cert-border-outer {
-      width: 100%; height: 100%;
-      border: 4px solid #00875a; /* Default RIFAH green */
-      box-sizing: border-box;
-      position: relative;
-      padding: 8px;
-    }
-    .cert-border-inner {
-      width: 100%; height: 100%;
-      border: 1px solid #00875a;
-      box-sizing: border-box;
-      position: relative;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 50px 40px;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 30px 15px;
+      color: #0b1f33;
+    }
+    .toolbar {
+      width: 900px;
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 15px;
+    }
+    .print-btn {
+      background: #0088d1;
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      box-shadow: 0 4px 10px rgba(0,136,209,0.3);
+      transition: all 0.2s;
+    }
+    .print-btn:hover {
+      background: #0277bd;
+    }
+    .certificate-container {
+      width: 900px;
+      height: 636px;
+      background: #ffffff;
+      border: 14px solid #0b1f33;
+      outline: 3px solid #d97706;
+      outline-offset: -8px;
+      padding: 36px 55px;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-align: center;
+      justify-content: space-between;
+      background-image: radial-gradient(circle at 50% 50%, rgba(248,250,252,1) 0%, rgba(241,245,249,0.5) 100%);
     }
-    /* Corner accents */
-    .corner {
+    .corner-ornament {
       position: absolute;
-      width: 35px; height: 35px;
-      border: 3px solid #00875a;
+      width: 32px;
+      height: 32px;
+      border-color: #d97706;
+      border-style: solid;
     }
-    .corner-tl { top: -6px; left: -6px; border-bottom: none; border-right: none; }
-    .corner-tr { top: -6px; right: -6px; border-bottom: none; border-left: none; }
-    .corner-bl { bottom: -6px; left: -6px; border-top: none; border-right: none; }
-    .corner-br { bottom: -6px; right: -6px; border-top: none; border-left: none; }
+    .top-left { top: 12px; left: 12px; border-width: 3px 0 0 3px; }
+    .top-right { top: 12px; right: 12px; border-width: 3px 3px 0 0; }
+    .bottom-left { bottom: 12px; left: 12px; border-width: 0 0 3px 3px; }
+    .bottom-right { bottom: 12px; right: 12px; border-width: 0 3px 3px 0; }
 
-    .logo { height: 90px; margin-bottom: 25px; object-fit: contain; }
-    h1 { font-family: 'Cinzel', serif; font-size: 52px; color: #00875a; margin: 0; letter-spacing: 6px; }
-    .subtitle { font-size: 20px; color: #475569; margin-top: 5px; font-weight: 400; letter-spacing: 3px; text-transform: uppercase; }
-    
-    .presented-to { font-size: 18px; color: #64748b; font-style: italic; margin-top: 32px; }
-    .name { font-family: 'Playfair Display', serif; font-size: 58px; font-weight: 700; color: #0f172a; margin: 16px 0 12px 0; }
-    .accent-rule { width: 380px; height: 1.5px; background: #cbd5e1; margin: 0 auto 24px auto; }
-    
-    .reason { font-size: 17px; color: #334155; max-width: 800px; line-height: 1.6; font-weight: 300; }
-    .event-title { font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 10px; }
-    .course-info { font-size: 15px; font-weight: 700; color: #00875a; margin-top: 6px; letter-spacing: 0.5px; }
-    .company-title { font-size: 16px; font-weight: 500; color: #475569; margin-top: 8px; }
+    .cert-header img { height: 48px; object-fit: contain; }
+    .cert-org { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #64748b; font-weight: 800; margin-top: 6px; }
+    .cert-title { font-family: 'Cinzel', serif; font-size: 32px; font-weight: 800; color: #0b1f33; letter-spacing: 3px; margin-top: 6px; }
+    .cert-subtitle { font-size: 13px; color: #0088d1; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 1px; }
 
-    .signatures { display: flex; justify-content: space-between; width: 85%; margin-top: auto; padding-bottom: 20px; }
-    .sig-block { display: flex; flex-direction: column; align-items: center; width: 250px; }
-    .sig-art { height: 50px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 4px; }
+    .cert-body { margin: 8px 0; max-width: 720px; }
+    .cert-text { font-size: 14px; color: #475569; line-height: 1.6; }
+    .member-name { font-size: 28px; font-weight: 800; color: #0b1f33; margin: 8px 0 4px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; display: inline-block; }
+    .cert-tier-badge {
+      display: inline-block;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+      font-weight: 800;
+      font-size: 12px;
+      padding: 3px 16px;
+      border-radius: 50px;
+      letter-spacing: 1px;
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+    .cert-accreditation { font-size: 13.5px; color: #475569; margin-top: 10px; line-height: 1.6; }
+
+    .cert-footer {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 12px;
+      font-size: 11px;
+    }
+    .sig-block { text-align: center; display: flex; flex-direction: column; align-items: center; }
+    .sig-art { height: 42px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px; }
     .sig-svg { overflow: visible; }
-    .sig-img { height: 60px; object-fit: contain; margin-bottom: 5px; }
-    .sig-line { width: 100%; height: 1px; background: #64748b; margin-bottom: 10px; }
-    .sig-name { font-weight: 700; font-size: 16px; color: #0f172a; }
-    .sig-role { font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
-    
-    .footer { position: absolute; bottom: 15px; left: 0; right: 0; text-align: center; font-size: 11px; color: #94a3b8; font-weight: 300; }
+    .sig-line { width: 150px; border-top: 1px solid #0b1f33; margin-bottom: 4px; }
+    .sig-title { font-weight: 800; color: #0b1f33; font-size: 12px; }
+    .sig-sub { color: #64748b; font-size: 10.5px; margin-top: 1px; }
 
-    @page {
-      size: landscape;
-      margin: 0;
+    .seal-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #d97706, #b45309);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      box-shadow: 0 4px 10px rgba(180,83,9,0.3);
+      border: 2px dashed #fef3c7;
     }
 
+    @page { size: landscape; margin: 0; }
     @media print {
-      html, body { 
-        background: white; 
-        margin: 0 !important; 
-        padding: 0 !important; 
-        width: 100%; 
-        height: 100%;
-        -webkit-print-color-adjust: exact; 
-        print-color-adjust: exact; 
-      }
-      .cert-wrapper { 
-        box-shadow: none; 
-        width: 100%; 
-        height: 100%; /* Prevents overflow from viewport calculations */
-        padding: 15px; 
-        page-break-after: avoid; 
-        page-break-before: avoid;
-        page-break-inside: avoid;
-        overflow: hidden;
-      }
-      .cert-border-outer { padding: 6px; }
-      .cert-border-inner { padding: 30px 20px; }
-      .logo { margin-bottom: 20px; height: 75px; }
-      h1 { font-size: 44px; margin-top: 10px; }
-      .name { font-size: 52px; margin: 15px 0 10px 0; }
-      .presented-to { margin-top: 25px; }
-      .signatures { margin-top: auto; padding-bottom: 10px; }
+      body { background: #fff; padding: 0; }
+      .toolbar { display: none; }
+      .certificate-container { box-shadow: none; width: 100%; height: 100vh; border-width: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
 <body>
-  <div class="cert-wrapper">
-    <div class="cert-border-outer" id="border-outer">
-      <div class="cert-border-inner" id="border-inner">
-        <div class="corner corner-tl" id="corner-tl"></div>
-        <div class="corner corner-tr" id="corner-tr"></div>
-        <div class="corner corner-bl" id="corner-bl"></div>
-        <div class="corner corner-br" id="corner-br"></div>
+  <div class="toolbar">
+    <button class="print-btn" onclick="window.print()">Print / Download PDF</button>
+  </div>
+  <div class="certificate-container" id="cert-container">
+    <div class="corner-ornament top-left"></div>
+    <div class="corner-ornament top-right"></div>
+    <div class="corner-ornament bottom-left"></div>
+    <div class="corner-ornament bottom-right"></div>
 
-        <img src="/rifah-logo.png" alt="RIFAH Logo" class="logo" />
-        
-        <h1 id="cert-title">CERTIFICATE</h1>
-        <div class="subtitle" id="cert-subtitle">Of Appreciation</div>
-        
-        <div class="presented-to">This is proudly presented to</div>
-        <div class="name" id="cert-name">John Doe</div>
-        <div class="accent-rule"></div>
-        
-        <div class="reason" id="cert-reason">
-          For your valuable contribution and insightful presence as a <strong id="cert-role" style="font-weight: 600;">Speaker</strong>.
-        </div>
-        <div class="event-title" id="event-title">RIFAH Chamber Event</div>
-        <div class="course-info" id="course-info" style="display:none;"></div>
-        <div class="company-title" id="company-title" style="display:none;"></div>
-        
-        <div class="signatures">
-          <div class="sig-block">
-            <div class="sig-art" id="sig1-art">
-              <svg viewBox="0 0 220 60" width="170" height="50" class="sig-svg">
-                <path id="sig1-path" d="M 12 36 C 18 12, 32 6, 44 16 C 52 24, 46 44, 34 50 C 22 56, 18 42, 36 30 C 52 18, 68 36, 80 40 C 90 44, 98 26, 108 36 C 118 44, 126 24, 136 34 C 146 42, 154 28, 164 36 C 174 42, 182 32, 192 38 M 22 54 Q 100 44, 178 48 Q 194 49, 204 42 M 194 38 L 202 46" fill="none" stroke="#0f2942" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </div>
-            <img src="" alt="" class="sig-img" id="sig1-img" style="display:none;" />
-            <div class="sig-line"></div>
-            <div class="sig-name" id="sig1-name">Name 1</div>
-            <div class="sig-role" id="sig1-role">Chapter President</div>
-          </div>
-          <div class="sig-block">
-            <div class="sig-art" id="sig2-art">
-              <svg viewBox="0 0 220 60" width="170" height="50" class="sig-svg">
-                <path id="sig2-path" d="M 16 42 C 24 10, 42 8, 46 26 C 48 38, 38 52, 26 46 C 16 40, 28 20, 52 24 C 74 28, 64 52, 84 40 C 96 30, 108 14, 122 26 C 134 36, 128 48, 142 42 C 154 36, 164 22, 174 30 C 184 38, 180 50, 194 44 M 18 50 Q 106 60, 192 48 Q 204 46, 212 40" fill="none" stroke="#1e3a8a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </div>
-            <img src="" alt="" class="sig-img" id="sig2-img" style="display:none;" />
-            <div class="sig-line"></div>
-            <div class="sig-name" id="sig2-name">Name 2</div>
-            <div class="sig-role" id="sig2-role">Chapter Secretary</div>
-          </div>
-        </div>
+    <div class="cert-header">
+      <img src="/rifah-logo.png" alt="RIFAH Logo" id="cert-logo" />
+      <div class="cert-org" id="cert-org">Chamber of Commerce & Business Network</div>
+      <div class="cert-title" id="cert-title">CERTIFICATE OF COMPLETION</div>
+      <div class="cert-subtitle" id="cert-subtitle">Official Chamber Credentials</div>
+    </div>
 
-        <div class="footer">RIFAH Chamber of Commerce and Industry</div>
+    <div class="cert-body">
+      <p class="cert-text" id="cert-intro">This is proudly presented to certify that</p>
+      <div class="member-name" id="cert-name">jio world</div>
+      <br/>
+      <div class="cert-tier-badge" id="cert-badge">COURSE COMPLETION</div>
+      <p class="cert-accreditation" id="cert-accreditation">
+        is an officially verified and accredited business member in good standing with the
+        <strong id="cert-chapter">RIFAH Chamber of Commerce, Mumbai Chapter</strong>.
+      </p>
+    </div>
+
+    <div class="cert-footer">
+      <div style="text-align: left;" id="cert-details">
+        <div><strong>Certificate ID:</strong> <span id="meta-id">CERT-BF403C</span></div>
+        <div style="margin-top: 3px;"><strong>Issue Date:</strong> <span id="meta-date">21 September 2026</span></div>
+        <div style="margin-top: 3px;"><strong id="meta-field-label">Curriculum:</strong> <span id="meta-field-val">Central Leadership Program</span></div>
+      </div>
+
+      <div class="seal-badge">
+        <span>RIFAH</span>
+        <span style="font-size:7px;">OFFICIAL</span>
+        <span>SEAL</span>
+      </div>
+
+      <div class="sig-block">
+        <div class="sig-art" id="sig-art">
+          <svg viewBox="0 0 220 60" width="140" height="40" class="sig-svg">
+            <path id="sig-path" d="M 12 36 C 18 12, 32 6, 44 16 C 52 24, 46 44, 34 50 C 22 56, 18 42, 36 30 C 52 18, 68 36, 80 40 C 90 44, 98 26, 108 36 C 118 44, 126 24, 136 34 C 146 42, 154 28, 164 36 C 174 42, 182 32, 192 38 M 22 54 Q 100 44, 178 48 Q 194 49, 204 42 M 194 38 L 202 46" fill="none" stroke="#0f2942" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div class="sig-line"></div>
+        <strong class="sig-title" id="sig-title">President / Secretary</strong>
+        <div class="sig-sub" id="sig-sub">RIFAH Chamber Central Desk</div>
       </div>
     </div>
   </div>
@@ -167,86 +193,62 @@
     const certType = (params.get('type') || '').toLowerCase();
     const isCourse = certType === 'completion' || Boolean(params.get('course'));
     
-    document.getElementById('cert-name').textContent = params.get('name') || 'Member Name';
+    const recipientName = params.get('name') || params.get('business') || 'Member Name';
+    document.getElementById('cert-name').textContent = recipientName;
     
     if (isCourse) {
-      document.getElementById('cert-subtitle').textContent = 'OF COMPLETION';
-      document.getElementById('cert-reason').textContent = 'For successfully completing all modules, practical curriculum, and requirements of';
+      document.getElementById('cert-title').textContent = 'CERTIFICATE OF COMPLETION';
+      document.getElementById('cert-subtitle').textContent = 'OFFICIAL CHAMBER CREDENTIALS';
+      document.getElementById('cert-badge').textContent = 'COURSE COMPLETION';
       
-      const rawCourse = params.get('course') || params.get('event') || 'Executive Training Course';
+      const rawCourse = params.get('course') || 'Executive Training Course';
       const formattedCourse = rawCourse.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-      document.getElementById('event-title').textContent = formattedCourse;
+      
+      const chapter = params.get('chapter') || 'Mumbai Chapter';
+      const chapterStr = chapter.includes('Chapter') ? chapter : `${chapter} Chapter`;
+      
+      document.getElementById('cert-accreditation').innerHTML = 
+        `is an officially verified and accredited graduate having successfully completed the curriculum of ` +
+        `<strong>${formattedCourse}</strong> with the <strong>RIFAH Chamber of Commerce, ${chapterStr}</strong>.`;
 
       const scope = (params.get('scope') || 'centre').toLowerCase();
-      const chapter = params.get('chapter') || '';
-      let scopeLabel = 'Central Chamber National Leadership Program';
+      let scopeLabel = 'Central Chamber Leadership Program';
       if (scope === 'state') scopeLabel = params.get('state') ? `${params.get('state')} State Executive Curriculum` : 'State Executive Curriculum';
-      else if (scope === 'chapter') scopeLabel = chapter ? `${chapter} Chapter Leadership Training` : 'Chapter Administration & Executive Development Program';
+      else if (scope === 'chapter') scopeLabel = `${chapterStr} Leadership Training`;
       
-      const modules = params.get('modules') || '1';
-      const courseInfoElem = document.getElementById('course-info');
-      if (courseInfoElem) {
-        courseInfoElem.textContent = `Curriculum Track: ${scopeLabel} • ${modules} Module${Number(modules) > 1 ? 's' : ''} Completed`;
-        courseInfoElem.style.display = 'block';
-      }
+      document.getElementById('meta-field-label').textContent = 'Curriculum:';
+      document.getElementById('meta-field-val').textContent = scopeLabel;
     } else {
-      document.getElementById('cert-subtitle').textContent = params.get('subtitle') || 'OF APPRECIATION';
-      const roleElem = document.getElementById('cert-role');
-      if (roleElem) roleElem.textContent = params.get('role') || 'Speaker';
-      document.getElementById('event-title').textContent = params.get('event') || 'RIFAH Chamber Event';
-    }
-    
-    if (params.get('business')) {
-      const comp = document.getElementById('company-title');
-      comp.textContent = `Representing Enterprise: ${params.get('business')}`;
-      comp.style.display = 'block';
-    }
-    
-    // Apply accent colors dynamically
-    const accentColor = params.get('accent') || '#00875a';
-    document.getElementById('border-outer').style.borderColor = accentColor;
-    document.getElementById('border-inner').style.borderColor = accentColor;
-    document.getElementById('corner-tl').style.borderColor = accentColor;
-    document.getElementById('corner-tr').style.borderColor = accentColor;
-    document.getElementById('corner-bl').style.borderColor = accentColor;
-    document.getElementById('corner-br').style.borderColor = accentColor;
-    document.getElementById('cert-title').style.color = accentColor;
-    
-    // Fill Signatories
-    document.getElementById('sig1-name').textContent = params.get('sig1Name') || (params.get('chapter') ? `${params.get('chapter')} Chapter` : 'RIFAH Chamber');
-    document.getElementById('sig1-role').textContent = params.get('sig1Role') || 'CHAPTER PRESIDENT';
-    // Randomize handwritten cursive signatures
-    const SIGNATURE_PRESETS = [
-      { path: "M 12 36 C 18 12, 32 6, 44 16 C 52 24, 46 44, 34 50 C 22 56, 18 42, 36 30 C 52 18, 68 36, 80 40 C 90 44, 98 26, 108 36 C 118 44, 126 24, 136 34 C 146 42, 154 28, 164 36 C 174 42, 182 32, 192 38 M 22 54 Q 100 44, 178 48 Q 194 49, 204 42 M 194 38 L 202 46", color: "#0f2942" },
-      { path: "M 16 42 C 24 10, 42 8, 46 26 C 48 38, 38 52, 26 46 C 16 40, 28 20, 52 24 C 74 28, 64 52, 84 40 C 96 30, 108 14, 122 26 C 134 36, 128 48, 142 42 C 154 36, 164 22, 174 30 C 184 38, 180 50, 194 44 M 18 50 Q 106 60, 192 48 Q 204 46, 212 40", color: "#1e3a8a" },
-      { path: "M 20 48 C 30 14, 46 8, 50 30 C 52 46, 38 56, 28 50 C 18 44, 32 22, 60 26 C 86 30, 72 56, 92 44 C 108 34, 118 16, 134 30 C 148 42, 140 54, 156 46 C 170 38, 180 24, 192 34 C 202 42, 198 56, 212 48 M 24 56 Q 112 64, 198 52 Q 212 50, 220 42", color: "#172554" },
-      { path: "M 14 38 C 22 16, 36 10, 48 22 C 56 30, 50 48, 38 52 C 26 56, 22 42, 40 32 C 58 20, 74 38, 86 42 C 96 46, 104 28, 114 38 C 124 46, 132 26, 142 36 C 152 44, 160 30, 170 38 C 180 44, 188 34, 198 40 M 26 54 Q 104 46, 184 50 Q 200 51, 210 44 M 198 40 L 208 48", color: "#0e3a5a" }
-    ];
-    const s1 = SIGNATURE_PRESETS[Math.floor(Math.random() * SIGNATURE_PRESETS.length)];
-    let s2Idx = (SIGNATURE_PRESETS.indexOf(s1) + 1 + Math.floor(Math.random() * (SIGNATURE_PRESETS.length - 1))) % SIGNATURE_PRESETS.length;
-    const s2 = SIGNATURE_PRESETS[s2Idx];
-    const p1 = document.getElementById('sig1-path');
-    const p2 = document.getElementById('sig2-path');
-    if (p1) { p1.setAttribute('d', s1.path); p1.setAttribute('stroke', s1.color); }
-    if (p2) { p2.setAttribute('d', s2.path); p2.setAttribute('stroke', s2.color); }
+      document.getElementById('cert-title').textContent = params.get('title') || 'CERTIFICATE OF MEMBERSHIP';
+      document.getElementById('cert-subtitle').textContent = 'OFFICIAL CHAMBER CREDENTIALS';
+      document.getElementById('cert-badge').textContent = params.get('tier') || 'ENTERPRISE MEMBER';
+      
+      const chapter = params.get('chapter') || 'Mumbai Chapter';
+      const chapterStr = chapter.includes('Chapter') ? chapter : `${chapter} Chapter`;
+      document.getElementById('cert-accreditation').innerHTML = 
+        `is an officially verified and accredited business member in good standing with the ` +
+        `<strong>RIFAH Chamber of Commerce, ${chapterStr}</strong>.`;
 
-    if (params.get('sig1Img')) {
-      const img = document.getElementById('sig1-img');
-      img.src = params.get('sig1Img');
-      img.style.display = 'block';
-      const art = document.getElementById('sig1-art');
-      if (art) art.style.display = 'none';
+      document.getElementById('meta-field-label').textContent = 'Valid Until:';
+      document.getElementById('meta-field-val').textContent = params.get('validUntil') || '19 September 2027';
     }
-    
-    document.getElementById('sig2-name').textContent = params.get('sig2Name') || 'RIFAH Central HQ';
-    document.getElementById('sig2-role').textContent = params.get('sig2Role') || 'DIRECTOR GENERAL';
-    if (params.get('sig2Img')) {
-      const img = document.getElementById('sig2-img');
-      img.src = params.get('sig2Img');
-      img.style.display = 'block';
-      const art = document.getElementById('sig2-art');
-      if (art) art.style.display = 'none';
+
+    if (params.get('id')) {
+      document.getElementById('meta-id').textContent = params.get('id');
     }
+    if (params.get('date')) {
+      document.getElementById('meta-date').textContent = params.get('date');
+    }
+
+    // Randomize handwritten cursive signature
+    const SIGNATURE_PRESETS = [
+      "M 12 36 C 18 12, 32 6, 44 16 C 52 24, 46 44, 34 50 C 22 56, 18 42, 36 30 C 52 18, 68 36, 80 40 C 90 44, 98 26, 108 36 C 118 44, 126 24, 136 34 C 146 42, 154 28, 164 36 C 174 42, 182 32, 192 38 M 22 54 Q 100 44, 178 48 Q 194 49, 204 42 M 194 38 L 202 46",
+      "M 16 42 C 24 10, 42 8, 46 26 C 48 38, 38 52, 26 46 C 16 40, 28 20, 52 24 C 74 28, 64 52, 84 40 C 96 30, 108 14, 122 26 C 134 36, 128 48, 142 42 C 154 36, 164 22, 174 30 C 184 38, 180 50, 194 44 M 18 50 Q 106 60, 192 48 Q 204 46, 212 40",
+      "M 20 48 C 30 14, 46 8, 50 30 C 52 46, 38 56, 28 50 C 18 44, 32 22, 60 26 C 86 30, 72 56, 92 44 C 108 34, 118 16, 134 30 C 148 42, 140 54, 156 46 C 170 38, 180 24, 192 34 C 202 42, 198 56, 212 48 M 24 56 Q 112 64, 198 52 Q 212 50, 220 42"
+    ];
+    const randSig = SIGNATURE_PRESETS[Math.floor(Math.random() * SIGNATURE_PRESETS.length)];
+    const p = document.getElementById('sig-path');
+    if (p) p.setAttribute('d', randSig);
 
     if (params.get('print') === 'true' || params.get('autoprint') === 'true') {
       window.onload = () => {
