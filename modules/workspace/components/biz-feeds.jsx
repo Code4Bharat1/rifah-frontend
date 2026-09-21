@@ -97,38 +97,38 @@ function UserAvatar({ src, name, className = "h-9 w-9", iconClassName = "h-5 w-5
   );
 }
 
-// Role badge helper for displaying author level
+// Role badge helper for displaying author level in Rifah light theme (Focused view pill)
 function RoleBadge({ role }) {
   if (role === "central_admin") {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-100 text-sky-700">
         Central Admin
       </span>
     );
   }
   if (role === "state_admin") {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700">
         State Admin
       </span>
     );
   }
   if (role === "chapter_admin") {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-100 text-teal-700">
         Chapter Admin
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
       Member
     </span>
   );
 }
 
-// Single Instagram Post Card
-function InstagramPostCard({
+// Single Rifah Feed Post Card (Focused Post View Layout Theme)
+function RifahFeedCard({
   post,
   currentUser,
   canDelete,
@@ -146,7 +146,7 @@ function InstagramPostCard({
   const [imageErrorMap, setImageErrorMap] = useState({});
   const commentInputRef = useRef(null);
 
-  // Auto-reset imageErrorMap when post data or images change (e.g. after refresh/edit)
+  // Auto-reset imageErrorMap when post data or images change
   useEffect(() => {
     setImageErrorMap({});
   }, [post.id, post._id, post.images, post.updatedAt]);
@@ -154,6 +154,7 @@ function InstagramPostCard({
   const rawImages = Array.isArray(post.images) ? post.images : (post.image ? [post.image] : []);
   const images = rawImages.map((img) => resolveMediaUrl(img)).filter(Boolean);
   const totalImages = images.length;
+  const hasMedia = totalImages > 0;
 
   // Handle double-click on media to like with animated heart pop
   const handleDoubleClick = () => {
@@ -182,304 +183,329 @@ function InstagramPostCard({
     setShowAllComments(true);
   };
 
+  const handleShare = () => {
+    if (typeof window !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Post link copied to clipboard!");
+    } else {
+      toast.info("Share feature triggered");
+    }
+  };
+
   // Caption truncated view
-  const isLongCaption = (post.caption || "").length > 110;
+  const isLongCaption = (post.caption || "").length > 160;
   const displayCaption = isExpanded || !isLongCaption
     ? post.caption
-    : `${(post.caption || "").slice(0, 110)}...`;
+    : `${(post.caption || "").slice(0, 160)}...`;
 
   return (
-    <article className="rounded-xl border border-border bg-card shadow-xs overflow-hidden max-w-[500px] mx-auto w-full transition-shadow hover:shadow-sm">
-      {/* 1. Header: Profile Photo & User Name */}
-      <header className="flex items-center justify-between px-3.5 py-3 border-b border-border/60">
+    <article className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-300 w-full p-5 sm:p-6 space-y-3.5">
+      {/* 1. Author Row & Top Action Buttons (Follow + More Options) */}
+      <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          {/* Profile Photo (with default icon fallback) */}
-          <div className="relative shrink-0 rounded-full p-[2px] bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600">
-            <UserAvatar
-              src={post.author?.avatar}
-              name={post.author?.username || post.author?.name}
-              className="h-9 w-9 border-2 border-background"
-              iconClassName="h-4 w-4"
-            />
-          </div>
+          {/* User Avatar with dark circular border */}
+          <UserAvatar
+            src={post.author?.avatar}
+            name={post.author?.username || post.author?.name}
+            className="h-10 w-10 border border-slate-200"
+            iconClassName="h-5 w-5 text-slate-500"
+          />
 
-          {/* User Name, Role Badge, Chapter & Time */}
+          {/* User Name, Role Badge, Location / Timestamp */}
           <div className="min-w-0 flex flex-col leading-tight">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-sm font-bold text-foreground hover:underline cursor-pointer truncate">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-bold text-slate-900 hover:text-[#00A6F4] transition-colors cursor-pointer truncate">
                 {post.author?.username || "user"}
               </span>
               <RoleBadge role={post.createdByRole || post.author?.role || "business"} />
               {post.author?.verified && (
-                <BadgeCheck className="h-4 w-4 fill-sky-500 text-background shrink-0" />
+                <BadgeCheck className="h-4 w-4 fill-[#00A6F4] text-white shrink-0" />
               )}
-              <span className="text-muted-foreground text-xs font-normal">•</span>
-              <span className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt || post.author?.timeAgo)}</span>
+              {post.eventId && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-300">
+                  Event
+                </span>
+              )}
             </div>
 
-            {/* Chapter / Location subtitle with interactive quick-filtering */}
-            {(post.chapter || post.state || post.author?.subtitle) && (
-              <div className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
-                {post.chapter ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectChapter?.(post.chapter);
-                    }}
-                    className="hover:text-primary hover:underline transition-colors cursor-pointer truncate"
-                    title={`Filter by chapter: ${post.chapter}`}
-                  >
-                    {post.chapter}
-                  </button>
-                ) : null}
-                {post.chapter && post.state && <span>•</span>}
-                {post.state ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectState?.(post.state);
-                    }}
-                    className="hover:text-primary hover:underline transition-colors cursor-pointer truncate"
-                    title={`Filter by state: ${post.state}`}
-                  >
-                    {post.state}
-                  </button>
-                ) : (
-                  !post.chapter && <span>{post.author?.subtitle}</span>
-                )}
-              </div>
-            )}
+            <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5 truncate">
+              {post.chapter ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectChapter?.(post.chapter);
+                  }}
+                  className="hover:text-[#00A6F4] hover:underline transition-colors cursor-pointer font-normal"
+                >
+                  {post.chapter}
+                </button>
+              ) : post.state ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectState?.(post.state);
+                  }}
+                  className="hover:text-[#00A6F4] hover:underline transition-colors cursor-pointer font-normal"
+                >
+                  {post.state}
+                </button>
+              ) : (
+                <span>{post.author?.subtitle || "RIFAH Network"}</span>
+              )}
+              <span>•</span>
+              <span>{formatRelativeTime(post.createdAt || post.author?.timeAgo)}</span>
+            </div>
           </div>
         </div>
 
-        {/* Delete button (automatically controlled by user role & scope) */}
+        {/* Top Right Action: Only Delete Icon (if authorized) */}
         {canDelete && (
           <button
+            type="button"
             onClick={() => onDeletePost(post.id || post._id)}
-            className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors cursor-pointer shrink-0"
             title="Delete post"
+            aria-label="Delete post"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4.5 w-4.5" />
           </button>
-        )}
-      </header>
-
-      {/* 2. Media: Directly uploaded image */}
-      <div
-        onDoubleClick={handleDoubleClick}
-        className="relative w-full aspect-square bg-muted/30 select-none overflow-hidden group cursor-pointer"
-      >
-        {totalImages > 0 && images[currentSlide] && !imageErrorMap[currentSlide] ? (
-          <img
-            src={images[currentSlide]}
-            alt="Post photo"
-            className="w-full h-full object-cover"
-            onError={() => setImageErrorMap((prev) => ({ ...prev, [currentSlide]: true }))}
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2 bg-gradient-to-br from-muted/30 to-muted/60">
-            <Camera className="h-10 w-10 stroke-[1.5] opacity-50" />
-            <span className="text-xs font-medium">Image unavailable</span>
-          </div>
-        )}
-
-        {/* Double-Click Heart Pop */}
-        {showHeartPop && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 animate-in zoom-in-50 duration-200">
-            <Heart className="h-24 w-24 fill-white text-white drop-shadow-2xl animate-pulse" />
-          </div>
-        )}
-
-        {/* Carousel Navigation Arrows if multiple images */}
-        {totalImages > 1 && (
-          <>
-            {currentSlide > 0 && (
-              <button
-                onClick={handlePrevSlide}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/65 hover:bg-black/85 text-white flex items-center justify-center transition-opacity shadow-md z-10"
-                aria-label="Previous image"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-            )}
-            {currentSlide < totalImages - 1 && (
-              <button
-                onClick={handleNextSlide}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/65 hover:bg-black/85 text-white flex items-center justify-center transition-opacity shadow-md z-10"
-                aria-label="Next image"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            )}
-
-            {/* Pagination Dots */}
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none">
-              {images.map((_, idx) => (
-                <span
-                  key={idx}
-                  className={cn(
-                    "h-1.5 rounded-full transition-all duration-200",
-                    idx === currentSlide ? "w-3 bg-sky-500 shadow-xs" : "w-1.5 bg-white/70"
-                  )}
-                />
-              ))}
-            </div>
-          </>
         )}
       </div>
 
-      {/* 3. Action Bar: Likes and Comments only */}
-      <div className="px-3.5 pt-3 pb-1.5 space-y-2">
-        <div className="flex items-center gap-4">
-          {/* Like Heart Button */}
-          <button
-            onClick={() => onLikeToggle(post.id || post._id)}
-            className="group flex items-center gap-1.5 text-foreground hover:opacity-80 transition-transform active:scale-125 cursor-pointer"
-            aria-label={post.isLiked ? "Unlike post" : "Like post"}
-          >
-            <Heart
-              className={cn(
-                "h-6 w-6 transition-colors",
-                post.isLiked ? "fill-rose-600 text-rose-600" : "text-foreground"
-              )}
-            />
-          </button>
+      {/* 2. Post Title (Prominently displayed beneath author row) */}
+      {post.title && (
+        <h3 className="text-sm sm:text-base font-semibold text-slate-900 tracking-tight pt-0.5">
+          {post.title}
+        </h3>
+      )}
 
-          {/* Comment Bubble */}
-          <button
-            onClick={() => {
-              setShowAllComments(true);
-              commentInputRef.current?.focus();
-            }}
-            className="flex items-center gap-1.5 text-foreground hover:opacity-80 transition-opacity cursor-pointer"
-            aria-label="Comment"
-          >
-            <MessageCircle className="h-6 w-6 -rotate-90" />
-            <span className="text-xs font-semibold">{post.comments?.length || 0}</span>
-          </button>
-        </div>
-
-        {/* 4. Likes Count Display (Live) */}
-        <div className="text-sm font-semibold text-foreground">
-          {post.likesCount === 0 ? (
-            <span>Be the first to like this</span>
+      {/* 3. Media Banner (Inset rounded rectangle) */}
+      {hasMedia && (
+        <div
+          onDoubleClick={handleDoubleClick}
+          className="relative w-full rounded-2xl overflow-hidden border border-slate-200/70 bg-slate-100 select-none flex items-center justify-center min-h-[260px] max-h-[520px] group cursor-pointer shadow-2xs"
+        >
+          {images[currentSlide] && !imageErrorMap[currentSlide] ? (
+            <>
+              {/* Blurred ambient background for non-standard image aspect ratios */}
+              <img
+                src={images[currentSlide]}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-20 scale-110 pointer-events-none"
+              />
+              <img
+                src={images[currentSlide]}
+                alt="Post photo"
+                className="relative z-10 w-full h-full object-contain max-h-[520px] drop-shadow-xs transition-transform duration-300 group-hover:scale-[1.01]"
+                onError={() => setImageErrorMap((prev) => ({ ...prev, [currentSlide]: true }))}
+              />
+            </>
           ) : (
-            <span>{post.likesCount.toLocaleString()} {post.likesCount === 1 ? "like" : "likes"}</span>
+            <div className="w-full h-full min-h-[200px] flex flex-col items-center justify-center text-slate-400 gap-2 p-8 bg-slate-50">
+              <Camera className="h-10 w-10 stroke-[1.5] opacity-50 text-slate-400" />
+              <span className="text-xs font-medium">Image unavailable</span>
+            </div>
+          )}
+
+          {/* Double-Click Heart Pop */}
+          {showHeartPop && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-in zoom-in-50 duration-200">
+              <Heart className="h-24 w-24 fill-rose-600 text-rose-600 drop-shadow-xl animate-pulse" />
+            </div>
+          )}
+
+          {/* Carousel Arrows & Pagination (if multiple images) */}
+          {totalImages > 1 && (
+            <>
+              {currentSlide > 0 && (
+                <button
+                  type="button"
+                  onClick={handlePrevSlide}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center transition-colors shadow-md z-20 backdrop-blur-sm"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+              )}
+              {currentSlide < totalImages - 1 && (
+                <button
+                  type="button"
+                  onClick={handleNextSlide}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center transition-colors shadow-md z-20 backdrop-blur-sm"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              )}
+              <div className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-slate-900/75 text-[11px] font-semibold text-white backdrop-blur-sm pointer-events-none z-20">
+                {currentSlide + 1} / {totalImages}
+              </div>
+              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-20 pointer-events-none">
+                {images.map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-200",
+                      idx === currentSlide ? "w-3.5 bg-[#00A6F4] shadow-xs" : "w-1.5 bg-slate-400/60"
+                    )}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
+      )}
 
-        {/* 5. Caption: User Name + Text */}
-        <div className="text-sm text-foreground leading-relaxed break-words">
-          <span className="font-bold mr-1.5 cursor-pointer hover:underline">
-            {post.author?.username || "user"}
-          </span>
-          <span className="font-normal">{displayCaption}</span>
+      {/* 4. Post Caption / Description (Positioned directly below the image) */}
+      {post.caption && (
+        <div className="text-sm text-slate-700 leading-relaxed break-words pt-1">
+          <span>{displayCaption}</span>
           {isLongCaption && !isExpanded && (
             <button
+              type="button"
               onClick={() => setIsExpanded(true)}
-              className="text-xs text-muted-foreground ml-1.5 font-medium hover:text-foreground cursor-pointer"
+              className="text-xs text-[#00A6F4] ml-1.5 font-semibold hover:underline cursor-pointer"
             >
               more
             </button>
           )}
           {isExpanded && isLongCaption && (
             <button
+              type="button"
               onClick={() => setIsExpanded(false)}
-              className="text-xs text-muted-foreground ml-1.5 font-medium hover:text-foreground cursor-pointer"
+              className="text-xs text-[#00A6F4] ml-1.5 font-semibold hover:underline cursor-pointer"
             >
               less
             </button>
           )}
         </div>
+      )}
 
-        {/* 6. Comments Section */}
-        <div className="space-y-1.5 pt-1">
-          {post.comments?.length > 1 && !showAllComments && (
+      {/* 5. Action Bar (Likes, Comments Count) */}
+      <div className="flex items-center gap-6 pt-2 border-t border-slate-100">
+        {/* Like Button */}
+        <button
+          type="button"
+          onClick={() => onLikeToggle(post.id || post._id)}
+          className="group flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-transform active:scale-110 cursor-pointer"
+          aria-label={post.isLiked ? "Unlike post" : "Like post"}
+        >
+          <Heart
+            className={cn(
+              "h-4.5 w-4.5 transition-colors",
+              post.isLiked
+                ? "fill-rose-600 text-rose-600 drop-shadow-xs"
+                : "text-slate-500 group-hover:text-slate-800"
+            )}
+          />
+          <span>{post.likesCount || 0}</span>
+        </button>
+
+        {/* Comments Count / Toggle */}
+        <button
+          type="button"
+          onClick={() => {
+            setShowAllComments((prev) => !prev);
+            commentInputRef.current?.focus();
+          }}
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#00A6F4] transition-colors cursor-pointer"
+        >
+          <MessageCircle className="h-4.5 w-4.5 text-slate-500" />
+          <span>{post.comments?.length || 0}</span>
+        </button>
+      </div>
+
+      {/* 6. Comments Section (Comments header, comment bubbles & pill comment input) */}
+      <div className="pt-2 border-t border-slate-100 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-bold text-slate-900 tracking-tight">
+            Comments ({post.comments?.length || 0})
+          </h4>
+          {post.comments?.length > 2 && (
             <button
-              onClick={() => setShowAllComments(true)}
-              className="text-xs text-muted-foreground font-medium hover:text-foreground cursor-pointer"
+              type="button"
+              onClick={() => setShowAllComments(!showAllComments)}
+              className="text-xs text-[#00A6F4] hover:text-[#008fe0] font-semibold hover:underline cursor-pointer"
             >
-              View all {post.comments.length} comments
+              {showAllComments ? "Show less" : `View all ${post.comments.length} comments`}
             </button>
           )}
+        </div>
 
-          {/* Comment list */}
-          <div className="space-y-2 pt-1">
-            {(showAllComments ? post.comments : (post.comments || []).slice(-1)).map((comment) => (
-              <div key={comment.id} className="flex items-start justify-between gap-2 text-xs">
+        {/* Comments Stream */}
+        {post.comments && post.comments.length > 0 && (
+          <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 text-xs no-scrollbar [scrollbar-width:thin]">
+            {(showAllComments ? post.comments : post.comments.slice(-2)).map((comment) => (
+              <div
+                key={comment.id || comment._id || Math.random()}
+                className="flex items-start justify-between gap-2.5 p-2.5 rounded-2xl bg-slate-50/90 border border-slate-200/60 shadow-2xs"
+              >
                 <div className="flex items-start gap-2 min-w-0">
                   <UserAvatar
                     src={resolveMediaUrl(comment.avatar)}
                     name={comment.username || comment.name}
-                    className="h-5 w-5 mt-0.5 border"
-                    iconClassName="h-3 w-3"
+                    className="h-6 w-6 mt-0.5 border border-slate-200 shrink-0"
+                    iconClassName="h-3.5 w-3.5 text-slate-400"
                   />
                   <p className="leading-snug break-words">
-                    <span className="font-bold mr-1.5 text-foreground hover:underline cursor-pointer">
+                    <span className="font-bold mr-1.5 text-slate-900 hover:underline cursor-pointer hover:text-[#00A6F4]">
                       {comment.username || comment.name}
                     </span>
-                    <span className="text-foreground/90 font-normal">{comment.text}</span>
+                    <span className="text-slate-700 font-normal">{comment.text}</span>
                   </p>
                 </div>
                 {(comment.createdAt || comment.timeAgo) && (
-                  <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                  <span className="text-[10px] text-slate-400 shrink-0 mt-0.5">
                     {formatRelativeTime(comment.createdAt || comment.timeAgo)}
                   </span>
                 )}
               </div>
             ))}
           </div>
+        )}
 
-          {showAllComments && post.comments?.length > 2 && (
-            <button
-              onClick={() => setShowAllComments(false)}
-              className="text-[11px] text-muted-foreground hover:text-foreground font-medium pt-1 cursor-pointer"
-            >
-              Hide comments
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 7. Working Live 'Add a comment...' Input Bar */}
-      <form
-        onSubmit={handlePostComment}
-        className="flex items-center gap-2 px-3.5 py-2.5 border-t border-border/60 mt-2 bg-muted/20"
-      >
-        <UserAvatar
-          src={currentUser?.avatar}
-          name={currentUser?.username}
-          className="h-6 w-6 border"
-          iconClassName="h-3.5 w-3.5"
-        />
-
-        <input
-          ref={commentInputRef}
-          type="text"
-          value={commentInput}
-          onChange={(e) => setCommentInput(e.target.value)}
-          placeholder="Add a comment..."
-          className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-hidden focus:outline-hidden"
-        />
-
-        <button
-          type="submit"
-          disabled={!commentInput.trim()}
-          className={cn(
-            "text-xs font-bold transition-opacity cursor-pointer shrink-0",
-            commentInput.trim()
-              ? "text-sky-600 hover:text-sky-700 opacity-100"
-              : "text-sky-500/40 opacity-0 pointer-events-none"
-          )}
+        {/* Comment Input Bar: Pill format matching the screenshot */}
+        <form
+          onSubmit={handlePostComment}
+          className="flex items-center gap-2 p-1.5 pl-3.5 rounded-full bg-white border border-slate-200 focus-within:border-[#00A6F4] focus-within:ring-2 focus-within:ring-[#00A6F4]/20 shadow-2xs transition-all"
         >
-          Post
-        </button>
-      </form>
+          <UserAvatar
+            src={currentUser?.avatar}
+            name={currentUser?.username}
+            className="h-5 w-5 border border-slate-200 shrink-0"
+            iconClassName="h-3 w-3 text-slate-400"
+          />
+          <input
+            ref={commentInputRef}
+            type="text"
+            value={commentInput}
+            onChange={(e) => setCommentInput(e.target.value)}
+            placeholder="Write a comment..."
+            className="flex-1 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 outline-none"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            disabled={!commentInput.trim()}
+            className={cn(
+              "h-7 px-4 rounded-full font-semibold text-xs transition-all cursor-pointer shrink-0 shadow-xs",
+              commentInput.trim()
+                ? "bg-[#00A6F4] hover:bg-[#0095dc] text-white"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            )}
+          >
+            Post
+          </Button>
+        </form>
+      </div>
     </article>
   );
 }
+
+const InstagramPostCard = RifahFeedCard;
 
 // Multi-Level Filter Navbar (All, State-wise, Chapter-wise - Inline Navbar Layout)
 function FeedFilterBar({
@@ -506,13 +532,13 @@ function FeedFilterBar({
     Boolean(searchQuery.trim());
 
   return (
-    <div className="rounded-2xl border border-border bg-card/95 backdrop-blur-md shadow-xs p-2 sm:px-3 sm:py-2.5 transition-all">
+    <div className="rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-md shadow-xs p-2.5 sm:px-4 sm:py-3 transition-all text-slate-900">
       {/* Main Inline Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         {/* Left Section: Segmented View Switcher & Contextual Selectors */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Segmented View Control */}
-          <div className="inline-flex items-center bg-muted/60 p-0.5 rounded-xl border border-border/60">
+          <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60">
             <button
               type="button"
               onClick={() => {
@@ -523,8 +549,8 @@ function FeedFilterBar({
               className={cn(
                 "flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                 filterMode === "all"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/50"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
               )}
             >
               <Globe className="h-3.5 w-3.5 shrink-0" />
@@ -537,8 +563,8 @@ function FeedFilterBar({
               className={cn(
                 "flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                 filterMode === "state"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/50"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
               )}
             >
               <MapPin className="h-3.5 w-3.5 shrink-0" />
@@ -551,8 +577,8 @@ function FeedFilterBar({
               className={cn(
                 "flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                 filterMode === "chapter"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/50"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
               )}
             >
               <Building2 className="h-3.5 w-3.5 shrink-0" />
@@ -567,11 +593,11 @@ function FeedFilterBar({
                 value={selectedState || "ALL_STATES"}
                 onValueChange={(val) => setSelectedState(val === "ALL_STATES" ? "" : val)}
               >
-                <SelectTrigger className="h-8.5 text-xs w-[160px] sm:w-[190px] rounded-lg bg-background">
-                  <MapPin className="h-3 w-3 mr-1 text-primary shrink-0" />
+                <SelectTrigger className="h-8.5 text-xs w-[160px] sm:w-[190px] rounded-lg bg-white border border-slate-200 text-slate-800 hover:border-slate-300">
+                  <MapPin className="h-3 w-3 mr-1 text-sky-600 shrink-0" />
                   <SelectValue placeholder="All States" />
                 </SelectTrigger>
-                <SelectContent className="max-h-60">
+                <SelectContent className="max-h-60 bg-white border-slate-200 text-slate-800 shadow-lg">
                   <SelectItem value="ALL_STATES">All States</SelectItem>
                   {availableStates.map((state) => (
                     <SelectItem key={state} value={state}>
@@ -591,10 +617,10 @@ function FeedFilterBar({
                   value={selectedState || "ALL_STATES"}
                   onValueChange={(val) => setSelectedState(val === "ALL_STATES" ? "" : val)}
                 >
-                  <SelectTrigger className="h-8.5 text-xs w-[130px] sm:w-[150px] rounded-lg bg-background">
+                  <SelectTrigger className="h-8.5 text-xs w-[130px] sm:w-[150px] rounded-lg bg-white border border-slate-200 text-slate-800 hover:border-slate-300">
                     <SelectValue placeholder="All States" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-48">
+                  <SelectContent className="max-h-48 bg-white border-slate-200 text-slate-800 shadow-lg">
                     <SelectItem value="ALL_STATES">All States</SelectItem>
                     {availableStates.map((state) => (
                       <SelectItem key={state} value={state}>
@@ -609,11 +635,11 @@ function FeedFilterBar({
                 value={selectedChapter || "ALL_CHAPTERS"}
                 onValueChange={(val) => setSelectedChapter(val === "ALL_CHAPTERS" ? "" : val)}
               >
-                <SelectTrigger className="h-8.5 text-xs w-[170px] sm:w-[210px] rounded-lg bg-background">
-                  <Building2 className="h-3 w-3 mr-1 text-primary shrink-0" />
+                <SelectTrigger className="h-8.5 text-xs w-[170px] sm:w-[210px] rounded-lg bg-white border border-slate-200 text-slate-800 hover:border-slate-300">
+                  <Building2 className="h-3 w-3 mr-1 text-sky-600 shrink-0" />
                   <SelectValue placeholder="Select Chapter" />
                 </SelectTrigger>
-                <SelectContent className="max-h-60">
+                <SelectContent className="max-h-60 bg-white border-slate-200 text-slate-800 shadow-lg">
                   <SelectItem value="ALL_CHAPTERS">All Chapters</SelectItem>
                   {availableChapters.map((chapter) => (
                     <SelectItem key={chapter.id || chapter.name} value={chapter.name}>
@@ -636,8 +662,8 @@ function FeedFilterBar({
               className={cn(
                 "hidden md:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
                 filterMode === "chapter" && selectedChapter.toLowerCase() === userChapter.toLowerCase()
-                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                  : "bg-muted/70 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-sky-600 text-white font-semibold shadow-xs"
+                  : "bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
               )}
               title={`Filter by my chapter (${userChapter})`}
             >
@@ -655,8 +681,8 @@ function FeedFilterBar({
               className={cn(
                 "hidden md:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
                 filterMode === "state" && selectedState.toLowerCase() === userState.toLowerCase()
-                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                  : "bg-muted/70 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-sky-600 text-white font-semibold shadow-xs"
+                  : "bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
               )}
               title={`Filter by my state (${userState})`}
             >
@@ -670,19 +696,19 @@ function FeedFilterBar({
         <div className="flex items-center gap-2 ml-auto">
           {/* Search Bar */}
           <div className="relative w-40 sm:w-52 md:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             <Input
               type="text"
               placeholder="Search feeds..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-7 text-xs h-8.5 rounded-lg bg-background"
+              className="pl-8 pr-7 text-xs h-8.5 rounded-lg bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-sky-500"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
                 title="Clear search"
               >
                 <X className="h-3.5 w-3.5" />
@@ -693,7 +719,7 @@ function FeedFilterBar({
           {/* Posts Count Badge */}
           <Badge
             variant="outline"
-            className="h-8.5 px-2.5 text-[11px] font-medium text-muted-foreground border-border bg-background shrink-0 hidden sm:inline-flex items-center"
+            className="h-8.5 px-2.5 text-[11px] font-medium text-slate-600 border-slate-200 bg-slate-100 shrink-0 hidden sm:inline-flex items-center"
           >
             {filteredCount} {filteredCount === 1 ? "post" : "posts"}
           </Badge>
@@ -704,7 +730,7 @@ function FeedFilterBar({
               variant="ghost"
               size="sm"
               onClick={onReset}
-              className="h-8.5 px-2.5 text-xs text-muted-foreground hover:text-destructive font-medium cursor-pointer shrink-0"
+              className="h-8.5 px-2.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 font-medium cursor-pointer shrink-0"
               title="Reset all filters"
             >
               <RotateCcw className="h-3.5 w-3.5 sm:mr-1" />
@@ -716,8 +742,8 @@ function FeedFilterBar({
 
       {/* Optional Thin Secondary Pill Row: When State Mode is active with available states */}
       {filterMode === "state" && availableStates.length > 0 && (
-        <div className="mt-2 pt-2 border-t border-border/40 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider shrink-0 mr-1">
+        <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider shrink-0 mr-1">
             States:
           </span>
           <button
@@ -725,7 +751,7 @@ function FeedFilterBar({
             onClick={() => setSelectedState("")}
             className={cn(
               "px-2 py-0.5 rounded-md text-[11px] font-medium transition-all shrink-0 cursor-pointer",
-              !selectedState ? "bg-primary text-primary-foreground font-semibold" : "bg-muted/70 hover:bg-muted text-foreground"
+              !selectedState ? "bg-sky-600 text-white font-semibold shadow-xs" : "bg-slate-100 hover:bg-slate-200/70 text-slate-600"
             )}
           >
             All States
@@ -740,8 +766,8 @@ function FeedFilterBar({
                 className={cn(
                   "px-2 py-0.5 rounded-md text-[11px] font-medium transition-all shrink-0 cursor-pointer",
                   isSelected
-                    ? "bg-primary text-primary-foreground font-semibold"
-                    : "bg-muted/70 hover:bg-muted text-foreground"
+                    ? "bg-sky-600 text-white font-semibold shadow-xs"
+                    : "bg-slate-100 hover:bg-slate-200/70 text-slate-600"
                 )}
               >
                 {state}
@@ -1182,60 +1208,25 @@ export function BizFeeds() {
   }, [posts, filterMode, selectedState, selectedChapter, searchQuery, chapters]);
 
   // =========================================================================
-  // AUTOMATIC DELETION PERMISSIONS
+  // AUTOMATIC DELETION PERMISSIONS: ONLY central_admin & post creator
   // =========================================================================
   const hasDeletePermission = (post) => {
-    // 1. Central Admin can delete ALL posts automatically
+    // 1. Central Admin can delete any post
     if (userRole === "central_admin") {
       return true;
     }
 
-    // 2. Author can always delete their own post
+    // 2. Creator of the post can delete their own post
+    const postAuthorId = String(post.createdById || post.author?.id || post.author?._id || post.author || "");
+    const currentUserId = String(userId || user?._id || user?.id || "");
+
     const isOwner = Boolean(
-      (post.createdById && userId && String(post.createdById) === userId) ||
-      (post.createdByUsername && currentUsername && post.createdByUsername.toLowerCase() === currentUsername)
+      (postAuthorId && currentUserId && postAuthorId === currentUserId) ||
+      (post.createdByUsername && currentUsername && post.createdByUsername.toLowerCase() === currentUsername) ||
+      (post.author?.username && currentUsername && post.author.username.toLowerCase() === currentUsername)
     );
-    if (isOwner) {
-      return true;
-    }
 
-    // 3. State Admin can delete any post within their state scope
-    if (userRole === "state_admin") {
-      if (!userState) return false;
-
-      const stateChapters = chapters
-        .filter((c) => (c.state || "").toLowerCase().trim() === userState)
-        .map((c) => (c.name || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim());
-
-      const postState = (post.state || "").toLowerCase().trim();
-      const isSameState = postState && (postState === userState || userState.includes(postState) || postState.includes(userState));
-
-      const postChapterClean = (post.chapter || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
-      const isChapterInState = stateChapters.some(
-        (sc) => sc && postChapterClean && (sc === postChapterClean || postChapterClean.includes(sc) || sc.includes(postChapterClean))
-      );
-
-      return isSameState || isChapterInState;
-    }
-
-    // 4. Chapter Admin can delete any post within their chapter scope
-    if (userRole === "chapter_admin") {
-      const userChapterClean = userChapter.replace(/\b(chapter|chamber)\b/gi, "").trim();
-      if (!userChapterClean) return false;
-
-      const postChapterClean = (post.chapter || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
-      return Boolean(
-        (post.chapterId && userChapterId && String(post.chapterId) === userChapterId) ||
-        (userChapterClean && postChapterClean && (
-          userChapterClean === postChapterClean ||
-          postChapterClean.includes(userChapterClean) ||
-          userChapterClean.includes(postChapterClean)
-        ))
-      );
-    }
-
-    // 5. Business members can only delete their own posts (handled by isOwner above)
-    return false;
+    return isOwner;
   };
 
   return (
@@ -1244,90 +1235,95 @@ export function BizFeeds() {
       title="Feeds"
       subtitle="Connect, share business milestones, and explore updates from fellow members"
       actions={
-        <Button onClick={() => setIsNewPostOpen(true)} className="gap-2 font-semibold shadow-xs">
+        <Button
+          onClick={() => setIsNewPostOpen(true)}
+          className="gap-2 font-semibold shadow-md bg-[#00A6F4] hover:bg-[#0096dc] text-white cursor-pointer"
+        >
           <PlusCircle className="h-4 w-4" /> Create Post
         </Button>
       }
     >
-      {/* Top Inline Filter Navbar */}
-      <div className="w-full max-w-5xl mx-auto mb-6">
-        <FeedFilterBar
-          filterMode={filterMode}
-          setFilterMode={setFilterMode}
-          selectedState={selectedState}
-          setSelectedState={setSelectedState}
-          selectedChapter={selectedChapter}
-          setSelectedChapter={setSelectedChapter}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          availableStates={availableStates}
-          availableChapters={availableChapters}
-          totalPostsCount={posts.length}
-          filteredCount={filteredPosts.length}
-          onReset={handleResetFilter}
-          userState={userState}
-          userChapter={userChapter}
-        />
-      </div>
+      <div className="-m-4 md:-m-6 lg:-m-8 p-4 md:p-6 lg:p-8 min-h-[calc(100vh-4rem)] bg-sky-100 text-slate-900 relative">
+        {/* Top Inline Filter Navbar */}
+        <div className="relative z-10 w-full max-w-4xl mx-auto mb-6">
+          <FeedFilterBar
+            filterMode={filterMode}
+            setFilterMode={setFilterMode}
+            selectedState={selectedState}
+            setSelectedState={setSelectedState}
+            selectedChapter={selectedChapter}
+            setSelectedChapter={setSelectedChapter}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            availableStates={availableStates}
+            availableChapters={availableChapters}
+            totalPostsCount={posts.length}
+            filteredCount={filteredPosts.length}
+            onReset={handleResetFilter}
+            userState={userState}
+            userChapter={userChapter}
+          />
+        </div>
 
-      {/* Main Feed Stream Column */}
-      <div className="max-w-[500px] mx-auto space-y-6">
-        <main className="w-full space-y-6">
-          {isPostsLoading && posts.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-12 text-center space-y-3 shadow-xs">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-              <p className="text-xs text-muted-foreground font-medium">Loading live feeds...</p>
-            </div>
-          ) : filteredPosts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center space-y-4 shadow-xs">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted border border-border">
-                <Camera className="h-8 w-8 text-muted-foreground stroke-[1.5]" />
+        {/* Main Feed Stream Column (Wider Focused Layout) */}
+        <div className="relative z-10 w-full max-w-4xl mx-auto space-y-6">
+          <main className="w-full space-y-6">
+            {isPostsLoading && posts.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-12 text-center space-y-3 shadow-xs">
+                <Loader2 className="h-8 w-8 animate-spin text-sky-600 mx-auto" />
+                <p className="text-xs text-slate-500 font-medium">Loading live feeds...</p>
               </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-foreground">No Posts Found</h3>
-                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                  {posts.length === 0
-                    ? "No posts published in the network yet. Be the first to share an update!"
-                    : "No posts match the current filter selection. Try choosing another state/chapter or resetting."}
-                </p>
-              </div>
-              <div className="flex items-center justify-center gap-2 pt-2">
-                {posts.length > 0 && (
+            ) : filteredPosts.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/95 p-10 text-center space-y-4 shadow-xs">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 border border-slate-200">
+                  <Camera className="h-8 w-8 text-slate-400 stroke-[1.5]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-slate-900">No Posts Found</h3>
+                  <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                    {posts.length === 0
+                      ? "No posts published in the network yet. Be the first to share an update!"
+                      : "No posts match the current filter selection. Try choosing another state/chapter or resetting."}
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  {posts.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResetFilter}
+                      className="gap-1.5 text-xs font-semibold cursor-pointer border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> Show All Posts
+                    </Button>
+                  )}
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleResetFilter}
-                    className="gap-1.5 text-xs font-semibold cursor-pointer"
+                    onClick={() => setIsNewPostOpen(true)}
+                    className="gap-2 font-semibold text-xs cursor-pointer bg-sky-600 hover:bg-sky-500 text-white shadow-xs"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" /> Show All Posts
+                    <PlusCircle className="h-4 w-4" /> Create Post
                   </Button>
-                )}
-                <Button
-                  onClick={() => setIsNewPostOpen(true)}
-                  className="gap-2 font-semibold text-xs cursor-pointer"
-                >
-                  <PlusCircle className="h-4 w-4" /> Create Post
-                </Button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {filteredPosts.map((post) => (
-                <InstagramPostCard
-                  key={post.id || post._id}
-                  post={post}
-                  currentUser={activeUser}
-                  canDelete={hasDeletePermission(post)}
-                  onLikeToggle={handleLikeToggle}
-                  onAddComment={handleAddComment}
-                  onDeletePost={handleDeletePost}
-                  onSelectChapter={handleSelectChapter}
-                  onSelectState={handleSelectState}
-                />
-              ))}
-            </div>
-          )}
-        </main>
+            ) : (
+              <div className="space-y-6">
+                {filteredPosts.map((post) => (
+                  <RifahFeedCard
+                    key={post.id || post._id}
+                    post={post}
+                    currentUser={activeUser}
+                    canDelete={hasDeletePermission(post)}
+                    onLikeToggle={handleLikeToggle}
+                    onAddComment={handleAddComment}
+                    onDeletePost={handleDeletePost}
+                    onSelectChapter={handleSelectChapter}
+                    onSelectState={handleSelectState}
+                  />
+                ))}
+              </div>
+            )}
+          </main>
+        </div>
       </div>
 
       {/* Direct Image & Post Creation Modal */}
