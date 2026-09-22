@@ -200,8 +200,24 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         cover: null, // Keep cover null to allow new upload
         poster: null,
       });
+    } else if (!initialData && user) {
+      if (user.role === "state_admin" && user.state) {
+        setFormData((prev) => ({
+          ...prev,
+          state: user.state,
+          targetStates: [user.state],
+        }));
+      } else if (user.role === "chapter_admin" && user.chapter) {
+        setFormData((prev) => ({
+          ...prev,
+          chapter: user.chapter,
+          targetChapters: [user.chapter],
+          state: user.state || prev.state,
+          targetStates: user.state ? [user.state] : prev.targetStates,
+        }));
+      }
     }
-  }, [initialData]);
+  }, [initialData, user]);
 
   const toggleAudience = (audience) => {
     setFormData((prev) => {
@@ -396,7 +412,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
 
   return (
     <AppShell
-      role="admin"
+      role={user?.role === "state_admin" ? "state_admin" : user?.role === "chapter_admin" ? "chapter_admin" : "admin"}
       title={isEditMode ? "Edit Event" : "Create New Event"}
       subtitle={isEditMode ? "Update event details and manage publishing." : "Draft a new chamber event or workshop."}
       actions={

@@ -196,7 +196,7 @@ function AdminEvents() {
 
   return (
     <AppShell
-      role="admin"
+      role={user?.role === "state_admin" ? "state_admin" : user?.role === "chapter_admin" ? "chapter_admin" : "admin"}
       title="Events"
       subtitle="Chamber programme calendar & conferences"
       actions={

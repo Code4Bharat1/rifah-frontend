@@ -26,9 +26,12 @@ export function AdminEventDetail() {
   const { data: event, isLoading } = useEventDetail(eventId);
   const [registrationsModal, setRegistrationsModal] = useState(false);
 
+  const currentRole = user?.role === "state_admin" ? "state_admin" : user?.role === "chapter_admin" ? "chapter_admin" : "admin";
+  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
+
   if (isLoading) {
     return (
-      <AppShell role="admin" title="Event Details" subtitle="Loading...">
+      <AppShell role={currentRole} title="Event Details" subtitle="Loading...">
         <div className="p-12 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
@@ -36,11 +39,9 @@ export function AdminEventDetail() {
     );
   }
 
-  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
-
   if (!event) {
     return (
-      <AppShell role="admin" title="Event Not Found">
+      <AppShell role={currentRole} title="Event Not Found">
         <div className="p-12 text-center">
           <p className="text-muted-foreground">This event could not be found.</p>
           <Button asChild className="mt-4"><Link href={basePath}>← Back to Events</Link></Button>
@@ -50,17 +51,22 @@ export function AdminEventDetail() {
   }
 
   const isCentralAdmin = user?.role === "central_admin";
+  const isStateAdmin = user?.role === "state_admin";
   // Safely compare user._id (or id) with event.createdBy
   const userIdStr = String(user?._id || user?.id);
   const createdByStr = String(event.createdBy?._id || event.createdBy);
-  const canEdit = isCentralAdmin || createdByStr === userIdStr;
+  const isSameState = isStateAdmin && user?.state && (
+    event.state?.toLowerCase() === user.state.toLowerCase() ||
+    event.targetStates?.some(s => s.toLowerCase() === user.state.toLowerCase())
+  );
+  const canEdit = isCentralAdmin || createdByStr === userIdStr || isSameState;
 
   const coverUrl = event.coverImage ? resolveMediaUrl(event.coverImage) : eventImage;
   const seatsRemaining = Math.max(0, (event.seats || 100) - (event.registeredCount || 0));
 
   return (
     <AppShell
-      role="admin"
+      role={currentRole}
       title={event.title}
       subtitle={`${event.chapter} · ${event.mode}`}
       actions={
