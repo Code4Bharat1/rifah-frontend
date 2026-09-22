@@ -87,12 +87,45 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
     city: "",
     state: stateName,
     status: "Active",
+    businessId: "",
+    adminName: "",
+    adminEmail: "",
   });
 
   const { data: businessesData } = useBusinesses({ limit: 150 });
   const rawBusinesses = Array.isArray(businessesData)
     ? businessesData
     : (businessesData?.businesses || businessesData?.data || []);
+
+  const stateBusinesses = rawBusinesses.filter(
+    (b) => String(b.state || "").toLowerCase().trim() === String(stateName || "").toLowerCase().trim()
+  );
+  const otherStateBusinesses = rawBusinesses.filter(
+    (b) => String(b.state || "").toLowerCase().trim() !== String(stateName || "").toLowerCase().trim()
+  );
+
+  const handleSelectCreateChapterOwner = (bizId) => {
+    if (!bizId || bizId === "custom") {
+      setNewChapter((prev) => ({
+        ...prev,
+        businessId: "",
+        adminName: "",
+        adminEmail: "",
+      }));
+      return;
+    }
+    const biz = rawBusinesses.find((b) => String(b._id) === String(bizId));
+    if (biz) {
+      const ownerName = biz.owner?.name || biz.contactPerson || biz.name || "";
+      const ownerEmail = biz.owner?.email || biz.ownerEmail || biz.email || "";
+      setNewChapter((prev) => ({
+        ...prev,
+        businessId: bizId,
+        adminName: ownerName,
+        adminEmail: ownerEmail,
+      }));
+    }
+  };
 
   // Assign Chapter Admin Modal State
   const [adminModalChapter, setAdminModalChapter] = useState(null);
@@ -171,12 +204,29 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
     setCreatingChapter(true);
     try {
       await chapterApi.create({
-        ...newChapter,
+        name: newChapter.name,
+        city: newChapter.city,
         state: stateName,
+        status: newChapter.status || "Active",
+        businessId: newChapter.businessId || undefined,
+        adminName: newChapter.adminName || undefined,
+        adminEmail: newChapter.adminEmail || undefined,
       });
-      toast.success(`Chapter "${newChapter.name}" created successfully!`);
+      toast.success(
+        newChapter.businessId || (newChapter.adminName && newChapter.adminEmail)
+          ? `Chapter "${newChapter.name}" created and Admin appointed!`
+          : `Chapter "${newChapter.name}" created successfully!`
+      );
       setOpenAddChapter(false);
-      setNewChapter({ name: "", city: "", state: stateName, status: "Active" });
+      setNewChapter({
+        name: "",
+        city: "",
+        state: stateName,
+        status: "Active",
+        businessId: "",
+        adminName: "",
+        adminEmail: "",
+      });
       refetchChapters();
     } catch (err) {
       toast.error(err.message || "Failed to create chapter.");
@@ -187,14 +237,19 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
 
   const handleAssignChapterAdmin = async (e) => {
     e.preventDefault();
-    if (!newAdmin.name || !newAdmin.email || !adminModalChapter) {
-      toast.error("Admin Name and Email are required");
+    if (!selectedBusinessId && (!newAdmin.name || !newAdmin.email)) {
+      toast.error("Please select a business owner or provide admin name and email");
       return;
     }
+    if (!adminModalChapter) return;
     setAssigningAdmin(true);
     try {
       const chapterId = adminModalChapter._id || adminModalChapter.id;
-      await chapterApi.assignAdmin(chapterId, newAdmin);
+      await chapterApi.assignAdmin(chapterId, {
+        businessId: selectedBusinessId && selectedBusinessId !== "custom" ? selectedBusinessId : undefined,
+        name: newAdmin.name,
+        email: newAdmin.email,
+      });
       toast.success(`Chapter Admin appointed for ${adminModalChapter.name}! Invitation sent.`);
       setAdminModalChapter(null);
       setSelectedBusinessId("");
@@ -589,7 +644,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
 
       {/* Add Chapter Dialog */}
       <Dialog open={openAddChapter} onOpenChange={setOpenAddChapter}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Establish New Chapter</DialogTitle>
             <DialogDescription>
@@ -633,6 +688,85 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                 className="bg-muted text-muted-foreground"
               />
             </div>
+
+            {/* Optional Chapter Admin Section */}
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-foreground">
+                  Appoint Chapter Admin <span className="text-muted-foreground font-normal">(Optional)</span>
+                </Label>
+              </div>
+
+              <div className="space-y-1.5">
+                <Select
+                  value={newChapter.businessId || undefined}
+                  onValueChange={handleSelectCreateChapterOwner}
+                >
+                  <SelectTrigger id="create-biz-owner-select" className="w-full bg-background">
+                    <SelectValue placeholder="Choose a registered business owner..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="custom">-- None / Assign Later --</SelectItem>
+                    {stateBusinesses.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel className="text-xs font-semibold text-primary">
+                          {stateName} Business Owners
+                        </SelectLabel>
+                        {stateBusinesses.map((b) => {
+                          const oName = b.owner?.name || b.contactPerson || b.name;
+                          const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                          return (
+                            <SelectItem key={b._id} value={b._id}>
+                              <div className="flex flex-col text-left py-0.5">
+                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                <span className="text-[11px] text-muted-foreground">{oEmail}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectGroup>
+                    )}
+                    {otherStateBusinesses.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel className="text-xs font-semibold text-muted-foreground">
+                          Other Registered Businesses
+                        </SelectLabel>
+                        {otherStateBusinesses.map((b) => {
+                          const oName = b.owner?.name || b.contactPerson || b.name;
+                          const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                          return (
+                            <SelectItem key={b._id} value={b._id}>
+                              <div className="flex flex-col text-left py-0.5">
+                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {b.state ? `${b.state} · ` : ""}{oEmail}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectGroup>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Selecting a business owner will automatically allocate them as Chapter Admin and send login credentials.
+                </p>
+              </div>
+
+              {newChapter.businessId ? (
+                <div className="rounded-lg border border-blue-200 bg-blue-50/70 dark:border-blue-900 dark:bg-blue-950/40 p-2.5 text-xs space-y-1">
+                  <p className="font-semibold text-blue-950 dark:text-blue-200">
+                    Appointee: {newChapter.adminName}
+                  </p>
+                  <p className="text-blue-800 dark:text-blue-300">{newChapter.adminEmail}</p>
+                  <p className="text-[11px] text-blue-700/80 dark:text-blue-400">
+                    Will be granted Chapter Admin access for this chapter upon creation.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
             <Button type="submit" className="w-full" disabled={creatingChapter}>
               {creatingChapter ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {creatingChapter ? "Establishing..." : "Establish Chapter"}
@@ -729,21 +863,25 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="adm-name">Chapter Admin Full Name *</Label>
+              <Label htmlFor="adm-name">
+                Chapter Admin Full Name {selectedBusinessId && selectedBusinessId !== "custom" ? "(Auto-filled)" : "*"}
+              </Label>
               <Input
                 id="adm-name"
-                required
+                required={!selectedBusinessId || selectedBusinessId === "custom"}
                 placeholder="e.g. Tariq Farooqi"
                 value={newAdmin.name}
                 onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="adm-email">Admin Email Address *</Label>
+              <Label htmlFor="adm-email">
+                Admin Email Address {selectedBusinessId && selectedBusinessId !== "custom" ? "(Auto-filled)" : "*"}
+              </Label>
               <Input
                 id="adm-email"
                 type="email"
-                required
+                required={!selectedBusinessId || selectedBusinessId === "custom"}
                 placeholder="e.g. tariq@rifah.org"
                 value={newAdmin.email}
                 onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
