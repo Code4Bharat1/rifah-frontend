@@ -9,17 +9,11 @@ export function RifahLogo({
   label = "RIFAH Connect",
   showLabel = true,
   onDark = false,
-}
-
-
-
-
-
-) {
+}) {
   return (
     <Link href={to} className={cn("flex min-w-0 items-center gap-2.5", className)} aria-label="RIFAH Connect home">
       <img
-        src={logo}
+        src={onDark ? "/rifah-logo-dark.png" : logo}
         alt="RIFAH Chamber of Commerce and Industry"
         className="h-10 w-auto shrink-0 md:h-12"
       />
@@ -37,7 +31,7 @@ export function RifahLogo({
   );
 }
 
-export function LogoMark({ className }) {
-  return <img src={logo} alt="RIFAH" className={cn("h-7 w-auto", className)} />;
+export function LogoMark({ className, onDark = false }) {
+  return <img src={onDark ? "/rifah-logo-dark.png" : logo} alt="RIFAH" className={cn("h-7 w-auto", className)} />;
 }
 
