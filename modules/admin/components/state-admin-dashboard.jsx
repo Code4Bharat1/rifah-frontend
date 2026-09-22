@@ -17,6 +17,12 @@ import {
   Activity,
   ScrollText,
   ArrowRight,
+  MoreHorizontal,
+  Eye,
+  Edit2,
+  UserCheck,
+  Trash2,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from "recharts";
@@ -29,7 +35,9 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Progress } from "@shared/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@shared/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -259,6 +267,72 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
       toast.error(err.message || "Failed to assign Chapter Admin.");
     } finally {
       setAssigningAdmin(false);
+    }
+  };
+
+  // Edit Chapter Modal State
+  const [openEditChapterModal, setOpenEditChapterModal] = useState(false);
+  const [editChapterForm, setEditChapterForm] = useState({ id: "", name: "", city: "" });
+  const [editChapterSubmitting, setEditChapterSubmitting] = useState(false);
+
+  // Revoke Admin State
+  const [adminToRevoke, setAdminToRevoke] = useState(null);
+  const [isRevokingAdmin, setIsRevokingAdmin] = useState(false);
+
+  // Delete Chapter State
+  const [chapterToDelete, setChapterToDelete] = useState(null);
+  const [isDeletingChapter, setIsDeletingChapter] = useState(false);
+
+  const handleRenameChapter = async (e) => {
+    e.preventDefault();
+    if (!editChapterForm.name || !editChapterForm.id) {
+      toast.error("Chapter name is required");
+      return;
+    }
+    setEditChapterSubmitting(true);
+    try {
+      await chapterApi.update(editChapterForm.id, {
+        name: editChapterForm.name,
+        city: editChapterForm.city || undefined,
+      });
+      toast.success(`Chapter updated to ${editChapterForm.name}`);
+      setOpenEditChapterModal(false);
+      refetchChapters();
+    } catch (err) {
+      toast.error(err.message || "Failed to update chapter.");
+    } finally {
+      setEditChapterSubmitting(false);
+    }
+  };
+
+  const handleRevokeChapterAdmin = async () => {
+    if (!adminToRevoke) return;
+    setIsRevokingAdmin(true);
+    try {
+      await chapterApi.removeAdmin(adminToRevoke.id);
+      toast.success(`Chapter Admin revoked for ${adminToRevoke.name}`);
+      setAdminToRevoke(null);
+      refetchChapters();
+    } catch (err) {
+      toast.error(err.message || "Failed to revoke Chapter Admin.");
+    } finally {
+      setIsRevokingAdmin(false);
+    }
+  };
+
+  const handleDeleteChapter = async () => {
+    if (!chapterToDelete) return;
+    setIsDeletingChapter(true);
+    try {
+      const chapterId = chapterToDelete._id || chapterToDelete.id;
+      await chapterApi.deleteChapter(chapterId);
+      toast.success(`Chapter ${chapterToDelete.name} deleted successfully`);
+      setChapterToDelete(null);
+      refetchChapters();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete chapter.");
+    } finally {
+      setIsDeletingChapter(false);
     }
   };
 
@@ -572,29 +646,43 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
             columns={[
               {
                 key: "name",
-                header: "Chapter",
+                header: "Chapter / City",
                 cell: (r) => (
-                  <div>
-                    <span className="font-semibold text-sm text-foreground">{r.name}</span>
-                    <p className="text-xs text-muted-foreground">{r.city}, {r.state}</p>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs">
+                      {r.name?.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <span className="font-semibold text-sm text-foreground">{r.name}</span>
+                      <p className="text-xs text-muted-foreground">{r.city}, {r.state}</p>
+                    </div>
                   </div>
                 ),
               },
               {
-                key: "lead",
-                header: "Chapter Lead",
-                cell: (r) => (
-                  <div className="text-xs text-foreground font-medium">
-                    {r.lead || "Chapter Secretary"}
-                  </div>
-                ),
+                key: "admin",
+                header: "Chapter Admin",
+                cell: (r) =>
+                  r.chapterAdmin ? (
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5 font-medium text-xs text-foreground">
+                        <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
+                        <span>{r.chapterAdmin.name}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Mail className="h-3 w-3" /> {r.chapterAdmin.email}
+                      </p>
+                    </div>
+                  ) : (
+                    <Pill tone="warning">Unassigned</Pill>
+                  ),
               },
               {
                 key: "units",
-                header: "Active Units",
+                header: "City Desks / Units",
                 cell: (r) => (
                   <span className="text-xs text-muted-foreground">
-                    {r.units?.length || 0} units
+                    {r.units?.length || 0} unit{r.units?.length === 1 ? "" : "s"}
                   </span>
                 ),
               },
@@ -617,23 +705,54 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                 ),
               },
               {
-                key: "action",
+                key: "actions",
                 header: "",
                 cell: (r) => (
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs gap-1.5"
-                      onClick={() => {
-                        setAdminModalChapter(r);
-                        setSelectedBusinessId("");
-                        setNewAdmin({ name: "", email: "" });
-                      }}
-                    >
-                      <UserPlus className="h-3.5 w-3.5" />
-                      Appoint Chapter Admin
-                    </Button>
+                  <div className="flex items-center justify-end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/state-admin/chapters/${r._id || r.id}`}>
+                            <Eye className="mr-2 h-4 w-4" /> View Details
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setAdminModalChapter(r);
+                          setSelectedBusinessId("");
+                          setNewAdmin({ name: r.chapterAdmin?.name || "", email: r.chapterAdmin?.email || "" });
+                        }}>
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          {r.hasAdmin || r.chapterAdmin ? "Reallocate Chapter Admin" : "Allocate Chapter Admin"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setEditChapterForm({ id: r._id || r.id, name: r.name, city: r.city || "" });
+                          setOpenEditChapterModal(true);
+                        }}>
+                          <Edit2 className="mr-2 h-4 w-4" /> Edit Chapter Name
+                        </DropdownMenuItem>
+                        {(r.hasAdmin || r.chapterAdmin) && (
+                          <DropdownMenuItem
+                            className="text-orange-600 focus:bg-orange-50 dark:focus:bg-orange-950/50"
+                            onClick={() => setAdminToRevoke({ id: r._id || r.id, name: r.name, adminName: r.chapterAdmin?.name })}
+                          >
+                            <UserCheck className="mr-2 h-4 w-4" /> Revoke Chapter Admin
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600 focus:bg-red-50 dark:focus:bg-red-950/50"
+                          onClick={() => setChapterToDelete(r)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete Chapter
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 ),
               },
@@ -894,6 +1013,100 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Chapter Dialog */}
+      <Dialog open={openEditChapterModal} onOpenChange={setOpenEditChapterModal}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Chapter</DialogTitle>
+            <DialogDescription>
+              Rename this chapter or update its city desk location.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRenameChapter} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-ch-name">Chapter Name *</Label>
+              <Input
+                id="edit-ch-name"
+                required
+                value={editChapterForm.name}
+                onChange={(e) => setEditChapterForm({ ...editChapterForm, name: e.target.value })}
+                placeholder="e.g. Pune City"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-ch-city">City / Municipal Desk</Label>
+              <Input
+                id="edit-ch-city"
+                value={editChapterForm.city}
+                onChange={(e) => setEditChapterForm({ ...editChapterForm, city: e.target.value })}
+                placeholder="e.g. Pune"
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setOpenEditChapterModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={editChapterSubmitting}>
+                {editChapterSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {editChapterSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revoke Chapter Admin Alert Dialog */}
+      <AlertDialog open={!!adminToRevoke} onOpenChange={(open) => !open && setAdminToRevoke(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke Chapter Admin for {adminToRevoke?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to revoke {adminToRevoke?.adminName ? `"${adminToRevoke.adminName}"` : "the Chapter Admin"} from leading this chapter? Their executive access will be removed, and the chapter admin status will return to &apos;Unassigned&apos;.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRevokingAdmin}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleRevokeChapterAdmin();
+              }}
+              disabled={isRevokingAdmin}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {isRevokingAdmin ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {isRevokingAdmin ? "Revoking..." : "Revoke Admin"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Chapter Alert Dialog */}
+      <AlertDialog open={!!chapterToDelete} onOpenChange={(open) => !open && setChapterToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete {chapterToDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the chapter and safely detach its members and businesses, moving them to &apos;Unassigned&apos;. Any appointed Chapter Admin will also have their admin role revoked.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingChapter}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteChapter();
+              }}
+              disabled={isDeletingChapter}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeletingChapter ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {isDeletingChapter ? "Deleting..." : "Delete Chapter"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

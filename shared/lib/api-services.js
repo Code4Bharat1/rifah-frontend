@@ -98,6 +98,8 @@ export const chapterApi = {
   addUnit: (chapterId, data) => apiClient(`/chapters/${chapterId}/units`, { method: "POST", body: JSON.stringify(data) }),
   removeUnit: (chapterId, unitId) => apiClient(`/chapters/${chapterId}/units/${unitId}`, { method: "DELETE" }),
   assignAdmin: (chapterId, data) => apiClient(`/chapters/${chapterId}/admins`, { method: "POST", body: JSON.stringify(data) }),
+  removeAdmin: (chapterId) => apiClient(`/chapters/${chapterId}/admins`, { method: "DELETE" }),
+  deleteChapter: (chapterId) => apiClient(`/chapters/${chapterId}`, { method: "DELETE" }),
   updateStatus: (id, status) => apiClient(`/chapters/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
 };
 
