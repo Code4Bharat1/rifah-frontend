@@ -434,9 +434,9 @@ function HomePage() {
         <section className="border-t border-border bg-muted/20 py-10 md:py-14">
           <div className="rifah-container">
             <SectionHeader
-              title="Chamber Events & Clinics"
+              title="Upcoming Events and Activities"
               description="Upcoming chapter meetings, networking sessions, and business workshops."
-              action={<MoreLink href="/events">All events</MoreLink>}
+              action={<MoreLink href="/events">Explore All Events</MoreLink>}
             />
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               {upcoming.map((e) => (
@@ -475,11 +475,17 @@ function HomePage() {
                     </div>
                     <div className="p-4.5">
                       <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-                        <CalendarDays className="h-3.5 w-3.5" /> {e.date} · {e.time}
+                        <CalendarDays className="h-3.5 w-3.5" /> {(() => {
+                          if (!e.date) return "";
+                          const d = new Date(e.date);
+                          return isNaN(d.getTime()) 
+                            ? e.date 
+                            : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, "-");
+                        })()} · {e.time}
                       </p>
                       <h3 className="mt-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">{e.title}</h3>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {e.venue}{e.city ? ` · ${e.city}` : ""}
+                        {[e.city, e.state].filter(Boolean).join(", ")}
                       </p>
                     </div>
                   </div>

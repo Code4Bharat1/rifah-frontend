@@ -53,7 +53,7 @@ const Button = React.forwardRef(
     const handleClick = React.useCallback(
       (event) => {
         onClick?.(event);
-        if (onClick || asChild || props.type === "submit" || props.disabled) return;
+        if (onClick || asChild || props.type === "submit" || props.type === "reset" || props.disabled) return;
         if (event.defaultPrevented) return;
         const label =
           extractLabel(children).trim() ||

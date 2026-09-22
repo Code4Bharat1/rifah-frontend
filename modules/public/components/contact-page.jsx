@@ -23,6 +23,8 @@ import { toast } from "sonner";
 function ContactPage() {
   const [sent, setSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
+  const [isDirty, setIsDirty] = useState(false);
   const { data: chaptersData } = useChapters();
   const { data: settings, isLoading: isSettingsLoading } = useSettings({
     staleTime: 0,
@@ -63,6 +65,11 @@ function ContactPage() {
             ) : (
               <form
                 className="grid gap-4 sm:grid-cols-2"
+                onChange={() => setIsDirty(true)}
+                onReset={() => {
+                  setResetKey((k) => k + 1);
+                  setIsDirty(false);
+                }}
                 onSubmit={async (e) => {
                   e.preventDefault();
                   setIsSubmitting(true);
@@ -111,7 +118,7 @@ function ContactPage() {
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="cchapter">Chapter</Label>
-                  <Select name="chapter">
+                  <Select key={resetKey} name="chapter" onValueChange={() => setIsDirty(true)}>
                     <SelectTrigger id="cchapter">
                       <SelectValue placeholder="Select a chapter" />
                     </SelectTrigger>
@@ -134,10 +141,15 @@ function ContactPage() {
                     placeholder="Tell us what you need or how we can help..."
                   />
                 </div>
-                <div className="sm:col-span-2">
+                <div className="sm:col-span-2 flex flex-col sm:flex-row gap-3 mt-2">
                   <Button type="submit" size="lg" disabled={isSubmitting}>
-                    <Send className="h-4 w-4" /> {isSubmitting ? "Sending..." : "Send message"}
+                    <Send className="h-4 w-4 mr-2" /> {isSubmitting ? "Sending..." : "Send message"}
                   </Button>
+                  {isDirty && (
+                    <Button type="reset" variant="outline" size="lg" disabled={isSubmitting}>
+                      Reset Form
+                    </Button>
+                  )}
                 </div>
               </form>
             )}

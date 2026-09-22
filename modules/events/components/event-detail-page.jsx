@@ -35,6 +35,7 @@ function EventDetail() {
 
   const [registered, setRegistered] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [emailExistsPopup, setEmailExistsPopup] = useState(false);
 
   const userRegistration = user?._id && Array.isArray(event?.registeredUsers) 
     ? event.registeredUsers.find(u => String(u?.user?._id || u?.user || u?._id || u) === String(user._id)) 
@@ -140,7 +141,7 @@ const loadRazorpayScript = () => {
           }
         } catch (regErr) {
           if (regErr.message && regErr.message.toLowerCase().includes("already exists")) {
-            toast.error("This email is already registered. Please close and select 'Yes, I am a Member' to login.");
+            setEmailExistsPopup(true);
           } else {
             toast.error(regErr.message || "Failed to setup guest session.");
           }
@@ -675,6 +676,41 @@ const loadRazorpayScript = () => {
         open={isShareModalOpen}
         onOpenChange={setIsShareModalOpen}
       />
+
+      <Dialog open={emailExistsPopup} onOpenChange={setEmailExistsPopup}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Action Required</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 text-center">
+            <p className="text-base text-foreground mb-6 font-medium">
+              This email is already registered
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button
+                variant="default"
+                size="lg"
+                onClick={() => {
+                  setEmailExistsPopup(false);
+                  setRegPath("member");
+                }}
+              >
+                Continue As a Member?
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => {
+                  setEmailExistsPopup(false);
+                  setGuestForm(prev => ({ ...prev, email: "" }));
+                }}
+              >
+                Continue as a Guest?
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PublicLayout>
   );
 }

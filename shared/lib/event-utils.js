@@ -137,14 +137,14 @@ export function getEventStatus(event, now = new Date()) {
     return rawStatus || "Upcoming";
   }
 
-  // Manual Live stage override from Live Control Room
-  if ((event.stageStatus === "LIVE" || rawStatus === "Ongoing" || rawStatus === "Live") && now <= new Date(end.getTime() + 60 * 60 * 1000)) {
-    return "Live";
-  }
-
-  // Time comparison
+  // Time comparison - STRICT: if time is over, it is Ended
   if (now > end) {
     return "Ended";
+  }
+
+  // Manual Live stage override from Live Control Room (only if time is not over)
+  if (event.stageStatus === "LIVE" || rawStatus === "Ongoing" || rawStatus === "Live") {
+    return "Live";
   }
 
   if (now >= start && now <= end) {

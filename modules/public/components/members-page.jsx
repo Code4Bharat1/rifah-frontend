@@ -57,24 +57,18 @@ export function MembersDirectoryPage() {
 
   return (
     <PublicLayout>
-      <section className="relative overflow-hidden pt-16 pb-28 text-white flex items-center justify-center min-h-[320px]">
-        {/* Premium Image Background with Overlay */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-[url('/images/hero-building-bright.jpg')] bg-cover bg-center bg-no-repeat opacity-50 mix-blend-overlay"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-900/90 to-cyan-900/90"></div>
-          {/* Subtle grid on top of image */}
-          <div className="absolute inset-0 bg-[url('/images/grid-pattern.svg')] opacity-10"></div>
-        </div>
+      <section className="relative overflow-hidden bg-slate-950 text-white py-14 sm:py-20 border-b border-white/5">
+        {/* Premium Background Effects */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/30 via-slate-950 to-slate-950 pointer-events-none" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.04] pointer-events-none" />
 
-        <div className="rifah-container relative z-10 text-center max-w-3xl mx-auto mt-8">
-          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-8 shadow-xl hover:bg-white/15 transition-all">
-            <Award className="h-4 w-4 text-amber-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-white">Chamber Leadership</span>
-          </div>
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 text-white drop-shadow-lg">
+        <div className="rifah-container relative z-10 text-center max-w-3xl mx-auto">
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight animate-[fadeInUp_0.8s_ease-out]">
             Meet the <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-emerald-300">Leaders</span>
           </h1>
-          <p className="text-lg md:text-xl text-blue-50 font-medium max-w-2xl mx-auto drop-shadow-md">
+          <p className="mt-4 text-sm sm:text-base text-slate-300 leading-relaxed animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
             Discover the driving force behind RIFAH Chamber of Commerce & Industry across the nation.
           </p>
         </div>
@@ -130,12 +124,28 @@ export function MembersDirectoryPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Chapters</SelectItem>
-                  {chapters.map(c => (
+                  {chapters
+                    .filter(c => stateFilter === "all" || (c.state && c.state.toLowerCase() === stateFilter.toLowerCase()))
+                    .map(c => (
                     <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {(levelFilter !== "all" || stateFilter !== "all" || chapterFilter !== "all") && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setLevelFilter("all");
+                  setStateFilter("all");
+                  setChapterFilter("all");
+                }}
+                className="mt-6 shrink-0 text-muted-foreground hover:text-foreground hidden md:flex"
+              >
+                Reset
+              </Button>
+            )}
           </div>
 
           {rolesLoading ? (
