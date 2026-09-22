@@ -161,22 +161,34 @@ function EventsPage() {
                       {ev.chapter && <Pill>{ev.chapter}</Pill>}
                       {ev.isPaid ? <Pill tone="warning">Paid (₹{ev.ticketPrice})</Pill> : <Pill tone="success">Free</Pill>}
                     </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSharingEvent(ev);
-                      }}
-                      className="rounded-xl h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/80 border border-border/60 shrink-0 gap-1.5"
-                      title="Share Event"
-                      aria-label={`Share ${ev.title}`}
-                    >
-                      <Share2 className="h-3.5 w-3.5" />
-                      <span>Share</span>
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {getEventStatus(ev) !== "Ended" && (
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="default"
+                          className="rounded-xl h-8 px-3 text-xs shadow-sm cursor-pointer"
+                        >
+                          <span>Register</span>
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSharingEvent(ev);
+                        }}
+                        className="rounded-xl h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/80 border border-border/60 shrink-0 gap-1.5"
+                        title="Share Event"
+                        aria-label={`Share ${ev.title}`}
+                      >
+                        <Share2 className="h-3.5 w-3.5" />
+                        <span>Share</span>
+                      </Button>
+                    </div>
                   </div>
                 </Link>
               </li>
