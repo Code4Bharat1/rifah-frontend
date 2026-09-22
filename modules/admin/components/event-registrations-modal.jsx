@@ -64,7 +64,6 @@ export function EventRegistrationsModal({ eventId, eventTitle, open, onOpenChang
                 { key: "chapter", header: "Chapter", cell: r => r.user?.chapter || "N/A" },
                 { key: "attendance", header: "Attendance", cell: r => <Pill tone={r.attendanceStatus === "Present" ? "success" : "neutral"}>{r.attendanceStatus || "Pending"}</Pill> },
                 { key: "amount", header: "Amount", cell: r => <span className="font-semibold text-emerald-600">{r.amountPaid ? `₹${r.amountPaid}` : "Free"}</span> },
-                { key: "coupon", header: "Coupon", cell: r => r.couponApplied ? <Pill tone="info">{r.couponApplied}</Pill> : <span className="text-muted-foreground">-</span> },
                 { key: "date", header: "Registered At", cell: r => new Date(r.registeredAt).toLocaleString() },
               ]} />
           )}

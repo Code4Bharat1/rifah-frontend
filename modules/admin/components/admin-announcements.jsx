@@ -82,8 +82,8 @@ function AdminAnnouncements() {
         await announcementApi.update(editingId, payload);
         toast.success(`Announcement ${finalStatus.toLowerCase()} successfully`);
       } else {
-        await announcementApi.create({ ...payload, chapter: "dummy" }); 
-        // backend will auto-override chapter with req.user.chapter
+        await announcementApi.create({ ...payload, chapter: "all" }); 
+        // backend will auto-override chapter with req.user.chapter for chapter admins
         toast.success(`Announcement ${finalStatus.toLowerCase()} successfully`);
       }
       setIsCreating(false);
