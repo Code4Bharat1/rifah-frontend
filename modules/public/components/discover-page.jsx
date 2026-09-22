@@ -268,7 +268,43 @@ function DiscoverPage() {
 
   const filters = (
     <div className="space-y-5">
-      {/* Listing Type Filter (Businesses vs Products & Services) */}
+      {/* 1. Clear All Filters at First Top */}
+      <div>
+        <Button
+          variant="outline"
+          className="w-full h-9 rounded-xl text-xs font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
+          onClick={() => router.push("/discover")}
+        >
+          {t("clearAllFilters")}
+        </Button>
+      </div>
+
+      {/* 2. Membership Level Filter at Top */}
+      {!isOfferingsView && (
+        <fieldset>
+          <Label className="font-semibold text-xs text-foreground uppercase tracking-wider">
+            {t("membershipLevel")}
+          </Label>
+          <div className="mt-2.5 space-y-2">
+            {membershipLevels.map((lvl) => {
+              const isChecked = (search.membership || "").toLowerCase() === lvl.toLowerCase();
+              return (
+                <label key={lvl} className="flex items-center gap-2.5 text-sm py-1 cursor-pointer select-none">
+                  <Checkbox
+                    checked={isChecked}
+                    onCheckedChange={(c) => setParam({ membership: c ? lvl : undefined })}
+                  />
+                  <span className={cn("text-xs font-medium", isChecked ? "text-primary font-bold" : "text-foreground")}>
+                    {lvl}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
+
+      {/* 3. Listing Type Filter (Businesses vs Products & Services) */}
       <div>
         <Label htmlFor="f-type" className="font-semibold text-xs text-foreground uppercase tracking-wider">
           Listing Type
@@ -287,6 +323,7 @@ function DiscoverPage() {
         </Select>
       </div>
 
+      {/* 4. Industry */}
       <div>
         <Label htmlFor="f-industry" className="font-semibold text-xs text-foreground uppercase tracking-wider">
           {t("industry")}
@@ -309,6 +346,7 @@ function DiscoverPage() {
         </Select>
       </div>
 
+      {/* 5. Sub-Category */}
       <div>
         <Label htmlFor="f-subcategory" className="font-semibold text-xs text-foreground uppercase tracking-wider">
           Sub Category
@@ -337,6 +375,7 @@ function DiscoverPage() {
         )}
       </div>
 
+      {/* 6. State */}
       <div>
         <Label htmlFor="f-state" className="font-semibold text-xs text-foreground uppercase tracking-wider">
           {t("state")}
@@ -369,6 +408,7 @@ function DiscoverPage() {
         </Select>
       </div>
 
+      {/* 7. Chapter */}
       <div>
         <Label htmlFor="f-chapter" className="font-semibold text-xs text-foreground uppercase tracking-wider">
           {t("chapter")}
@@ -391,51 +431,20 @@ function DiscoverPage() {
         </Select>
       </div>
 
+      {/* 8. Verified Directory Badge */}
       {!isOfferingsView && (
-        <>
-          <fieldset>
-            <Label className="font-semibold text-xs text-foreground uppercase tracking-wider">
-              {t("membershipLevel")}
-            </Label>
-            <div className="mt-2.5 space-y-2">
-              {membershipLevels.map((lvl) => {
-                const isChecked = (search.membership || "").toLowerCase() === lvl.toLowerCase();
-                return (
-                  <label key={lvl} className="flex items-center gap-2.5 text-sm py-1 cursor-pointer select-none">
-                    <Checkbox
-                      checked={isChecked}
-                      onCheckedChange={(c) => setParam({ membership: c ? lvl : undefined })}
-                    />
-                    <span className={cn("text-xs font-medium", isChecked ? "text-primary font-bold" : "text-foreground")}>
-                      {lvl}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          <div className="pt-2">
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 p-2.5 text-emerald-800 dark:text-emerald-300">
-              <BadgeCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold leading-none">Verified Directory</p>
-                <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 mt-0.5 leading-tight">
-                  Only chamber-verified member enterprises are listed.
-                </p>
-              </div>
+        <div className="pt-1">
+          <div className="flex items-center gap-2 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 p-2.5 text-emerald-800 dark:text-emerald-300">
+            <BadgeCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold leading-none">Verified Directory</p>
+              <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 mt-0.5 leading-tight">
+                Only chamber-verified member enterprises are listed.
+              </p>
             </div>
           </div>
-        </>
+        </div>
       )}
-
-      <Button
-        variant="outline"
-        className="w-full h-9 rounded-xl text-xs font-semibold"
-        onClick={() => router.push("/discover")}
-      >
-        {t("clearAllFilters")}
-      </Button>
     </div>
   );
 

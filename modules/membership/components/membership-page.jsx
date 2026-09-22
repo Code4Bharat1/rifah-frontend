@@ -85,7 +85,7 @@ function MembershipPage() {
           />
         </div>
 
-        <div className="mt-10">
+        <div className="mt-10 scroll-mt-24" id="faqs">
           <SectionHeader title="Frequently asked questions" />
           <Accordion type="single" collapsible className="mt-4">
             {faqs.map((f, i) => (

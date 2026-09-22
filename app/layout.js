@@ -17,7 +17,7 @@ export const metadata = {
     card: "summary_large_image",
   },
   icons: {
-    icon: "/favicon.png",
+    icon: "/favicon.png?v=3",
   },
 };
 
@@ -28,7 +28,7 @@ export default async function RootLayout({ children }) {
   return (
     <html lang={locale}>
       <head>
-        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="icon" href="/favicon.png?v=3" type="image/png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

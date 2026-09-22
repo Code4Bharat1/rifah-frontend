@@ -1,16 +1,24 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Apple,
+  ArrowUp,
   Bookmark,
   Building2,
   CalendarDays,
+  ExternalLink,
   FileStack,
+  HelpCircle,
   Home,
   LogOut,
+  Mail,
   MapPin,
   Menu,
+  MessageCircle,
   Package,
+  Phone,
   Search,
   Star,
   UserRound,
@@ -58,10 +66,10 @@ export function PublicHeader() {
     user?.role === "central_admin"
       ? "/admin"
       : user?.role === "state_admin"
-      ? "/state-admin"
-      : user?.role === "chapter_admin"
-      ? "/chapter-admin"
-      : "/biz";
+        ? "/state-admin"
+        : user?.role === "chapter_admin"
+          ? "/chapter-admin"
+          : "/biz";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
@@ -142,10 +150,10 @@ function MobileMenu() {
     user?.role === "central_admin"
       ? "/admin"
       : user?.role === "state_admin"
-      ? "/state-admin"
-      : user?.role === "chapter_admin"
-      ? "/chapter-admin"
-      : "/biz";
+        ? "/state-admin"
+        : user?.role === "chapter_admin"
+          ? "/chapter-admin"
+          : "/biz";
 
   return (
     <Sheet>
@@ -218,68 +226,369 @@ function MobileMenu() {
 }
 
 export function PublicFooter() {
-  const cols = [
+  const router = useRouter();
+  const [cityQuery, setCityQuery] = useState("");
+
+  const popularCities = ["Mumbai", "Delhi", "Bengaluru", "Pune", "Hyderabad"];
+
+  const handleCitySearch = (e) => {
+    e.preventDefault();
+    const q = cityQuery.trim();
+    if (q) {
+      router.push(`/discover?city=${encodeURIComponent(q)}`);
+    } else {
+      router.push("/discover");
+    }
+  };
+
+  const quickLinks = [
+    { label: "Frequently Asked Questions (FAQs)", to: "/membership#faqs", highlight: true },
+    { label: "Contact Us", to: "/contact" },
     {
-      title: "Discover",
-      links: [
-        { label: "Business directory", to: "/discover" },
-        { label: "Our Presence", to: "/presence" },
-        { label: "Events", to: "/events" },
-      ],
+      label: "Chat With Us",
+      to: "https://wa.me/918097781851?text=Hello%0AI%20would%20like%20to%20know%20more%20about%20your%20services.%20Please%20share%20the%20details.",
+      isExternal: true,
+    },
+    { label: "Connect With Us", to: "/register-business" },
+    { label: "Payment Policy", to: "#", isDummy: true },
+    { label: "Membership Policy", to: "#", isDummy: true },
+  ];
+
+  const socialLinks = [
+    {
+      name: "WhatsApp",
+      href: "https://wa.me/918097781851?text=Hello%0AI%20would%20like%20to%20know%20more%20about%20your%20services.%20Please%20share%20the%20details.",
+      icon: (
+        <svg className="h-4 w-4 fill-current text-emerald-400" viewBox="0 0 24 24">
+          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+        </svg>
+      ),
     },
     {
-      title: "Membership",
-      links: [
-        { label: "Plans", to: "/membership" },
-        { label: "Register a business", to: "/register-business" },
-        { label: "Member login", to: "/login" },
-      ],
+      name: "Facebook",
+      href: "https://www.facebook.com/rifahindia/",
+      icon: (
+        <svg className="h-4 w-4 fill-current text-blue-400" viewBox="0 0 24 24">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      ),
     },
     {
-      title: "Chamber",
-      links: [
-        { label: "About RIFAH", to: "/about" },
-        { label: "Our Leadership", to: "/members" },
-        { label: "Contact", to: "/contact" },
-      ],
+      name: "Instagram",
+      href: "https://www.instagram.com/rifahchamberofcommerce/?hl=en",
+      icon: (
+        <svg className="h-4 w-4 fill-current text-pink-400" viewBox="0 0 24 24">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+        </svg>
+      ),
+    },
+    {
+      name: "LinkedIn",
+      href: "https://in.linkedin.com/company/rifahindia",
+      icon: (
+        <svg className="h-4 w-4 fill-current text-sky-400" viewBox="0 0 24 24">
+          <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+        </svg>
+      ),
+    },
+    {
+      name: "YouTube",
+      href: "https://www.youtube.com/channel/UC5WXsbYY5A6fIeb2ObbENaQ/featured",
+      icon: (
+        <svg className="h-4 w-4 fill-current text-red-500" viewBox="0 0 24 24">
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+        </svg>
+      ),
     },
   ];
+
+  const handleScrollTop = () => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   return (
-    <footer className="mt-16 border-t border-border bg-navy text-navy-foreground">
-      <div className="rifah-container grid gap-8 py-10 md:grid-cols-[1.4fr_repeat(3,1fr)] md:py-14">
-        <div className="max-w-sm">
-          <span className="inline-grid place-items-center rounded-lg bg-surface px-3 py-2">
-            <RifahLogo showLabel={false} />
-          </span>
-          <p className="mt-4 text-sm leading-relaxed text-navy-foreground/70">
-            RIFAH Chamber of Commerce & Industry — RIFAH Connect is the chamber's digital business network for
-            discovery, membership, enquiries and events. Prototype content shown for review.
-          </p>
+    <footer className="mt-16 border-t border-navy-foreground/10 bg-navy text-navy-foreground">
+      {/* Tier 1: Action CTAs & Connect App Download Badges */}
+      <div className="border-b border-navy-foreground/10 bg-navy/95 backdrop-blur">
+        <div className="rifah-container flex flex-col gap-5 py-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-navy-foreground/60">
+              Quick Actions:
+            </span>
+            <Link
+              href="/register-business"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+            >
+              Connect With Us
+            </Link>
+            <a
+              href="https://wa.me/918097781851?text=Hello%0AI%20would%20like%20to%20know%20more%20about%20your%20services.%20Please%20share%20the%20details."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              Chat With Us
+            </a>
+            <Link
+              href="/contact"
+              className="inline-flex items-center gap-2 rounded-lg border border-navy-foreground/20 px-4 py-2 text-xs font-semibold text-navy-foreground transition hover:bg-white/5 hover:border-navy-foreground/40"
+            >
+              Contact Us
+            </Link>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="text-xs font-semibold text-navy-foreground/75">
+              RIFAH Connect App:
+            </span>
+            <a
+              href="https://play.google.com/store"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg border border-navy-foreground/20 bg-black/40 px-3 py-1.5 transition hover:border-emerald-500/50 hover:bg-black/60"
+              title="Download RIFAH Connect on Google Play"
+            >
+              <svg className="h-4 w-4 fill-current text-emerald-400 shrink-0" viewBox="0 0 24 24">
+                <path d="M3.609 1.814L13.792 12 3.61 22.186a2.372 2.372 0 0 1-.61-1.637V3.451c0-.624.226-1.2.609-1.637zm11.236 11.239l2.484 2.484-11.83 6.72c-.17.098-.349.16-.531.189l9.877-9.393zm0-2.106L4.968 1.554c.182.029.361.091.531.189l11.83 6.72-2.484 2.484zm1.485 1.053l4.085 2.32c.983.559.983 1.469 0 2.028l-4.085 2.32-2.12-2.12 2.12-2.548z" />
+              </svg>
+              <div className="text-left leading-none">
+                <div className="text-[8px] uppercase tracking-wider text-navy-foreground/60">GET IT ON</div>
+                <div className="mt-0.5 text-xs font-semibold text-navy-foreground">Google Play</div>
+              </div>
+            </a>
+            <a
+              href="https://www.apple.com/app-store/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg border border-navy-foreground/20 bg-black/40 px-3 py-1.5 transition hover:border-sky-400/50 hover:bg-black/60"
+              title="Download RIFAH Connect on Apple App Store"
+            >
+              <Apple className="h-4 w-4 text-white shrink-0" />
+              <div className="text-left leading-none">
+                <div className="text-[8px] uppercase tracking-wider text-navy-foreground/60">Download on the</div>
+                <div className="mt-0.5 text-xs font-semibold text-navy-foreground">App Store</div>
+              </div>
+            </a>
+          </div>
         </div>
-        {cols.map((col) => (
-          <nav key={col.title} aria-label={col.title}>
-            <h3 className="text-sm font-semibold">{col.title}</h3>
-            <ul className="mt-3 space-y-2">
-              {col.links.map((l) => (
-                <li key={l.label}>
-                  <Link
-                    href={l.to }
-                    className="text-sm text-navy-foreground/70 transition-colors hover:text-navy-foreground"
-                  >
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        ))}
       </div>
-      <div className="border-t border-navy-foreground/10">
-        <div className="rifah-container flex flex-wrap items-center justify-between gap-2 py-4 text-xs text-navy-foreground/60">
-          <p>© 2026 RIFAH Chamber of Commerce & Industry. Prototype for stakeholder review.</p>
-          <p className="inline-flex items-center gap-1">
-            <Star className="h-3.5 w-3.5" /> Together for a sustainable future
+
+      {/* Tier 2: 4-Column Core Content Grid */}
+      <div className="rifah-container grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:py-14">
+        {/* Column 1: Brand Logo, Mission & Registered Office */}
+        <div className="space-y-4">
+          <div>
+            <RifahLogo showLabel={true} onDark={true} className="inline-flex" />
+          </div>
+          <p className="text-xs leading-relaxed text-navy-foreground/75">
+            Rifah’s mission is to create a platform where business is generated through effective networking, and to scale up existing businesses by implementing proper systems using the latest management techniques.
           </p>
+          <div className="rounded-lg border border-navy-foreground/15 bg-black/20 p-3 text-xs leading-relaxed text-navy-foreground/80">
+            <div className="flex items-center gap-1.5 font-semibold text-navy-foreground">
+              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>Registered Office (Mumbai)</span>
+            </div>
+            <p className="mt-1 text-navy-foreground/70">
+              Flat No. 4 C &amp; D, 1st Floor, Plot No. 96, 77C, Hamid Building, Hafiz Ali Bahadur Khan Marg, Mominpura, Jacob Circle, Byculla West, Mumbai – 400011, Maharashtra, India.
+            </p>
+          </div>
+          <div>
+            <Link
+              href="/discover"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition"
+            >
+              <Search className="h-3.5 w-3.5" />
+              Find Like-Minded Businesses
+            </Link>
+          </div>
+        </div>
+
+        {/* Column 2: Contact Numbers, Emails & Social Media */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold tracking-wide text-navy-foreground">
+            Contact &amp; Helplines
+          </h3>
+          <div className="space-y-2 text-xs text-navy-foreground/75">
+            <div className="flex items-start gap-2">
+              <Phone className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div>
+                  <a href="tel:+91-809-778-1851" className="hover:text-primary transition">
+                    +91-809-778-1851
+                  </a>
+                </div>
+                <div>
+                  <a href="tel:+91-730-407-8398" className="hover:text-primary transition">
+                    +91-730-407-8398
+                  </a>
+                </div>
+                <div>
+                  <a href="tel:+91-913-613-0398" className="hover:text-primary transition">
+                    +91-913-613-0398
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 pt-2 border-t border-navy-foreground/10">
+              <Mail className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div>
+                  <a href="mailto:office@rifah.org" className="hover:text-primary transition">
+                    office@rifah.org
+                  </a>
+                </div>
+                <div>
+                  <a href="mailto:info@rifah.org" className="hover:text-primary transition">
+                    info@rifah.org
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <div className="text-xs font-semibold text-navy-foreground/80 mb-2">
+              Official Social Media
+            </div>
+            <div className="flex items-center gap-2">
+              {socialLinks.map((s) => (
+                <a
+                  key={s.name}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.name}
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-navy-foreground/15 bg-black/25 text-navy-foreground transition hover:border-primary/50 hover:bg-black/50"
+                  title={s.name}
+                >
+                  {s.icon}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Column 3: Search Members / Businesses in Specific City / State */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold tracking-wide text-navy-foreground">
+            Search Members / Businesses
+          </h3>
+          <p className="text-xs text-navy-foreground/75 leading-relaxed">
+            Search verified chamber members and businesses across any specific city or state.
+          </p>
+          <form onSubmit={handleCitySearch} className="space-y-2">
+            <div className="relative">
+              <input
+                type="text"
+                value={cityQuery}
+                onChange={(e) => setCityQuery(e.target.value)}
+                placeholder="Enter city or state (e.g. Mumbai, Kerala)..."
+                className="w-full rounded-lg border border-navy-foreground/20 bg-black/30 px-3 py-2 text-xs text-navy-foreground placeholder:text-navy-foreground/45 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <button
+              type="submit"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 shadow-sm"
+            >
+              <Search className="h-3.5 w-3.5" />
+              <span>Search in City / State</span>
+            </button>
+          </form>
+          <div className="space-y-1.5 pt-1 text-xs text-navy-foreground/65">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-medium text-navy-foreground/50">Popular:</span>
+              {popularCities.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => router.push(`/discover?city=${encodeURIComponent(c)}`)}
+                  className="rounded border border-navy-foreground/15 bg-black/20 px-2 py-0.5 text-[11px] text-navy-foreground/80 hover:border-primary/50 hover:text-primary transition"
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            <div className="pt-2">
+              <a
+                href="https://rifah.nexcorealliance.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+              >
+                <span>Explore Interactive Presence Map</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Column 4: Quick Links */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold tracking-wide text-navy-foreground">
+            Quick Links
+          </h3>
+          <ul className="space-y-2.5 text-xs text-navy-foreground/75">
+            {quickLinks.map((l) => (
+              <li key={l.label}>
+                {l.isExternal ? (
+                  <a
+                    href={l.to}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 transition-colors hover:text-primary"
+                  >
+                    <span>{l.label}</span>
+                    <ExternalLink className="h-3 w-3 opacity-60" />
+                  </a>
+                ) : l.isDummy ? (
+                  <a
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                    className="inline-flex items-center gap-1.5 transition-colors hover:text-primary cursor-pointer text-navy-foreground/70 hover:text-navy-foreground"
+                    title={`${l.label} (Policy document)`}
+                  >
+                    <span>{l.label}</span>
+                  </a>
+                ) : (
+                  <Link
+                    href={l.to}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 transition-colors hover:text-primary",
+                      l.highlight && "font-semibold text-primary"
+                    )}
+                  >
+                    {l.highlight && <HelpCircle className="h-3.5 w-3.5 shrink-0" />}
+                    <span>{l.label}</span>
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Tier 3: Legal Copyright & Back-to-Top Bar */}
+      <div className="border-t border-navy-foreground/10 bg-navy/95">
+        <div className="rifah-container flex flex-wrap items-center justify-between gap-3 py-4 text-xs text-navy-foreground/65">
+          <div className="flex flex-wrap items-center gap-2">
+            <p>© 2026 Rifah Chamber of Commerce and Industry | All rights reserved</p>
+            <span className="hidden sm:inline text-navy-foreground/30">•</span>
+            <span className="inline-flex items-center gap-1">
+              <Star className="h-3 w-3 text-amber-400" /> Together for a sustainable future
+            </span>
+          </div>
+          <button
+            onClick={handleScrollTop}
+            className="inline-flex items-center gap-1.5 text-xs text-navy-foreground/75 hover:text-navy-foreground transition"
+            type="button"
+          >
+            <span>Back to top</span>
+            <ArrowUp className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </footer>
@@ -299,7 +608,7 @@ export function PublicMobileTabs() {
           return (
             <li key={t.label}>
               <Link
-                href={t.to }
+                href={t.to}
                 className={cn(
                   "flex min-h-[56px] flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground",
                   active && "text-primary",
