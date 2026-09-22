@@ -6,6 +6,7 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
 import {
   Select,
@@ -106,7 +107,7 @@ function ContactPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="cphone">Phone</Label>
-                  <Input id="cphone" name="phone" type="tel" required placeholder="Mobile number" />
+                  <PhoneInput id="cphone" name="phone" required placeholder="Mobile number" />
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="cchapter">Chapter</Label>

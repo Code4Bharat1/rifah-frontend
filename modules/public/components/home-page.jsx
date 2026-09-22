@@ -36,6 +36,7 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { MoreLink, SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { EventShareModal } from "@shared/components/rifah/event-share-modal";
 import {
   Dialog,
@@ -108,16 +109,35 @@ function HeroSearch({ compact = false }) {
 }
 
 function HomePage() {
-  const { data: businessesData } = useBusinesses({ featured: "true", limit: 4 });
+  const { data: businessesData } = useBusinesses({ featured: "true", verified: "true", limit: 8 });
   const { data: catalogueData } = useCatalogue({ limit: 4 });
   const { data: eventsData } = useEvents({ status: "Upcoming", limit: 3 });
   const { data: plansData } = useMembershipPlans();
   const { data: stateRevenueData } = usePublicStateRevenue();
   const stateRevenue = Array.isArray(stateRevenueData) ? stateRevenueData : [];
 
-  const featured = Array.isArray(businessesData)
-    ? businessesData
-    : (businessesData?.businesses || businessesData?.data || []);
+  const featured = (
+    Array.isArray(businessesData)
+      ? businessesData
+      : (businessesData?.businesses || businessesData?.data || [])
+  ).filter((b) => {
+    const v = String(b.verification || "").toLowerCase();
+    const s = String(b.status || "").toLowerCase();
+    const isVerified = v === "verified" || v === "approved" || b.isVerified === true;
+    const isPendingOrRejected =
+      v === "rejected" ||
+      v === "pending" ||
+      v === "under_review" ||
+      v === "unverified" ||
+      v === "correction_requested" ||
+      s === "rejected" ||
+      s === "pending" ||
+      s === "pending verification" ||
+      s === "pending_verification" ||
+      s === "suspended" ||
+      s === "draft";
+    return isVerified && !isPendingOrRejected;
+  });
   const catalogueList = Array.isArray(catalogueData)
     ? catalogueData
     : (catalogueData?.items || catalogueData?.data || []);
@@ -600,13 +620,11 @@ function HomePage() {
                     <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
                       Phone / WhatsApp <span className="text-destructive">*</span>
                     </label>
-                    <input
-                      type="tel"
+                    <PhoneInput
                       required
-                      placeholder="+91 98765 43210"
+                      placeholder="98765 43210"
                       value={rfqForm.guestPhone}
                       onChange={(e) => setRfqForm((prev) => ({ ...prev, guestPhone: e.target.value }))}
-                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                 </div>

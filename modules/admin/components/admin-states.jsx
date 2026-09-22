@@ -9,6 +9,7 @@ import { Pill } from "@shared/components/rifah/badges";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@shared/components/ui/alert-dialog";
@@ -104,6 +105,10 @@ export function AdminStates() {
     e.preventDefault();
     if (!form.name) {
       toast.error("State Name is required.");
+      return;
+    }
+    if (!form.phone || !form.phone.trim()) {
+      toast.error("Contact phone number is mandatory.");
       return;
     }
     setSubmitting(true);
@@ -492,12 +497,13 @@ export function AdminStates() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="st-phone">Contact Phone</Label>
-                <Input
+                <Label htmlFor="st-phone">Contact Phone *</Label>
+                <PhoneInput
                   id="st-phone"
+                  required
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  placeholder="e.g. 9876543210"
+                  placeholder="98765 43210"
                   disabled={selectedBusinessId && form.useAdminContact}
                 />
               </div>

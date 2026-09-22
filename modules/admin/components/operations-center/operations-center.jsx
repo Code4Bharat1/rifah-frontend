@@ -80,6 +80,7 @@ import { resolveMediaUrl, downloadFile, getBackendServerBase } from "@shared/lib
 import { getSocket } from "@shared/lib/socket";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
 import { Textarea } from "@shared/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
@@ -865,6 +866,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     e?.preventDefault();
     if (!newSpeaker.name) {
       toast.error("Please enter the speaker's name.");
+      return;
+    }
+    if (!newSpeaker.mobile || !newSpeaker.mobile.trim()) {
+      toast.error("Please enter the speaker's mobile number.");
       return;
     }
     try {
@@ -3728,9 +3733,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs font-semibold">Mobile Number</Label>
-                    <Input
-                      placeholder="9820000000"
+                    <Label className="text-xs font-semibold">Mobile Number *</Label>
+                    <PhoneInput
+                      required
+                      placeholder="98200 00000"
                       value={newSpeaker.mobile}
                       onChange={(e) => setNewSpeaker((prev) => ({ ...prev, mobile: e.target.value }))}
                       className="mt-1"

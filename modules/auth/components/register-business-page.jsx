@@ -44,6 +44,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Checkbox } from "@shared/components/ui/checkbox";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
@@ -1712,9 +1713,8 @@ function RegisterBusiness({ isAdmin = false }) {
 
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="bphone">Mobile / Phone Number *</Label>
-                    <FastInput
+                    <PhoneInput
                       id="bphone"
-                      type="tel"
                       required
                       value={formData.phone}
                       onValueChange={(val) => {

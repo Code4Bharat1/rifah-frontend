@@ -25,6 +25,7 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
 import { Progress } from "@shared/components/ui/progress";
 import { Textarea } from "@shared/components/ui/textarea";
@@ -213,6 +214,16 @@ function BizProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.phone || !formData.phone.trim()) {
+      toast.error("Phone number is mandatory. Please enter a contact phone number.");
+      return;
+    }
+    if (!formData.whatsapp || !formData.whatsapp.trim()) {
+      toast.error("WhatsApp number is mandatory. Please enter a WhatsApp contact number.");
+      return;
+    }
+
     setSaving(true);
     try {
       const finalRole = (
@@ -603,23 +614,23 @@ function BizProfile() {
                 </div>
               )}
               <div className="grid gap-1.5">
-                <Label htmlFor="biz-phone">Phone</Label>
-                <Input
+                <Label htmlFor="biz-phone">Phone *</Label>
+                <PhoneInput
                   id="biz-phone"
+                  required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="e.g. +91 9876543210"
-                  className="h-11"
+                  placeholder="98765 43210"
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="biz-whatsapp">WhatsApp Number</Label>
-                <Input
+                <Label htmlFor="biz-whatsapp">WhatsApp Number *</Label>
+                <PhoneInput
                   id="biz-whatsapp"
+                  required
                   value={formData.whatsapp}
                   onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                  placeholder="e.g. +91 9876543210"
-                  className="h-11"
+                  placeholder="98765 43210"
                 />
                 <p className="text-[10px] text-muted-foreground">Used for direct buyer chat, quotation alerts & instant WhatsApp messages.</p>
               </div>

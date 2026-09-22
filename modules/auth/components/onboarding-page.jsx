@@ -24,6 +24,7 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, Steps } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
 import { Textarea } from "@shared/components/ui/textarea";
 import {
@@ -461,11 +462,10 @@ export function OnboardingPage() {
 
                         <div className="space-y-1.5">
                           <Label htmlFor="b-phone">Business Phone Number *</Label>
-                          <Input
+                          <PhoneInput
                             id="b-phone"
-                            type="tel"
                             required
-                            placeholder="+91 98200 00000"
+                            placeholder="98200 00000"
                             value={bizData.phone}
                             onChange={(e) => setBizData({ ...bizData, phone: e.target.value })}
                           />

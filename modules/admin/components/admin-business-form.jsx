@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { businessApi } from "@shared/lib/api-services";
@@ -55,6 +56,12 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.phone || !formData.phone.trim()) {
+      toast.error("Phone number is required.");
+      return;
+    }
+
     setLoading(true);
     try {
       const finalRole = (
@@ -129,8 +136,8 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
               <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" name="phone" value={formData.phone} onChange={handleChange} />
+              <Label htmlFor="phone">Phone *</Label>
+              <PhoneInput id="phone" name="phone" required value={formData.phone} onChange={handleChange} placeholder="Mobile number" />
             </div>
           </div>
 

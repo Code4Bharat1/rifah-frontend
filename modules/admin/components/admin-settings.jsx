@@ -24,6 +24,7 @@ import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
 import { Switch } from "@shared/components/ui/switch";
 import { useSettings } from "@shared/hooks/use-rifah-api";
@@ -160,6 +161,10 @@ export function AdminSettings() {
   };
 
   const handleSaveChamberDetails = async () => {
+    if (!chamberDetails.supportPhone || !chamberDetails.supportPhone.trim()) {
+      toast.error("Support phone number is mandatory.");
+      return;
+    }
     setSavingChamber(true);
     try {
       await settingsApi.update(chamberDetails);
@@ -257,12 +262,12 @@ export function AdminSettings() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Support phone</Label>
-              <Input 
+              <Label>Support phone *</Label>
+              <PhoneInput 
+                required
                 value={chamberDetails.supportPhone}
                 onChange={(e) => setChamberDetails({...chamberDetails, supportPhone: e.target.value})}
-                className="h-11" 
-                placeholder="+91 22 2345 6789"
+                placeholder="22 2345 6789"
               />
             </div>
             <div className="space-y-1.5">

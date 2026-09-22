@@ -9,6 +9,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
 import { Pill } from "@shared/components/rifah/badges";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -606,7 +607,7 @@ const loadRazorpayScript = () => {
                 </div>
                 <div className="space-y-1">
                   <Label>Phone Number *</Label>
-                  <Input type="tel" value={guestForm.phone} onChange={e => setGuestForm({...guestForm, phone: e.target.value})} />
+                  <PhoneInput value={guestForm.phone} onChange={e => setGuestForm({...guestForm, phone: e.target.value})} placeholder="Mobile number" />
                 </div>
                 <div className="space-y-1">
                   <Label>Business Name (Optional)</Label>

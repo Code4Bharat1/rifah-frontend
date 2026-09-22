@@ -13,6 +13,7 @@ import {
   MapPin,
   ArrowRight,
   CheckCircle2,
+  BadgeCheck,
 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
@@ -76,7 +77,7 @@ function DiscoverPage() {
     setQuery(currentSearchTerm);
   }, [currentSearchTerm]);
 
-  // 1. Fetch Businesses
+  // 1. Fetch Businesses (Discover directory strictly requires verified businesses)
   const { data: businessesData, isLoading: isBusinessesLoading } = useBusinesses({
     search: search.q || search.search,
     industry: search.industry,
@@ -84,7 +85,7 @@ function DiscoverPage() {
     state: search.state,
     chapter: search.chapter,
     membership: search.membership,
-    verified: search.verified,
+    verified: "true",
     sort: search.sort,
   });
 
@@ -133,13 +134,52 @@ function DiscoverPage() {
     return Array.from(new Set([...dbSubs, ...staticSubs]));
   }, [categories, search.industry]);
 
-  const businessResults = Array.isArray(businessesData)
-    ? businessesData
-    : businessesData?.businesses || [];
+  // Filter businesses: strictly verified members only, exclude pending/rejected/suspended
+  const businessResults = (
+    Array.isArray(businessesData)
+      ? businessesData
+      : businessesData?.businesses || []
+  ).filter((b) => {
+    const v = String(b.verification || "").toLowerCase();
+    const s = String(b.status || "").toLowerCase();
+    const isVerified = v === "verified" || v === "approved" || b.isVerified === true;
+    const isPendingOrRejected =
+      v === "rejected" ||
+      v === "pending" ||
+      v === "under_review" ||
+      v === "unverified" ||
+      v === "correction_requested" ||
+      s === "rejected" ||
+      s === "pending" ||
+      s === "pending verification" ||
+      s === "pending_verification" ||
+      s === "suspended" ||
+      s === "draft";
+    return isVerified && !isPendingOrRejected;
+  });
 
-  const catalogueResults = Array.isArray(catalogueData)
-    ? catalogueData
-    : catalogueData?.items || [];
+  // Filter catalogue items: only from active and verified businesses
+  const catalogueResults = (
+    Array.isArray(catalogueData)
+      ? catalogueData
+      : catalogueData?.items || []
+  ).filter((item) => {
+    if (!item.business) return true;
+    const b = item.business;
+    const v = String(b.verification || "").toLowerCase();
+    const s = String(b.status || "").toLowerCase();
+    if (
+      v === "rejected" ||
+      v === "pending" ||
+      v === "under_review" ||
+      v === "unverified" ||
+      s === "rejected" ||
+      s === "suspended"
+    ) {
+      return false;
+    }
+    return true;
+  });
 
   const results = isOfferingsView ? catalogueResults : businessResults;
   const isLoading = isOfferingsView ? isCatalogueLoading : isBusinessesLoading;
@@ -375,21 +415,16 @@ function DiscoverPage() {
             </div>
           </fieldset>
 
-          <div className="pt-1">
-            <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
-              <Checkbox
-                checked={search.verified === "true" || search.verified === true}
-                onCheckedChange={(c) => setParam({ verified: c ? "true" : undefined })}
-              />
-              <span
-                className={cn(
-                  "text-xs font-medium",
-                  search.verified === "true" || search.verified === true ? "text-primary font-bold" : "text-foreground"
-                )}
-              >
-                {t("verifiedOnly")}
-              </span>
-            </label>
+          <div className="pt-2">
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 p-2.5 text-emerald-800 dark:text-emerald-300">
+              <BadgeCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold leading-none">Verified Directory</p>
+                <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 mt-0.5 leading-tight">
+                  Only chamber-verified member enterprises are listed.
+                </p>
+              </div>
+            </div>
           </div>
         </>
       )}

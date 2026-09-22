@@ -82,6 +82,7 @@ import { BusinessCard } from "@shared/components/rifah/business-card";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { FieldRow, Panel, SectionHeader } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { SkeletonCard } from "@shared/components/rifah/empty-state";
 import { businessGallery, businessImage } from "@shared/lib/media";
@@ -213,6 +214,12 @@ function BusinessProfile() {
   const handleEnquirySubmit = async (e) => {
     e.preventDefault();
     setEnquiryError("");
+
+    if (!enquiryForm.guestPhone || !enquiryForm.guestPhone.trim()) {
+      setEnquiryError("Phone number is mandatory. Please provide a contact phone number.");
+      return;
+    }
+
     setEnquirySubmitting(true);
     try {
       await enquiryApi.create({
@@ -433,6 +440,9 @@ function BusinessProfile() {
       const bSlug = b?.slug ? String(b.slug).toLowerCase() : "";
       if (currentBizId && bId === currentBizId) return false;
       if (currentBizSlug && bSlug === currentBizSlug) return false;
+      const v = String(b?.verification || "").toLowerCase();
+      const s = String(b?.status || "").toLowerCase();
+      if (v === "rejected" || s === "rejected" || s === "suspended") return false;
       return true;
     });
 
@@ -1471,13 +1481,12 @@ function BusinessProfile() {
 
               <div className="grid gap-2.5 sm:gap-3 grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">Phone <span className="text-muted-foreground font-normal text-[10px]">(optional)</span></label>
-                  <input
-                    type="tel"
+                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">Phone <span className="text-destructive">*</span></label>
+                  <PhoneInput
+                    required
                     value={enquiryForm.guestPhone}
                     onChange={(e) => setEnquiryForm({ ...enquiryForm, guestPhone: e.target.value })}
                     placeholder="Mobile number"
-                    className="w-full rounded-lg sm:rounded-xl border border-border bg-transparent px-3 py-2 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="space-y-1">

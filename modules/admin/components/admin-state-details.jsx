@@ -14,6 +14,7 @@ import { Pill } from "@shared/components/rifah/badges";
 import { Panel, StatCard, ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
 import { Checkbox } from "@shared/components/ui/checkbox";
 import {
@@ -110,6 +111,12 @@ export default function AdminStateDetails({ stateName }) {
   const { admin, chapters, chaptersCount, totalBusinesses, profile } = payload || {};
   const handleChangeAdmin = async (e) => {
     e.preventDefault();
+
+    if (!newAdmin.phone || !newAdmin.phone.trim()) {
+      toast.error("Admin phone number is mandatory.");
+      return;
+    }
+
     setAdminLoading(true);
     try {
       await stateApi.assignAdmin({
@@ -131,6 +138,12 @@ export default function AdminStateDetails({ stateName }) {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+
+    if (!profileData.useAdminContact && (!profileData.phone || !profileData.phone.trim())) {
+      toast.error("Public phone number is mandatory.");
+      return;
+    }
+
     setProfileLoading(true);
     try {
       let imageUrl = previewImage;
@@ -500,11 +513,11 @@ export default function AdminStateDetails({ stateName }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="admin-phone">Phone Number</Label>
-              <Input
+              <Label htmlFor="admin-phone">Phone Number *</Label>
+              <PhoneInput
                 id="admin-phone"
-                type="tel"
-                placeholder="+91..."
+                required
+                placeholder="98765 43210"
                 value={newAdmin.phone}
                 onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })}
               />
@@ -625,11 +638,11 @@ export default function AdminStateDetails({ stateName }) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="profile-phone">Public Phone</Label>
-                <Input
+                <Label htmlFor="profile-phone">Public Phone *</Label>
+                <PhoneInput
                   id="profile-phone"
-                  type="tel"
-                  placeholder="+91..."
+                  required
+                  placeholder="98765 43210"
                   value={profileData.phone}
                   onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                   disabled={profileData.useAdminContact}

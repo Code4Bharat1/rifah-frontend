@@ -9,6 +9,7 @@ import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Checkbox } from "@shared/components/ui/checkbox";
 import { Input } from "@shared/components/ui/input";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
 import {
   Select,
@@ -137,6 +138,10 @@ function NewEnquiry() {
               const todayStr = new Date().toISOString().split("T")[0];
               if (formData.requiredBy && formData.requiredBy < todayStr) {
                 setError("Required-by date cannot be in the past.");
+                return;
+              }
+              if (step === 2 && (!formData.buyerPhone || !formData.buyerPhone.trim())) {
+                setError("Phone number is mandatory. Please enter your contact number.");
                 return;
               }
               if (step < steps.length - 1) {
@@ -299,12 +304,15 @@ function NewEnquiry() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
+                    <Label htmlFor="phone">Phone *</Label>
+                    <PhoneInput
                       id="phone"
-                      type="tel"
+                      required
                       value={formData.buyerPhone}
-                      onChange={(e) => setFormData({ ...formData, buyerPhone: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, buyerPhone: e.target.value });
+                        setError("");
+                      }}
                       placeholder="Mobile number"
                     />
                   </div>
