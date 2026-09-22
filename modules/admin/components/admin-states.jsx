@@ -92,8 +92,12 @@ export function AdminStates() {
   const handleOpenAddState = (prefillState = "") => {
     setTargetState(prefillState);
     setSelectedBusinessId("");
-    setForm({ name: "", email: "", phone: "", address: "", imageFile: null, useAdminContact: false });
+    setForm({ name: prefillState || "", email: "", phone: "", address: "", imageFile: null, useAdminContact: false });
     setOpenModal(true);
+  };
+
+  const handleOpenAllocate = (prefillState = "") => {
+    handleOpenAddState(prefillState);
   };
 
   const handleAddState = async (e) => {
