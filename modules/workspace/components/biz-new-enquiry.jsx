@@ -168,6 +168,7 @@ export function BizNewEnquiry() {
         requiredBy: formData.requiredBy,
         description: formData.description.trim(),
         targetType,
+        sourceType: "b2b",
         guestName: senderName,
         guestEmail: senderEmail,
         guestPhone: senderPhone,

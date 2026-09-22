@@ -47,24 +47,40 @@ import { cn } from "@shared/lib/utils";
 
 function getEnquiryType(r) {
   if (!r) return "b2b";
+  const explicit = r.sourceType || r.enquiry?.sourceType;
+  if (explicit === "b2b") return "b2b";
+  if (explicit === "guest") return "guest";
+  if (explicit === "general") return "general";
+
+  // Fallback heuristics for older records:
   const targetType = r.targetType || r.enquiry?.targetType;
+  const role = (r.requesterRole || r.enquiry?.requesterRole || "").toLowerCase();
+  const hasUserAccount = Boolean(r.requester || r.enquiry?.requester);
+
+  if (role.includes("business") || role.includes("member")) {
+    return "b2b";
+  }
+  if (targetType === "business" && (!hasUserAccount || role.includes("guest"))) {
+    return "guest";
+  }
   if (targetType === "all") {
     return "general";
   }
-  const hasGuestInfo = Boolean(
-    r.guestName ||
-    r.guestEmail ||
-    r.guestPhone ||
-    r.enquiry?.guestName ||
-    r.enquiry?.guestEmail ||
-    r.enquiry?.guestPhone
-  );
-  const role = (r.requesterRole || r.enquiry?.requesterRole || "").toLowerCase();
-  if (hasGuestInfo || role.includes("guest") || (!r.requester && !r.enquiry?.requester && targetType === "business")) {
-    return "guest";
-  }
   return "b2b";
 }
+
+function getB2bSubScope(r) {
+  if (!r) return "pan-chamber";
+  const targetType = r.targetType || r.enquiry?.targetType;
+  if (targetType === "business" || r.targetBusiness || r.enquiry?.targetBusiness) {
+    return "direct";
+  }
+  if (targetType === "chamber" || (r.chapter && r.chapter !== "All Chapters")) {
+    return "chamber";
+  }
+  return "pan-chamber";
+}
+
 
 function resolveCustomerName(r) {
   if (!r) return "Customer";
@@ -190,6 +206,7 @@ function handleExportList(enquiries) {
 export function BizEnquiries() {
   const [tab, setTab] = useState("All");
   const [typeFilter, setTypeFilter] = useState("all"); // "all", "b2b", "guest", "general"
+  const [b2bSubFilter, setB2bSubFilter] = useState("all"); // "all", "pan-chamber", "chamber", "direct"
   const [searchQuery, setSearchQuery] = useState("");
 
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
@@ -292,6 +309,9 @@ export function BizEnquiries() {
     // 1. Source / Type filter (b2b, guest, general)
     if (typeFilter !== "all") {
       rows = rows.filter((r) => getEnquiryType(r) === typeFilter);
+      if (typeFilter === "b2b" && b2bSubFilter !== "all") {
+        rows = rows.filter((r) => getB2bSubScope(r) === b2bSubFilter);
+      }
     }
 
     // 2. Tab stage filtering
@@ -327,7 +347,7 @@ export function BizEnquiries() {
     }
 
     return rows;
-  }, [allRows, typeFilter, tab, searchQuery]);
+  }, [allRows, typeFilter, b2bSubFilter, tab, searchQuery]);
 
   // Stat metrics
   const totalCount = allRows.length;
@@ -337,9 +357,13 @@ export function BizEnquiries() {
   const responseRate = totalCount > 0 ? `${Math.round((respondedCount / totalCount) * 100)}%` : "0%";
 
   // Counts by enquiry source
-  const b2bCount = allRows.filter((r) => getEnquiryType(r) === "b2b").length;
-  const guestCount = allRows.filter((r) => getEnquiryType(r) === "guest").length;
-  const generalCount = allRows.filter((r) => getEnquiryType(r) === "general").length;
+  const b2bRows = useMemo(() => allRows.filter((r) => getEnquiryType(r) === "b2b"), [allRows]);
+  const b2bCount = b2bRows.length;
+  const b2bPanChamberCount = useMemo(() => b2bRows.filter((r) => getB2bSubScope(r) === "pan-chamber").length, [b2bRows]);
+  const b2bChamberCount = useMemo(() => b2bRows.filter((r) => getB2bSubScope(r) === "chamber").length, [b2bRows]);
+  const b2bDirectCount = useMemo(() => b2bRows.filter((r) => getB2bSubScope(r) === "direct").length, [b2bRows]);
+  const guestCount = useMemo(() => allRows.filter((r) => getEnquiryType(r) === "guest").length, [allRows]);
+  const generalCount = useMemo(() => allRows.filter((r) => getEnquiryType(r) === "general").length, [allRows]);
 
   const handleOpenDialog = (enquiry) => {
     setSelectedEnquiry(enquiry);
@@ -580,6 +604,43 @@ export function BizEnquiries() {
           </div>
         </div>
 
+        {/* If B2B is active, render the 3 dedicated B2B Sub-Filters */}
+        {typeFilter === "b2b" && (
+          <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl border border-border bg-surface w-fit shadow-2xs">
+            <span className="text-xs font-semibold text-muted-foreground px-2">B2B Scope:</span>
+            {[
+              { id: "all", label: "All B2B", count: b2bCount },
+              { id: "pan-chamber", label: "All Businesses (Pan-Chamber)", count: b2bPanChamberCount },
+              { id: "chamber", label: "Chamber Specific", count: b2bChamberCount },
+              { id: "direct", label: "Specific Business", count: b2bDirectCount },
+            ].map((sub) => (
+              <button
+                key={sub.id}
+                type="button"
+                onClick={() => setB2bSubFilter(sub.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer",
+                  b2bSubFilter === sub.id
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                )}
+              >
+                <span>{sub.label}</span>
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.2 text-[10px] font-bold",
+                    b2bSubFilter === sub.id
+                      ? "bg-white/20 text-white"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {sub.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Main Enquiries Table */}
         <Panel>
           <ResponsiveTable
@@ -624,7 +685,15 @@ export function BizEnquiries() {
                         )}
                       </div>
                       <span className="text-[11px] text-muted-foreground block mt-0.5">
-                        {type === "guest" ? "Profile Enquiry" : type === "general" ? "Home RFQ" : (r.chapter || "Chamber Network")}
+                        {type === "guest"
+                          ? "Direct Profile Enquiry"
+                          : type === "general"
+                            ? "Home RFQ"
+                            : getB2bSubScope(r) === "pan-chamber"
+                              ? "Pan-Chamber"
+                              : getB2bSubScope(r) === "chamber"
+                                ? (r.chapter || "Chamber Specific")
+                                : "Direct Business"}
                       </span>
                     </div>
                   );
@@ -796,7 +865,8 @@ export function BizEnquiries() {
                       {r.title || r.enquiry?.title || "Requirement"}
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {buyerName} · {type === "guest" ? "Guest Customer" : type === "general" ? "General Buyer" : (r.requesterRole || "Buyer")}
+                      {buyerName} · {type === "guest" ? "Guest Customer" : type === "general" ? "General Buyer" : (r.requesterRole || "Business Member")}
+                      {type === "b2b" && ` · ${getB2bSubScope(r) === "pan-chamber" ? "Pan-Chamber" : getB2bSubScope(r) === "chamber" ? (r.chapter || "Chamber Specific") : "Direct"}`}
                     </p>
                   </div>
                   <div className="flex justify-between items-center text-xs text-muted-foreground">
