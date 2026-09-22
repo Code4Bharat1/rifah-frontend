@@ -54,6 +54,22 @@ function getEnquiryType(r) {
 
   // Fallback heuristics for older records:
   const targetType = r.targetType || r.enquiry?.targetType;
+  // If it is a broadcast enquiry (targetType === "all" or "chamber") and has not been quoted / assigned yet
+  if (targetType === "all" || r.isMarketplace || (targetType === "chamber" && !r.leadId)) {
+    // If the business has already quoted or won, show it as their active B2B lead
+    if (r.leadId && (r.myQuotation?.amount || r.leadStatus === "Responded" || r.leadStatus === "Won")) {
+      return "b2b";
+    }
+    return "marketplace";
+  }
+  const hasGuestInfo = Boolean(
+    r.guestName ||
+    r.guestEmail ||
+    r.guestPhone ||
+    r.enquiry?.guestName ||
+    r.enquiry?.guestEmail ||
+    r.enquiry?.guestPhone
+  );
   const role = (r.requesterRole || r.enquiry?.requesterRole || "").toLowerCase();
   const hasUserAccount = Boolean(r.requester || r.enquiry?.requester);
 
@@ -306,9 +322,15 @@ export function BizEnquiries() {
   const filteredRows = useMemo(() => {
     let rows = allRows;
 
-    // 1. Source / Type filter (b2b, guest, general)
+    // 1. Source / Type filter (b2b, guest, marketplace/general)
     if (typeFilter !== "all") {
-      rows = rows.filter((r) => getEnquiryType(r) === typeFilter);
+      rows = rows.filter((r) => {
+        const t = getEnquiryType(r);
+        if (typeFilter === "general" || typeFilter === "marketplace") {
+          return t === "general" || t === "marketplace";
+        }
+        return t === typeFilter;
+      });
       if (typeFilter === "b2b" && b2bSubFilter !== "all") {
         rows = rows.filter((r) => getB2bSubScope(r) === b2bSubFilter);
       }
@@ -363,7 +385,11 @@ export function BizEnquiries() {
   const b2bChamberCount = useMemo(() => b2bRows.filter((r) => getB2bSubScope(r) === "chamber").length, [b2bRows]);
   const b2bDirectCount = useMemo(() => b2bRows.filter((r) => getB2bSubScope(r) === "direct").length, [b2bRows]);
   const guestCount = useMemo(() => allRows.filter((r) => getEnquiryType(r) === "guest").length, [allRows]);
-  const generalCount = useMemo(() => allRows.filter((r) => getEnquiryType(r) === "general").length, [allRows]);
+  const generalCount = useMemo(
+    () => allRows.filter((r) => getEnquiryType(r) === "general" || getEnquiryType(r) === "marketplace").length,
+    [allRows]
+  );
+  const marketplaceCount = generalCount;
 
   const handleOpenDialog = (enquiry) => {
     setSelectedEnquiry(enquiry);
@@ -373,15 +399,18 @@ export function BizEnquiries() {
   };
 
   const handleAcceptRequirement = async () => {
-    if (!selectedEnquiry?.leadId) {
-      toast.error("Lead tracking reference not found for this enquiry");
+    const targetId = selectedEnquiry?.leadId || selectedEnquiry?._id;
+    if (!targetId) {
+      toast.error("Enquiry reference not found");
       return;
     }
     setUpdatingStatus(true);
     try {
-      await leadApi.updateStatus(selectedEnquiry.leadId, { status: "In Progress" });
+      const res = await leadApi.updateStatus(targetId, { status: "In Progress" });
+      const createdLead = res?.data || res;
       setSelectedEnquiry((prev) => ({
         ...prev,
+        leadId: createdLead?._id || prev?.leadId,
         leadStatus: "In Progress",
         status: "In Progress",
       }));
@@ -395,11 +424,14 @@ export function BizEnquiries() {
   };
 
   const handleUpdateStatus = async (newStatus) => {
-    if (!selectedEnquiry?.leadId) return;
+    const targetId = selectedEnquiry?.leadId || selectedEnquiry?._id;
+    if (!targetId) return;
     try {
-      await leadApi.updateStatus(selectedEnquiry.leadId, { status: newStatus });
+      const res = await leadApi.updateStatus(targetId, { status: newStatus });
+      const createdLead = res?.data || res;
       setSelectedEnquiry((prev) => ({
         ...prev,
+        leadId: createdLead?._id || prev?.leadId,
         leadStatus: newStatus,
         status: newStatus,
       }));
@@ -418,33 +450,36 @@ export function BizEnquiries() {
       return;
     }
 
-    if (!selectedEnquiry?.leadId) {
-      toast.error("Lead reference not found for this enquiry");
+    const targetId = selectedEnquiry?.leadId || selectedEnquiry?._id;
+    if (!targetId) {
+      toast.error("Enquiry reference not found");
       return;
     }
 
     setSubmittingQuote(true);
     try {
-      await leadApi.submitQuotation(selectedEnquiry.leadId, {
+      const res = await leadApi.submitQuotation(targetId, {
         amount: cleanAmount,
         notes: quoteNotes.trim(),
       });
+      const createdLead = res?.data || res;
 
       const updatedQuote = {
         amount: cleanAmount,
         notes: quoteNotes.trim(),
-        submittedAt: new Date(),
+        submittedAt: new Date().toISOString(),
       };
 
       setSelectedEnquiry((prev) => ({
         ...prev,
+        leadId: createdLead?._id || prev?.leadId,
         leadStatus: "Responded",
         status: "Responded",
         myQuotation: updatedQuote,
       }));
 
       setShowQuoteForm(false);
-      toast.success("Official quotation submitted! Generated PDF document delivered to buyer's message box.");
+      toast.success("Official quotation submitted! Lead created in your workspace.");
       refetch();
     } catch (err) {
       toast.error(err?.message || "Failed to submit quotation");
@@ -535,13 +570,13 @@ export function BizEnquiries() {
 
         {/* Source Type Filter Pills & Search Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Category Type Filter: All | Business (B2B) | Guest | General Query */}
+          {/* Category Type Filter: All | Direct (B2B) | Explore / Marketplace | Guest */}
           <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl border border-border bg-surface w-fit shadow-2xs">
             {[
               { id: "all", label: "All", count: totalCount },
-              { id: "b2b", label: "Business (B2B)", count: b2bCount },
+              { id: "b2b", label: "Direct (B2B)", count: b2bCount },
+              { id: "marketplace", label: "Explore / Marketplace", count: marketplaceCount },
               { id: "guest", label: "Guest", count: guestCount },
-              { id: "general", label: "General Query", count: generalCount },
             ].map((f) => (
               <button
                 key={f.id}
@@ -673,24 +708,24 @@ export function BizEnquiries() {
                             Guest
                           </span>
                         )}
-                        {type === "general" && (
-                          <span className="rounded px-1.5 py-0.2 text-[10px] font-bold bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20">
-                            General RFQ
+                        {(type === "marketplace" || type === "general") && (
+                          <span className="rounded px-1.5 py-0.2 text-[10px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20">
+                            Marketplace RFQ
                           </span>
                         )}
                         {type === "b2b" && (
                           <span className="rounded px-1.5 py-0.2 text-[10px] font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/20">
-                            B2B Member
+                            {getB2bSubScope(r) === "direct" ? "Direct Lead" : getB2bSubScope(r) === "chamber" ? "Chamber Lead" : "Pan-Chamber"}
                           </span>
                         )}
                       </div>
                       <span className="text-[11px] text-muted-foreground block mt-0.5">
                         {type === "guest"
                           ? "Direct Profile Enquiry"
-                          : type === "general"
-                            ? "Home RFQ"
+                          : (type === "marketplace" || type === "general")
+                            ? "Open Chamber Broadcast"
                             : getB2bSubScope(r) === "pan-chamber"
-                              ? "Pan-Chamber"
+                              ? "Pan-Chamber Network"
                               : getB2bSubScope(r) === "chamber"
                                 ? (r.chapter || "Chamber Specific")
                                 : "Direct Business"}
@@ -727,8 +762,8 @@ export function BizEnquiries() {
                       <span className="text-xs text-muted-foreground block">
                         {type === "guest"
                           ? `Guest Customer ${r.location ? `· ${r.location}` : ""}`
-                          : type === "general"
-                            ? `General Buyer ${r.location ? `· ${r.location}` : ""}`
+                          : type === "marketplace"
+                            ? `Chamber Broadcast ${r.location ? `· ${r.location}` : ""}`
                             : `${r.requesterRole || "Business Member"} ${r.location ? `· ${r.location}` : ""}`}
                       </span>
                     </div>
@@ -750,6 +785,14 @@ export function BizEnquiries() {
                 header: "STATUS / YOUR QUOTE",
                 cell: (r) => {
                   const type = getEnquiryType(r);
+                  if (type === "marketplace") {
+                    return (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 px-2 py-0.5 text-xs font-semibold text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                        <Sparkles className="h-3 w-3" />
+                        Open to Quote
+                      </span>
+                    );
+                  }
                   if (type === "b2b") {
                     const hasQuote = Boolean(r.myQuotation?.amount && Number(r.myQuotation.amount) > 0);
                     if (hasQuote) {
@@ -780,8 +823,8 @@ export function BizEnquiries() {
                   const buyerName = r.buyerName || r.requesterName || "Requester";
                   const isQuoted = Boolean(r.myQuotation?.amount && Number(r.myQuotation.amount) > 0);
 
-                  // GUEST & GENERAL: ONLY "View Details". NO Message button!
-                  if (type === "guest" || type === "general") {
+                  // GUEST: ONLY "View Details"
+                  if (type === "guest") {
                     return (
                       <div className="flex items-center gap-1.5">
                         <Button
@@ -791,6 +834,21 @@ export function BizEnquiries() {
                           onClick={() => handleOpenDialog(r)}
                         >
                           View Details
+                        </Button>
+                      </div>
+                    );
+                  }
+
+                  // MARKETPLACE (Broadcast): "Quote on RFQ"
+                  if (type === "marketplace") {
+                    return (
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
+                          onClick={() => handleOpenDialog(r)}
+                        >
+                          Quote on RFQ
                         </Button>
                       </div>
                     );
@@ -840,14 +898,14 @@ export function BizEnquiries() {
                           Guest
                         </span>
                       )}
-                      {type === "general" && (
-                        <span className="rounded px-1.5 py-0.2 text-[10px] font-bold bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20">
-                          General RFQ
+                      {type === "marketplace" && (
+                        <span className="rounded px-1.5 py-0.2 text-[10px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20">
+                          Marketplace RFQ
                         </span>
                       )}
                       {type === "b2b" && (
                         <span className="rounded px-1.5 py-0.2 text-[10px] font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/20">
-                          B2B Member
+                          Direct Lead
                         </span>
                       )}
                     </div>
@@ -855,6 +913,10 @@ export function BizEnquiries() {
                       <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                         <CheckCircle2 className="h-3 w-3" />
                         Quoted ₹{Number(r.myQuotation.amount).toLocaleString("en-IN")}
+                      </span>
+                    ) : type === "marketplace" ? (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-700 dark:text-purple-300">
+                        <Sparkles className="h-3 w-3" /> Open to Quote
                       </span>
                     ) : (
                       <StatusBadge status={r.leadStatus || r.status || "New"} />
@@ -865,7 +927,7 @@ export function BizEnquiries() {
                       {r.title || r.enquiry?.title || "Requirement"}
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {buyerName} · {type === "guest" ? "Guest Customer" : type === "general" ? "General Buyer" : (r.requesterRole || "Business Member")}
+                      {buyerName} · {type === "guest" ? "Guest Customer" : (type === "marketplace" || type === "general") ? "Marketplace Broadcast" : (r.requesterRole || "Business Member")}
                       {type === "b2b" && ` · ${getB2bSubScope(r) === "pan-chamber" ? "Pan-Chamber" : getB2bSubScope(r) === "chamber" ? (r.chapter || "Chamber Specific") : "Direct"}`}
                     </p>
                   </div>
@@ -874,7 +936,7 @@ export function BizEnquiries() {
                     <span>Date: {formatDate(r.requiredBy || r.enquiry?.requiredBy)}</span>
                   </div>
                   <div className="pt-2 flex items-center justify-end gap-2 border-t border-border">
-                    {type === "guest" || type === "general" ? (
+                    {type === "guest" ? (
                       <Button
                         size="sm"
                         variant="outline"
@@ -882,6 +944,14 @@ export function BizEnquiries() {
                         onClick={() => handleOpenDialog(r)}
                       >
                         View Details
+                      </Button>
+                    ) : type === "marketplace" ? (
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-primary text-primary-foreground"
+                        onClick={() => handleOpenDialog(r)}
+                      >
+                        Quote on RFQ
                       </Button>
                     ) : (
                       <>
@@ -948,7 +1018,7 @@ export function BizEnquiries() {
                         <div className={cn(
                           "grid h-10 w-10 place-items-center rounded-full font-bold",
                           enqType === "guest" ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" :
-                          enqType === "general" ? "bg-sky-500/10 text-sky-700 dark:text-sky-400" :
+                          enqType === "marketplace" ? "bg-purple-500/10 text-purple-700 dark:text-purple-400" :
                           "bg-primary/10 text-primary"
                         )}>
                           {(selectedEnquiry?.buyerName || selectedEnquiry?.requesterName || selectedEnquiry?.guestName || "B").charAt(0).toUpperCase()}
@@ -961,12 +1031,12 @@ export function BizEnquiries() {
                             <span className={cn(
                               "rounded px-2 py-0.5 text-[10px] font-bold border",
                               enqType === "guest" ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" :
-                              enqType === "general" ? "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20" :
+                              enqType === "marketplace" ? "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20" :
                               "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20"
                             )}>
                               {enqType === "guest" ? "Guest Customer (Profile Enquiry)" :
-                               enqType === "general" ? "General Buyer (Home RFQ)" :
-                               "Verified B2B Member"}
+                               enqType === "marketplace" ? "Chamber Marketplace Broadcast RFQ" :
+                               "Verified B2B Direct Lead"}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
@@ -976,7 +1046,7 @@ export function BizEnquiries() {
                       </div>
 
                       {/* GUEST CONTACT DETAILS (Phone & Email) for Direct Outreach */}
-                      {(enqType === "guest" || enqType === "general") && (
+                      {enqType === "guest" && (
                         <div className="rounded-lg border border-border/80 bg-surface p-3 space-y-2">
                           <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                             <Phone className="h-3.5 w-3.5 text-primary" />
@@ -1049,13 +1119,13 @@ export function BizEnquiries() {
                       </p>
                     </div>
 
-                    {/* Quotation Management Section: ONLY FOR B2B */}
-                    {enqType === "b2b" ? (
+                    {/* Quotation Management Section: FOR B2B & MARKETPLACE */}
+                    {(enqType === "b2b" || enqType === "marketplace") ? (
                       <div className="rounded-xl border border-border p-4 space-y-3 bg-surface">
                         <div className="flex items-center justify-between">
                           <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                             <FileText className="h-4 w-4 text-primary" />
-                            Official B2B Quotation
+                            {enqType === "marketplace" ? "Chamber Quotation (Submit to Create Lead)" : "Official B2B Quotation"}
                           </h4>
                           {Boolean(selectedEnquiry?.myQuotation?.amount && Number(selectedEnquiry.myQuotation.amount) > 0) ? (
                             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
@@ -1211,10 +1281,10 @@ export function BizEnquiries() {
                         <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <div>
                           <span className="font-semibold text-foreground block">
-                            {enqType === "guest" ? "Direct Guest Customer Requirement" : "General Chamber RFQ Broadcast"}
+                            Direct Guest Customer Requirement
                           </span>
                           <span>
-                            Official in-platform quotations and chat messaging are reserved for registered B2B chamber members. Please connect directly with this prospective buyer using their phone number or email provided in the contact box above.
+                            This enquiry was submitted directly through your public business profile page. Please connect directly with this prospective buyer using their phone number or email provided in the contact box above.
                           </span>
                         </div>
                       </div>
