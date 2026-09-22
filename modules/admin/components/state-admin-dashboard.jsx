@@ -222,7 +222,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
       });
       toast.success(
         newChapter.businessId || (newChapter.adminName && newChapter.adminEmail)
-          ? `Chapter "${newChapter.name}" created and Admin appointed!`
+          ? `Chapter "${newChapter.name}" created and Chapter Admin appointed! Login credentials and password sent to ${newChapter.adminEmail || "their email"}.`
           : `Chapter "${newChapter.name}" created successfully!`
       );
       setOpenAddChapter(false);
@@ -258,7 +258,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
         name: newAdmin.name,
         email: newAdmin.email,
       });
-      toast.success(`Chapter Admin appointed for ${adminModalChapter.name}! Invitation sent.`);
+      toast.success(`Chapter Admin appointed for ${adminModalChapter.name}! Temporary login password sent to ${newAdmin.email}.`);
       setAdminModalChapter(null);
       setSelectedBusinessId("");
       setNewAdmin({ name: "", email: "" });
