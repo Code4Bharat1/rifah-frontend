@@ -23,6 +23,7 @@ import { Button } from "@shared/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
 import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
+import { RifahCopilotWidget } from "@shared/components/rifah/rifah-copilot-widget";
 
 const primaryNav = [
   { tKey: "discover", to: "/discover" },
@@ -316,11 +317,13 @@ export function PublicMobileTabs() {
 }
 
 export function PublicLayout({ children, bare = false, className, mainClassName }) {
+  const { user } = useAuth();
   return (
     <div className={cn("flex min-h-screen flex-col bg-background", className)}>
       <PublicHeader />
       <main className={cn("flex-1", mainClassName)}>{children}</main>
       {!bare && <PublicFooter />}
+      <RifahCopilotWidget role={user?.role || "business_owner"} user={user} />
     </div>
   );
 }

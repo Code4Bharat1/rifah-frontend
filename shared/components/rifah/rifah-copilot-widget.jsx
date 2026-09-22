@@ -109,49 +109,76 @@ function MarkdownMessage({ content, onLinkClick }) {
 }
 
 function renderInline(text, onLinkClick) {
+  if (!text) return null;
+  // Clean up any double asterisks wrapping around markdown links: **[Label](url)** -> [Label](url)
+  const sanitizedText = text.replace(/\*\*(\[[^\]]+\]\([^)]+\))\*\*/g, "$1");
+
   // Matches [Label](url)
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
   const parts = [];
   let lastIndex = 0;
   let match;
 
-  while ((match = linkRegex.exec(text)) !== null) {
+  while ((match = linkRegex.exec(sanitizedText)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(text.substring(lastIndex, match.index));
+      parts.push({
+        type: "text",
+        content: sanitizedText.substring(lastIndex, match.index),
+        key: `text-${lastIndex}`,
+      });
     }
     const label = match[1];
     const url = match[2];
-    parts.push(
-      <Link
-        key={match.index}
-        href={url}
-        onClick={() => onLinkClick && onLinkClick(url)}
-        className="inline-flex items-center gap-0.5 font-bold text-cyan-400 hover:text-cyan-300 underline underline-offset-2 transition-colors mx-0.5"
-      >
-        <span>{label}</span>
-        <ExternalLink className="h-3 w-3 inline shrink-0" />
-      </Link>
-    );
+    parts.push({
+      type: "link",
+      label,
+      url,
+      key: `link-${match.index}`,
+    });
     lastIndex = match.index + match[0].length;
   }
 
-  if (lastIndex < text.length) {
-    parts.push(text.substring(lastIndex));
+  if (lastIndex < sanitizedText.length) {
+    parts.push({
+      type: "text",
+      content: sanitizedText.substring(lastIndex),
+      key: `text-${lastIndex}`,
+    });
   }
 
-  // Handle bold **text** in plain strings
-  return parts.map((part, pIdx) => {
-    if (typeof part === "string" && part.includes("**")) {
-      const boldParts = part.split(/\*\*([^*]+)\*\*/g);
+  return parts.map((part) => {
+    if (part.type === "link") {
       return (
-        <span key={pIdx}>
+        <Link
+          key={part.key}
+          href={part.url}
+          onClick={() => onLinkClick && onLinkClick(part.url)}
+          className="inline-flex items-center gap-0.5 font-bold text-cyan-400 hover:text-cyan-300 underline underline-offset-2 transition-colors mx-0.5"
+        >
+          <span>{part.label}</span>
+          <ExternalLink className="h-3 w-3 inline shrink-0" />
+        </Link>
+      );
+    }
+
+    if (part.content.includes("**")) {
+      const boldParts = part.content.split(/\*\*([^*]+)\*\*/g);
+      return (
+        <span key={part.key}>
           {boldParts.map((bp, bpIdx) =>
-            bpIdx % 2 === 1 ? <strong key={bpIdx} className="font-bold text-foreground">{bp}</strong> : bp
+            bpIdx % 2 === 1 ? (
+              <strong key={`b-${bpIdx}`} className="font-bold text-foreground">
+                {bp}
+              </strong>
+            ) : (
+              <React.Fragment key={`t-${bpIdx}`}>{bp}</React.Fragment>
+            )
           )}
         </span>
       );
     }
-    return <React.Fragment key={pIdx}>{part}</React.Fragment>;
+
+    return <span key={part.key}>{part.content}</span>;
   });
 }
 
@@ -167,10 +194,10 @@ export function RifahCopilotWidget({ role, user }) {
     role === "central_admin" || user?.role === "central_admin"
       ? "central_admin"
       : role === "state_admin" || user?.role === "state_admin"
-      ? "state_admin"
-      : role === "chapter_admin" || user?.role === "chapter_admin"
-      ? "chapter_admin"
-      : "business_owner";
+        ? "state_admin"
+        : role === "chapter_admin" || user?.role === "chapter_admin"
+          ? "chapter_admin"
+          : "business_owner";
 
   const preset = ROLE_PRESETS[effectiveRole] || ROLE_PRESETS.business_owner;
 
@@ -200,6 +227,23 @@ export function RifahCopilotWidget({ role, user }) {
       setTimeout(() => inputRef.current?.focus(), 150);
     }
   }, [isOpen]);
+
+  // Global event listener to open Copilot from anywhere (dashboard card, header button, etc.)
+  useEffect(() => {
+    const handleOpenEvent = (e) => {
+      setIsOpen(true);
+      if (e?.detail?.query) {
+        setTimeout(() => {
+          handleSend(e.detail.query);
+        }, 120);
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("open-rifah-copilot", handleOpenEvent);
+      return () => window.removeEventListener("open-rifah-copilot", handleOpenEvent);
+    }
+  }, [effectiveRole]);
 
   const handleSend = async (textToSend) => {
     const query = (textToSend || input).trim();
@@ -264,19 +308,19 @@ export function RifahCopilotWidget({ role, user }) {
 
   return (
     <>
-      {/* Floating Trigger Button */}
-      <div className="fixed bottom-6 right-6 z-50 print:hidden">
+      {/* Floating Trigger Button - positioned safely above mobile BottomNav */}
+      <div className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-50 print:hidden">
         {!isOpen && (
           <Button
             onClick={() => setIsOpen(true)}
             size="lg"
-            className="h-12 px-4 gap-2.5 rounded-full bg-gradient-to-r from-primary via-cyan-600 to-blue-600 text-white font-bold shadow-lg hover:shadow-cyan-500/25 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 group cursor-pointer"
+            className="h-12 px-4 gap-2.5 rounded-full bg-gradient-to-r from-primary via-cyan-600 to-blue-600 text-white font-bold shadow-xl shadow-cyan-900/30 hover:shadow-cyan-500/35 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/25 group cursor-pointer ring-2 ring-cyan-400/20"
             aria-label="Open RIFAH AI Copilot"
           >
             <div className="relative">
               <Sparkles className="h-5 w-5 animate-pulse text-amber-300" />
             </div>
-            <span className="text-xs sm:text-sm tracking-wide">AI Copilot</span>
+            <span className="text-xs sm:text-sm tracking-wide font-extrabold">AI Copilot</span>
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping absolute -top-0.5 -right-0.5" />
             <span className="h-2 w-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5" />
           </Button>
@@ -286,7 +330,7 @@ export function RifahCopilotWidget({ role, user }) {
       {/* Floating Copilot Modal Window */}
       {isOpen && (
         <div
-          className="fixed bottom-5 right-5 z-50 w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-6rem)] flex flex-col rounded-2xl bg-card border border-border/80 shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-200"
+          className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-50 w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-7rem)] flex flex-col rounded-2xl bg-card border border-border/80 shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-200"
           role="dialog"
           aria-label="RIFAH AI Copilot Assistant"
         >
@@ -357,7 +401,10 @@ export function RifahCopilotWidget({ role, user }) {
                     <MarkdownMessage
                       content={m.content}
                       onLinkClick={() => {
-                        // Optional close on navigation or keep open
+                        // Close widget on mobile screen so user immediately sees navigated page
+                        if (typeof window !== "undefined" && window.innerWidth < 768) {
+                          setIsOpen(false);
+                        }
                       }}
                     />
                   </div>
