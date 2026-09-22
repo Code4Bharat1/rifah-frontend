@@ -58,7 +58,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
   const handleSendWelcome = async (item) => {
     if (!item.userId) return;
 
-    const messageContent = `Hi ${item.userName || "there"}, welcome to RIFAH Chamber! 🎉 Delighted to have ${item.businessName} in our chapter. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`;
+    const messageContent = `Hi ${item.userName || "there"}, Chamber! 🎉 Delighted to have ${item.businessName} in our chapter. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`;
 
     setSendingMap((prev) => ({ ...prev, [item.userId]: true }));
     try {
@@ -78,7 +78,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-[780px] max-h-[88vh] flex flex-col p-0 sm:p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl font-sans">
-        
+
         {/* TOP CELEBRATION HEADER WITH SEAMLESS GRADIENT BANNER */}
         <div className="relative border-b border-indigo-100/90 dark:border-indigo-900/50 bg-gradient-to-r from-blue-50 via-indigo-50/70 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-purple-950/40 px-6 py-5 pr-14 shrink-0">
           <div className="flex items-center gap-4">
@@ -108,7 +108,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
             const isSending = sendingMap[item.userId];
             const isSent = sentMap[item.userId];
             const cleanWhatsapp = (item.whatsapp || item.phone || "").replace(/[^0-9]/g, "");
-            const whatsappDefault = `Hi ${item.userName || "there"}, welcome to RIFAH Chamber! 🎉 Delighted to have ${item.businessName} in our chapter. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`;
+            const whatsappDefault = `Hi ${item.userName || "there"}, Chamber! 🎉 Delighted to have ${item.businessName} in our chapter. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`;
             const whatsappUrl = cleanWhatsapp
               ? `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(whatsappDefault)}`
               : null;
@@ -121,7 +121,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
                 className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-md transition-all duration-200"
               >
                 <div className="flex items-start gap-4">
-                  
+
                   {/* Left: Avatar Block */}
                   <div className={`h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-base sm:text-lg shadow-xs ${themeClass}`}>
                     {item.userAvatar ? (
@@ -137,7 +137,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
 
                   {/* Right: Business Details & Actions */}
                   <div className="min-w-0 flex-1 flex flex-col justify-between gap-2.5">
-                    
+
                     {/* Top Row: Business Name in single clean line */}
                     <div className="flex items-center justify-between gap-3 min-w-0">
                       <h4 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight truncate">
@@ -147,7 +147,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
 
                     {/* Bottom Row: Owner, Category, Chapter, Joined on Left; Pill & Buttons on Right */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1 border-t border-slate-100 dark:border-slate-800/60">
-                      
+
                       {/* Left: Details Row */}
                       <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                         <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">

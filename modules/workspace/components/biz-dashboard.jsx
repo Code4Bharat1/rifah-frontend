@@ -64,13 +64,13 @@ function BusinessHome() {
   const rawNotifs = Array.isArray(notifData)
     ? notifData
     : Array.isArray(notifData?.notifications)
-    ? notifData.notifications
-    : [];
+      ? notifData.notifications
+      : [];
   const reviews = Array.isArray(reviewsData)
     ? reviewsData
     : Array.isArray(reviewsData?.reviews)
-    ? reviewsData.reviews
-    : [];
+      ? reviewsData.reviews
+      : [];
 
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) / reviews.length).toFixed(1)
@@ -336,7 +336,7 @@ function BusinessHome() {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="text-sm font-bold text-sky-950 dark:text-white">
-                        Welcome to RIFAH Chamber Workspace!
+                        Chamber Workspace!
                       </h4>
                       <span className="rounded-full bg-sky-200/70 dark:bg-sky-900 px-2 py-0.5 text-[10px] font-bold text-sky-800 dark:text-sky-300 uppercase">
                         Profile Incomplete ({completeness}%)
@@ -435,17 +435,16 @@ function BusinessHome() {
                             </p>
                           </div>
                           <span
-                            className={`shrink-0 rounded-full px-3 py-0.5 text-xs font-semibold ${
-                              leadStatus === "New"
+                            className={`shrink-0 rounded-full px-3 py-0.5 text-xs font-semibold ${leadStatus === "New"
                                 ? "bg-sky-100 text-sky-700"
                                 : leadStatus === "In Progress"
-                                ? "bg-amber-100 text-amber-700"
-                                : leadStatus === "Responded"
-                                ? "bg-blue-100 text-blue-700"
-                                : leadStatus === "Won"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
+                                  ? "bg-amber-100 text-amber-700"
+                                  : leadStatus === "Responded"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : leadStatus === "Won"
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : "bg-slate-100 text-slate-600"
+                              }`}
                           >
                             {leadStatus}
                           </span>
@@ -453,13 +452,12 @@ function BusinessHome() {
 
                         <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
                           <span
-                            className={`rounded-full px-2.5 py-0.5 font-medium ${
-                              l.priority === "High"
+                            className={`rounded-full px-2.5 py-0.5 font-medium ${l.priority === "High"
                                 ? "bg-red-50 text-red-600 border border-red-100"
                                 : l.priority === "Medium"
-                                ? "bg-amber-50 text-amber-700 border border-amber-100"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
+                                  ? "bg-amber-50 text-amber-700 border border-amber-100"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
                           >
                             {safeText(l.priority, "Standard")} priority
                           </span>
@@ -779,14 +777,14 @@ function BusinessHome() {
                     business?.verification === "verified"
                       ? "text-emerald-600 dark:text-emerald-400"
                       : business?.verification === "rejected"
-                      ? "text-rose-600 dark:text-rose-400"
-                      : "text-slate-900 dark:text-white"
+                        ? "text-rose-600 dark:text-rose-400"
+                        : "text-slate-900 dark:text-white"
                   )}>
                     {business?.verification === "verified"
                       ? "Active Verified"
                       : business?.verification === "rejected"
-                      ? "Rejected"
-                      : "Pending Verification"}
+                        ? "Rejected"
+                        : "Pending Verification"}
                   </span>
                 </li>
               </ul>
@@ -821,9 +819,8 @@ function BusinessHome() {
                       <li key={msg._id || msg.id || msg.conversationId || i}>
                         <Link
                           href={otherUserId ? `/biz/messages?userId=${otherUserId}` : "/biz/messages"}
-                          className={`flex items-center justify-between gap-3 p-2 rounded-xl transition-all hover:bg-slate-50 ${
-                            isUnread ? "bg-red-50/40 border border-red-100/60" : "border border-transparent"
-                          }`}
+                          className={`flex items-center justify-between gap-3 p-2 rounded-xl transition-all hover:bg-slate-50 ${isUnread ? "bg-red-50/40 border border-red-100/60" : "border border-transparent"
+                            }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className="relative shrink-0">
@@ -887,11 +884,10 @@ function BusinessHome() {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
-                              className={`h-3.5 w-3.5 ${
-                                star <= Math.round(Number(avgRating))
+                              className={`h-3.5 w-3.5 ${star <= Math.round(Number(avgRating))
                                   ? "fill-amber-400 text-amber-400"
                                   : "text-slate-200 fill-slate-100"
-                              }`}
+                                }`}
                             />
                           ))}
                         </div>

@@ -142,10 +142,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const { user, logout } = useAuth();
 
   // Dynamic Base Path for Routing
-  const basePath = pathname?.startsWith("/admin") 
-    ? "/admin" 
-    : pathname?.startsWith("/state-admin") 
-      ? "/state-admin" 
+  const basePath = pathname?.startsWith("/admin")
+    ? "/admin"
+    : pathname?.startsWith("/state-admin")
+      ? "/state-admin"
       : "/chapter-admin";
 
   // Active Tab: synchronized with URL param or prop + instant state update
@@ -177,12 +177,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const isCentralAdmin = user?.role === "central_admin";
   const isStateAdmin = user?.role === "state_admin";
 
-  const chapterName = isCentralAdmin 
-    ? "Global Operations" 
-    : isStateAdmin 
-      ? `${user?.state || "State"} State Operations` 
+  const chapterName = isCentralAdmin
+    ? "Global Operations"
+    : isStateAdmin
+      ? `${user?.state || "State"} State Operations`
       : (user?.chapter || "Mumbai Chapter");
-      
+
   const roleLabel = isCentralAdmin ? "CENTRAL ADMIN" : isStateAdmin ? "STATE ADMIN" : "CHAPTER ADMIN";
   const chapterSlug = (user?.chapter || "central-mumbai")
     .toLowerCase()
@@ -225,10 +225,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const [followupSearch, setFollowupSearch] = useState("");
   const [messagePurpose, setMessagePurpose] = useState("general");
   const [customFollowupMessage, setCustomFollowupMessage] = useState(
-    "Assalamu Alaikum {name}, thank you for attending {event} with RIFAH {chapter} Chapter! Let us know how we can support your business."
+    "Welcome to RIFAH {name}, thank you for attending {event} with RIFAH {chapter} Chapter! Let us know how we can support your business."
   );
   const [membershipCustomMessage, setMembershipCustomMessage] = useState(
-    "Assalamu Alaikum {name}, your RIFAH Chapter membership unlocks high-value networking and business opportunities. Status: {status}."
+    "Welcome to RIFAH {name}, your RIFAH Chapter membership unlocks high-value networking and business opportunities. Status: {status}."
   );
 
   // Attendees Search & Filters
@@ -522,7 +522,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             setLiveAnnouncement(ev.activeAnnouncement);
           }
           if (ev.moderatorNotes) setModeratorNotes(ev.moderatorNotes);
-          
+
           // Render real guest speaker name instead of default placeholder
           let loadedAgenda = ev.agenda?.length ? ev.agenda : DEFAULT_AGENDA;
           if (ev.speakers?.length > 0) {
@@ -1140,7 +1140,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     if (selectedEventId) {
       try {
         await eventApi.updateOperations(selectedEventId, { activeAnnouncement: text });
-      } catch (err) {}
+      } catch (err) { }
     }
     if (text) {
       toast.success("Announcement broadcasted to projector ticker!");
@@ -2407,7 +2407,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         </div>
       )}
 
-                  {currentTab === "event-setup" && (
+      {currentTab === "event-setup" && (
         <div className="space-y-5">
 
           {/* Event Selector */}
@@ -2464,9 +2464,9 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   className={cn("gap-2 rounded-xl font-semibold", liveSyncStatus === "ok" && "bg-emerald-600 hover:bg-emerald-700 text-white")}
                 >
                   {liveSyncStatus === "testing" ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Testing…</> :
-                   liveSyncStatus === "ok"      ? <><CheckCircle2 className="h-3.5 w-3.5" /> Connected ({liveSyncLatency}ms)</> :
-                   liveSyncStatus === "fail"    ? <><AlertCircle className="h-3.5 w-3.5" /> Sync Failed</> :
-                                                  <><Zap className="h-3.5 w-3.5" /> Test Live Sync Now</>}
+                    liveSyncStatus === "ok" ? <><CheckCircle2 className="h-3.5 w-3.5" /> Connected ({liveSyncLatency}ms)</> :
+                      liveSyncStatus === "fail" ? <><AlertCircle className="h-3.5 w-3.5" /> Sync Failed</> :
+                        <><Zap className="h-3.5 w-3.5" /> Test Live Sync Now</>}
                 </Button>
                 {liveSyncStatus === "ok" && (
                   <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">All devices synced ✓</span>
@@ -2559,7 +2559,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <Select value={eventSetupForm.signatory1Role} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, signatory1Role: val }))}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {["Chapter Vice President","Chapter President","Chapter Secretary","State President","State Secretary","Other"].map(r => (
+                        {["Chapter Vice President", "Chapter President", "Chapter Secretary", "State President", "State Secretary", "Other"].map(r => (
                           <SelectItem key={r} value={r}>{r}</SelectItem>
                         ))}
                       </SelectContent>
@@ -2634,7 +2634,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <Select value={eventSetupForm.signatory1Role} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, signatory1Role: val }))}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {["— none —","Chapter Vice President","Chapter President","Chapter Secretary","State President","State Secretary","Other"].map(r => (
+                        {["— none —", "Chapter Vice President", "Chapter President", "Chapter Secretary", "State President", "State Secretary", "Other"].map(r => (
                           <SelectItem key={r} value={r}>{r}</SelectItem>
                         ))}
                       </SelectContent>
@@ -2664,7 +2664,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <Select value={eventSetupForm.signatory2Role} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, signatory2Role: val }))}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {["— none —","Chapter Vice President","Chapter President","Chapter Secretary","State President","State Secretary","Other"].map(r => (
+                        {["— none —", "Chapter Vice President", "Chapter President", "Chapter Secretary", "State President", "State Secretary", "Other"].map(r => (
                           <SelectItem key={r} value={r}>{r}</SelectItem>
                         ))}
                       </SelectContent>
@@ -2952,7 +2952,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                       <Select value={sponsorForm.category} onValueChange={val => setSponsorForm(p => ({ ...p, category: val }))}>
                         <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {["Main Sponsor","Co Sponsor","Standy Sponsor","IT & Media Partner","Knowledge Partner"].map(c => (
+                          {["Main Sponsor", "Co Sponsor", "Standy Sponsor", "IT & Media Partner", "Knowledge Partner"].map(c => (
                             <SelectItem key={c} value={c}>{c}</SelectItem>
                           ))}
                         </SelectContent>
@@ -3319,8 +3319,8 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                           stageTimerSeconds <= 0
                             ? "text-rose-400 bg-rose-500/10 border border-rose-500/30 animate-pulse"
                             : stageTimerSeconds <= 120
-                            ? "text-amber-400 bg-amber-500/10 border border-amber-500/30"
-                            : "text-primary bg-primary/10 border border-primary/20"
+                              ? "text-amber-400 bg-amber-500/10 border border-amber-500/30"
+                              : "text-primary bg-primary/10 border border-primary/20"
                         )}>
                           {formatTimerDisplay(stageTimerSeconds)}
                         </div>
@@ -3599,12 +3599,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </div>
             </div>
           </div>
-          
+
           {/* Agenda Setup / CRUD */}
-          <AgendaCrud 
-            eventId={selectedEventId} 
-            agenda={agenda} 
-            setAgenda={setAgenda} 
+          <AgendaCrud
+            eventId={selectedEventId}
+            agenda={agenda}
+            setAgenda={setAgenda}
           />
         </div>
       )}
@@ -4107,10 +4107,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                               item.status === "completed"
                                 ? "bg-emerald-500/15 text-emerald-500"
                                 : item.status === "contacted"
-                                ? "bg-primary-soft text-primary"
-                                : item.status === "interested"
-                                ? "bg-blue-500/15 text-blue-500"
-                                : "bg-amber-500/15 text-amber-500"
+                                  ? "bg-primary-soft text-primary"
+                                  : item.status === "interested"
+                                    ? "bg-blue-500/15 text-blue-500"
+                                    : "bg-amber-500/15 text-amber-500"
                             )}
                           >
                             {item.status}
@@ -4548,7 +4548,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 Generate and distribute participation certificates for attendees.
               </p>
             </div>
-            
+
             <CertificatesTab eventId={selectedEventId} />
           </div>
         </div>
@@ -4569,7 +4569,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 Customize the 16 standard event segments and use the built-in teleprompter.
               </p>
             </div>
-            
+
             <ScriptsTab eventId={selectedEventId} teamRoles={teamRoles} />
           </div>
         </div>

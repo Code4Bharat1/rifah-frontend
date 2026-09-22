@@ -208,7 +208,7 @@ export function RifahCopilotWidget({ role, user }) {
         {
           id: "welcome",
           role: "assistant",
-          content: `Assalamu Alaikum **${user?.name || "Member"}**! I am your **RIFAH AI Copilot**.\n\nI can help you navigate tools, locate business features, understand verification steps, or discover directory listings tailored to your **${effectiveRole.replace("_", " ")}** permissions.\n\nHow can I help you today?`,
+          content: `Welcome to RIFAH **${user?.name || "Member"}**! I am your **RIFAH AI Copilot**.\n\nI can help you navigate tools, locate business features, understand verification steps, or discover directory listings tailored to your **${effectiveRole.replace("_", " ")}** permissions.\n\nHow can I help you today?`,
         },
       ]);
     }

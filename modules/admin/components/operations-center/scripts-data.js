@@ -1,7 +1,7 @@
 export const STAGE_SCRIPTS = {
   1: {
     segmentTitle: "Networking & Registration",
-    defaultText: "Welcome to RIFAH! Please proceed to the entrance desk to mark your attendance and collect your name badge. Enjoy networking over tea and coffee before we begin. Feel free to interact and build connections.",
+    defaultText: "Welcome to RIFAH ! Please proceed to the entrance desk to mark your attendance and collect your name badge. Enjoy networking over tea and coffee before we begin. Feel free to interact and build connections.",
   },
   2: {
     segmentTitle: "Tilawat e Quran",
