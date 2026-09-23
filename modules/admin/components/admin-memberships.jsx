@@ -24,6 +24,12 @@ function AdminMemberships() {
   const { data: businessesData, refetch: refetchBusinesses } = useBusinesses();
 
   const plans = plansData || {};
+  const activePlanNames = new Set(
+    Object.values(plans)
+      .filter((plan) => plan.isActive !== false)
+      .map((plan) => String(plan.name || "").toLowerCase())
+  );
+  const activePlans = Object.entries(plans).filter(([, plan]) => plan.isActive !== false);
   const rawBusinesses = Array.isArray(businessesData) ? businessesData : [];
   // Per business rule: Only verified businesses are officially RIFAH members
   const businesses = rawBusinesses.filter(b => b.verification === "verified" || b.isVerified === true);
@@ -33,15 +39,17 @@ function AdminMemberships() {
 
   const filteredBusinesses = businesses.filter((b) => {
     const mem = (b.membership || "").toLowerCase();
-    if (filter === "platinum_diamond") return mem === "platinum" || mem === "diamond";
-    if (filter === "silver_gold") return mem === "silver" || mem === "gold";
+    if (filter === "has_plan") return activePlanNames.has(mem);
     if (filter === "verified") return b.verification === "verified";
     return true;
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlanId, setEditingPlanId] = useState(null);
-  const [formData, setFormData] = useState({ planId: "", name: "", price: 0, summary: "", features: "" });
+  const [formData, setFormData] = useState({
+    planId: "", name: "", price: 0, priceUsd: 0, durationYears: 1, gstRate: 18,
+    displayOrder: 0, isRecommended: false, isActive: true, summary: "", features: "", missingFeatures: "",
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   const [selectedBusiness, setSelectedBusiness] = useState(null);
@@ -70,12 +78,22 @@ function AdminMemberships() {
         planId: plan.planId,
         name: plan.name,
         price: plan.price,
+        priceUsd: plan.priceUsd ?? 0,
+        durationYears: plan.durationYears ?? 1,
+        gstRate: plan.gstRate ?? 0,
+        displayOrder: plan.displayOrder ?? 0,
+        isRecommended: Boolean(plan.isRecommended),
+        isActive: plan.isActive !== false,
         summary: plan.summary || "",
-        features: plan.features ? plan.features.join("\n") : ""
+        features: plan.features ? plan.features.join("\n") : "",
+        missingFeatures: plan.missingFeatures ? plan.missingFeatures.join("\n") : "",
       });
     } else {
       setEditingPlanId(null);
-      setFormData({ planId: "", name: "", price: 0, summary: "", features: "" });
+      setFormData({
+        planId: "", name: "", price: 0, priceUsd: 0, durationYears: 1, gstRate: 18,
+        displayOrder: Object.keys(plans).length, isRecommended: false, isActive: true, summary: "", features: "", missingFeatures: "",
+      });
     }
     setIsModalOpen(true);
   };
@@ -106,8 +124,15 @@ function AdminMemberships() {
         planId: formData.planId.toLowerCase().trim().replace(/\s+/g, "-"),
         name: formData.name.trim(),
         price: Number(formData.price),
+        priceUsd: Number(formData.priceUsd),
+        durationYears: Number(formData.durationYears),
+        gstRate: Number(formData.gstRate),
+        displayOrder: Number(formData.displayOrder),
+        isRecommended: Boolean(formData.isRecommended),
+        isActive: Boolean(formData.isActive),
         summary: formData.summary.trim(),
-        features: formData.features.split(/\r?\n/).map(f => f.trim()).filter(Boolean)
+        features: formData.features.split(/\r?\n/).map(f => f.trim()).filter(Boolean),
+        missingFeatures: formData.missingFeatures.split(/\r?\n/).map(f => f.trim()).filter(Boolean),
       };
 
       if (editingPlanId) {
@@ -166,17 +191,16 @@ function AdminMemberships() {
             onClick={() => setFilter("all")}
           />
           <StatCard
-            label="Platinum / Diamond"
-            value={String(businesses.filter((b) => ["Platinum", "Diamond"].includes(b.membership)).length)}
+            label="Membership plans"
+            value={String(activePlanNames.size)}
             tone="success"
-            active={filter === "platinum_diamond"}
-            onClick={() => setFilter("platinum_diamond")}
+            active={false}
           />
           <StatCard
-            label="Silver / Gold"
-            value={String(businesses.filter((b) => ["Silver", "Gold"].includes(b.membership)).length)}
-            active={filter === "silver_gold"}
-            onClick={() => setFilter("silver_gold")}
+            label="Members on active plans"
+            value={String(businesses.filter((b) => activePlanNames.has(String(b.membership || "").toLowerCase())).length)}
+            active={filter === "has_plan"}
+            onClick={() => setFilter("has_plan")}
           />
           <StatCard
             label="Verified"
@@ -194,8 +218,9 @@ function AdminMemberships() {
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
               {Object.entries(plans).map(([key, p]) => {
                 const durationYears = p.durationYears || 1;
-                const durationLabel = durationYears === 1 ? "1 Year" : `${durationYears} Years`;
-                const gstAmt = Math.round((p.price || 0) * (p.gstRate || 18) / 100);
+                const durationLabel = durationYears === 1 ? "1 Year Validity" : `${durationYears} Years Validity`;
+                const gstRate = Number(p.gstRate ?? 0);
+                const gstAmt = Math.round((p.price || 0) * gstRate / 100);
                 const totalWithGst = (p.price || 0) + gstAmt;
                 return (
                   <div key={key} className="rounded-xl border border-border p-4 relative group">
@@ -229,7 +254,7 @@ function AdminMemberships() {
                           ₹ {(p.price || 0).toLocaleString("en-IN")} base · {durationLabel}
                         </p>
                         <p className="text-[10px] text-orange-600 dark:text-orange-400">
-                          + ₹{gstAmt.toLocaleString("en-IN")} GST (18%) = <strong>₹{totalWithGst.toLocaleString("en-IN")}</strong> total
+                          + ₹{gstAmt.toLocaleString("en-IN")} GST ({gstRate}%) = <strong>₹{totalWithGst.toLocaleString("en-IN")}</strong> total
                         </p>
                       </div>
                       <Pill tone="brand">{durationLabel}</Pill>
@@ -262,8 +287,7 @@ function AdminMemberships() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
             <h2 className="text-lg font-semibold">
               {filter === "all" ? "Member subscriptions" 
-              : filter === "platinum_diamond" ? "Platinum / Diamond Members" 
-              : filter === "silver_gold" ? "Silver / Gold Members" 
+              : filter === "has_plan" ? "Members on active plans" 
               : "Verified Members"}
             </h2>
             
@@ -369,15 +393,11 @@ function AdminMemberships() {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel>Manage Tier</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, { membership: "Basic" })} disabled={r.membership === "Basic"}>
-                        Set to Basic
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, { membership: "Premium" })} disabled={r.membership === "Premium"}>
-                        Upgrade to Premium
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, { membership: "Enterprise" })} disabled={r.membership === "Enterprise"}>
-                        Upgrade to Enterprise
-                      </DropdownMenuItem>
+                      {activePlans.map(([planId, plan]) => (
+                        <DropdownMenuItem key={planId} onClick={() => handleUpdateStatus(r._id, { membership: plan.name })} disabled={r.membership === plan.name}>
+                          Set to {plan.name}
+                        </DropdownMenuItem>
+                      ))}
                       
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel>Verification</DropdownMenuLabel>
@@ -408,9 +428,11 @@ function AdminMemberships() {
                   <VerificationBadge status={r.verification} compact />
                 </div>
                 <div className="mt-2.5 pt-2.5 border-t border-border flex justify-end gap-2">
-                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(r._id, { membership: "Premium" })} disabled={r.membership === "Premium"}>
-                     Set Premium
-                   </Button>
+                   {activePlans.slice(0, 1).map(([planId, plan]) => (
+                     <Button key={planId} variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(r._id, { membership: plan.name })} disabled={r.membership === plan.name}>
+                       Set {plan.name}
+                     </Button>
+                   ))}
                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(r._id, { verification: "verified" })} disabled={r.verification === "verified"}>
                      Verify
                    </Button>
@@ -462,9 +484,11 @@ function AdminMemberships() {
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-bold">Subscription Details</h4>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(selectedBusiness._id, { membership: "Free" })}>Set Free</Button>
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(selectedBusiness._id, { membership: "Basic" })}>Set Basic</Button>
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(selectedBusiness._id, { membership: "Premium" })}>Set Premium</Button>
+                    {activePlans.map(([planId, plan]) => (
+                      <Button key={planId} variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleUpdateStatus(selectedBusiness._id, { membership: plan.name })} disabled={selectedBusiness.membership === plan.name}>
+                        Set {plan.name}
+                      </Button>
+                    ))}
                   </div>
                 </div>
                 <div className="bg-muted/30 rounded-lg p-3 grid grid-cols-2 gap-4">
@@ -531,13 +555,43 @@ function AdminMemberships() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="price">Annual Price (₹)</Label>
+              <Label htmlFor="price">Base price (INR)</Label>
               <Input
                 id="price"
                 type="number"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="priceUsd">Base price (USD)</Label>
+                <Input id="priceUsd" type="number" min="0" value={formData.priceUsd} onChange={(e) => setFormData({ ...formData, priceUsd: e.target.value })} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="durationYears">Validity (years)</Label>
+                <Input id="durationYears" type="number" min="1" value={formData.durationYears} onChange={(e) => setFormData({ ...formData, durationYears: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="gstRate">GST rate (%)</Label>
+                <Input id="gstRate" type="number" min="0" value={formData.gstRate} onChange={(e) => setFormData({ ...formData, gstRate: e.target.value })} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="displayOrder">Display order</Label>
+                <Input id="displayOrder" type="number" min="0" value={formData.displayOrder} onChange={(e) => setFormData({ ...formData, displayOrder: e.target.value })} />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-5 text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={formData.isRecommended} onChange={(e) => setFormData({ ...formData, isRecommended: e.target.checked })} />
+                Mark as recommended
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
+                Available for purchase
+              </label>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="summary">Summary</Label>
@@ -554,6 +608,15 @@ function AdminMemberships() {
                 rows={4}
                 value={formData.features}
                 onChange={(e) => setFormData({ ...formData, features: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="missingFeatures">Excluded features (One per line)</Label>
+              <Textarea
+                id="missingFeatures"
+                rows={3}
+                value={formData.missingFeatures}
+                onChange={(e) => setFormData({ ...formData, missingFeatures: e.target.value })}
               />
             </div>
           </div>

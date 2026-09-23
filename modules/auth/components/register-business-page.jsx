@@ -72,6 +72,7 @@ import { useChapters, useMembershipPlans, useCategories } from "@shared/hooks/us
 import { useAuth } from "@shared/providers/auth-provider";
 import { authApi, paymentApi, businessApi, verificationApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
+import { ChamberMembershipTiers } from "@shared/components/rifah/chamber-membership-tiers";
 
 const steps = ["Business", "Contact", "Account", "Membership"];
 
@@ -146,68 +147,30 @@ function RegisterBusiness({ isAdmin = false }) {
     ).sort();
   }, [chapters]);
   
-const DEFAULT_MEMBERSHIP_FALLBACK = [
-  {
-    id: "silver",
-    name: "Silver",
-    price: 3000,
-    priceUsd: 39,
-    durationYears: 1,
-    gstRate: 18,
-    isRecommended: false,
-    summary: "1-Year Verified Chamber Membership",
-  },
-  {
-    id: "gold",
-    name: "Gold",
-    price: 5000,
-    priceUsd: 65,
-    durationYears: 2,
-    gstRate: 18,
-    isRecommended: false,
-    summary: "2-Year Chamber Access & Direct Messaging",
-  },
-  {
-    id: "platinum",
-    name: "Platinum",
-    price: 25000,
-    priceUsd: 325,
-    durationYears: 10,
-    gstRate: 18,
-    isRecommended: true,
-    summary: "10-Year Enterprise Patronage (Recommended)",
-  },
-  {
-    id: "diamond",
-    name: "Diamond",
-    price: 50000,
-    priceUsd: 650,
-    durationYears: 25,
-    gstRate: 18,
-    isRecommended: false,
-    summary: "25-Year Prestige Chamber Patronage",
-  },
-];
-
   const plans = React.useMemo(() => {
-    if (plansData && Object.keys(plansData).length > 0) {
-      const DISPLAY_ORDER = ["silver", "gold", "platinum", "diamond", "free", "basic", "premium", "enterprise"];
-      const ordered = DISPLAY_ORDER.filter((id) => plansData[id]).map((id) => ({ id, ...plansData[id] }));
-      const extra = Object.keys(plansData).filter((id) => !DISPLAY_ORDER.includes(id)).map((id) => ({ id, ...plansData[id] }));
-      return [...ordered, ...extra];
-    }
-    return DEFAULT_MEMBERSHIP_FALLBACK;
+    const source = Array.isArray(plansData)
+      ? plansData.map((plan) => ({ id: plan.id || plan.planId, ...plan }))
+      : Object.entries(plansData || {}).map(([id, plan]) => ({ id, ...plan }));
+    return source
+      .filter((plan) => plan.id && plan.isActive !== false)
+      .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
   }, [plansData]);
 
   const { data: categoriesData } = useCategories();
 
   const [step, setStep] = useState(0);
-  const [tier, setTier] = useState("platinum");
+  const [tier, setTier] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [categoryError, setCategoryError] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [paidSuccess, setPaidSuccess] = useState(false);
+
+  useEffect(() => {
+    if (plans.length > 0 && !plans.some((plan) => plan.id === tier)) {
+      setTier((plans.find((plan) => plan.isRecommended) || plans[0]).id);
+    }
+  }, [plans, tier]);
 
   // Admin Specific
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -641,7 +604,12 @@ const DEFAULT_MEMBERSHIP_FALLBACK = [
       const isInternational = formData.region === "international";
       const currency = isInternational ? "USD" : "INR";
 
-      const selectedPlan = plans.find((p) => p.id === tier) || plans[0] || DEFAULT_MEMBERSHIP_FALLBACK[2];
+      const selectedPlan = plans.find((p) => p.id === tier) || plans[0];
+      if (!selectedPlan) {
+        setError("Membership plans are currently unavailable. Please try again shortly.");
+        setLoading(false);
+        return;
+      }
 
       const basePrice = isInternational
         ? (selectedPlan.priceUsd ?? (selectedPlan.price === 0 ? 0 : Math.round(selectedPlan.price / 80)))
@@ -1040,7 +1008,7 @@ const DEFAULT_MEMBERSHIP_FALLBACK = [
       </Dialog>
 
       <div className="rifah-container py-6 sm:py-10">
-        <div className="mx-auto max-w-2xl">
+        <div className={cn("mx-auto transition-all duration-300", step === 3 ? "max-w-6xl" : "max-w-2xl")}>
           <SectionHeader
             title="List your business with RIFAH"
             description="Four short steps. Join the chamber network to receive verified buyer leads."
@@ -2190,7 +2158,7 @@ const DEFAULT_MEMBERSHIP_FALLBACK = [
             )}
 
             {step === 3 && (
-              <Panel title="Choose a membership tier">
+              <Panel title="Choose a membership tier" className="overflow-visible">
                 {/* Region & Currency Selector Bar */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-border/70 mb-3.5">
                   <div>
@@ -2225,7 +2193,7 @@ const DEFAULT_MEMBERSHIP_FALLBACK = [
                       type="button"
                       onClick={() => setFormData((prev) => ({ ...prev, region: "national" }))}
                       className={cn(
-                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all",
+                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all cursor-pointer",
                         formData.region === "national"
                           ? "bg-white dark:bg-slate-900 text-primary shadow-xs font-bold"
                           : "text-muted-foreground hover:text-foreground"
@@ -2238,7 +2206,7 @@ const DEFAULT_MEMBERSHIP_FALLBACK = [
                       type="button"
                       onClick={() => setFormData((prev) => ({ ...prev, region: "international" }))}
                       className={cn(
-                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all",
+                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition-all cursor-pointer",
                         formData.region === "international"
                           ? "bg-white dark:bg-slate-900 text-primary shadow-xs font-bold"
                           : "text-muted-foreground hover:text-foreground"
@@ -2250,84 +2218,29 @@ const DEFAULT_MEMBERSHIP_FALLBACK = [
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {plans.map((p) => {
-                    const isIntl = formData.region === "international";
-                    const basePrice = isIntl
-                      ? (p.priceUsd ?? (p.price === 0 ? 0 : Math.round(p.price / 80)))
-                      : p.price;
-                    const gstRate = p.gstRate || 18;
-                    const gstAmt = !isIntl && basePrice > 0 ? Math.round(basePrice * gstRate / 100) : 0;
-                    const totalWithGst = !isIntl ? basePrice + gstAmt : basePrice;
-
-                    const durationYears = p.durationYears || (p.id === "diamond" ? 25 : p.id === "platinum" ? 10 : p.id === "gold" ? 2 : 1);
-                    const durationLabel = `${durationYears}-Year`;
-                    const isRecommended = p.isRecommended || p.id === "platinum";
-
-                    const formattedBasePrice = basePrice === 0
-                      ? (isIntl ? "$ 0" : "₹ 0")
-                      : isIntl
-                        ? `$ ${basePrice.toLocaleString("en-US")} USD`
-                        : `₹ ${basePrice.toLocaleString("en-IN")}`;
-
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setTier(p.id)}
-                        aria-pressed={tier === p.id}
-                        className={cn(
-                          "relative rounded-2xl border p-4 text-left transition-all duration-200 cursor-pointer flex flex-col justify-between",
-                          tier === p.id
-                            ? "border-primary bg-primary-soft ring-2 ring-primary/20 shadow-sm"
-                            : "border-border hover:bg-muted/50 hover:border-slate-300"
-                        )}
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-bold text-slate-900 dark:text-white">{p.name}</span>
-                            <div className="flex items-center gap-1.5">
-                              {isRecommended && (
-                                <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-2xs">
-                                  Recommended
-                                </span>
-                              )}
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-                                {durationLabel}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-baseline gap-1 mt-1">
-                            <span className="text-lg font-extrabold text-primary">{formattedBasePrice}</span>
-                            <span className="text-[11px] text-muted-foreground font-medium">/ {durationLabel}</span>
-                          </div>
-
-                          {!isIntl && basePrice > 0 && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              + ₹{gstAmt.toLocaleString("en-IN")} GST ({gstRate}%) = <span className="font-semibold text-slate-800 dark:text-slate-200">₹{totalWithGst.toLocaleString("en-IN")} total</span>
-                            </p>
-                          )}
-
-                          <p className="mt-2 text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                            {p.summary}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
+                <div className="pt-4 sm:pt-6">
+                  <ChamberMembershipTiers
+                    plansData={plansData}
+                    currentTier={tier}
+                    currency={formData.region === "international" ? "USD" : "INR"}
+                    onSelectPlan={(p) => setTier(p.id)}
+                    showHeader={false}
+                  />
                 </div>
 
                 {(() => {
                   const isIntl = formData.region === "international";
-                  const activePlan = plans.find((p) => p.id === tier) || plans[0] || DEFAULT_MEMBERSHIP_FALLBACK[2];
+                  const activePlan = plans.find((p) => p.id === tier) || plans[0];
+                  if (!activePlan) {
+                    return <p className="mt-4 text-xs text-muted-foreground">Membership plans are being updated. Please check back shortly.</p>;
+                  }
                   const basePrice = isIntl
                     ? (activePlan.priceUsd ?? (activePlan.price === 0 ? 0 : Math.round(activePlan.price / 80)))
                     : activePlan.price;
-                  const gstRate = activePlan.gstRate || 18;
+                  const gstRate = Number(activePlan.gstRate ?? 0);
                   const gstAmt = !isIntl && basePrice > 0 ? Math.round(basePrice * gstRate / 100) : 0;
                   const totalPayable = isIntl ? basePrice : (basePrice + gstAmt);
-                  const durationYears = activePlan.durationYears || (activePlan.id === "diamond" ? 25 : activePlan.id === "platinum" ? 10 : activePlan.id === "gold" ? 2 : 1);
+                  const durationYears = Number(activePlan.durationYears) || 1;
 
                   if (totalPayable > 0) {
                     return (
@@ -2447,11 +2360,11 @@ const DEFAULT_MEMBERSHIP_FALLBACK = [
                 ) : step === steps.length - 1 ? (
                   (() => {
                     const isIntl = formData.region === "international";
-                    const activePlan = plans.find((p) => p.id === tier) || plans[0] || DEFAULT_MEMBERSHIP_FALLBACK[2];
+                    const activePlan = plans.find((p) => p.id === tier) || plans[0];
                     const basePrice = isIntl
                       ? (activePlan?.priceUsd ?? (activePlan?.price === 0 ? 0 : Math.round((activePlan?.price || 0) / 80)))
                       : (activePlan?.price || 0);
-                    const gstRate = activePlan?.gstRate || 18;
+                    const gstRate = Number(activePlan?.gstRate ?? 0);
                     const gstAmt = !isIntl && basePrice > 0 ? Math.round(basePrice * gstRate / 100) : 0;
                     const totalPayable = isIntl ? basePrice : (basePrice + gstAmt);
 
@@ -2461,7 +2374,7 @@ const DEFAULT_MEMBERSHIP_FALLBACK = [
                       }
                       return isIntl
                         ? `🔒 Pay $${totalPayable} USD & Register`
-                        : `🔒 Pay ₹${totalPayable.toLocaleString("en-IN")} (incl. 18% GST) & Register`;
+                        : `🔒 Pay ₹${totalPayable.toLocaleString("en-IN")} (incl. ${gstRate}% GST) & Register`;
                     }
                     return "Complete Free Registration";
                   })()

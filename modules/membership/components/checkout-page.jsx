@@ -55,7 +55,7 @@ function Checkout() {
   const plans = plansData 
     ? Object.entries(plansData)
         .map(([id, p]) => ({ id, ...p }))
-        .filter(p => p.price > 0)
+        .filter((p) => p.isActive !== false && p.price > 0)
     : [];
 
   const [step, setStep] = useState(0);
@@ -82,26 +82,21 @@ function Checkout() {
   const [currency, setCurrency] = useState(initialCurrency);
   const isIntl = currency === "USD";
 
-  const active = plans.find((p) => p.id === selected) || plans[0] || {
-    id: "premium",
-    name: "Premium",
-    price: 12999,
-    priceUsd: 159,
-  };
+  const active = plans.find((p) => p.id === selected) || plans[0];
 
   const checkoutAmount = isIntl
-    ? (active.priceUsd ?? (active.price === 0 ? 0 : Math.round(active.price / 80)))
-    : active.price;
+    ? (active?.priceUsd ?? (active?.price === 0 ? 0 : Math.round((active?.price || 0) / 80)))
+    : (active?.price || 0);
 
   // GST breakdown — applies to both INR and USD payments
-  const gstRate = active.gstRate || 18;
+  const gstRate = Number(active?.gstRate ?? 0);
   const subtotal = checkoutAmount; // base price before GST
   const gstAmount = Math.round(subtotal * gstRate / 100);
   const totalWithGst = subtotal + gstAmount;
 
   // Duration label for selected plan
-  const durationYears = active.durationYears || 1;
-  const durationLabel = durationYears === 1 ? "1 Year" : `${durationYears} Years`;
+  const durationYears = Number(active?.durationYears) || 1;
+  const durationLabel = durationYears === 1 ? "1 Year Validity" : `${durationYears} Years Validity`;
 
   // Pre-fill existing business or user details if available
   useEffect(() => {

@@ -34,6 +34,7 @@ import { Pill } from "@shared/components/rifah/badges";
 import { PremiumBusinessCard } from "@shared/components/rifah/business-card";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { MoreLink, SectionHeader } from "@shared/components/rifah/ui-bits";
+import { ChamberMembershipTiers } from "@shared/components/rifah/chamber-membership-tiers";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { PhoneInput } from "@shared/components/ui/phone-input";
@@ -538,45 +539,11 @@ function HomePage() {
           description="Select the membership tier tailored to your enterprise's growth stage."
           action={<MoreLink href="/membership">Compare all features</MoreLink>}
         />
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {plans.map((p) => {
-            const isFeatured = p.id === "premium";
-            return (
-              <article
-                key={p.id}
-                className={cn(
-                  "flex flex-col justify-between rounded-2xl border p-5 transition-all hover:shadow-sm",
-                  isFeatured
-                    ? "border-primary bg-primary-soft/20 ring-1 ring-primary/30"
-                    : "border-border bg-surface"
-                )}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base font-bold text-foreground">{p.name}</h3>
-                    {isFeatured && <Pill tone="brand">Most Popular</Pill>}
-                  </div>
-                  <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">
-                    ₹ {p.price?.toLocaleString("en-IN")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Annual subscription</p>
-                  <ul className="mt-4 space-y-1.5 text-xs text-muted-foreground">
-                    {p.features?.map((feat, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-primary font-bold">✓</span>
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <Button asChild variant={isFeatured ? "default" : "outline"} className="mt-6 w-full font-semibold">
-                  <Link href={`/membership/checkout?plan=${p.id}`}>
-                    Select {p.name}
-                  </Link>
-                </Button>
-              </article>
-            );
-          })}
+        <div className="mt-6">
+          <ChamberMembershipTiers
+            plansData={plansData}
+            showHeader={false}
+          />
         </div>
       </section>
 
