@@ -146,16 +146,66 @@ function RegisterBusiness({ isAdmin = false }) {
     ).sort();
   }, [chapters]);
   
+const DEFAULT_MEMBERSHIP_FALLBACK = [
+  {
+    id: "silver",
+    name: "Silver",
+    price: 3000,
+    priceUsd: 39,
+    durationYears: 1,
+    gstRate: 18,
+    isRecommended: false,
+    summary: "1-Year Verified Chamber Membership",
+  },
+  {
+    id: "gold",
+    name: "Gold",
+    price: 5000,
+    priceUsd: 65,
+    durationYears: 2,
+    gstRate: 18,
+    isRecommended: false,
+    summary: "2-Year Chamber Access & Direct Messaging",
+  },
+  {
+    id: "platinum",
+    name: "Platinum",
+    price: 25000,
+    priceUsd: 325,
+    durationYears: 10,
+    gstRate: 18,
+    isRecommended: true,
+    summary: "10-Year Enterprise Patronage (Recommended)",
+  },
+  {
+    id: "diamond",
+    name: "Diamond",
+    price: 50000,
+    priceUsd: 650,
+    durationYears: 25,
+    gstRate: 18,
+    isRecommended: false,
+    summary: "25-Year Prestige Chamber Patronage",
+  },
+];
+
   const plans = React.useMemo(() => {
-    return plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
+    if (plansData && Object.keys(plansData).length > 0) {
+      const DISPLAY_ORDER = ["silver", "gold", "platinum", "diamond", "free", "basic", "premium", "enterprise"];
+      const ordered = DISPLAY_ORDER.filter((id) => plansData[id]).map((id) => ({ id, ...plansData[id] }));
+      const extra = Object.keys(plansData).filter((id) => !DISPLAY_ORDER.includes(id)).map((id) => ({ id, ...plansData[id] }));
+      return [...ordered, ...extra];
+    }
+    return DEFAULT_MEMBERSHIP_FALLBACK;
   }, [plansData]);
 
   const { data: categoriesData } = useCategories();
 
   const [step, setStep] = useState(0);
-  const [tier, setTier] = useState("premium");
+  const [tier, setTier] = useState("platinum");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [categoryError, setCategoryError] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [paidSuccess, setPaidSuccess] = useState(false);
 
@@ -497,12 +547,12 @@ function RegisterBusiness({ isAdmin = false }) {
   const handleVerifyGst = async (customGstin) => {
     const targetGst = (customGstin || formData.taxId || "").trim().toUpperCase();
     if (!targetGst) {
-      setGstErrorMsg(formData.region === "international" ? "Please enter your GSTIN or Tax ID first." : "Please enter a 15-character GSTIN first.");
+      setGstErrorMsg(formData.region === "international" ? "Please enter your Tax ID first." : "Please enter a 15-character GSTIN first.");
       return;
     }
 
     if (formData.region === "national" && targetGst.length !== 15) {
-      setGstErrorMsg("GSTIN must be exactly 15 characters long.");
+      setGstErrorMsg("GSTIN is usually 15 characters. You can still proceed by entering details manually below.");
       return;
     }
 
@@ -517,7 +567,7 @@ function RegisterBusiness({ isAdmin = false }) {
         } catch (apiErr) {
           console.warn("[GST Lookup Info]", apiErr.message);
           setGstVerified(false);
-          setGstErrorMsg(apiErr.message || "Unable to reach GST verification service. You can still proceed by entering details manually.");
+          setGstErrorMsg("Unable to auto-fetch GST records online. You can still proceed by entering details manually below.");
           setGstVerifying(false);
           return;
         }
@@ -565,38 +615,20 @@ function RegisterBusiness({ isAdmin = false }) {
 
           setGstSuccessMsg(
             fetchedName
-              ? `GSTIN Verified! Details loaded for "${fetchedName}".`
+              ? `GSTIN Verified! Details auto-loaded for "${fetchedName}".`
               : "GSTIN Verified successfully (Active Taxpayer)."
           );
         } else {
-          if (formData.region === "international") {
-            setGstVerified(true);
-            setGstSuccessMsg(`International Tax Number "${targetGst}" registered & verified.`);
-          } else {
-            setGstVerified(false);
-            setGstErrorMsg(data?.message || "Invalid GSTIN or inactive taxpayer.");
-          }
-        }
-      } else if (formData.region === "international") {
-        if (targetGst.length < 5) {
-          setGstErrorMsg("Tax registration number must be at least 5 characters.");
           setGstVerified(false);
-        } else {
-          setGstVerified(true);
-          setGstSuccessMsg(`International Tax Number "${targetGst}" verified successfully.`);
+          setGstErrorMsg(data?.message || "Could not auto-fetch from this GSTIN. You can still proceed by entering details manually below.");
         }
       } else {
         setGstVerified(false);
-        setGstErrorMsg("GSTIN must be exactly 15 characters long.");
+        setGstErrorMsg("GSTIN is usually 15 characters. You can still proceed manually below.");
       }
     } catch (err) {
-      if (formData.region === "international" && targetGst.length >= 5) {
-        setGstVerified(true);
-        setGstSuccessMsg(`International Tax Number "${targetGst}" registered & verified.`);
-      } else {
-        setGstVerified(false);
-        setGstErrorMsg(err.message || "Failed to verify GSTIN. Please check the number.");
-      }
+      setGstVerified(false);
+      setGstErrorMsg(err.message || "Could not verify GSTIN online. You can still proceed manually below.");
     } finally {
       setGstVerifying(false);
     }
@@ -609,16 +641,15 @@ function RegisterBusiness({ isAdmin = false }) {
       const isInternational = formData.region === "international";
       const currency = isInternational ? "USD" : "INR";
 
-      const selectedPlan = plans.find((p) => p.id === tier) || {
-        id: tier,
-        name: tier.charAt(0).toUpperCase() + tier.slice(1),
-        price: tier === "free" ? 0 : tier === "basic" ? 4999 : tier === "enterprise" ? 29999 : 12999,
-        priceUsd: tier === "free" ? 0 : tier === "basic" ? 59 : tier === "enterprise" ? 359 : 159,
-      };
+      const selectedPlan = plans.find((p) => p.id === tier) || plans[0] || DEFAULT_MEMBERSHIP_FALLBACK[2];
 
-      const planAmount = isInternational
+      const basePrice = isInternational
         ? (selectedPlan.priceUsd ?? (selectedPlan.price === 0 ? 0 : Math.round(selectedPlan.price / 80)))
         : selectedPlan.price;
+
+      const gstRate = selectedPlan.gstRate || 18;
+      const gstAmount = !isInternational && basePrice > 0 ? Math.round(basePrice * gstRate / 100) : 0;
+      const planAmount = isInternational ? basePrice : (basePrice + gstAmount);
 
       const isPaid = planAmount > 0;
 
@@ -1033,24 +1064,7 @@ function RegisterBusiness({ isAdmin = false }) {
 
               // Validation for Step 0 (Business details)
               if (step === 0) {
-                if (formData.region === "national") {
-                  const gst = (formData.taxId || "").trim().toUpperCase();
-                  if (gst) {
-                    if (gst.length !== 15) {
-                      setError("Please enter a complete 15-character GST Number (GSTIN) or clear the field to proceed manually.");
-                      return;
-                    }
-                    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-                    if (!gstRegex.test(gst)) {
-                      setError("Invalid GSTIN format. Example format: 27AAAAA0000A1Z5 (15 characters) or leave blank.");
-                      return;
-                    }
-                    if (!gstVerified) {
-                      setError("Please click 'Verify GSTIN' to verify your entered GST number, or clear the field to proceed manually.");
-                      return;
-                    }
-                  }
-                }
+                // GSTIN is completely optional — no blocking validation on format or verification status
 
                 // Owner Photo is MANDATORY in Step 0
                 if (!ownerPhotoFile && !formData.avatar) {
@@ -1066,9 +1080,12 @@ function RegisterBusiness({ isAdmin = false }) {
                   return;
                 }
                 if (!formData.industry || !formData.industry.trim()) {
+                  setCategoryError(true);
                   setError("Please select or enter a business category.");
+                  document.getElementById("category-field-wrapper")?.scrollIntoView({ behavior: "smooth", block: "center" });
                   return;
                 }
+                setCategoryError(false);
               }
 
               // Strict Validation for Step 1 (Contact & Location)
@@ -1097,10 +1114,7 @@ function RegisterBusiness({ isAdmin = false }) {
                   setError("State is mandatory. Please select your business state.");
                   return;
                 }
-                if (!formData.chapter || !formData.chapter.trim()) {
-                  setError("RIFAH Chapter is mandatory. Please select a chapter before proceeding.");
-                  return;
-                }
+                // RIFAH Chapter is optional (visitor feedback)
               }
 
               // Validation for Step 2 (Account)
@@ -1241,9 +1255,6 @@ function RegisterBusiness({ isAdmin = false }) {
                               setGstSuccessMsg("");
                               setGstErrorMsg("");
                               setError("");
-                              if (upperVal.length === 15) {
-                                triggerGstVerification(upperVal);
-                              }
                             }}
                             placeholder="e.g. 27AAACT2727Q1ZW"
                             className="font-mono uppercase tracking-wider text-sm h-11 pr-8 bg-white dark:bg-slate-900"
@@ -1589,19 +1600,43 @@ function RegisterBusiness({ isAdmin = false }) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bind">Category *</Label>
+                  <div id="category-field-wrapper" className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="bind" className={cn("text-xs font-semibold", categoryError && "text-red-600 dark:text-red-400 font-bold")}>
+                        Category <span className="text-red-500 font-bold">*</span>
+                      </Label>
+                      {categoryError && (
+                        <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> Required
+                        </span>
+                      )}
+                    </div>
                     <CreatableCombobox
                       id="bind"
                       value={formData.industry}
-                      onValueChange={(v) => setFormData(prev => ({ ...prev, industry: v, subCategory: "" }))}
+                      onValueChange={(v) => {
+                        setFormData(prev => ({ ...prev, industry: v, subCategory: "" }));
+                        setCategoryError(false);
+                        setError("");
+                      }}
                       options={availableMainCategories}
                       placeholder="Select or type a category"
                       emptyText="No category found. Type to add a new one."
+                      className={cn(
+                        "bg-white dark:bg-slate-900 transition-colors",
+                        categoryError && "border-red-500 ring-2 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20"
+                      )}
                     />
-                    <p className="text-[10px] text-muted-foreground">
-                      Pick an existing category or type a new one — it will be added for everyone.
-                    </p>
+                    {categoryError ? (
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1 mt-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        Please select or enter a business category.
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">
+                        Pick an existing category or type a new one — it will be added for everyone.
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bsubcat">Sub category</Label>
@@ -1846,7 +1881,9 @@ function RegisterBusiness({ isAdmin = false }) {
                     )}
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="bchapter">RIFAH Chapter *</Label>
+                    <Label htmlFor="bchapter">
+                      RIFAH Chapter <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
+                    </Label>
                     <Select
                       value={formData.chapter}
                       onValueChange={(v) => {
@@ -1855,7 +1892,7 @@ function RegisterBusiness({ isAdmin = false }) {
                       }}
                     >
                       <SelectTrigger id="bchapter" className="h-11">
-                        <SelectValue placeholder={formData.region === "national" && !formData.state ? "Select a state first" : "Select mandatory chapter"} />
+                        <SelectValue placeholder={formData.region === "national" && !formData.state ? "Select a state first (Optional)" : "Select chapter (Optional)"} />
                       </SelectTrigger>
                       <SelectContent>
                         {(formData.region === "national" ? chaptersForSelectedState : chapters).map((c) => (
@@ -1865,7 +1902,7 @@ function RegisterBusiness({ isAdmin = false }) {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-[10px] text-muted-foreground">Select the nearest RIFAH chamber chapter for regional membership governance.</p>
+                    <p className="text-[10px] text-muted-foreground">Optional: Select your local RIFAH chamber chapter for regional networking and chapter governance.</p>
                   </div>
 
                   {/* Online & Social Presence (Optional) */}
@@ -2213,17 +2250,25 @@ function RegisterBusiness({ isAdmin = false }) {
                   </div>
                 </div>
 
-                <div className="grid gap-2.5 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {plans.map((p) => {
                     const isIntl = formData.region === "international";
-                    const displayAmt = isIntl
+                    const basePrice = isIntl
                       ? (p.priceUsd ?? (p.price === 0 ? 0 : Math.round(p.price / 80)))
                       : p.price;
-                    const formattedPrice = displayAmt === 0
+                    const gstRate = p.gstRate || 18;
+                    const gstAmt = !isIntl && basePrice > 0 ? Math.round(basePrice * gstRate / 100) : 0;
+                    const totalWithGst = !isIntl ? basePrice + gstAmt : basePrice;
+
+                    const durationYears = p.durationYears || (p.id === "diamond" ? 25 : p.id === "platinum" ? 10 : p.id === "gold" ? 2 : 1);
+                    const durationLabel = `${durationYears}-Year`;
+                    const isRecommended = p.isRecommended || p.id === "platinum";
+
+                    const formattedBasePrice = basePrice === 0
                       ? (isIntl ? "$ 0" : "₹ 0")
                       : isIntl
-                        ? `$ ${displayAmt.toLocaleString("en-US")} USD`
-                        : `₹ ${displayAmt.toLocaleString("en-IN")}`;
+                        ? `$ ${basePrice.toLocaleString("en-US")} USD`
+                        : `₹ ${basePrice.toLocaleString("en-IN")}`;
 
                     return (
                       <button
@@ -2232,15 +2277,42 @@ function RegisterBusiness({ isAdmin = false }) {
                         onClick={() => setTier(p.id)}
                         aria-pressed={tier === p.id}
                         className={cn(
-                          "rounded-xl border p-4 text-left transition-colors",
-                          tier === p.id ? "border-primary bg-primary-soft shadow-sm" : "border-border hover:bg-muted/60"
+                          "relative rounded-2xl border p-4 text-left transition-all duration-200 cursor-pointer flex flex-col justify-between",
+                          tier === p.id
+                            ? "border-primary bg-primary-soft ring-2 ring-primary/20 shadow-sm"
+                            : "border-border hover:bg-muted/50 hover:border-slate-300"
                         )}
                       >
-                        <span className="flex items-baseline justify-between gap-2">
-                          <span className="text-sm font-semibold">{p.name}</span>
-                          <span className="text-sm font-bold text-primary">{formattedPrice}</span>
-                        </span>
-                        <span className="mt-1 block text-xs text-muted-foreground">{p.summary}</span>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">{p.name}</span>
+                            <div className="flex items-center gap-1.5">
+                              {isRecommended && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-2xs">
+                                  Recommended
+                                </span>
+                              )}
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
+                                {durationLabel}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-baseline gap-1 mt-1">
+                            <span className="text-lg font-extrabold text-primary">{formattedBasePrice}</span>
+                            <span className="text-[11px] text-muted-foreground font-medium">/ {durationLabel}</span>
+                          </div>
+
+                          {!isIntl && basePrice > 0 && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              + ₹{gstAmt.toLocaleString("en-IN")} GST ({gstRate}%) = <span className="font-semibold text-slate-800 dark:text-slate-200">₹{totalWithGst.toLocaleString("en-IN")} total</span>
+                            </p>
+                          )}
+
+                          <p className="mt-2 text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                            {p.summary}
+                          </p>
+                        </div>
                       </button>
                     );
                   })}
@@ -2248,32 +2320,56 @@ function RegisterBusiness({ isAdmin = false }) {
 
                 {(() => {
                   const isIntl = formData.region === "international";
-                  const activePlan = plans.find((p) => p.id === tier) || {
-                    name: tier,
-                    price: tier === "free" ? 0 : tier === "basic" ? 4999 : tier === "enterprise" ? 29999 : 12999,
-                    priceUsd: tier === "free" ? 0 : tier === "basic" ? 59 : tier === "enterprise" ? 359 : 159,
-                  };
-                  const activeAmt = isIntl
+                  const activePlan = plans.find((p) => p.id === tier) || plans[0] || DEFAULT_MEMBERSHIP_FALLBACK[2];
+                  const basePrice = isIntl
                     ? (activePlan.priceUsd ?? (activePlan.price === 0 ? 0 : Math.round(activePlan.price / 80)))
                     : activePlan.price;
+                  const gstRate = activePlan.gstRate || 18;
+                  const gstAmt = !isIntl && basePrice > 0 ? Math.round(basePrice * gstRate / 100) : 0;
+                  const totalPayable = isIntl ? basePrice : (basePrice + gstAmt);
+                  const durationYears = activePlan.durationYears || (activePlan.id === "diamond" ? 25 : activePlan.id === "platinum" ? 10 : activePlan.id === "gold" ? 2 : 1);
 
-                  if (activeAmt > 0) {
+                  if (totalPayable > 0) {
                     return (
-                      <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-900/40 p-4 space-y-2.5 animate-in fade-in duration-200">
-                        <div className="flex items-center justify-between">
+                      <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-900/40 p-4 sm:p-5 space-y-3 animate-in fade-in duration-200">
+                        <div className="flex items-center justify-between pb-3 border-b border-blue-200/70 dark:border-blue-900/50">
                           <div>
-                            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Plan Selected</span>
-                            <h4 className="text-sm font-bold text-slate-900 dark:text-white">{activePlan.name} Tier</h4>
+                            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Selected Membership Tier</span>
+                            <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mt-0.5">
+                              {activePlan.name} Plan
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300">
+                                {durationYears}-Year Term
+                              </span>
+                            </h4>
                           </div>
                           <div className="text-right">
                             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                              Total Amount ({isIntl ? "USD" : "INR"})
+                              Total Payable ({isIntl ? "USD" : "INR"})
                             </span>
-                            <h4 className="text-base font-extrabold text-primary">
-                              {isIntl ? `$ ${activeAmt.toLocaleString("en-US")} USD` : `₹ ${activeAmt.toLocaleString("en-IN")}`}
+                            <h4 className="text-lg sm:text-xl font-extrabold text-primary">
+                              {isIntl ? `$ ${totalPayable.toLocaleString("en-US")} USD` : `₹ ${totalPayable.toLocaleString("en-IN")}`}
                             </h4>
                           </div>
                         </div>
+
+                        {/* Line Item Breakdown for GST (INR) */}
+                        {!isIntl && basePrice > 0 && (
+                          <div className="bg-white/80 dark:bg-slate-900/80 rounded-xl p-3 text-xs space-y-1.5 border border-blue-100 dark:border-blue-900/40">
+                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                              <span>Base Membership Fee ({durationYears} Year)</span>
+                              <span className="font-semibold text-slate-900 dark:text-white">₹ {basePrice.toLocaleString("en-IN")}</span>
+                            </div>
+                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                              <span>Applicable GST ({gstRate}%)</span>
+                              <span className="font-semibold text-slate-900 dark:text-white">₹ {gstAmt.toLocaleString("en-IN")}</span>
+                            </div>
+                            <div className="flex justify-between font-bold pt-1.5 border-t border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs">
+                              <span>Total Amount (incl. {gstRate}% GST)</span>
+                              <span className="text-primary font-extrabold text-sm">₹ {totalPayable.toLocaleString("en-IN")}</span>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
                           <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                           <span>
@@ -2282,8 +2378,9 @@ function RegisterBusiness({ isAdmin = false }) {
                               : "Razorpay Instant Payment Gateway (UPI / QR / Cards / NetBanking in INR)"}
                           </span>
                         </div>
+
                         {isAdmin && (
-                          <div className="mt-4 flex flex-col space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
+                          <div className="mt-3 flex flex-col space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
                             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Payment Method (Admin Override)</span>
                             <div className="flex items-center gap-3">
                               <button
@@ -2309,7 +2406,7 @@ function RegisterBusiness({ isAdmin = false }) {
                             </div>
                           </div>
                         )}
-                        <p className="text-[11px] text-muted-foreground mt-3">
+                        <p className="text-[11px] text-muted-foreground mt-2">
                           {isIntl ? (
                             <>
                               Official international subscription receipt will be dispatched to <strong>{formData.email}</strong> upon payment confirmation.
@@ -2350,18 +2447,21 @@ function RegisterBusiness({ isAdmin = false }) {
                 ) : step === steps.length - 1 ? (
                   (() => {
                     const isIntl = formData.region === "international";
-                    const activePlan = plans.find((p) => p.id === tier);
-                    const activeAmt = isIntl
+                    const activePlan = plans.find((p) => p.id === tier) || plans[0] || DEFAULT_MEMBERSHIP_FALLBACK[2];
+                    const basePrice = isIntl
                       ? (activePlan?.priceUsd ?? (activePlan?.price === 0 ? 0 : Math.round((activePlan?.price || 0) / 80)))
                       : (activePlan?.price || 0);
+                    const gstRate = activePlan?.gstRate || 18;
+                    const gstAmt = !isIntl && basePrice > 0 ? Math.round(basePrice * gstRate / 100) : 0;
+                    const totalPayable = isIntl ? basePrice : (basePrice + gstAmt);
 
-                    if (activeAmt > 0) {
+                    if (totalPayable > 0) {
                       if (isAdmin && paymentMethod === "cash") {
-                        return isIntl ? `Receive $${activeAmt} Cash & Register` : `Receive ₹${activeAmt.toLocaleString("en-IN")} Cash & Register`;
+                        return isIntl ? `Receive $${totalPayable} Cash & Register` : `Receive ₹${totalPayable.toLocaleString("en-IN")} Cash & Register`;
                       }
                       return isIntl
-                        ? `🔒 Pay $${activeAmt} USD & Register`
-                        : `🔒 Pay ₹${activeAmt.toLocaleString("en-IN")} & Register`;
+                        ? `🔒 Pay $${totalPayable} USD & Register`
+                        : `🔒 Pay ₹${totalPayable.toLocaleString("en-IN")} (incl. 18% GST) & Register`;
                     }
                     return "Complete Free Registration";
                   })()
