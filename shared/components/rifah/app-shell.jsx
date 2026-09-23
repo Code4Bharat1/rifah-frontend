@@ -83,45 +83,14 @@ const navs = {
       { label: "Networking", to: "/biz/networking", icon: Handshake },
       { label: "More", to: "/biz/profile", icon: LayoutGrid },
     ],
-    // Pinned links are rendered before every collapsible category.
-    // Keep the workspace landing page permanently at the top of the sidebar.
-    pinned: [
-      { label: "Dashboard", to: "/biz", icon: Gauge },
-    ],
-    categories: [
-      {
-        category: "OVERVIEW",
-        items: [
-          { label: "Operations Center", to: "/biz/operations", icon: Radio },
-          { label: "Feeds", to: "/biz/feeds", icon: Compass },
-          { label: "Events", to: "/biz/events", icon: CalendarDays },
-        ],
-      },
-      {
-        category: "BUSINESS",
-        items: [
-          { label: "Enquiries", to: "/biz/enquiries", icon: FileStack },
-          { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },
-          { label: "My Profile", to: "/biz/profile", icon: UserRound },
-        ],
-      },
-      {
-        category: "NETWORKING",
-        items: [
-          { label: "Networking", to: "/biz/networking", icon: Handshake },
-          { label: "Power Networking", to: "/biz/power-networking", icon: Zap },
-          { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
-          { label: "LMS", to: "/biz/lms", icon: GraduationCap },
-        ],
-      },
-      {
-        category: "ACCOUNT",
-        items: [
-          { label: "Messages", to: "/biz/messages", icon: MessageSquare },
-          { label: "Notifications", to: "/biz/notifications", icon: Bell },
-          { label: "Membership", to: "/biz/membership", icon: Star },
-        ],
-      },
+    more: [
+      { label: "Messages", to: "/biz/messages", icon: MessageSquare },
+      { label: "My Profile", to: "/biz/profile", icon: UserRound },
+      { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
+      { label: "Membership", to: "/biz/membership", icon: Star },
+      { label: "Notifications", to: "/biz/notifications", icon: Bell },
+      { label: "LMS", to: "/biz/lms", icon: GraduationCap },
+      { label: "Events", to: "/biz/events", icon: CalendarDays },
     ],
   },
   admin: {
@@ -134,57 +103,24 @@ const navs = {
       { label: "Users", to: "/admin/users", icon: Users },
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
-    categories: [
-      {
-        isStandalone: true,
-        item: { label: "Dashboard", to: "/admin", icon: Gauge },
-      },
-      {
-        category: "OVERVIEW & OPERATIONS",
-        items: [
-          { label: "Operations Center", to: "/admin/operations", icon: Radio },
-        ],
-      },
-      {
-        category: "ORGANIZATION",
-        items: [
-          { label: "Businesses", to: "/admin/businesses", icon: Building2 },
-          { label: "Users", to: "/admin/users", icon: Users },
-          { label: "States", to: "/admin/states", icon: MapPin },
-          { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
-          { label: "Units", to: "/admin/units", icon: Users },
-          { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
-        ],
-      },
-      {
-        category: "FINANCE",
-        items: [
-          { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
-          { label: "Memberships", to: "/admin/memberships", icon: Star },
-          { label: "Payments", to: "/admin/payments", icon: CreditCard },
-          { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
-        ],
-      },
-      {
-        category: "COMMUNITY & EVENTS",
-        items: [
-          { label: "Events", to: "/admin/events", icon: Ticket },
-          { label: "Feeds", to: "/biz/feeds", icon: Compass },
-          { label: "Announcements", to: "/admin/announcements", icon: Megaphone },
-          { label: "Notifications", to: "/admin/notifications", icon: Bell },
-        ],
-      },
-      {
-        category: "SYSTEM & ANALYTICS",
-        items: [
-          { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
-          { label: "LMS", to: "/admin/lms", icon: GraduationCap },
-          { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
-          { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
-          { label: "Roles", to: "/admin/roles", icon: Award },
-          { label: "Settings", to: "/admin/settings", icon: Settings },
-        ],
-      },
+    more: [
+      { label: "Feeds", to: "/biz/feeds", icon: Compass },
+      { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
+      { label: "Memberships", to: "/admin/memberships", icon: Star },
+      { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
+      { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
+      { label: "States", to: "/admin/states", icon: MapPin },
+      { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
+      { label: "Units", to: "/admin/units", icon: Users },
+      { label: "Events", to: "/admin/events", icon: Ticket },
+      { label: "Payments", to: "/admin/payments", icon: CreditCard },
+      { label: "Announcements", to: "/admin/announcements", icon: Megaphone },
+      { label: "Notifications", to: "/admin/notifications", icon: Bell },
+      { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
+      { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
+      { label: "Roles", to: "/admin/roles", icon: Award },
+      { label: "Settings", to: "/admin/settings", icon: Settings },
+      { label: "LMS", to: "/admin/lms", icon: GraduationCap },
     ],
   },
 };
@@ -201,46 +137,16 @@ const roleNavs = {
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
-    categories: [
-      {
-        isStandalone: true,
-        item: { label: "Dashboard", to: "/chapter-admin", icon: Gauge },
-      },
-      {
-        category: "OVERVIEW & OPERATIONS",
-        items: [
-          { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
-          { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
-        ],
-      },
-      {
-        category: "ORGANIZATION",
-        items: [
-          { label: "Members", to: "/chapter-admin/members", icon: Users },
-          { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
-        ],
-      },
-      {
-        category: "ACTIVITIES & NETWORKING",
-        items: [
-          { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
-          { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
-          { label: "Gallery", to: "/chapter-admin/gallery", icon: Sparkles },
-          { label: "Feeds", to: "/biz/feeds", icon: Compass },
-          { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
-        ],
-      },
-      {
-        category: "COMMUNICATION & SYSTEM",
-        items: [
-          { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
-          { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
-          { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
-          { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
-          { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
-          { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
-        ],
-      },
+    more: [
+      { label: "Feeds", to: "/biz/feeds", icon: Compass },
+      { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
+      { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
+      { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
+      { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
+      { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
+      { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
+      { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
+      { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
     ],
   },
   state_admin: {
@@ -253,44 +159,17 @@ const roleNavs = {
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
-    categories: [
-      {
-        isStandalone: true,
-        item: { label: "Dashboard", to: "/state-admin", icon: Gauge },
-      },
-      {
-        category: "OVERVIEW & OPERATIONS",
-        items: [
-          { label: "Operations Center", to: "/state-admin/operations", icon: Radio },
-        ],
-      },
-      {
-        category: "ORGANIZATION",
-        items: [
-          { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
-          { label: "Members", to: "/state-admin/members", icon: Users },
-          { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
-        ],
-      },
-      {
-        category: "ACTIVITIES & NETWORKING",
-        items: [
-          { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
-          { label: "Events", to: "/state-admin/events", icon: CalendarDays },
-          { label: "Feeds", to: "/biz/feeds", icon: Compass },
-          { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
-        ],
-      },
-      {
-        category: "COMMUNICATION & SYSTEM",
-        items: [
-          { label: "Announcements", to: "/state-admin/announcements", icon: Megaphone },
-          { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
-          { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
-          { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
-          { label: "Settings", to: "/state-admin/settings", icon: Settings },
-        ],
-      },
+    more: [
+
+      { label: "Feeds", to: "/biz/feeds", icon: Compass },
+      { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
+      { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
+      { label: "Events", to: "/state-admin/events", icon: CalendarDays },
+      { label: "Announcements", to: "/state-admin/announcements", icon: Megaphone },
+      { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
+      { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
+      { label: "Settings", to: "/state-admin/settings", icon: Settings },
+      { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
     ],
   },
   central_admin: null,
@@ -743,24 +622,22 @@ export function AppShell({
           onScroll={handleNavScroll}
           className="mt-2 flex-1 space-y-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-4"
         >
-          {[
-            ...(nav?.pinned || []).map((item) => ({ isStandalone: true, item })),
-            ...(nav?.categories || []),
-          ].map((group, index) => (
-            <SidebarCategoryGroup
-              key={`nav-group-${group.category || group.item?.label || index}`}
-              group={group}
-              isActive={isActive}
-              unreadMsgs={unreadMsgs}
-              unreadNotifs={unreadNotifs}
-              isBizLoading={isBizLoading}
-              businessData={businessData}
-              hasEverBeenVerified={hasEverBeenVerified}
-              isAdminSwitchedToBusiness={isAdminSwitchedToBusiness}
-              role={role}
-              onSelect={recordScroll}
-            />
-          ))}
+          {all.map((item, index) => {
+            let badge = null;
+            if (item.label === "Messages") badge = unreadMsgs;
+            if (item.label === "Notifications") badge = unreadNotifs;
+            const isItemLocked = role === "business" && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to) && !isAdminSwitchedToBusiness;
+            return (
+              <SidebarLink
+                key={`sidebar-${item.to}-${item.label}-${index}`}
+                item={item}
+                active={isActive(item.to)}
+                badge={badge}
+                isLocked={isItemLocked}
+                onSelect={recordScroll}
+              />
+            );
+          })}
         </nav>
         <div className="border-t border-sidebar-border p-3">
           {user && (
@@ -1295,16 +1172,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
   const [open, setOpen] = useState(false);
   const path = useCurrentPath();
   const nav = useResolvedNav(role);
-  const categories = [
-    ...(nav?.pinned || []).map((item) => ({ isStandalone: true, item })),
-    ...(nav?.categories || []),
-  ];
-  const isActive = (to) => {
-    if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
-    if (rootRoutes.includes(to)) return false;
-    return to !== "/" && path.startsWith(to + "/");
-  };
+  const items = role === "chapter_admin" ? [...(nav?.primary || []), ...(nav?.more || [])] : (nav?.more || []);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
