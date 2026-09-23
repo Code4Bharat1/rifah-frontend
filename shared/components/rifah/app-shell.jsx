@@ -126,7 +126,7 @@ const navs = {
   admin: {
     title: "RIFAH Central Administration",
     primary: [
-      { label: "Overview", to: "/admin", icon: Gauge },
+      { label: "Dashboard", to: "/admin", icon: Gauge },
       { label: "Operations Center", to: "/admin/operations", icon: Radio },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
@@ -135,9 +135,12 @@ const navs = {
     ],
     categories: [
       {
+        isStandalone: true,
+        item: { label: "Dashboard", to: "/admin", icon: Gauge },
+      },
+      {
         category: "OVERVIEW & OPERATIONS",
         items: [
-          { label: "Overview", to: "/admin", icon: Gauge },
           { label: "Operations Center", to: "/admin/operations", icon: Radio },
         ],
       },
