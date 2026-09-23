@@ -73,6 +73,13 @@ function ReviewModal({ isOpen, onClose, business, onReviewSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) {
+      toast.error("Please log in to submit a review for this business.");
+      if (typeof window !== "undefined") {
+        window.location.href = `/login?redirect=/business/${business?.slug || business?._id || ""}`;
+      }
+      return;
+    }
     if (!reviewComments.trim() || selectedRating < 1) return;
     const authorName = user?.name || "Verified Member";
     const realBizId = business?._id || business?.id || business?.slug;
@@ -126,7 +133,18 @@ function ReviewModal({ isOpen, onClose, business, onReviewSuccess }) {
       setSelectedRating(0);
       onClose();
     } catch (err) {
-      toast.error(err.message || "Failed to submit review");
+      const msg = err?.message || "";
+      if (
+        msg.toLowerCase().includes("token") ||
+        msg.toLowerCase().includes("auth") ||
+        msg.toLowerCase().includes("unauthorized") ||
+        msg.toLowerCase().includes("log in") ||
+        err?.status === 401
+      ) {
+        toast.error("Please log in to submit a review for this business.");
+      } else {
+        toast.error(msg || "Failed to submit review. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -144,6 +162,17 @@ function ReviewModal({ isOpen, onClose, business, onReviewSuccess }) {
             Rate your experience and share verified feedback with the chamber community.
           </DialogDescription>
         </DialogHeader>
+
+        {!user && (
+          <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 dark:bg-amber-950/20 dark:border-amber-900/40 p-3 text-xs text-amber-900 dark:text-amber-300 flex items-center justify-between gap-2 mt-1">
+            <span>Only logged-in chamber members can submit reviews.</span>
+            <Button asChild size="sm" variant="outline" className="shrink-0 h-7 text-xs font-semibold border-amber-300 text-amber-900 dark:text-amber-200 hover:bg-amber-100">
+              <Link href={`/login?redirect=/business/${business?.slug || business?._id || ""}`}>
+                Sign In
+              </Link>
+            </Button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           {/* 1. Rate Star (1 to 5 Stars Selector) */}
@@ -204,20 +233,32 @@ function ReviewModal({ isOpen, onClose, business, onReviewSuccess }) {
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isSubmitting || selectedRating === 0 || !reviewComments.trim()}
-              className="gap-1.5 font-semibold bg-[#00A6F4] hover:bg-[#0096dc] text-white cursor-pointer shadow-xs"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> Submitting...
-                </>
-              ) : (
-                "Post Review"
-              )}
-            </Button>
+            {!user ? (
+              <Button
+                asChild
+                size="sm"
+                className="gap-1.5 font-semibold bg-[#00A6F4] hover:bg-[#0096dc] text-white cursor-pointer shadow-xs"
+              >
+                <Link href={`/login?redirect=/business/${business?.slug || business?._id || ""}`}>
+                  Log In To Submit Review
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isSubmitting || selectedRating === 0 || !reviewComments.trim()}
+                className="gap-1.5 font-semibold bg-[#00A6F4] hover:bg-[#0096dc] text-white cursor-pointer shadow-xs"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> Submitting...
+                  </>
+                ) : (
+                  "Post Review"
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

@@ -4,34 +4,81 @@ import React from "react";
 import Link from "next/link";
 import {
   Crown,
-  Send,
+  Diamond,
   Building2,
-  Building,
+  Shield,
   Check,
+  X,
   Headphones,
   MessageSquare,
   Users,
   ShieldCheck,
   ArrowRight,
-  Loader2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@shared/components/ui/button";
 import { cn } from "@shared/lib/utils";
 
 /**
- * Per-plan visual config (icon, color palette, CTA style, highlight pill).
- * This is purely a UI concern — content (name, price, features) comes from the backend.
+ * Per-plan visual config — Silver, Gold, Platinum, Diamond.
+ * Icon, color palette, CTA style, highlight pill.
+ * Content (name, price, features) comes from the backend.
  */
 const TIER_STYLE_CONFIG = {
+  silver: {
+    icon: Shield,
+    iconBoxBg:
+      "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700",
+    buttonVariant: "outline",
+    buttonClass:
+      "border-slate-400 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200",
+    highlight: false,
+    accentColor: "text-slate-500",
+    durationLabel: "1-Year",
+  },
+  gold: {
+    icon: Building2,
+    iconBoxBg:
+      "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40",
+    buttonVariant: "outline",
+    buttonClass:
+      "border-amber-500 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40",
+    highlight: false,
+    accentColor: "text-amber-600",
+    durationLabel: "2-Year",
+  },
+  platinum: {
+    icon: Crown,
+    iconBoxBg:
+      "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40",
+    buttonVariant: "default",
+    buttonClass: "bg-blue-600 hover:bg-blue-700 text-white shadow-sm font-semibold",
+    highlight: true,
+    badgeText: "Recommended",
+    accentColor: "text-blue-600",
+    durationLabel: "10-Year",
+  },
+  diamond: {
+    icon: Sparkles,
+    iconBoxBg:
+      "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/40",
+    buttonVariant: "outline",
+    buttonClass:
+      "border-purple-600 text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40",
+    highlight: false,
+    accentColor: "text-purple-600",
+    durationLabel: "25-Year",
+  },
+  // Legacy aliases for backwards-compat
   free: {
-    icon: Send,
-    iconRotate: "-rotate-45 translate-x-0.5",
+    icon: Shield,
     iconBoxBg:
       "bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-900/40",
     buttonVariant: "outline",
     buttonClass:
       "border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100",
     highlight: false,
+    accentColor: "text-sky-600",
   },
   basic: {
     icon: Building2,
@@ -41,6 +88,7 @@ const TIER_STYLE_CONFIG = {
     buttonClass:
       "border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40",
     highlight: false,
+    accentColor: "text-blue-600",
   },
   premium: {
     icon: Crown,
@@ -50,15 +98,17 @@ const TIER_STYLE_CONFIG = {
     buttonClass: "bg-blue-600 hover:bg-blue-700 text-white shadow-sm font-semibold",
     highlight: true,
     badgeText: "Most Popular",
+    accentColor: "text-amber-600",
   },
   enterprise: {
-    icon: Building,
+    icon: Diamond,
     iconBoxBg:
       "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/40",
     buttonVariant: "outline",
     buttonClass:
       "border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40",
     highlight: false,
+    accentColor: "text-purple-600",
   },
 };
 
@@ -70,6 +120,7 @@ const DEFAULT_STYLE = {
   buttonVariant: "outline",
   buttonClass: "border-slate-400 text-slate-700 dark:text-slate-300 hover:bg-slate-50",
   highlight: false,
+  accentColor: "text-slate-600",
 };
 
 /**
@@ -82,6 +133,12 @@ function formatPrice(amount, isIntl) {
   return isIntl
     ? `$${num.toLocaleString("en-US")}`
     : `₹${num.toLocaleString("en-IN")}`;
+}
+
+/** Compute GST amount (18%) on base price. Always INR-only for Indian plans. */
+function computeGst(price, gstRate = 18) {
+  const base = Number(price) || 0;
+  return Math.round(base * gstRate / 100);
 }
 
 /**
@@ -109,7 +166,7 @@ function TierCardSkeleton() {
  *
  * Props:
  *  - plansData: object keyed by planId from `/api/v1/memberships/plans`
- *               e.g. { free: { name, price, priceUsd, summary, features[] }, ... }
+ *               e.g. { silver: { name, price, priceUsd, summary, features[], missingFeatures[], durationYears, gstRate }, ... }
  *  - currentTier: string planId of the user's active plan (highlights "Current Plan")
  *  - currency: "INR" | "USD"
  *  - onSelectPlan: optional callback (tier) => void  (if omitted, CTA navigates to checkout)
@@ -127,11 +184,10 @@ export function ChamberMembershipTiers({
   const isIntl = currency === "USD";
   const isLoading = plansData === null;
 
-  // Convert plansData map → ordered array using a preferred display order.
-  const DISPLAY_ORDER = ["free", "basic", "premium", "enterprise"];
+  // Convert plansData map → ordered array using preferred display order.
+  const DISPLAY_ORDER = ["silver", "gold", "platinum", "diamond", "free", "basic", "premium", "enterprise"];
   const plans = React.useMemo(() => {
     if (!plansData) return [];
-    // Respect preferred order, then append any extra plans the backend may add.
     const ordered = DISPLAY_ORDER.filter((id) => plansData[id]).map((id) => ({
       id,
       ...plansData[id],
@@ -155,14 +211,13 @@ export function ChamberMembershipTiers({
               Chamber Membership Tiers
             </h2>
             <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-              Select the right plan to match your business growth &amp; chamber networking needs.
+              Select the right plan to match your business growth &amp; chamber networking needs. All prices + 18% GST.
             </p>
           </div>
         </div>
       )}
 
       {/* ── Cards Grid ──────────────────────────────────────── */}
-      {/* pt-3.5 gives space for floating "Most Popular" / "Current Plan" pill */}
       <div
         className={cn(
           "grid gap-3 pt-3.5",
@@ -183,12 +238,25 @@ export function ChamberMembershipTiers({
                 String(currentTier || "").toLowerCase() === plan.id.toLowerCase();
               const IconComponent = style.icon;
 
-              const displayPrice = formatPrice(
-                isIntl ? plan.priceUsd : plan.price,
-                isIntl
-              );
+              const basePrice = isIntl ? plan.priceUsd : plan.price;
+              const displayPrice = formatPrice(basePrice, isIntl);
 
-              // Button label: "Renew X" if current, else plan-name based CTA
+              // GST note — only for INR plans
+              const gstRate = plan.gstRate || 18;
+              const gstAmt = !isIntl ? computeGst(plan.price, gstRate) : null;
+              const totalWithGst = !isIntl ? (plan.price || 0) + (gstAmt || 0) : null;
+
+              // Duration label
+              const durationYears = plan.durationYears;
+              const durationLabel =
+                style.durationLabel ||
+                (durationYears
+                  ? durationYears === 1
+                    ? "1-Year"
+                    : `${durationYears}-Year`
+                  : "1-Year");
+
+              // Button label
               const ctaLabel = isCurrent
                 ? `Renew ${plan.name}`
                 : plan.id === "free"
@@ -210,7 +278,7 @@ export function ChamberMembershipTiers({
                   {/* Floating badge */}
                   {style.highlight && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-0.5 text-[10px] font-bold text-white shadow-xs tracking-wide whitespace-nowrap z-10">
-                      {style.badgeText ?? "Most Popular"}
+                      {style.badgeText ?? "Recommended"}
                     </div>
                   )}
                   {isCurrent && !style.highlight && (
@@ -221,14 +289,30 @@ export function ChamberMembershipTiers({
 
                   {/* Card body */}
                   <div className="flex-1">
-                    {/* Icon */}
-                    <div
-                      className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center mb-2.5",
-                        style.iconBoxBg
+                    {/* Icon + Duration tag */}
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div
+                        className={cn(
+                          "w-9 h-9 rounded-xl flex items-center justify-center",
+                          style.iconBoxBg
+                        )}
+                      >
+                        <IconComponent className="h-4.5 w-4.5" />
+                      </div>
+                      {durationYears && (
+                        <span className={cn(
+                          "text-[9px] font-bold px-2 py-0.5 rounded-full border",
+                          plan.id === "platinum"
+                            ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300"
+                            : plan.id === "diamond"
+                            ? "bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-950/40 dark:border-purple-800 dark:text-purple-300"
+                            : plan.id === "gold"
+                            ? "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
+                            : "bg-slate-100 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                        )}>
+                          {durationLabel}
+                        </span>
                       )}
-                    >
-                      <IconComponent className={cn("h-4.5 w-4.5", style.iconRotate)} />
                     </div>
 
                     {/* Name & summary */}
@@ -242,26 +326,47 @@ export function ChamberMembershipTiers({
                     )}
 
                     {/* Price */}
-                    <div className="mt-2 mb-3 flex items-baseline gap-1">
+                    <div className="mt-2 mb-1 flex items-baseline gap-1">
                       <span className="text-xl font-extrabold text-foreground tracking-tight">
                         {displayPrice}
                       </span>
                       <span className="text-[10px] text-muted-foreground font-medium">
-                        / year
+                        {isIntl ? "/ membership" : `/ ${durationLabel.replace("-Year", " yr")}`}
                       </span>
                     </div>
 
-                    {/* Features (all are included — backend only sends what's available) */}
+                    {/* GST note — INR only */}
+                    {!isIntl && gstAmt != null && plan.price > 0 && (
+                      <p className="text-[10px] text-muted-foreground mb-3 leading-tight">
+                        + ₹{gstAmt.toLocaleString("en-IN")} GST (18%) ={" "}
+                        <span className="font-semibold text-foreground">
+                          ₹{totalWithGst.toLocaleString("en-IN")} total
+                        </span>
+                      </p>
+                    )}
+
+                    {/* Included Features */}
                     {plan.features && plan.features.length > 0 && (
-                      <ul className="space-y-1.5 pt-2.5 border-t border-border/60">
+                      <ul className={cn("space-y-1.5 pt-2.5 border-t border-border/60", (!isIntl && gstAmt != null && plan.price > 0) ? "" : "mt-3")}>
                         {plan.features.map((feat, idx) => (
-                          <li key={idx} className="flex items-center gap-2">
-                            <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400 stroke-[2.6]" />
+                          <li key={idx} className="flex items-start gap-2">
+                            <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400 stroke-[2.6]" />
                             <span className="text-[11px] leading-tight text-slate-700 dark:text-slate-200 font-medium">
                               {feat}
                             </span>
                           </li>
                         ))}
+
+                        {/* Missing / excluded features — crossed out */}
+                        {plan.missingFeatures && plan.missingFeatures.length > 0 &&
+                          plan.missingFeatures.map((feat, idx) => (
+                            <li key={`miss-${idx}`} className="flex items-start gap-2 opacity-40">
+                              <X className="h-3.5 w-3.5 shrink-0 mt-0.5 text-slate-500 stroke-[2.6]" />
+                              <span className="text-[11px] leading-tight text-slate-500 dark:text-slate-400 line-through">
+                                {feat}
+                              </span>
+                            </li>
+                          ))}
                       </ul>
                     )}
                   </div>

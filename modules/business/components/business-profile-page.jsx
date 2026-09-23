@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
   Send,
   ExternalLink,
@@ -95,6 +95,87 @@ import {
 } from "@shared/hooks/use-rifah-api";
 import { reviewApi, userApi, enquiryApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@shared/components/ui/select";
+import { cities } from "@shared/lib/mock-data";
+
+const INDIAN_CITIES = Array.from(
+  new Set([
+    ...cities,
+    "Mumbai",
+    "Navi Mumbai",
+    "Thane",
+    "Kalyan-Dombivli",
+    "Mira-Bhayandar",
+    "Vasai-Virar",
+    "Pune",
+    "Pimpri-Chinchwad",
+    "Nagpur",
+    "Nashik",
+    "Aurangabad",
+    "Solapur",
+    "Kolhapur",
+    "New Delhi",
+    "Delhi",
+    "Noida",
+    "Greater Noida",
+    "Gurgaon",
+    "Faridabad",
+    "Ghaziabad",
+    "Bangalore",
+    "Hyderabad",
+    "Chennai",
+    "Kolkata",
+    "Ahmedabad",
+    "Surat",
+    "Vadodara",
+    "Rajkot",
+    "Jaipur",
+    "Jodhpur",
+    "Lucknow",
+    "Kanpur",
+    "Varanasi",
+    "Agra",
+    "Prayagraj",
+    "Indore",
+    "Bhopal",
+    "Gwalior",
+    "Jabalpur",
+    "Patna",
+    "Ranchi",
+    "Jamshedpur",
+    "Chandigarh",
+    "Ludhiana",
+    "Amritsar",
+    "Dehradun",
+    "Guwahati",
+    "Bhubaneswar",
+    "Cuttack",
+    "Raipur",
+    "Coimbatore",
+    "Madurai",
+    "Tiruchirappalli",
+    "Salem",
+    "Visakhapatnam",
+    "Vijayawada",
+    "Guntur",
+    "Kochi",
+    "Thiruvananthapuram",
+    "Kozhikode",
+    "Mangalore",
+    "Mysore",
+    "Hubli-Dharwad",
+    "Belgaum",
+    "Goa (Panaji)",
+    "Srinagar",
+    "Jammu",
+  ])
+).sort();
 
 function formatSocialUrl(type, rawUrl) {
   if (!rawUrl || typeof rawUrl !== "string") return "#";
@@ -147,6 +228,7 @@ function BusinessNotFound() {
 }
 
 function BusinessProfile() {
+  const router = useRouter();
   const params = useParams();
   const businessId = params?.businessId;
 
@@ -216,7 +298,12 @@ function BusinessProfile() {
     setEnquiryError("");
 
     if (!enquiryForm.guestPhone || !enquiryForm.guestPhone.trim()) {
-      setEnquiryError("Phone number is mandatory. Please provide a contact phone number.");
+      setEnquiryError("Mobile number is mandatory. Please enter your mobile number with country code.");
+      return;
+    }
+
+    if (!enquiryForm.location || !enquiryForm.location.trim()) {
+      setEnquiryError("City is mandatory. Please select your city from the dropdown list.");
       return;
     }
 
@@ -461,11 +548,15 @@ function BusinessProfile() {
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
-    if (!reviewBody.trim() || reviewRating < 1) {
-      alert("Please select a star rating.");
+    if (!user) {
+      router.push(`/login?redirect=/business/${business?.slug || business?._id || businessId}#reviews`);
       return;
     }
-    const authorName = user?.name || reviewerName.trim() || "Guest Reviewer";
+    if (!reviewBody.trim() || reviewRating < 1) {
+      toast.error("Please select a star rating and write your review.");
+      return;
+    }
+    const authorName = user?.name || "Verified Member";
     setReviewSubmitting(true);
     try {
       const res = await reviewApi.submit({
@@ -510,6 +601,7 @@ function BusinessProfile() {
       }
 
       setReviewSuccess(true);
+      toast.success("Review submitted successfully!");
       setReviewBody("");
       setReviewTitle("");
       setReviewerName("");
@@ -524,7 +616,18 @@ function BusinessProfile() {
 
       setTimeout(() => setReviewSuccess(false), 5000);
     } catch (err) {
-      alert(err.message || "Failed to submit review.");
+      const msg = err?.message || "";
+      if (
+        msg.toLowerCase().includes("token") ||
+        msg.toLowerCase().includes("auth") ||
+        msg.toLowerCase().includes("unauthorized") ||
+        msg.toLowerCase().includes("log in") ||
+        err?.status === 401
+      ) {
+        toast.error("Please log in to submit a review for this business.");
+      } else {
+        toast.error(msg || "Failed to submit review. Please try again.");
+      }
     } finally {
       setReviewSubmitting(false);
     }
@@ -1056,16 +1159,16 @@ function BusinessProfile() {
                   ) : (
                     <form onSubmit={handleReviewSubmit} className="space-y-3">
                       {!user && (
-                        <div>
-                          <label className="text-xs font-medium text-foreground">Your Name *</label>
-                          <input
-                            type="text"
-                            value={reviewerName}
-                            onChange={(e) => setReviewerName(e.target.value)}
-                            required
-                            placeholder="e.g. John Doe"
-                            className="mt-1 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
+                        <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-900/40 p-3 text-xs text-amber-900 dark:text-amber-300 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <Star className="h-4 w-4 text-amber-500 shrink-0 fill-amber-400" />
+                            <span>Only logged-in chamber members can submit reviews.</span>
+                          </div>
+                          <Button asChild size="sm" variant="outline" className="shrink-0 h-8 text-xs font-semibold border-amber-300 text-amber-900 dark:text-amber-200 hover:bg-amber-100">
+                            <Link href={`/login?redirect=/business/${business?.slug || business?._id || businessId}#reviews`}>
+                              Sign In
+                            </Link>
+                          </Button>
                         </div>
                       )}
                       <div>
@@ -1126,9 +1229,21 @@ function BusinessProfile() {
                           className="mt-1 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       </div>
-                      <Button type="submit" disabled={reviewSubmitting || reviewRating === 0 || !reviewBody.trim()}>
-                        {reviewSubmitting ? "Publishing review..." : "Submit review"}
-                      </Button>
+                      {!user ? (
+                        <Button
+                          asChild
+                          type="button"
+                          className="font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
+                        >
+                          <Link href={`/login?redirect=/business/${business?.slug || business?._id || businessId}#reviews`}>
+                            Log In To Submit Review
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button type="submit" disabled={reviewSubmitting || reviewRating === 0 || !reviewBody.trim()}>
+                          {reviewSubmitting ? "Publishing review..." : "Submit review"}
+                        </Button>
+                      )}
                     </form>
                   )}
                 </Panel>
@@ -1479,25 +1594,37 @@ function BusinessProfile() {
                 </div>
               </div>
 
-              <div className="grid gap-2.5 sm:gap-3 grid-cols-2">
+              <div className="grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">Phone <span className="text-destructive">*</span></label>
+                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">
+                    Mobile Number <span className="text-destructive">*</span>
+                  </label>
                   <PhoneInput
                     required
                     value={enquiryForm.guestPhone}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, guestPhone: e.target.value })}
+                    onChange={(val) => setEnquiryForm((prev) => ({ ...prev, guestPhone: typeof val === "string" ? val : (val?.target?.value ?? "") }))}
                     placeholder="Mobile number"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">City / Location</label>
-                  <input
-                    type="text"
-                    value={enquiryForm.location}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, location: e.target.value })}
-                    placeholder="e.g. Mumbai"
-                    className="w-full rounded-lg sm:rounded-xl border border-border bg-transparent px-3 py-2 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                  />
+                  <label className="text-[11px] sm:text-xs font-semibold text-foreground">
+                    City <span className="text-destructive">*</span>
+                  </label>
+                  <Select
+                    value={enquiryForm.location || ""}
+                    onValueChange={(val) => setEnquiryForm((prev) => ({ ...prev, location: val }))}
+                  >
+                    <SelectTrigger className="h-10 rounded-lg sm:rounded-xl bg-transparent">
+                      <SelectValue placeholder="Select City" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {INDIAN_CITIES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

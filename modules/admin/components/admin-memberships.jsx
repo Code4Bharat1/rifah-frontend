@@ -32,8 +32,9 @@ function AdminMemberships() {
   const [viewMode, setViewMode] = useState("list"); // "list" or "directory"
 
   const filteredBusinesses = businesses.filter((b) => {
-    if (filter === "premium") return b.membership === "Premium" || b.membership === "Enterprise";
-    if (filter === "basic") return b.membership === "Basic";
+    const mem = (b.membership || "").toLowerCase();
+    if (filter === "platinum_diamond") return mem === "platinum" || mem === "diamond";
+    if (filter === "silver_gold") return mem === "silver" || mem === "gold";
     if (filter === "verified") return b.verification === "verified";
     return true;
   });
@@ -165,17 +166,17 @@ function AdminMemberships() {
             onClick={() => setFilter("all")}
           />
           <StatCard
-            label="Premium / Enterprise"
-            value={String(businesses.filter((b) => b.membership === "Premium" || b.membership === "Enterprise").length)}
+            label="Platinum / Diamond"
+            value={String(businesses.filter((b) => ["Platinum", "Diamond"].includes(b.membership)).length)}
             tone="success"
-            active={filter === "premium"}
-            onClick={() => setFilter("premium")}
+            active={filter === "platinum_diamond"}
+            onClick={() => setFilter("platinum_diamond")}
           />
           <StatCard
-            label="Basic"
-            value={String(businesses.filter((b) => b.membership === "Basic").length)}
-            active={filter === "basic"}
-            onClick={() => setFilter("basic")}
+            label="Silver / Gold"
+            value={String(businesses.filter((b) => ["Silver", "Gold"].includes(b.membership)).length)}
+            active={filter === "silver_gold"}
+            onClick={() => setFilter("silver_gold")}
           />
           <StatCard
             label="Verified"
@@ -190,51 +191,81 @@ function AdminMemberships() {
           <Panel 
             title="Membership Tier Structure" 
           >
-            <div className="grid gap-3 md:grid-cols-3">
-              {Object.entries(plans).map(([key, p]) => (
-                <div key={key} className="rounded-xl border border-border p-4 relative group">
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openModal({ planId: key, ...p })}>
-                          Edit Plan
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive focus:bg-destructive/10" onClick={() => { setDeletePlanId(key); setIsDeleteDialogOpen(true); }}>
-                          Delete Plan
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{p.name}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">₹ {p.price?.toLocaleString("en-IN")} / year</p>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+              {Object.entries(plans).map(([key, p]) => {
+                const durationYears = p.durationYears || 1;
+                const durationLabel = durationYears === 1 ? "1 Year" : `${durationYears} Years`;
+                const gstAmt = Math.round((p.price || 0) * (p.gstRate || 18) / 100);
+                const totalWithGst = (p.price || 0) + gstAmt;
+                return (
+                  <div key={key} className="rounded-xl border border-border p-4 relative group">
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openModal({ planId: key, ...p })}>
+                            Edit Plan
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive focus:bg-destructive/10" onClick={() => { setDeletePlanId(key); setIsDeleteDialogOpen(true); }}>
+                            Delete Plan
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <Pill tone="brand">Annual</Pill>
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 mb-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="truncate text-sm font-bold">{p.name}</p>
+                          {p.isRecommended && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800">Recommended</span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          ₹ {(p.price || 0).toLocaleString("en-IN")} base · {durationLabel}
+                        </p>
+                        <p className="text-[10px] text-orange-600 dark:text-orange-400">
+                          + ₹{gstAmt.toLocaleString("en-IN")} GST (18%) = <strong>₹{totalWithGst.toLocaleString("en-IN")}</strong> total
+                        </p>
+                      </div>
+                      <Pill tone="brand">{durationLabel}</Pill>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{p.summary}</p>
+                    <ul className="mt-3 space-y-1.5">
+                      {p.features?.map((f, i) => (
+                        <li key={i} className="text-xs text-muted-foreground">
+                          · {f}
+                        </li>
+                      ))}
+                    </ul>
+                    {p.missingFeatures?.length > 0 && (
+                      <ul className="mt-1.5 space-y-1 opacity-50">
+                        {p.missingFeatures.map((f, i) => (
+                          <li key={i} className="text-xs text-muted-foreground line-through">
+                            ✕ {f}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">{p.summary}</p>
-                  <ul className="mt-3 space-y-1.5">
-                    {p.features?.map((f, i) => (
-                      <li key={i} className="text-xs text-muted-foreground">
-                        · {f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Panel>
         )}
 
         <Panel>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-            <h2 className="text-lg font-semibold">{filter === "all" ? "Member subscriptions" : filter === "premium" ? "Premium/Enterprise Subscriptions" : filter === "basic" ? "Basic Subscriptions" : "Verified Members"}</h2>
+            <h2 className="text-lg font-semibold">
+              {filter === "all" ? "Member subscriptions" 
+              : filter === "platinum_diamond" ? "Platinum / Diamond Members" 
+              : filter === "silver_gold" ? "Silver / Gold Members" 
+              : "Verified Members"}
+            </h2>
             
             {user?.role === "chapter_admin" && (
               <div className="flex bg-muted p-1 rounded-lg self-start sm:self-auto border border-border">

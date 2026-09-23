@@ -56,6 +56,7 @@ import {
   useMembershipPlans,
   usePublicStateRevenue,
 } from "@shared/hooks/use-rifah-api";
+import { cities } from "@shared/lib/mock-data";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -114,7 +115,23 @@ function HomePage() {
   const { data: eventsData } = useEvents({ status: "Upcoming", limit: 3 });
   const { data: plansData } = useMembershipPlans();
   const { data: stateRevenueData } = usePublicStateRevenue();
-  const stateRevenue = Array.isArray(stateRevenueData) ? stateRevenueData : [];
+  const stateRevenue = (Array.isArray(stateRevenueData) ? stateRevenueData : [])
+    .filter(
+      (s) =>
+        s?.state &&
+        typeof s.state === "string" &&
+        s.state.trim().toLowerCase() !== "unassigned" &&
+        s.state.trim().toLowerCase() !== "unknown" &&
+        s.state.trim().toLowerCase() !== "null"
+    )
+    .map((s) => ({
+      ...s,
+      state: s.state
+        .trim()
+        .split(/\s+/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" "),
+    }));
 
   const featured = (
     Array.isArray(businessesData)
@@ -679,14 +696,20 @@ function HomePage() {
                     <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
                       Target City / Location <span className="text-destructive">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <select
                       required
-                      placeholder="e.g. Mumbai, Navi Mumbai"
                       value={rfqForm.location}
                       onChange={(e) => setRfqForm((prev) => ({ ...prev, location: e.target.value }))}
-                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                      className="w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">Select City</option>
+                      {cities.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                      <option value="All India / Pan India">All India / Pan India</option>
+                    </select>
                   </div>
                 </div>
 
