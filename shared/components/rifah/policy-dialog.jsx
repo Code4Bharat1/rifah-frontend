@@ -83,29 +83,29 @@ const FAQS_CONTENT = [
 
 const TERMS_CONTENT = [
   {
-    title: "1. Acceptance of Chamber Terms",
+    title: "1. Information Accuracy & Right of Acceptance / Termination",
     content:
-      "By applying for, renewing, or maintaining membership in RIFAH Chamber of Commerce and Industry (RCCI), members agree to abide by the Chamber constitution, executive bylaws, and digital platform terms of service.",
+      "I, on behalf of my enterprise, hereby declare that all the information submitted by me is correct to the best of my knowledge and that I am aware of the terms and conditions of the membership, and that RIFAH CHAMBER OF COMMERCE AND INDUSTRY reserves the right of acceptance of the membership. If any of the submitted details are found to be false/malicious, RIFAH CHAMBER OF COMMERCE AND INDUSTRY reserves the right to reject/discontinue the membership without any notice.",
   },
   {
-    title: "2. Ethical Business Conduct",
+    title: "2. Non-Refundable Fee Policy & Statutory Compliance Consent",
     content:
-      "Members solemnly pledge to conduct commercial transactions with integrity, transparency, fair pricing, and compliance with statutory laws. Misleading representations, unfair trade practices, or deliberate contractual defaults constitute grounds for disciplinary review.",
+      "I understand that the membership fee once paid shall not be refunded under any circumstances. I hereby agree to all terms and conditions of membership and give my consent to use the above mentioned data for organisational purposes and/or other statutory compliances as that may be deemed necessary by Central/State Governments.",
   },
   {
-    title: "3. Directory Accuracy & Verification",
+    title: "3. Facilitation Platform Scope & Commercial Autonomy",
     content:
-      "Members are solely responsible for ensuring that all business details, licences, catalogues, and certifications uploaded to the directory are authentic and up to date. RIFAH reserves the right to request audit documents or revoke verified credentials if discrepancies arise.",
+      "Rifah Chamber of Commerce and Industry (‘RIFAH’) provides platforms such as networking meets, workshops, expos, and national or international business delegations solely for the purpose of facilitating introductions and general business networking. Any discussions, negotiations, joint ventures, investments, collaborations, partnerships, or commercial arrangements entered into between participants are conducted strictly in their personal and/or organizational capacity, at their own discretion and risk.",
   },
   {
-    title: "4. Platform Use & Data Protection",
+    title: "4. Absolute Limitation of Chamber Liability",
     content:
-      "Member directories, buyer leads, and contact data accessible via RIFAH portals are intended strictly for verified B2B commerce. Scraping, harvesting, reselling member lists, or sending unsolicited mass marketing communications is strictly prohibited.",
+      "RIFAH is not, and shall not be deemed to be, a party to any such arrangements and assumes no responsibility or liability whatsoever for any loss, damage, dispute, misunderstanding, or claim arising out of or in connection with any such arrangements, regardless of the cause or circumstances. By participating in RIFAH events or platforms, all participants expressly agree that RIFAH shall not be held liable, in any manner, for any direct, indirect, incidental, consequential, or other loss or issues that may arise between participants.",
   },
   {
-    title: "5. Limitation of Chamber Liability",
+    title: "5. Code of Ethical Conduct & Compliance",
     content:
-      "RIFAH facilitates commercial connections and networking in good faith. The Chamber is not a party to commercial contracts, delivery agreements, or financial transactions between members, and assumes no liability for disputes arising from independent commercial dealings.",
+      "Members solemnly pledge to conduct commercial transactions with integrity, transparency, fair pricing, and compliance with statutory laws. Misleading representations, unfair trade practices, or deliberate contractual defaults constitute grounds for immediate disciplinary review and discontinuation of membership without refund.",
   },
 ];
 

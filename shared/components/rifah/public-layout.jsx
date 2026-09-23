@@ -9,6 +9,7 @@ import {
   Building2,
   CalendarDays,
   FileStack,
+  Globe,
   Home,
   LogOut,
   Mail,
@@ -234,7 +235,7 @@ export function PublicFooter() {
   const socialLinks = [
     {
       name: "WhatsApp",
-      href: "https://wa.me/918097781851?text=Hello%0AI%20would%20like%20to%20know%20more%20about%20your%20services.%20Please%20share%20the%20details.",
+      href: "https://wa.me/+918097781851",
       icon: (
         <svg className="h-4 w-4 fill-current text-emerald-400" viewBox="0 0 24 24">
           <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
@@ -252,7 +253,7 @@ export function PublicFooter() {
     },
     {
       name: "Instagram",
-      href: "https://www.instagram.com/rifahchamberofcommerce/?hl=en",
+      href: "https://www.instagram.com/rifahchamberofcommerce/",
       icon: (
         <svg className="h-4 w-4 fill-current text-pink-400" viewBox="0 0 24 24">
           <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
@@ -270,7 +271,7 @@ export function PublicFooter() {
     },
     {
       name: "YouTube",
-      href: "https://www.youtube.com/channel/UC5WXsbYY5A6fIeb2ObbENaQ/featured",
+      href: "https://www.youtube.com/@rifahindia",
       icon: (
         <svg className="h-4 w-4 fill-current text-red-500" viewBox="0 0 24 24">
           <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
@@ -373,46 +374,54 @@ export function PublicFooter() {
           </h3>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-xs">
-            {/* Sub-col 1: Support & Helplines */}
+            {/* Sub-col 1: Contact Details */}
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 font-semibold text-navy-foreground">
                 <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>Support &amp; Helplines</span>
+                <span>Contact Details</span>
               </div>
-              <div className="space-y-1 pl-5 text-navy-foreground/75">
+              <div className="space-y-1.5 pl-5 text-navy-foreground/75">
                 <div>
-                  <a href="tel:+91-809-778-1851" className="hover:text-primary transition-colors">
-                    +91-809-778-1851
+                  <a href="tel:+918097781851" className="hover:text-primary transition-colors block font-mono text-[11px]">
+                    +91-8097781851
                   </a>
                 </div>
                 <div>
-                  <a href="tel:+91-730-407-8398" className="hover:text-primary transition-colors">
+                  <a href="tel:+917304078398" className="hover:text-primary transition-colors block font-mono text-[11px]">
                     +91-730-407-8398
                   </a>
                 </div>
                 <div>
-                  <a href="tel:+91-913-613-0398" className="hover:text-primary transition-colors">
+                  <a href="tel:+919136130398" className="hover:text-primary transition-colors block font-mono text-[11px]">
                     +91-913-613-0398
                   </a>
                 </div>
               </div>
             </div>
 
-            {/* Sub-col 2: Email Queries */}
+            {/* Sub-col 2: Email Queries & Website */}
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 font-semibold text-navy-foreground">
                 <Mail className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>Email Queries</span>
+                <span>Email &amp; Web</span>
               </div>
-              <div className="space-y-1 pl-5 text-navy-foreground/75">
+              <div className="space-y-1.5 pl-5 text-navy-foreground/75">
                 <div>
-                  <a href="mailto:office@rifah.org" className="hover:text-primary transition-colors">
+                  <span className="text-[10px] uppercase font-bold text-navy-foreground/50 block">Primary:</span>
+                  <a href="mailto:office@rifah.org" className="hover:text-primary transition-colors block">
                     office@rifah.org
                   </a>
                 </div>
                 <div>
-                  <a href="mailto:info@rifah.org" className="hover:text-primary transition-colors">
+                  <span className="text-[10px] uppercase font-bold text-navy-foreground/50 block">Secondary:</span>
+                  <a href="mailto:info@rifah.org" className="hover:text-primary transition-colors block">
                     info@rifah.org
+                  </a>
+                </div>
+                <div className="pt-1 flex items-center gap-1 text-primary">
+                  <Globe className="h-3 w-3 shrink-0" />
+                  <a href="https://www.rifah.org" target="_blank" rel="noopener noreferrer" className="hover:underline font-semibold text-[11px]">
+                    www.rifah.org
                   </a>
                 </div>
               </div>
@@ -442,16 +451,34 @@ export function PublicFooter() {
           </ul>
         </div>
 
-        {/* Horizontal Registered Head Office Banner across full width */}
-        <div className="rounded-xl border border-navy-foreground/15 bg-black/25 p-3.5 text-xs text-navy-foreground/80 shadow-inner md:col-span-2 lg:col-span-12">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <div className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-bold uppercase tracking-wider text-primary">
-              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>REGISTERED HEAD OFFICE:</span>
+        {/* Horizontal Registered Office & Corporate Office Banner across full width */}
+        <div className="rounded-xl border border-navy-foreground/15 bg-black/25 p-4 text-xs text-navy-foreground/80 shadow-inner md:col-span-2 lg:col-span-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 divide-y md:divide-y-0 md:divide-x divide-navy-foreground/15">
+            {/* Registered Office */}
+            <div className="flex items-start gap-2.5">
+              <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-primary block mb-0.5">
+                  REGISTERED OFFICE:
+                </span>
+                <p className="text-[11px] leading-relaxed text-navy-foreground/75 sm:text-xs">
+                  Flat No. 4 C &amp; D, 1st Floor, Plot No. 96, 77C, Hamid Building, Hafiz Ali Bahadur Khan Marg, Mominpura, Jacob Circle, Byculla West, Mumbai - 400011, Maharashtra
+                </p>
+              </div>
             </div>
-            <p className="text-[11px] leading-relaxed text-navy-foreground/75 sm:text-xs">
-              Flat No. 4 C &amp; D, 1st Floor, Plot No. 96, 77C, Hamid Building, Hafiz Ali Bahadur Khan Marg, Mominpura, Jacob Circle, Byculla West, Mumbai – 400011, Maharashtra, India.
-            </p>
+
+            {/* Corporate Office */}
+            <div className="flex items-start gap-2.5 pt-3 md:pt-0 md:pl-4">
+              <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-primary block mb-0.5">
+                  CORPORATE OFFICE:
+                </span>
+                <p className="text-[11px] leading-relaxed text-navy-foreground/75 sm:text-xs">
+                  D-321, Dawat Nagar, Abul Fazal Enclave, Jamia Nagar, New Delhi, Delhi 110025
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
