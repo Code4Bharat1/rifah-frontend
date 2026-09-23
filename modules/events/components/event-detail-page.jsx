@@ -20,7 +20,7 @@ import { useEventDetail, useEvents } from "@shared/hooks/use-rifah-api";
 import { eventApi, paymentApi, authApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { EventShareModal } from "@shared/components/rifah/event-share-modal";
-import { getEventStatus, getEventStatusConfig, parseEventTiming } from "@shared/lib/event-utils";
+import { getEventStatus, getEventStatusConfig, parseEventTiming, formatEventDate } from "@shared/lib/event-utils";
 
 function EventDetail() {
   const params = useParams();
@@ -354,7 +354,7 @@ const loadRazorpayScript = () => {
             <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
               <dl className="grid grid-cols-2 gap-y-6 gap-x-4 sm:grid-cols-4">
                   {[
-                    { icon: CalendarDays, label: "Date", value: event.date ? new Date(event.date).toLocaleDateString() : "TBA" },
+                    { icon: CalendarDays, label: "Date", value: formatEventDate(event.date) || "TBA" },
                     { icon: Clock, label: "Time", value: event.time },
                     { icon: MapPin, label: "Venue", value: event.venue },
                     { icon: Users, label: "Capacity", value: `${event.seats} seats` },

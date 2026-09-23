@@ -25,7 +25,7 @@ import { resolveMediaUrl } from "@shared/lib/api-client";
 import { eventImage } from "@shared/lib/media";
 import { EventShareModal } from "@shared/components/rifah/event-share-modal";
 import { cn } from "@shared/lib/utils";
-import { getEventStatus, getEventStatusConfig } from "@shared/lib/event-utils";
+import { getEventStatus, getEventStatusConfig, formatEventDate } from "@shared/lib/event-utils";
 
 export function BizEvents() {
   const { user } = useAuth();
@@ -372,7 +372,7 @@ export function BizEvents() {
                     </div>
                     <div className="p-4.5">
                       <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-                        <CalendarDays className="h-3.5 w-3.5" /> {ev.date} · {ev.time}
+                        <CalendarDays className="h-3.5 w-3.5" /> {formatEventDate(ev.date) || ev.date} · {ev.time}
                       </p>
                       <h3 className="mt-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
                         {ev.title}

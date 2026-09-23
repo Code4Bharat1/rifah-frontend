@@ -3,6 +3,21 @@
  * Evaluates real-time event lifecycle by checking date, start time, and end time.
  */
 
+export function formatEventDate(dateString) {
+  if (!dateString) return "";
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString;
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }).replace(/ /g, "-");
+  } catch (err) {
+    return dateString;
+  }
+}
+
 export function parseEventTiming(dateInput, timeInput) {
   if (!dateInput) return { start: null, end: null, isToday: false, isPastDate: false, isFutureDate: false };
 
