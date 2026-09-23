@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2, ArrowRight, FileText, Printer, Sparkles, Building2, Globe, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2, ArrowRight, FileText, Printer, Sparkles, Building2, Globe, LayoutDashboard, ShieldCheck, AlertCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
@@ -10,7 +10,16 @@ import { Button } from "@shared/components/ui/button";
 import { Checkbox } from "@shared/components/ui/checkbox";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
+import { PhoneInput } from "@shared/components/ui/phone-input";
 import { RadioGroup, RadioGroupItem } from "@shared/components/ui/radio-group";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@shared/components/ui/dialog";
+import { parsePhoneNumber } from "@shared/lib/countries";
 import { useMembershipPlans, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { membershipApi, paymentApi, businessApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -55,12 +64,17 @@ function Checkout() {
   const [loading, setLoading] = useState(false);
   const [invoiceId, setInvoiceId] = useState("");
   const [billingEmail, setBillingEmail] = useState("");
+  const [billingPhone, setBillingPhone] = useState("");
   const [legalName, setLegalName] = useState("");
   const [gstNumber, setGstNumber] = useState("");
   const [billingAddress, setBillingAddress] = useState("");
   const [billingCity, setBillingCity] = useState("");
   const [billingState, setBillingState] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [gstLoading, setGstLoading] = useState(false);
   const [gstSuccess, setGstSuccess] = useState("");
 
@@ -79,22 +93,113 @@ function Checkout() {
     ? (active.priceUsd ?? (active.price === 0 ? 0 : Math.round(active.price / 80)))
     : active.price;
 
+  // GST breakdown — applies to both INR and USD payments
+  const gstRate = active.gstRate || 18;
+  const subtotal = checkoutAmount; // base price before GST
+  const gstAmount = Math.round(subtotal * gstRate / 100);
+  const totalWithGst = subtotal + gstAmount;
+
+  // Duration label for selected plan
+  const durationYears = active.durationYears || 1;
+  const durationLabel = durationYears === 1 ? "1 Year" : `${durationYears} Years`;
+
   // Pre-fill existing business or user details if available
   useEffect(() => {
     if (business) {
       if (business.name && !legalName) setLegalName(business.name);
       if (business.email && !billingEmail) setBillingEmail(business.email);
+      if (business.phone && !billingPhone) setBillingPhone(business.phone);
       if (business.taxId && !gstNumber) setGstNumber(business.taxId);
       if (business.address && !billingAddress) setBillingAddress(business.address);
       if (business.city && !billingCity) setBillingCity(business.city);
       if (business.state && !billingState) setBillingState(business.state);
+      if ((business.pincode || business.postalCode) && !postalCode) setPostalCode(business.pincode || business.postalCode);
     } else if (currentUser) {
       if (currentUser.organization && !legalName) setLegalName(currentUser.organization);
       if (currentUser.email && !billingEmail) setBillingEmail(currentUser.email);
+      if (currentUser.phone && !billingPhone) setBillingPhone(currentUser.phone);
       if (currentUser.city && !billingCity) setBillingCity(currentUser.city);
       if (currentUser.state && !billingState) setBillingState(currentUser.state);
     }
   }, [business, currentUser]);
+
+  const clearError = (field) => {
+    if (errors[field]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
+  const validateBillingStep = () => {
+    const newErrors = {};
+
+    // 1. Registered business name
+    if (!legalName || !legalName.trim()) {
+      newErrors.legalName = "Registered business name is required";
+    }
+
+    // 2. Billing email
+    if (!billingEmail || !billingEmail.trim()) {
+      newErrors.billingEmail = "Billing email is required";
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(billingEmail.trim())) {
+        newErrors.billingEmail = "Please enter a valid email address";
+      }
+    }
+
+    // 3. Contact Number (with Country Code)
+    if (!billingPhone || !billingPhone.trim()) {
+      newErrors.billingPhone = "Contact number is required";
+    } else {
+      const parsed = parsePhoneNumber(billingPhone);
+      const digits = (parsed?.nationalNumber || billingPhone).replace(/\D/g, "");
+      if (digits.length < 7) {
+        newErrors.billingPhone = "Please enter a valid contact number (at least 7 digits)";
+      }
+    }
+
+    // 4. Billing address
+    if (!billingAddress || !billingAddress.trim()) {
+      newErrors.billingAddress = "Billing address is required";
+    }
+
+    // 5. City
+    if (!billingCity || !billingCity.trim()) {
+      newErrors.billingCity = "City is required";
+    }
+
+    // 6. State
+    if (!billingState || !billingState.trim()) {
+      newErrors.billingState = "State is required";
+    }
+
+    // 7. Postal code / PIN code
+    if (!postalCode || !postalCode.trim()) {
+      newErrors.postalCode = "Postal / PIN code is required";
+    } else if (!isIntl && !/^\d{6}$/.test(postalCode.trim())) {
+      newErrors.postalCode = "Please enter a valid 6-digit PIN code";
+    }
+
+    // 8. GST (optional, but validate 15 alphanumeric format if entered)
+    if (gstNumber && gstNumber.trim()) {
+      const cleanGst = gstNumber.trim().toUpperCase();
+      if (cleanGst.length !== 15) {
+        newErrors.gstNumber = "GSTIN must be exactly 15 characters";
+      }
+    }
+
+    // 9. Terms and Conditions agreement
+    if (!agreeTerms) {
+      newErrors.agreeTerms = "You must agree to the Terms and Conditions and Privacy Policy to proceed";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const gstDebounceRef = useRef(null);
 
@@ -179,9 +284,9 @@ function Checkout() {
         return;
       }
 
-      // Step 1: Create Razorpay Order
+      // Step 1: Create Razorpay Order (total = base + 18% GST)
       const orderRes = await paymentApi.createOrder({
-        amount: checkoutAmount,
+        amount: totalWithGst,
         currency,
         planId: selected,
         itemType: "Membership",
@@ -211,11 +316,14 @@ function Checkout() {
               razorpay_signature: response.razorpay_signature,
               planId: selected,
               businessId: business?._id,
-              amount: checkoutAmount,
+              amount: subtotal,       // base price; backend will add GST
+              subtotal: subtotal,
+              gstAmount: gstAmount,
               currency,
               itemType: "Membership",
               description: `${active.name} Membership Subscription (${currency})`,
               billingEmail: billingEmail || business?.email || "",
+              billingPhone: billingPhone || business?.phone || currentUser?.phone || "",
               businessName: legalName || business?.name || "",
               taxId: gstNumber || business?.taxId || "",
               billingAddress,
@@ -263,8 +371,9 @@ function Checkout() {
           }
         },
         prefill: {
-          name: legalName || business?.name || "",
-          email: billingEmail || business?.email || "",
+          name: legalName || business?.name || currentUser?.name || "",
+          email: billingEmail || business?.email || currentUser?.email || "",
+          contact: billingPhone || business?.phone || currentUser?.phone || "",
         },
         theme: {
           color: "#0F2942",
@@ -304,12 +413,13 @@ function Checkout() {
     const currSymbol = isIntl ? "$" : "₹";
     const currSuffix = isIntl ? " USD" : "";
     const locale = isIntl ? "en-US" : "en-IN";
-    const formattedAmt = `${currSymbol} ${(Number(checkoutAmount) || 0).toLocaleString(locale)}${currSuffix}`;
+    const formattedAmt = `${currSymbol} ${(Number(totalWithGst) || 0).toLocaleString(locale)}${currSuffix}`;
     const dateFormatted = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
     const logoUrl = `${window.location.origin}/rifah-logo.png`;
     const invNumber = invoiceId || `INV-${Math.floor(1000 + Math.random() * 9000)}`;
     const payerName = legalName || business?.name || currentUser?.name || "Registered Member";
     const payerEmail = billingEmail || business?.email || currentUser?.email || "";
+    const payerPhone = billingPhone || business?.phone || currentUser?.phone || "";
     const payerGst = gstNumber || business?.gstin || "N/A";
     const payerAddress = [billingAddress, billingCity, billingState, postalCode].filter(Boolean).join(", ") || (business?.city ? `${business.city}, India` : "India");
 
@@ -529,6 +639,7 @@ function Checkout() {
                   <div class="info-card-header">BILLED TO (MEMBER)</div>
                   <div style="font-weight: 800; font-size: 12px; color: #0f172a;">${payerName}</div>
                   <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Email: ${payerEmail}</div>
+                  ${payerPhone ? `<div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Phone: <strong>${payerPhone}</strong></div>` : ""}
                   ${payerGst !== "N/A" ? `<div style="font-size: 10.5px; color: #475569; margin-top: 2px;">GSTIN: <strong>${payerGst}</strong></div>` : ""}
                   <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${payerAddress}</div>
                 </div>
@@ -537,7 +648,7 @@ function Checkout() {
                   <div class="info-card-header">PAYMENT & CHAMBER DETAILS</div>
                   <div style="font-size: 10.5px; color: #0f172a;">Issuer: <strong>RIFAH Chamber Central Admin</strong></div>
                   <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Payment Mode: <strong>Razorpay Online (Txn Verified)</strong></div>
-                  <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Subscription Term: <strong>1 Year (Annual Active)</strong></div>
+                  <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Subscription Term: <strong>${durationLabel} (${active.name} Tier)</strong></div>
                   <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">Support: admin@rifah.org</div>
                 </div>
               </div>
@@ -556,20 +667,31 @@ function Checkout() {
                       <td>
                         <strong style="color: #0b1f33; font-size: 12px;">${active.name} Membership Tier Subscription</strong>
                         <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">
-                          Includes directory placement, verified credentials, enquiry routing & B2B trading privileges.
+                          ${durationLabel} chamber access — directory placement, verified credentials, enquiry routing &amp; B2B trading privileges.
                         </div>
                       </td>
-                      <td style="text-align: center; font-size: 10.5px;">1 Year</td>
-                      <td style="text-align: right; font-weight: 800; font-size: 12px; color: #0f172a;">${formattedAmt}</td>
+                      <td style="text-align: center; font-size: 10.5px;">${durationLabel}</td>
+                      <td style="text-align: right; font-weight: 700; font-size: 11px; color: #0f172a;">${currSymbol}${(subtotal).toLocaleString(locale)}${currSuffix}</td>
                     </tr>
+                    ${gstAmount > 0 ? `
+                    <tr style="background: #f8fafc;">
+                      <td style="font-size: 10.5px; color: #475569; padding-left: 14px;">GST / Tax @ ${gstRate}% (Statutory Tax)</td>
+                      <td style="text-align: center; font-size: 10px; color: #94a3b8;">${gstRate}%</td>
+                      <td style="text-align: right; font-size: 11px; color: #475569;">+ ${currSymbol}${gstAmount.toLocaleString(locale)}${currSuffix}</td>
+                    </tr>` : ''}
                   </tbody>
                 </table>
               </div>
 
               <div class="total-box">
-                <div class="total-line">
-                  <span>Total Amount Paid:</span>
-                  <span style="color: #0088d1;">${formattedAmt}</span>
+                <div style="width: 240px;">
+                  ${gstAmount > 0 ? `
+                  <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding-bottom:4px;"><span>Base Amount:</span><span>${currSymbol}${subtotal.toLocaleString(locale)}${currSuffix}</span></div>
+                  <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding-bottom:4px;"><span>GST / Tax (${gstRate}%):</span><span>+ ${currSymbol}${gstAmount.toLocaleString(locale)}${currSuffix}</span></div>` : ''}
+                  <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;border-top:2px solid #0b1f33;padding-top:5px;">
+                    <span>Total Paid:</span>
+                    <span style="color: #0088d1;">${currSymbol}${(totalWithGst).toLocaleString(locale)}${currSuffix}</span>
+                  </div>
                 </div>
               </div>
 
@@ -656,10 +778,16 @@ function Checkout() {
                             <span className="flex flex-wrap items-baseline justify-between gap-2">
                               <span className="text-sm font-semibold">{p.name}</span>
                               <span className="text-sm font-bold text-primary">
-                                {isIntl ? `$ ${pAmt.toLocaleString("en-US")} USD` : `₹ ${pAmt.toLocaleString("en-IN")}`} / year
+                                {isIntl ? `$ ${pAmt.toLocaleString("en-US")} USD` : `₹ ${pAmt.toLocaleString("en-IN")}`}
+                                {p.durationYears && <span className="font-normal text-muted-foreground text-xs ml-1">/ {p.durationYears === 1 ? "1 yr" : `${p.durationYears} yrs`}</span>}
                               </span>
                             </span>
                             <span className="mt-0.5 block text-xs text-muted-foreground">{p.summary}</span>
+                            {pAmt > 0 && (
+                              <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                                + {isIntl ? `$ ${Math.round(pAmt * (p.gstRate || 18) / 100).toLocaleString("en-US")} USD` : `₹ ${Math.round(pAmt * (p.gstRate || 18) / 100).toLocaleString("en-IN")}`} GST ({p.gstRate || 18}%) = {isIntl ? `$ ${(pAmt + Math.round(pAmt * (p.gstRate || 18) / 100)).toLocaleString("en-US")} USD` : `₹ ${(pAmt + Math.round(pAmt * (p.gstRate || 18) / 100)).toLocaleString("en-IN")}`} total payable
+                              </span>
+                            )}
                           </span>
                         </label>
                       );
@@ -669,17 +797,37 @@ function Checkout() {
               )}
 
               {step === 1 && (
-                <Panel title="Billing details">
+                <Panel
+                  title="Billing details"
+                  description="Provide your registered billing and contact information for your official membership invoice."
+                >
                   <div className="grid gap-4 sm:grid-cols-2">
+                    {/* 1. Registered Business Name */}
                     <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="legal">Registered business name</Label>
+                      <Label htmlFor="legal">
+                        Registered business name <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         id="legal"
                         value={legalName}
-                        onChange={(e) => setLegalName(e.target.value)}
+                        onChange={(e) => {
+                          setLegalName(e.target.value);
+                          clearError("legalName");
+                        }}
                         placeholder="As per registration certificate"
+                        className={cn(
+                          errors.legalName && "border-destructive focus-visible:ring-destructive"
+                        )}
                       />
+                      {errors.legalName && (
+                        <p className="text-[11px] text-destructive font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 inline shrink-0" />
+                          {errors.legalName}
+                        </p>
+                      )}
                     </div>
+
+                    {/* 2. GST / Tax Registration Number */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="gst">GST / Tax registration number</Label>
@@ -702,14 +850,20 @@ function Checkout() {
                           id="gst"
                           maxLength={15}
                           value={gstNumber}
-                          onChange={handleGstChange}
+                          onChange={(e) => {
+                            handleGstChange(e);
+                            clearError("gstNumber");
+                          }}
                           onBlur={() => {
                             if (gstNumber.length === 15 && !gstSuccess) {
                               fetchAndPopulateGst(gstNumber);
                             }
                           }}
                           placeholder="27AAAAA0000A1Z5"
-                          className="font-mono uppercase tracking-wider pr-8"
+                          className={cn(
+                            "font-mono uppercase tracking-wider pr-8",
+                            errors.gstNumber && "border-destructive focus-visible:ring-destructive"
+                          )}
                         />
                         {gstLoading && (
                           <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-primary" />
@@ -718,52 +872,225 @@ function Checkout() {
                           <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
                         )}
                       </div>
+                      {errors.gstNumber && (
+                        <p className="text-[11px] text-destructive font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 inline shrink-0" />
+                          {errors.gstNumber}
+                        </p>
+                      )}
                     </div>
+
+                    {/* 3. Billing Email */}
                     <div className="space-y-1.5">
-                      <Label htmlFor="bemail">Billing email</Label>
+                      <Label htmlFor="bemail">
+                        Billing email <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         id="bemail"
                         type="email"
                         value={billingEmail}
-                        onChange={(e) => setBillingEmail(e.target.value)}
-                        placeholder="rs9940806@gmail.com"
+                        onChange={(e) => {
+                          setBillingEmail(e.target.value);
+                          clearError("billingEmail");
+                        }}
+                        placeholder="billing@example.com"
+                        className={cn(
+                          errors.billingEmail && "border-destructive focus-visible:ring-destructive"
+                        )}
                       />
+                      {errors.billingEmail && (
+                        <p className="text-[11px] text-destructive font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 inline shrink-0" />
+                          {errors.billingEmail}
+                        </p>
+                      )}
                     </div>
+
+                    {/* 4. Contact Number with Country Code */}
                     <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="baddr">Billing address</Label>
+                      <Label htmlFor="bphone">
+                        Contact Number <span className="text-red-500">*</span>
+                      </Label>
+                      <PhoneInput
+                        id="bphone"
+                        name="billingPhone"
+                        value={billingPhone}
+                        onChange={(e) => {
+                          setBillingPhone(e.target.value);
+                          clearError("billingPhone");
+                        }}
+                        defaultCountry={isIntl ? "AE" : "IN"}
+                        placeholder="98765 43210"
+                        className={cn(
+                          errors.billingPhone && "border-destructive focus-within:border-destructive focus-within:ring-destructive/20"
+                        )}
+                      />
+                      {errors.billingPhone ? (
+                        <p className="text-[11px] text-destructive font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 inline shrink-0" />
+                          {errors.billingPhone}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          Select country code and enter active WhatsApp/mobile number for order updates.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 5. Billing Address */}
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="baddr">
+                        Billing address <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         id="baddr"
                         value={billingAddress}
-                        onChange={(e) => setBillingAddress(e.target.value)}
-                        placeholder="Street, area"
+                        onChange={(e) => {
+                          setBillingAddress(e.target.value);
+                          clearError("billingAddress");
+                        }}
+                        placeholder="Street address, building, suite"
+                        className={cn(
+                          errors.billingAddress && "border-destructive focus-visible:ring-destructive"
+                        )}
                       />
+                      {errors.billingAddress && (
+                        <p className="text-[11px] text-destructive font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 inline shrink-0" />
+                          {errors.billingAddress}
+                        </p>
+                      )}
                     </div>
+
+                    {/* 6. City */}
                     <div className="space-y-1.5">
-                      <Label htmlFor="bcity">City</Label>
+                      <Label htmlFor="bcity">
+                        City <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         id="bcity"
                         value={billingCity}
-                        onChange={(e) => setBillingCity(e.target.value)}
+                        onChange={(e) => {
+                          setBillingCity(e.target.value);
+                          clearError("billingCity");
+                        }}
                         placeholder="City"
+                        className={cn(
+                          errors.billingCity && "border-destructive focus-visible:ring-destructive"
+                        )}
                       />
+                      {errors.billingCity && (
+                        <p className="text-[11px] text-destructive font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 inline shrink-0" />
+                          {errors.billingCity}
+                        </p>
+                      )}
                     </div>
+
+                    {/* 7. State */}
                     <div className="space-y-1.5">
-                      <Label htmlFor="bstate">State</Label>
+                      <Label htmlFor="bstate">
+                        State <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         id="bstate"
                         value={billingState}
-                        onChange={(e) => setBillingState(e.target.value)}
-                        placeholder="State"
+                        onChange={(e) => {
+                          setBillingState(e.target.value);
+                          clearError("billingState");
+                        }}
+                        placeholder="State / Province"
+                        className={cn(
+                          errors.billingState && "border-destructive focus-visible:ring-destructive"
+                        )}
                       />
+                      {errors.billingState && (
+                        <p className="text-[11px] text-destructive font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 inline shrink-0" />
+                          {errors.billingState}
+                        </p>
+                      )}
                     </div>
+
+                    {/* 8. Postal code */}
                     <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="bpin">Postal code</Label>
+                      <Label htmlFor="bpin">
+                        Postal code / PIN code <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         id="bpin"
                         value={postalCode}
-                        onChange={(e) => setPostalCode(e.target.value)}
-                        placeholder="PIN code"
+                        onChange={(e) => {
+                          setPostalCode(e.target.value);
+                          clearError("postalCode");
+                        }}
+                        placeholder={isIntl ? "ZIP / Postal code" : "6-digit PIN code (e.g. 400001)"}
+                        className={cn(
+                          errors.postalCode && "border-destructive focus-visible:ring-destructive"
+                        )}
                       />
+                      {errors.postalCode && (
+                        <p className="text-[11px] text-destructive font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 inline shrink-0" />
+                          {errors.postalCode}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 9. Terms and Conditions & Policy Agreement */}
+                    <div className="pt-3 border-t border-border/80 sm:col-span-2">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="terms-agree"
+                          checked={agreeTerms}
+                          onCheckedChange={(checked) => {
+                            setAgreeTerms(Boolean(checked));
+                            if (checked) {
+                              clearError("agreeTerms");
+                            }
+                          }}
+                          className={cn(
+                            "mt-0.5",
+                            errors.agreeTerms && "border-destructive ring-2 ring-destructive/30"
+                          )}
+                        />
+                        <div className="space-y-1">
+                          <label
+                            htmlFor="terms-agree"
+                            className="text-xs sm:text-sm font-medium leading-normal text-foreground cursor-pointer select-none"
+                          >
+                            I agree to the{" "}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setShowTermsModal(true);
+                              }}
+                              className="font-bold text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                            >
+                              Terms and Conditions
+                            </button>{" "}
+                            and{" "}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setShowPrivacyModal(true);
+                              }}
+                              className="font-bold text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                            >
+                              Privacy Policy
+                            </button>
+                            <span className="text-red-500 ml-1 font-bold">*</span>
+                          </label>
+                          {errors.agreeTerms && (
+                            <p className="text-[11px] text-destructive font-medium flex items-center gap-1 mt-1">
+                              <AlertCircle className="h-3 w-3 inline shrink-0" />
+                              {errors.agreeTerms}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </Panel>
@@ -849,23 +1176,6 @@ function Checkout() {
                     </div>
                   </div>
 
-                  {/* Next Step Action Alert */}
-                  <div className="mt-6 rounded-xl bg-sky-50 dark:bg-sky-950/40 p-4 border border-sky-200 dark:border-sky-900/60">
-                    <div className="flex items-start gap-3">
-                      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sky-600 text-white font-bold text-xs">
-                        1
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-sky-950 dark:text-sky-100">
-                          Next Step: Upload Compliance Documents for Verification
-                        </h4>
-                        <p className="mt-0.5 text-xs text-sky-900/80 dark:text-sky-300/80">
-                          To get your business approved and verified by the Chamber Central Admin, please upload your official registration documents (GST Certificate, PAN Card, or Trade License PDF).
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Actions */}
                   <div className="mt-6 flex flex-col gap-2.5">
                     <Button asChild size="lg" className="w-full shadow-sm">
@@ -894,11 +1204,18 @@ function Checkout() {
                   </Button>
                   <Button
                     size="lg"
-                    className="sm:min-w-48"
+                    className="sm:min-w-48 font-semibold shadow-xs"
                     disabled={loading}
                     onClick={() => {
-                      if (step === 2) handleConfirmAndPay();
-                      else setStep((s) => s + 1);
+                      if (step === 0) {
+                        setStep(1);
+                      } else if (step === 1) {
+                        const isValid = validateBillingStep();
+                        if (!isValid) return;
+                        setStep(2);
+                      } else if (step === 2) {
+                        handleConfirmAndPay();
+                      }
                     }}
                   >
                     {loading ? (
@@ -951,7 +1268,7 @@ function Checkout() {
                       )}
                       <div className="flex justify-between items-center">
                         <dt className="text-muted-foreground">Plan</dt>
-                        <dd className="font-semibold text-primary">{active.name} (1 Year)</dd>
+                        <dd className="font-semibold text-primary">{active.name} ({durationLabel})</dd>
                       </div>
                       <div className="flex justify-between items-center">
                         <dt className="text-muted-foreground">Payment Mode</dt>
@@ -959,10 +1276,24 @@ function Checkout() {
                       </div>
                     </dl>
 
+                    {gstAmount > 0 && (
+                      <div className="flex justify-between items-center text-xs text-muted-foreground">
+                        <dt>Base Amount</dt>
+                        <dd className="font-medium">{isIntl ? `$ ${subtotal.toLocaleString("en-US")} USD` : `₹ ${subtotal.toLocaleString("en-IN")}`}</dd>
+                      </div>
+                    )}
+                    {gstAmount > 0 && (
+                      <div className="flex justify-between items-center text-xs text-muted-foreground">
+                        <dt>GST / Tax ({gstRate}%)</dt>
+                        <dd className="font-medium text-orange-600 dark:text-orange-400">
+                          + {isIntl ? `$ ${gstAmount.toLocaleString("en-US")} USD` : `₹ ${gstAmount.toLocaleString("en-IN")}`}
+                        </dd>
+                      </div>
+                    )}
                     <div className="pt-3 border-t border-dashed border-border flex justify-between items-baseline">
                       <span className="text-sm font-semibold text-foreground">Total Paid</span>
                       <span className="text-lg font-bold text-emerald-600">
-                        {isIntl ? `$ ${checkoutAmount.toLocaleString("en-US")} USD` : `₹ ${checkoutAmount.toLocaleString("en-IN")}`}
+                        {isIntl ? `$ ${totalWithGst.toLocaleString("en-US")} USD` : `₹ ${totalWithGst.toLocaleString("en-IN")}`}
                       </span>
                     </div>
 
@@ -992,18 +1323,26 @@ function Checkout() {
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">Term</dt>
-                      <dd className="font-medium">1 Year</dd>
+                      <dd className="font-medium">{durationLabel}</dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <dt className="text-muted-foreground">Subtotal</dt>
+                      <dt className="text-muted-foreground">Base Amount</dt>
                       <dd className="font-medium">
-                        {isIntl ? `$ ${checkoutAmount.toLocaleString("en-US")} USD` : `₹ ${checkoutAmount.toLocaleString("en-IN")}`}
+                        {isIntl ? `$ ${subtotal.toLocaleString("en-US")} USD` : `₹ ${subtotal.toLocaleString("en-IN")}`}
                       </dd>
                     </div>
+                    {gstAmount > 0 && (
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-muted-foreground">GST / Tax ({gstRate}%)</dt>
+                        <dd className="font-medium text-orange-600 dark:text-orange-400">
+                          + {isIntl ? `$ ${gstAmount.toLocaleString("en-US")} USD` : `₹ ${gstAmount.toLocaleString("en-IN")}`}
+                        </dd>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-3 border-t border-border pt-2.5">
-                      <dt className="font-semibold">Total</dt>
+                      <dt className="font-semibold">Total Payable</dt>
                       <dd className="font-bold text-primary">
-                        {isIntl ? `$ ${checkoutAmount.toLocaleString("en-US")} USD` : `₹ ${checkoutAmount.toLocaleString("en-IN")}`}
+                        {isIntl ? `$ ${totalWithGst.toLocaleString("en-US")} USD` : `₹ ${totalWithGst.toLocaleString("en-IN")}`}
                       </dd>
                     </div>
                   </dl>
@@ -1018,6 +1357,136 @@ function Checkout() {
           </div>
         </div>
       </div>
+
+      {/* Terms and Conditions Modal */}
+      <Dialog open={showTermsModal} onOpenChange={setShowTermsModal}>
+        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              RIFAH Chamber — Terms & Conditions
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Official membership subscription terms and chamber governing rules.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-xs text-muted-foreground leading-relaxed pt-2">
+            <div>
+              <h4 className="font-bold text-foreground text-sm">1. Membership & Chamber Privileges</h4>
+              <p className="mt-1">
+                Membership in RIFAH Chamber of Commerce and Industry provides access to verified B2B directory listings, networking events, business referrals, chapter activities, and cross-border trade opportunities according to the tier selected.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-foreground text-sm">2. Verification & Compliance</h4>
+              <p className="mt-1">
+                All business listings and memberships undergo accreditation verification by Chapter and Central Administrators. Members agree to provide authentic business documentation (GST, Trade License, or Incorporation Certificate) upon request.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-foreground text-sm">3. Code of Ethical Conduct</h4>
+              <p className="mt-1">
+                Members are expected to adhere to ethical business practices, honest dealings, and respect the chamber community guidelines. Any fraudulent or misleading activity may result in suspension of chamber privileges without refund.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-foreground text-sm">4. Subscription Term & Renewal</h4>
+              <p className="mt-1">
+                Membership fees are billed on an annual or multi-year basis according to the selected plan. Invoices are generated with statutory tax compliances (GST/tax invoice).
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-foreground text-sm">5. Cancellations & Refunds</h4>
+              <p className="mt-1">
+                Membership fees are non-refundable once activated. In the event of a duplicate or incorrect charge, refund requests submitted within 7 business days will be processed through the original payment method.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-border flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTermsModal(false)}
+            >
+              Close
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setAgreeTerms(true);
+                clearError("agreeTerms");
+                setShowTermsModal(false);
+              }}
+            >
+              I Understand &amp; Agree
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Privacy Policy Modal */}
+      <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
+        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Lock className="h-5 w-5 text-emerald-600" />
+              RIFAH Chamber — Privacy Policy
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              How we protect and manage your business contact and payment data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-xs text-muted-foreground leading-relaxed pt-2">
+            <div>
+              <h4 className="font-bold text-foreground text-sm">1. Data Collection & Usage</h4>
+              <p className="mt-1">
+                We collect business details, billing addresses, contact numbers, and representative emails solely for membership administration, directory indexing, and transactional communications.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-foreground text-sm">2. Payment Security</h4>
+              <p className="mt-1">
+                Payment transactions are processed securely via RBI-authorized/PCI-DSS compliant payment gateways (Razorpay). RIFAH does not store sensitive credit/debit card numbers or bank account credentials on its servers.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-foreground text-sm">3. Directory Visibility Control</h4>
+              <p className="mt-1">
+                Members have full control over public visibility settings for their phone numbers, email addresses, and catalog items through their Business Dashboard profile settings.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-foreground text-sm">4. Data Sharing & Third Parties</h4>
+              <p className="mt-1">
+                We never sell or rent your business or personal data to third-party advertisers. Data is shared exclusively with designated chapter secretaries and chamber administrators for governance and networking services.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-border flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPrivacyModal(false)}
+            >
+              Close
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setAgreeTerms(true);
+                clearError("agreeTerms");
+                setShowPrivacyModal(false);
+              }}
+            >
+              I Understand &amp; Agree
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PublicLayout>
   );
 }

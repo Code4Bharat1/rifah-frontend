@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
-import { Building2, Search, ExternalLink } from "lucide-react";
+import { Building2, Search, ExternalLink, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
@@ -9,6 +10,16 @@ import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@shared/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -28,6 +39,8 @@ function AdminBusinesses() {
   const basePath = user?.role === "chapter_admin" ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
   const [q, setQ] = useState("");
   const [industry, setIndustry] = useState("all");
+  const [statusTargetBusiness, setStatusTargetBusiness] = useState(null);
+  const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   
   const { data: businessesData, refetch } = useBusinesses({ 
     search: q || undefined,
@@ -40,14 +53,20 @@ function AdminBusinesses() {
   const mainCategories = categories.filter(c => !c.parent);
   const subCategories = categories.filter(c => c.parent);
 
-  const handleToggleStatus = async (b) => {
+  const handleConfirmToggleStatus = async () => {
+    if (!statusTargetBusiness) return;
+    const b = statusTargetBusiness;
     const newStatus = b.status === "active" ? "suspended" : "active";
-    if (!confirm(`Change status of "${b.name}" to ${newStatus}?`)) return;
     try {
+      setIsStatusUpdating(true);
       await businessApi.updateStatus(b._id, { status: newStatus });
+      toast.success(`Business ${newStatus === "active" ? "activated" : "suspended"} successfully`);
+      setStatusTargetBusiness(null);
       refetch();
     } catch (err) {
-      alert(err.message || "Failed to update business status.");
+      toast.error(err.message || "Failed to update business status.");
+    } finally {
+      setIsStatusUpdating(false);
     }
   };
 
@@ -144,7 +163,7 @@ function AdminBusinesses() {
                       View Details
                     </Link>
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleToggleStatus(r)}>
+                  <Button size="sm" variant="ghost" onClick={() => setStatusTargetBusiness(r)}>
                     {r.status === "active" ? "Suspend" : "Activate"}
                   </Button>
                 </div>
@@ -153,6 +172,59 @@ function AdminBusinesses() {
           />
         </Panel>
       </div>
+
+      {/* Suspend / Activate Confirmation Alert Dialog */}
+      <AlertDialog open={!!statusTargetBusiness} onOpenChange={(open) => !open && setStatusTargetBusiness(null)}>
+        <AlertDialogContent className="sm:max-w-[440px]">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-full ${statusTargetBusiness?.status === "active" ? "bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400" : "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"}`}>
+                {statusTargetBusiness?.status === "active" ? (
+                  <AlertTriangle className="h-5 w-5" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5" />
+                )}
+              </div>
+              <AlertDialogTitle className="text-lg font-bold">
+                {statusTargetBusiness?.status === "active" ? "Suspend Business" : "Activate Business"}
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2 text-sm leading-relaxed text-muted-foreground">
+              {statusTargetBusiness?.status === "active" ? (
+                <>
+                  Are you sure you want to suspend <strong className="text-foreground">{statusTargetBusiness?.name}</strong>? 
+                  Once suspended, this business will not be visible to members or publicly listed in the directory.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to activate <strong className="text-foreground">{statusTargetBusiness?.name}</strong>? 
+                  Once activated, this business will be restored and listed publicly in the directory.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 gap-2">
+            <AlertDialogCancel disabled={isStatusUpdating} onClick={() => setStatusTargetBusiness(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isStatusUpdating}
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmToggleStatus();
+              }}
+              className={statusTargetBusiness?.status === "active" 
+                ? "bg-red-600 hover:bg-red-700 text-white" 
+                : "bg-emerald-600 hover:bg-emerald-700 text-white"}
+            >
+              {isStatusUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isStatusUpdating 
+                ? (statusTargetBusiness?.status === "active" ? "Suspending..." : "Activating...") 
+                : (statusTargetBusiness?.status === "active" ? "Yes, Suspend" : "Yes, Activate")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

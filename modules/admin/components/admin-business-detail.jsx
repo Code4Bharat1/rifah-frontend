@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, ShieldCheck, MapPinned, Mail, Phone, ExternalLink, FileCheck2, Download } from "lucide-react";
+import { Building2, ShieldCheck, MapPinned, Mail, Phone, ExternalLink, FileCheck2, Download, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -10,6 +10,16 @@ import { Panel } from "@shared/components/rifah/ui-bits";
 import { MembershipBadge, VerificationBadge, Pill } from "@shared/components/rifah/badges";
 import { Button } from "@shared/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@shared/components/ui/alert-dialog";
 import { businessApi, verificationApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -24,6 +34,8 @@ export function AdminBusinessDetail({ id }) {
   const [verificationRecord, setVerificationRecord] = useState(null);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -54,12 +66,16 @@ export function AdminBusinessDetail({ id }) {
 
   const handleToggleStatus = async () => {
     try {
+      setStatusUpdating(true);
       const newStatus = business.status === "active" ? "suspended" : "active";
       await businessApi.updateStatus(business._id, { status: newStatus });
       setBusiness((prev) => ({ ...prev, status: newStatus }));
-      toast.success(`Business ${newStatus === "active" ? "activated" : "suspended"}`);
+      toast.success(`Business ${newStatus === "active" ? "activated" : "suspended"} successfully`);
+      setConfirmOpen(false);
     } catch (err) {
       toast.error(err.message || "Failed to update status");
+    } finally {
+      setStatusUpdating(false);
     }
   };
 
@@ -261,7 +277,7 @@ export function AdminBusinessDetail({ id }) {
               <Button 
                 className="w-full" 
                 variant={business.status === "active" ? "destructive" : "default"}
-                onClick={handleToggleStatus}
+                onClick={() => setConfirmOpen(true)}
               >
                 {business.status === "active" ? "Suspend Business" : "Activate Business"}
               </Button>
@@ -331,6 +347,59 @@ export function AdminBusinessDetail({ id }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Suspend / Activate Confirmation Dialog */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent className="sm:max-w-[440px]">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-full ${business.status === "active" ? "bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400" : "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"}`}>
+                {business.status === "active" ? (
+                  <AlertTriangle className="h-5 w-5" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5" />
+                )}
+              </div>
+              <AlertDialogTitle className="text-lg font-bold">
+                {business.status === "active" ? "Suspend Business" : "Activate Business"}
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2 text-sm leading-relaxed text-muted-foreground">
+              {business.status === "active" ? (
+                <>
+                  Are you sure you want to suspend <strong className="text-foreground">{business.name}</strong>? 
+                  Once suspended, this business will not be visible to members or publicly listed in the directory.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to activate <strong className="text-foreground">{business.name}</strong>? 
+                  Once activated, this business will be restored and listed publicly in the directory.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 gap-2">
+            <AlertDialogCancel disabled={statusUpdating} onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={statusUpdating}
+              onClick={(e) => {
+                e.preventDefault();
+                handleToggleStatus();
+              }}
+              className={business.status === "active" 
+                ? "bg-red-600 hover:bg-red-700 text-white" 
+                : "bg-emerald-600 hover:bg-emerald-700 text-white"}
+            >
+              {statusUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {statusUpdating 
+                ? (business.status === "active" ? "Suspending..." : "Activating...") 
+                : (business.status === "active" ? "Yes, Suspend" : "Yes, Activate")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

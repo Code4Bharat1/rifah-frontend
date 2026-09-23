@@ -81,13 +81,16 @@ const navs = {
       { label: "Networking", to: "/biz/networking", icon: Handshake },
       { label: "More", to: "/biz/profile", icon: LayoutGrid },
     ],
+    // Pinned links are rendered before every collapsible category.
+    // Keep the workspace landing page permanently at the top of the sidebar.
+    pinned: [
+      { label: "Dashboard", to: "/biz", icon: Gauge },
+    ],
     categories: [
       {
         category: "OVERVIEW",
         items: [
-          { label: "Dashboard", to: "/biz", icon: Gauge },
           { label: "Operations Center", to: "/biz/operations", icon: Radio },
-         
           { label: "Feeds", to: "/biz/feeds", icon: Compass },
           { label: "Events", to: "/biz/events", icon: CalendarDays },
         ],
@@ -123,7 +126,7 @@ const navs = {
   admin: {
     title: "RIFAH Central Administration",
     primary: [
-      { label: "Overview", to: "/admin", icon: Gauge },
+      { label: "Dashboard", to: "/admin", icon: Gauge },
       { label: "Operations Center", to: "/admin/operations", icon: Radio },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
@@ -132,9 +135,12 @@ const navs = {
     ],
     categories: [
       {
+        isStandalone: true,
+        item: { label: "Dashboard", to: "/admin", icon: Gauge },
+      },
+      {
         category: "OVERVIEW & OPERATIONS",
         items: [
-          { label: "Overview", to: "/admin", icon: Gauge },
           { label: "Operations Center", to: "/admin/operations", icon: Radio },
         ],
       },
@@ -196,9 +202,12 @@ const roleNavs = {
     ],
     categories: [
       {
+        isStandalone: true,
+        item: { label: "Dashboard", to: "/chapter-admin", icon: Gauge },
+      },
+      {
         category: "OVERVIEW & OPERATIONS",
         items: [
-          { label: "Dashboard", to: "/chapter-admin", icon: Gauge },
           { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
           { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
         ],
@@ -245,9 +254,12 @@ const roleNavs = {
     ],
     categories: [
       {
+        isStandalone: true,
+        item: { label: "Dashboard", to: "/state-admin", icon: Gauge },
+      },
+      {
         category: "OVERVIEW & OPERATIONS",
         items: [
-          { label: "Dashboard", to: "/state-admin", icon: Gauge },
           { label: "Operations Center", to: "/state-admin/operations", icon: Radio },
         ],
       },
@@ -730,7 +742,10 @@ export function AppShell({
           onScroll={handleNavScroll}
           className="mt-2 flex-1 space-y-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-4"
         >
-          {(nav?.categories || []).map((group, index) => (
+          {[
+            ...(nav?.pinned || []).map((item) => ({ isStandalone: true, item })),
+            ...(nav?.categories || []),
+          ].map((group, index) => (
             <SidebarCategoryGroup
               key={`nav-group-${group.category || group.item?.label || index}`}
               group={group}
@@ -1199,7 +1214,10 @@ export function MoreSheet({ role, isBizVerified = true }) {
   const [open, setOpen] = useState(false);
   const path = useCurrentPath();
   const nav = useResolvedNav(role);
-  const categories = nav?.categories || [];
+  const categories = [
+    ...(nav?.pinned || []).map((item) => ({ isStandalone: true, item })),
+    ...(nav?.categories || []),
+  ];
   const isActive = (to) => {
     if (path === to) return true;
     const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];

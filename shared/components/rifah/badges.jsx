@@ -68,6 +68,30 @@ export function MembershipBadge({ tier }) {
   if (!tier) return <Pill tone="neutral">Free member</Pill>;
   
   const normalized = tier.toString().toLowerCase();
+
+  // New tiers — Silver / Gold / Platinum / Diamond
+  if (normalized === "silver")
+    return <Pill tone="neutral" icon={<Star className="h-3.5 w-3.5" />}>Silver member</Pill>;
+  if (normalized === "gold")
+    return (
+      <Pill tone="warning" icon={<Star className="h-3.5 w-3.5" />}>
+        Gold member
+      </Pill>
+    );
+  if (normalized === "platinum")
+    return (
+      <Pill tone="brand" icon={<Crown className="h-3.5 w-3.5" />}>
+        Platinum member
+      </Pill>
+    );
+  if (normalized === "diamond")
+    return (
+      <Pill tone="navy" icon={<Crown className="h-3.5 w-3.5" />}>
+        Diamond member
+      </Pill>
+    );
+
+  // Legacy tiers — backwards compat
   if (normalized === "free") return <Pill tone="neutral">Free member</Pill>;
   if (normalized === "basic") return <Pill tone="primary">Basic member</Pill>;
   if (normalized === "premium")
