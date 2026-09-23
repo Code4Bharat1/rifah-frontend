@@ -1,8 +1,10 @@
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, TrendingUp } from "lucide-react";
 
 
 import { cn } from "@shared/lib/utils";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 
 export function StatCard({
   label,
@@ -291,5 +293,38 @@ export function Steps({ steps, current }) {
         );
       })}
     </ol>
+  );
+}
+
+export function UserAvatar({ user, className, iconClassName, fallbackClassName }) {
+  const [imgError, setImgError] = useState(false);
+  const rawAvatar = user?.avatar || user?.picture || user?.image;
+  const avatarUrl = rawAvatar ? resolveMediaUrl(rawAvatar) : "";
+
+  useEffect(() => {
+    setImgError(false);
+  }, [avatarUrl]);
+
+  if (avatarUrl && !imgError) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={user?.name || "Profile"}
+        onError={() => setImgError(true)}
+        className={cn("h-7 w-7 rounded-full object-cover shrink-0", className)}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={cn(
+        "grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground",
+        className,
+        fallbackClassName
+      )}
+    >
+      {user?.name?.charAt(0)?.toUpperCase() || "U"}
+    </span>
   );
 }

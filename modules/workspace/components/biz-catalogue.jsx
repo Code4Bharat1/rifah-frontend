@@ -1,5 +1,5 @@
 "use client";
-import { Package, Pencil, Plus, Trash2, Loader2, UploadCloud, X, Image as ImageIcon } from "lucide-react";
+import { Package, Pencil, Plus, Trash2, Loader2, UploadCloud, X, Image as ImageIcon, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -32,7 +32,12 @@ export function BizCatalogueManager({ embedded = false }) {
   const queryClient = useQueryClient();
   const { data: business } = useMyBusiness();
   const { data: catalogueItems, refetch } = useBusinessCatalogue(business?._id);
-  const items = catalogueItems || [];
+  const allItems = catalogueItems || [];
+  const activeItems = allItems.filter(item => item.status === "Active");
+  const hiddenItems = allItems.filter(item => item.status === "Draft" || item.status === "Archived");
+  
+  const [activeTab, setActiveTab] = useState("Active");
+  const items = activeTab === "Active" ? activeItems : hiddenItems;
 
   const syncCatalogueCache = () => {
     refetch();
@@ -217,6 +222,17 @@ export function BizCatalogueManager({ embedded = false }) {
     }
   };
 
+  const handleToggleVisibility = async (item) => {
+    try {
+      const newStatus = item.status === "Active" ? "Draft" : "Active";
+      await catalogueApi.update(item._id, { status: newStatus });
+      toast.success(newStatus === "Active" ? "Item is now visible on profile" : "Item hidden from profile");
+      syncCatalogueCache();
+    } catch (err) {
+      toast.error(err.message || "Failed to update item visibility.");
+    }
+  };
+
   const content = (
     <div className="space-y-4">
       {embedded && (
@@ -389,18 +405,43 @@ export function BizCatalogueManager({ embedded = false }) {
             </DialogContent>
           </Dialog>
 
+          {allItems.length > 0 && (
+            <div className="mb-4 flex items-center gap-2 border-b border-slate-200 pb-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab("Active")}
+                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${
+                  activeTab === "Active" ? "border-[#0088d1] text-[#0088d1]" : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Published ({activeItems.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("Hidden")}
+                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors border-b-2 ${
+                  activeTab === "Hidden" ? "border-emerald-600 text-emerald-600" : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Hidden ({hiddenItems.length})
+              </button>
+            </div>
+          )}
+
           {items.length === 0 ? (
         <EmptyState
           icon={Package}
-          title="No catalogue items"
-          description="Add products or services so buyers can find and enquire about your offerings."
-          action={
-            <Button onClick={() => setOpenAdd(true)}>
-              <Plus className="h-4 w-4" /> Add your first item
-            </Button>
-          }
-        />
-      ) : (
+            title={activeTab === "Active" ? "No published items" : "No hidden items"}
+            description={activeTab === "Active" ? "Add products or services so buyers can find and enquire about your offerings." : "You have no hidden items."}
+            action={
+              activeTab === "Active" && (
+                <Button onClick={() => setOpenAdd(true)}>
+                  <Plus className="h-4 w-4" /> Add your first item
+                </Button>
+              )
+            }
+          />
+        ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl items-start">
           {items.map((item) => (
             <div
@@ -433,7 +474,14 @@ export function BizCatalogueManager({ embedded = false }) {
                 )}
 
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-base font-bold text-slate-900 leading-snug">{item.name}</h3>
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-base font-bold text-slate-900 leading-snug">{item.name}</h3>
+                    {(item.status === 'Draft' || item.status === 'Archived') && (
+                      <span className="inline-flex w-fit items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                        <EyeOff className="h-3 w-3" /> Hidden from public
+                      </span>
+                    )}
+                  </div>
                   <span
                     className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-medium ${
                       item.type === "Product"
@@ -462,13 +510,25 @@ export function BizCatalogueManager({ embedded = false }) {
                 )}
               </div>
 
-              <div className="mt-4 flex items-center gap-3">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleEditClick(item)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 hover:bg-sky-100 px-4 py-1.5 text-xs font-medium text-sky-600 border border-sky-100/80 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 hover:bg-sky-100 px-3.5 py-1.5 text-xs font-medium text-sky-600 border border-sky-100/80 transition-colors cursor-pointer"
                 >
                   <Pencil className="h-3.5 w-3.5" /> Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleVisibility(item)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium border transition-colors cursor-pointer ${
+                    item.status === 'Draft' || item.status === 'Archived'
+                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border-emerald-100/80'
+                      : 'bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-100/80'
+                  }`}
+                >
+                  {item.status === 'Draft' || item.status === 'Archived' ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                  {item.status === 'Draft' || item.status === 'Archived' ? 'Show' : 'Hide'}
                 </button>
                 <button
                   type="button"
