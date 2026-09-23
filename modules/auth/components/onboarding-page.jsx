@@ -50,7 +50,14 @@ export function OnboardingPage() {
   const { data: plansData } = useMembershipPlans();
 
   const chapters = chaptersData || [];
-  const plans = plansData ? Object.entries(plansData).map(([id, p]) => ({ id, ...p })) : [];
+  const plans = React.useMemo(() => {
+    const source = Array.isArray(plansData)
+      ? plansData.map((p) => ({ id: p.id || p.planId, ...p }))
+      : Object.entries(plansData || {}).map(([id, p]) => ({ id, ...p }));
+    return source
+      .filter((p) => p.id && p.isActive !== false)
+      .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
+  }, [plansData]);
 
   const { data: categoriesData } = useCategories();
   const categories = Array.isArray(categoriesData) ? categoriesData : [];
@@ -95,6 +102,19 @@ export function OnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  // Sync default membership tier when plans load
+  useEffect(() => {
+    if (plans.length > 0) {
+      setBizData((prev) => {
+        if (!plans.some((p) => p.id.toLowerCase() === (prev.membershipTier || "").toLowerCase())) {
+          const defaultPlan = plans.find((p) => p.isRecommended) || plans[0];
+          return { ...prev, membershipTier: defaultPlan.id };
+        }
+        return prev;
+      });
+    }
+  }, [plans]);
 
   // Pre-fill fields from Google User if available
   useEffect(() => {
@@ -629,7 +649,7 @@ export function OnboardingPage() {
                                 : "border-border bg-surface hover:bg-muted/40 hover:border-primary/40"
                             )}
                           >
-                            {p.id === "premium" && (
+                            {p.isRecommended && (
                               <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
                                 Recommended
                               </span>

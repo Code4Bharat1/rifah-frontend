@@ -10,15 +10,23 @@ import { businessApi } from "@shared/lib/api-services";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
-import { useChapters, useCategories } from "@shared/hooks/use-rifah-api";
+import { useChapters, useCategories, useMembershipPlans } from "@shared/hooks/use-rifah-api";
 
 export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const { data: chaptersData } = useChapters();
   const { data: categoriesData } = useCategories();
+  const { data: plansData } = useMembershipPlans();
   
   const chapters = Array.isArray(chaptersData) ? chaptersData : [];
   const categories = Array.isArray(categoriesData) ? categoriesData : [];
+  const activePlansList = plansData
+    ? (Array.isArray(plansData)
+        ? plansData.map((p) => ({ id: p.id || p.planId, ...p }))
+        : Object.entries(plansData).map(([id, p]) => ({ id, ...p })))
+        .filter((p) => p.id && p.isActive !== false)
+        .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0))
+    : [];
   
   const mainCategories = categories.filter(c => !c.parent);
   const subCategories = categories.filter(c => c.parent);
@@ -295,14 +303,27 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
           <div className="grid grid-cols-2 gap-4 rounded-md bg-slate-50 p-4 border border-slate-200">
             <div className="space-y-2">
               <Label>Membership Tier *</Label>
-              <Select value={formData.membershipTier} onValueChange={(val) => handleSelectChange("membershipTier", val)}>
+              <Select 
+                value={formData.membershipTier} 
+                onValueChange={(val) => {
+                  const matchingPlan = activePlansList.find(p => p.name === val || p.id === val.toLowerCase());
+                  setFormData(prev => ({
+                    ...prev,
+                    membershipTier: val,
+                    amountCollected: matchingPlan?.price ? matchingPlan.price : (val === "Free" ? 0 : prev.amountCollected)
+                  }));
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Tier" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Free">Free (Basic Listing)</SelectItem>
-                  <SelectItem value="Premium">Premium</SelectItem>
-                  <SelectItem value="Elite">Elite</SelectItem>
+                  {activePlansList.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.name}>
+                      {plan.name} {plan.price > 0 ? `(₹${plan.price.toLocaleString("en-IN")})` : "(Free)"}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -310,7 +331,7 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
             {formData.membershipTier !== "Free" && (
               <div className="space-y-2">
                 <Label htmlFor="amountCollected">Cash Collected (₹ / $)</Label>
-                <Input id="amountCollected" name="amountCollected" type="number" min="0" value={formData.amountCollected} onChange={handleChange} placeholder="e.g. 5000" />
+                <Input id="amountCollected" name="amountCollected" type="number" min="0" value={formData.amountCollected} onChange={handleChange} placeholder="e.g. 3000" />
               </div>
             )}
           </div>

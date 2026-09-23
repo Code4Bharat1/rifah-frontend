@@ -46,20 +46,35 @@ const loadRazorpayScript = () => {
 
 function Checkout() {
   const searchParams = useSearchParams();
-  const planParam = searchParams?.get("plan") || "premium";
+  const planParam = searchParams?.get("plan") || "";
 
   const queryClient = useQueryClient();
   const { user: currentUser, refreshProfile } = useAuth();
   const { data: business } = useMyBusiness();
   const { data: plansData } = useMembershipPlans();
   const plans = plansData 
-    ? Object.entries(plansData)
-        .map(([id, p]) => ({ id, ...p }))
+    ? (Array.isArray(plansData) ? plansData.map((p) => ({ id: p.id || p.planId, ...p })) : Object.entries(plansData))
+        .map((item) => (Array.isArray(item) ? { id: item[0], ...item[1] } : item))
         .filter((p) => p.isActive !== false && p.price > 0)
+        .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0))
     : [];
 
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(planParam);
+
+  useEffect(() => {
+    if (plans.length > 0) {
+      const match = plans.find(
+        (p) => p.id === (planParam || selected) || p.name?.toLowerCase() === (planParam || selected).toLowerCase()
+      );
+      if (match) {
+        setSelected(match.id);
+      } else if (!plans.some((p) => p.id === selected)) {
+        const fallback = plans.find((p) => p.isRecommended) || plans[0];
+        if (fallback) setSelected(fallback.id);
+      }
+    }
+  }, [plans, planParam]);
   const [method, setMethod] = useState("razorpay");
   const [loading, setLoading] = useState(false);
   const [invoiceId, setInvoiceId] = useState("");

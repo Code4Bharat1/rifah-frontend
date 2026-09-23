@@ -1089,23 +1089,22 @@ function BizMembership() {
   }, [business]);
 
   const plans = plansData || {};
-  const tierName = membershipData?.planId || business?.membership || "premium";
+  const tierName = membershipData?.planName || membershipData?.planId || business?.membership || "Silver";
   const currentTier = tierName.toLowerCase();
 
-  const currentPlan = plans[currentTier] || {
-    name: membershipData?.planName || (currentTier === "premium" ? "Premium" : currentTier === "enterprise" ? "Enterprise" : currentTier === "basic" ? "Basic" : "Free"),
-    price: membershipData?.price || (currentTier === "premium" ? 12999 : currentTier === "enterprise" ? 29999 : currentTier === "basic" ? 4999 : 0),
-    summary: currentTier === "free" ? "Get started on RIFAH Connect" : "For established businesses. Get maximum visibility and opportunities.",
+  const matchedPlan = Object.values(plans).find(
+    (p) => (p.id || p.planId || "").toLowerCase() === currentTier || (p.name || "").toLowerCase() === currentTier
+  ) || plans[currentTier];
+
+  const currentPlan = matchedPlan || {
+    name: membershipData?.planName || tierName || "Silver",
+    price: membershipData?.price ?? 0,
+    summary: membershipData?.summary || "Active Chamber Membership",
     features: membershipData?.features?.length > 0 ? membershipData.features : [
-      "Featured listing in directory",
-      "Verified badge",
-      "Unlimited leads",
-      "Chamber event passes",
-      "Priority RFQ quoting privileges",
-      "Direct buyer enquiries",
-      "Business networking opportunities",
-      "Access to exclusive events",
-      "Dedicated support",
+      "Directory listing with Verified Chamber Badge",
+      "Lead enquiries access",
+      "Catalogue listing",
+      "Chamber community & chapter networking",
     ],
   };
 
@@ -1256,65 +1255,29 @@ function BizMembership() {
   // Dynamic available plans computed from DB / API
   const allAvailablePlans = useMemo(() => {
     const rawPlans = plansData && typeof plansData === "object" ? plansData : {};
-    const keys = Object.keys(rawPlans);
+    const entries = Array.isArray(rawPlans)
+      ? rawPlans.map(p => ({ id: p.id || p.planId, ...p }))
+      : Object.entries(rawPlans).map(([key, p]) => ({ id: p.id || p.planId || key, ...p }));
 
-    if (keys.length > 0) {
-      return keys.map((key) => {
-        const p = rawPlans[key] || {};
-        const pId = (p.id || p.planId || key).toLowerCase();
-        const priceNum = Number(p.price) || 0;
-        return {
-          id: pId,
-          name: p.name || key.charAt(0).toUpperCase() + key.slice(1),
-          price: priceNum === 0 ? "₹ 0" : `₹ ${priceNum.toLocaleString("en-IN")}`,
-          rawPrice: priceNum,
-          period: "/ year",
-          highlight: pId === "premium",
-          desc: p.summary || p.desc || (priceNum === 0 ? "Get started on RIFAH Connect with basic directory presence." : "Active chamber membership plan."),
-          features: Array.isArray(p.features) && p.features.length > 0 ? p.features : ["Directory listing", "Verified badge", "Leads access"],
-        };
-      });
-    }
+    const activeList = entries
+      .filter((p) => p.isActive !== false)
+      .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
 
-    return [
-      {
-        id: "free",
-        name: "Free",
-        price: "₹ 0",
-        rawPrice: 0,
-        period: "/ year",
-        desc: "Get started on RIFAH Connect with basic directory presence.",
-        features: ["Directory listing", "Basic search", "5 leads / mo", "Standard profile"],
-      },
-      {
-        id: "basic",
-        name: "Basic",
-        price: "₹ 4,999",
-        rawPrice: 4999,
-        period: "/ year",
-        desc: "For growing businesses looking to build credibility & leads.",
-        features: ["Verified Business Badge", "15 leads / mo", "Catalogue (up to 5 items)", "Direct buyer messaging"],
-      },
-      {
-        id: "premium",
-        name: "Premium",
-        price: "₹ 12,999",
-        rawPrice: 12999,
-        period: "/ year",
-        highlight: true,
-        desc: "Featured placement, priority leads and VIP event invitations.",
-        features: ["Featured on Directory", "Unlimited leads", "Catalogue (up to 25 items)", "Priority RFQ quoting", "2 Chamber event passes"],
-      },
-      {
-        id: "enterprise",
-        name: "Enterprise",
-        price: "₹ 29,999",
-        rawPrice: 29999,
-        period: "/ year",
-        desc: "For corporate groups, leaders and multi-chapter operations.",
-        features: ["All Premium benefits", "Multi-chapter directory", "Central Admin trade advisory", "Custom expo pavilion", "Unlimited catalogue"],
-      },
-    ];
+    return activeList.map((p) => {
+      const pId = (p.id || p.planId || "").toLowerCase();
+      const priceNum = Number(p.price) || 0;
+      const durationYears = Number(p.durationYears) || 1;
+      return {
+        id: pId,
+        name: p.name || pId.toUpperCase(),
+        price: priceNum === 0 ? "₹ 0" : `₹ ${priceNum.toLocaleString("en-IN")}`,
+        rawPrice: priceNum,
+        period: durationYears === 1 ? "/ year" : `/ ${durationYears} yrs`,
+        highlight: Boolean(p.isRecommended),
+        desc: p.summary || (priceNum === 0 ? "Get started on RIFAH Connect with basic directory presence." : "Active chamber membership plan."),
+        features: Array.isArray(p.features) && p.features.length > 0 ? p.features : ["Directory listing", "Verified badge", "Leads access"],
+      };
+    });
   }, [plansData]);
 
   return (

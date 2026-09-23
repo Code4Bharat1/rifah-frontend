@@ -1,8 +1,11 @@
 "use client";
-import { Star, MoreHorizontal, Plus } from "lucide-react";
+import { Star, MoreHorizontal, Plus, Edit3, Trash2, CheckCircle2, ShieldCheck, Sparkles, Layers } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
+import { cn } from "@shared/lib/utils";
+import { ChamberMembershipTiers } from "@shared/components/rifah/chamber-membership-tiers";
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
@@ -18,6 +21,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminMemberships() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const canManagePlans = user?.role !== "chapter_admin";
 
   const { data: plansData, refetch: refetchPlans } = useMembershipPlans();
@@ -73,20 +77,20 @@ function AdminMemberships() {
 
   const openModal = (plan = null) => {
     if (plan) {
-      setEditingPlanId(plan.planId);
+      setEditingPlanId(plan.planId || plan.id);
       setFormData({
-        planId: plan.planId,
-        name: plan.name,
-        price: plan.price,
+        planId: plan.planId || plan.id,
+        name: plan.name || "",
+        price: plan.price ?? 0,
         priceUsd: plan.priceUsd ?? 0,
         durationYears: plan.durationYears ?? 1,
-        gstRate: plan.gstRate ?? 0,
+        gstRate: plan.gstRate ?? 18,
         displayOrder: plan.displayOrder ?? 0,
         isRecommended: Boolean(plan.isRecommended),
         isActive: plan.isActive !== false,
         summary: plan.summary || "",
-        features: plan.features ? plan.features.join("\n") : "",
-        missingFeatures: plan.missingFeatures ? plan.missingFeatures.join("\n") : "",
+        features: Array.isArray(plan.features) ? plan.features.join("\n") : (plan.features || ""),
+        missingFeatures: Array.isArray(plan.missingFeatures) ? plan.missingFeatures.join("\n") : (plan.missingFeatures || ""),
       });
     } else {
       setEditingPlanId(null);
@@ -117,17 +121,17 @@ function AdminMemberships() {
   };
 
   const handleSavePlan = async () => {
-    if (!formData.planId || !formData.name) return toast.error("ID and Name are required");
+    if (!formData.planId || !formData.name) return toast.error("Plan ID and Display Name are required");
     setIsSaving(true);
     try {
       const payload = {
-        planId: formData.planId.toLowerCase().trim().replace(/\s+/g, "-"),
+        planId: formData.planId.toLowerCase().trim().replace(/[^a-z0-9_-]/g, "-"),
         name: formData.name.trim(),
-        price: Number(formData.price),
-        priceUsd: Number(formData.priceUsd),
-        durationYears: Number(formData.durationYears),
-        gstRate: Number(formData.gstRate),
-        displayOrder: Number(formData.displayOrder),
+        price: Math.max(0, Number(formData.price) || 0),
+        priceUsd: Math.max(0, Number(formData.priceUsd) || 0),
+        durationYears: Math.max(1, Number(formData.durationYears) || 1),
+        gstRate: Math.max(0, Number(formData.gstRate) || 0),
+        displayOrder: Number(formData.displayOrder) || 0,
         isRecommended: Boolean(formData.isRecommended),
         isActive: Boolean(formData.isActive),
         summary: formData.summary.trim(),
@@ -137,13 +141,15 @@ function AdminMemberships() {
 
       if (editingPlanId) {
         await membershipApi.updatePlan(editingPlanId, payload);
-        toast.success("Plan updated successfully");
+        toast.success(`Plan "${payload.name}" updated successfully`);
       } else {
         await membershipApi.createPlan(payload);
-        toast.success("Plan created successfully");
+        toast.success(`Plan "${payload.name}" created successfully`);
       }
       setIsModalOpen(false);
-      refetchPlans(); // Live update instead of window.location.reload()
+      await queryClient.invalidateQueries({ queryKey: ["membership-plans"] });
+      await queryClient.invalidateQueries({ queryKey: ["businesses"] });
+      refetchPlans();
     } catch (err) {
       toast.error(err.message || "Failed to save plan");
     } finally {
@@ -157,7 +163,9 @@ function AdminMemberships() {
     try {
       await membershipApi.deletePlan(deletePlanId);
       toast.success("Plan deleted successfully");
-      refetchPlans(); // Live update instead of window.location.reload()
+      await queryClient.invalidateQueries({ queryKey: ["membership-plans"] });
+      await queryClient.invalidateQueries({ queryKey: ["businesses"] });
+      refetchPlans();
       setIsDeleteDialogOpen(false);
     } catch (err) {
       toast.error(err.message || "Failed to delete plan");
@@ -167,6 +175,12 @@ function AdminMemberships() {
     }
   };
 
+  // Live computed price in modal
+  const modalBasePrice = Math.max(0, Number(formData.price) || 0);
+  const modalGstRate = Math.max(0, Number(formData.gstRate) || 0);
+  const modalGstAmt = Math.round(modalBasePrice * modalGstRate / 100);
+  const modalTotal = modalBasePrice + modalGstAmt;
+
   return (
     <AppShell 
       role="admin" 
@@ -174,13 +188,13 @@ function AdminMemberships() {
       subtitle="Tiers, subscription plans and member allocations"
       actions={
         canManagePlans && (
-          <Button onClick={() => openModal()} className="gap-2 shadow-sm" size="sm">
+          <Button onClick={() => openModal()} className="gap-2 shadow-sm font-semibold" size="sm">
             <Plus className="h-4 w-4" /> Create Plan
           </Button>
         )
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
             label="Total members"
@@ -193,6 +207,7 @@ function AdminMemberships() {
           <StatCard
             label="Membership plans"
             value={String(activePlanNames.size)}
+            icon={Layers}
             tone="success"
             active={false}
           />
@@ -214,71 +229,41 @@ function AdminMemberships() {
         {canManagePlans && (
           <Panel 
             title="Membership Tier Structure" 
+            description="Manage all subscription plans. Any edit or addition made here instantly updates public pricing, checkout, and registration."
+            action={
+              <Button onClick={() => openModal()} size="sm" variant="outline" className="gap-1.5 shadow-2xs font-semibold">
+                <Plus className="h-3.5 w-3.5" /> Add New Plan
+              </Button>
+            }
           >
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-              {Object.entries(plans).map(([key, p]) => {
-                const durationYears = p.durationYears || 1;
-                const durationLabel = durationYears === 1 ? "1 Year Validity" : `${durationYears} Years Validity`;
-                const gstRate = Number(p.gstRate ?? 0);
-                const gstAmt = Math.round((p.price || 0) * gstRate / 100);
-                const totalWithGst = (p.price || 0) + gstAmt;
-                return (
-                  <div key={key} className="rounded-xl border border-border p-4 relative group">
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openModal({ planId: key, ...p })}>
-                            Edit Plan
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:bg-destructive/10" onClick={() => { setDeletePlanId(key); setIsDeleteDialogOpen(true); }}>
-                            Delete Plan
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 mb-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="truncate text-sm font-bold">{p.name}</p>
-                          {p.isRecommended && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800">Recommended</span>
-                          )}
-                        </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          ₹ {(p.price || 0).toLocaleString("en-IN")} base · {durationLabel}
-                        </p>
-                        <p className="text-[10px] text-orange-600 dark:text-orange-400">
-                          + ₹{gstAmt.toLocaleString("en-IN")} GST ({gstRate}%) = <strong>₹{totalWithGst.toLocaleString("en-IN")}</strong> total
-                        </p>
-                      </div>
-                      <Pill tone="brand">{durationLabel}</Pill>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{p.summary}</p>
-                    <ul className="mt-3 space-y-1.5">
-                      {p.features?.map((f, i) => (
-                        <li key={i} className="text-xs text-muted-foreground">
-                          · {f}
-                        </li>
-                      ))}
-                    </ul>
-                    {p.missingFeatures?.length > 0 && (
-                      <ul className="mt-1.5 space-y-1 opacity-50">
-                        {p.missingFeatures.map((f, i) => (
-                          <li key={i} className="text-xs text-muted-foreground line-through">
-                            ✕ {f}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+            <div className="pt-2">
+              <ChamberMembershipTiers
+                plansData={plansData}
+                showHeader={false}
+                showFooter={false}
+                showInactive={true}
+                renderCardFooter={(plan) => (
+                  <div className="flex items-center gap-2 w-full mt-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-10 rounded-full font-bold flex-1 gap-1.5 hover:bg-primary/5 hover:text-primary hover:border-primary/40 text-xs shadow-2xs cursor-pointer"
+                      onClick={() => openModal(plan)}
+                    >
+                      <Edit3 className="h-3.5 w-3.5" /> Edit Plan
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                      title="Delete Plan"
+                      onClick={() => { setDeletePlanId(plan.id || plan.planId); setIsDeleteDialogOpen(true); }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                );
-              })}
+                )}
+              />
             </div>
           </Panel>
         )}
@@ -531,110 +516,222 @@ function AdminMemberships() {
         </DialogContent>
       </Dialog>
 
+      {/* Create / Edit Plan Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-xl max-h-[88vh] overflow-y-auto no-scrollbar">
           <DialogHeader>
-            <DialogTitle>{editingPlanId ? "Edit Membership Plan" : "Create New Plan"}</DialogTitle>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <Edit3 className="h-5 w-5 text-primary" />
+              {editingPlanId ? `Edit Membership Plan: ${formData.name || editingPlanId}` : "Create New Membership Plan"}
+            </DialogTitle>
+            <DialogDescription>
+              Changes made here update pricing, validity, features and checkout for this tier nationwide.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="planId">Plan ID (e.g. platinum)</Label>
-              <Input
-                id="planId"
-                value={formData.planId}
-                onChange={(e) => setFormData({ ...formData, planId: e.target.value })}
-                disabled={!!editingPlanId}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="name">Display Name (e.g. Platinum)</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="price">Base price (INR)</Label>
-              <Input
-                id="price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="priceUsd">Base price (USD)</Label>
-                <Input id="priceUsd" type="number" min="0" value={formData.priceUsd} onChange={(e) => setFormData({ ...formData, priceUsd: e.target.value })} />
+
+          <div className="grid gap-4 py-3">
+            {/* Section 1: Identifier & Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="planId" className="text-xs font-semibold">Plan ID (System Key) *</Label>
+                <Input
+                  id="planId"
+                  placeholder="e.g. silver, platinum, vip"
+                  value={formData.planId}
+                  onChange={(e) => setFormData({ ...formData, planId: e.target.value })}
+                  disabled={Boolean(editingPlanId)}
+                  className="font-mono text-xs"
+                />
+                <span className="text-[10px] text-muted-foreground block">
+                  Unique internal code (cannot be changed after creation).
+                </span>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="durationYears">Validity (years)</Label>
-                <Input id="durationYears" type="number" min="1" value={formData.durationYears} onChange={(e) => setFormData({ ...formData, durationYears: e.target.value })} />
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-xs font-semibold">Display Name *</Label>
+                <Input
+                  id="name"
+                  placeholder="e.g. Platinum Partner"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="font-medium"
+                />
+                <span className="text-[10px] text-muted-foreground block">
+                  Public title shown on badges and cards.
+                </span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="gstRate">GST rate (%)</Label>
-                <Input id="gstRate" type="number" min="0" value={formData.gstRate} onChange={(e) => setFormData({ ...formData, gstRate: e.target.value })} />
+
+            {/* Section 2: Pricing & Validity */}
+            <div className="rounded-xl border border-border/80 bg-muted/20 p-3.5 space-y-3">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Pricing &amp; Validity
+              </h5>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="price" className="text-xs font-semibold">Base Price (₹ INR) *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 25000"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    className="font-semibold"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="priceUsd" className="text-xs font-semibold">Base Price ($ USD)</Label>
+                  <Input
+                    id="priceUsd"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 325"
+                    value={formData.priceUsd}
+                    onChange={(e) => setFormData({ ...formData, priceUsd: e.target.value })}
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="displayOrder">Display order</Label>
-                <Input id="displayOrder" type="number" min="0" value={formData.displayOrder} onChange={(e) => setFormData({ ...formData, displayOrder: e.target.value })} />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="durationYears" className="text-xs font-semibold">Validity Period (Years) *</Label>
+                  <Input
+                    id="durationYears"
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 1, 2, 10, 25"
+                    value={formData.durationYears}
+                    onChange={(e) => setFormData({ ...formData, durationYears: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="gstRate" className="text-xs font-semibold">GST Rate (%) *</Label>
+                  <Input
+                    id="gstRate"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 18"
+                    value={formData.gstRate}
+                    onChange={(e) => setFormData({ ...formData, gstRate: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Live Price Computation */}
+              <div className="rounded-lg bg-background border border-border p-2.5 flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Total with {modalGstRate}% GST:</span>
+                  <span className="font-bold text-sm text-foreground">
+                    ₹ {modalTotal.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <span className="text-[11px] text-muted-foreground text-right">
+                  Base: ₹ {modalBasePrice.toLocaleString("en-IN")}<br/>
+                  GST: ₹ {modalGstAmt.toLocaleString("en-IN")}
+                </span>
               </div>
             </div>
-            <div className="flex flex-wrap gap-5 text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={formData.isRecommended} onChange={(e) => setFormData({ ...formData, isRecommended: e.target.checked })} />
-                Mark as recommended
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
-                Available for purchase
-              </label>
+
+            {/* Section 3: Status & Ordering */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+              <div className="space-y-1.5">
+                <Label htmlFor="displayOrder" className="text-xs font-semibold">Display Order (Sort Index)</Label>
+                <Input
+                  id="displayOrder"
+                  type="number"
+                  min="0"
+                  value={formData.displayOrder}
+                  onChange={(e) => setFormData({ ...formData, displayOrder: e.target.value })}
+                />
+                <span className="text-[10px] text-muted-foreground block">
+                  Lower numbers appear first (e.g. 0, 1, 2, 3).
+                </span>
+              </div>
+
+              <div className="space-y-2 pt-2 sm:pt-0">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium">
+                  <input
+                    type="checkbox"
+                    checked={formData.isRecommended}
+                    onChange={(e) => setFormData({ ...formData, isRecommended: e.target.checked })}
+                    className="rounded border-border"
+                  />
+                  <span>Mark as Recommended (Featured badge)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium">
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="rounded border-border"
+                  />
+                  <span>Available for purchase (Active)</span>
+                </label>
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="summary">Summary</Label>
+
+            {/* Section 4: Summary */}
+            <div className="space-y-1.5">
+              <Label htmlFor="summary" className="text-xs font-semibold">Short Summary</Label>
               <Input
                 id="summary"
+                placeholder="e.g. 10-Year Enterprise Patronage with VIP summit passes"
                 value={formData.summary}
                 onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="features">Features (One per line)</Label>
+
+            {/* Section 5: Included Features */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="features" className="text-xs font-semibold">Included Features (One per line)</Label>
+                <span className="text-[10px] text-muted-foreground">Each new line becomes a checkmark bullet</span>
+              </div>
               <Textarea
                 id="features"
                 rows={4}
+                placeholder={"Directory listing with Verified Chamber Badge\nUnlimited matched buyer lead enquiries\nPriority RFQ & high-value lead routing"}
                 value={formData.features}
                 onChange={(e) => setFormData({ ...formData, features: e.target.value })}
+                className="text-xs font-mono"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="missingFeatures">Excluded features (One per line)</Label>
+
+            {/* Section 6: Excluded Features */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="missingFeatures" className="text-xs font-semibold">Excluded Features (One per line)</Label>
+                <span className="text-[10px] text-muted-foreground">Displayed as strikethrough (✕)</span>
+              </div>
               <Textarea
                 id="missingFeatures"
                 rows={3}
+                placeholder={"Global Chapter & International Network Access\nCustom expo pavilion & sponsor showcase"}
                 value={formData.missingFeatures}
                 onChange={(e) => setFormData({ ...formData, missingFeatures: e.target.value })}
+                className="text-xs font-mono"
               />
             </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="gap-2 sm:gap-0 border-t border-border pt-3">
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSavePlan} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Plan"}
+            <Button onClick={handleSavePlan} disabled={isSaving} className="font-semibold">
+              {isSaving ? "Saving..." : editingPlanId ? "Update Plan" : "Create Plan"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Modal */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete Plan</DialogTitle>
+            <DialogTitle>Delete Membership Plan</DialogTitle>
             <DialogDescription>
-              Are you sure you want to completely delete this membership plan? Businesses on this plan may lose access to specific features.
+              Are you sure you want to delete this membership plan? It will no longer be available for business registration or upgrades.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-end gap-2 sm:space-x-0 mt-4">
@@ -642,7 +739,7 @@ function AdminMemberships() {
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDeletePlan} disabled={isDeleting}>
-              Delete Permanently
+              {isDeleting ? "Deleting..." : "Delete Permanently"}
             </Button>
           </DialogFooter>
         </DialogContent>
