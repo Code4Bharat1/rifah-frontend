@@ -31,7 +31,7 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Textarea } from "@shared/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
-import { useCourses } from "@shared/hooks/use-rifah-api";
+import { useCourses, useCategories } from "@shared/hooks/use-rifah-api";
 import { courseApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@shared/components/ui/dropdown-menu";
@@ -78,6 +78,18 @@ function AdminLms({ role = "admin" }) {
   const [isUploadingLesson, setIsUploadingLesson] = useState(false);
   const [savingLessonInPlace, setSavingLessonInPlace] = useState(false);
 
+  // Category states for Creator Modal
+  const [newCategory, setNewCategory] = useState("all");
+  const [newSubcategory, setNewSubcategory] = useState("all");
+
+  // Category states for Edit Modal
+  const [editCategory, setEditCategory] = useState("all");
+  const [editSubcategory, setEditSubcategory] = useState("all");
+
+  // Filter state for Admin Course Library
+  const [adminCategoryFilter, setAdminCategoryFilter] = useState("all");
+  const [adminSubcategoryFilter, setAdminSubcategoryFilter] = useState("all");
+
   // Delete Course Confirmation
   const [courseToDelete, setCourseToDelete] = useState(null);
   const [deletingCourse, setDeletingCourse] = useState(false);
@@ -89,7 +101,27 @@ function AdminLms({ role = "admin" }) {
   const [savingEditInfo, setSavingEditInfo] = useState(false);
 
   const { data: coursesData, refetch } = useCourses();
+  const { data: categoriesData } = useCategories();
   const courses = Array.isArray(coursesData?.data) ? coursesData.data : (Array.isArray(coursesData) ? coursesData : []);
+  const allCategories = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.categories || []);
+  const mainCategories = allCategories.filter((c) => !c.parent);
+
+  // Robust subcategory extractor matching parent name or parent id with trimming and case-insensitivity
+  const getSubcategories = (catNameOrId) => {
+    if (!catNameOrId || catNameOrId === "all") return [];
+    const cat = allCategories.find((c) => c.name === catNameOrId || c._id === catNameOrId);
+    const targetName = (cat?.name || catNameOrId).trim().toLowerCase();
+    const targetId = cat?._id ? String(cat._id) : "";
+    return allCategories.filter((c) => {
+      if (!c.parent) return false;
+      const p = String(c.parent).trim().toLowerCase();
+      return p === targetName || (targetId && String(c.parent) === targetId);
+    });
+  };
+
+  const availableSubcategoriesForNew = getSubcategories(newCategory);
+  const availableSubcategoriesForEdit = getSubcategories(editCategory);
+  const availableSubcategoriesForFilter = getSubcategories(adminCategoryFilter);
 
   const activeCourse = courses.find((c) => c._id === activeCourseId) || null;
   const activeChapter = (activeCourse && activeChapterIdx !== null) ? activeCourse.chapters?.[activeChapterIdx] : null;
@@ -101,6 +133,8 @@ function AdminLms({ role = "admin" }) {
   const handleOpenCreateModal = () => {
     setNewTitle("");
     setNewDescription("");
+    setNewCategory("all");
+    setNewSubcategory("all");
     setStagedChapters([
       { title: "Chapter 1: Introduction & Fundamentals", description: "", order: 1, contents: [] }
     ]);
@@ -213,6 +247,8 @@ function AdminLms({ role = "admin" }) {
       const payload = {
         title: newTitle.trim(),
         description: newDescription.trim(),
+        category: newCategory === "all" ? "" : newCategory,
+        subcategory: newSubcategory === "all" ? "" : newSubcategory,
         scope: derivedScope,
         visibilityScope: derivedScope,
         chapters: stagedChapters,
@@ -380,6 +416,8 @@ function AdminLms({ role = "admin" }) {
     setCourseToEdit(course);
     setEditTitle(course.title || "");
     setEditDescription(course.description || "");
+    setEditCategory(course.category || "all");
+    setEditSubcategory(course.subcategory || "all");
   };
 
   const handleSaveCourseInfo = async (e) => {
@@ -390,6 +428,8 @@ function AdminLms({ role = "admin" }) {
       await courseApi.update(courseToEdit._id, {
         title: editTitle.trim(),
         description: editDescription.trim(),
+        category: editCategory === "all" ? "" : editCategory,
+        subcategory: editSubcategory === "all" ? "" : editSubcategory,
       });
       toast.success("Course details updated");
       setCourseToEdit(null);
@@ -497,25 +537,75 @@ function AdminLms({ role = "admin" }) {
             </div>
 
             {/* Header & Create Button */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-bold text-foreground">Course Library</h2>
                 <p className="text-xs text-muted-foreground">Click on any course card to explore chapters, videos, and study materials.</p>
               </div>
-              <Button onClick={handleOpenCreateModal}>
-                <Plus className="mr-2 h-4 w-4" /> Create Course
-              </Button>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                {mainCategories.length > 0 && (
+                  <>
+                    <Select value={adminCategoryFilter} onValueChange={(val) => {
+                      setAdminCategoryFilter(val);
+                      setAdminSubcategoryFilter("all");
+                    }}>
+                      <SelectTrigger className="h-9 text-xs w-[170px]">
+                        <SelectValue placeholder="All Categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">🌐 All Categories</SelectItem>
+                        {mainCategories.map((c) => (
+                          <SelectItem key={c._id || c.name} value={c.name}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {adminCategoryFilter !== "all" && availableSubcategoriesForFilter.length > 0 && (
+                      <Select value={adminSubcategoryFilter} onValueChange={setAdminSubcategoryFilter}>
+                        <SelectTrigger className="h-9 text-xs w-[170px]">
+                          <SelectValue placeholder="All Subcategories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Subcategories</SelectItem>
+                          {availableSubcategoriesForFilter.map((sc) => (
+                            <SelectItem key={sc._id || sc.name} value={sc.name}>
+                              {sc.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </>
+                )}
+
+                <Button onClick={handleOpenCreateModal}>
+                  <Plus className="mr-2 h-4 w-4" /> Create Course
+                </Button>
+              </div>
             </div>
 
             {/* Courses Card Grid */}
-            {courses.length === 0 ? (
+            {courses.filter(c => {
+              if (adminCategoryFilter !== "all") {
+                if ((c.category || "").trim().toLowerCase() !== adminCategoryFilter.trim().toLowerCase()) return false;
+              }
+              if (adminSubcategoryFilter !== "all") {
+                if ((c.subcategory || "").trim().toLowerCase() !== adminSubcategoryFilter.trim().toLowerCase()) return false;
+              }
+              return true;
+            }).length === 0 ? (
               <div className="rounded-xl border border-dashed p-12 text-center bg-card">
                 <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
                   <GraduationCap className="h-6 w-6" />
                 </div>
-                <h3 className="text-base font-semibold text-foreground">No Courses Created Yet</h3>
+                <h3 className="text-base font-semibold text-foreground">No Courses Found</h3>
                 <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
-                  Click the button below to create your course, set up chapters, and upload video lectures and PDFs.
+                  {adminCategoryFilter !== "all" 
+                    ? `No courses found under "${adminCategoryFilter}${adminSubcategoryFilter !== "all" ? ` → ${adminSubcategoryFilter}` : ""}".`
+                    : "Click the button below to create your course, set up chapters, and upload video lectures and PDFs."}
                 </p>
                 <Button onClick={handleOpenCreateModal}>
                   <Plus className="mr-2 h-4 w-4" /> Create Course
@@ -523,7 +613,17 @@ function AdminLms({ role = "admin" }) {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {courses.map((course) => {
+                {courses
+                  .filter(c => {
+                    if (adminCategoryFilter !== "all") {
+                      if ((c.category || "").trim().toLowerCase() !== adminCategoryFilter.trim().toLowerCase()) return false;
+                    }
+                    if (adminSubcategoryFilter !== "all") {
+                      if ((c.subcategory || "").trim().toLowerCase() !== adminSubcategoryFilter.trim().toLowerCase()) return false;
+                    }
+                    return true;
+                  })
+                  .map((course) => {
                   const isPub = course.isActive || course.status === "published";
                   const chapters = course.chapters || [];
                   let vids = 0;
@@ -546,13 +646,23 @@ function AdminLms({ role = "admin" }) {
                     >
                       {/* Top Bar of Card */}
                       <div className="p-4 pb-3 flex items-center justify-between gap-2 border-b bg-muted/10">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="capitalize px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
                             {course.scope || course.visibilityScope || "Centre"}
                           </span>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isPub ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning-foreground'}`}>
                             {isPub ? 'Published' : 'Draft'}
                           </span>
+                          {course.category && (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 max-w-[130px] truncate" title={course.category}>
+                              {course.category}
+                            </span>
+                          )}
+                          {course.subcategory && (
+                            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground max-w-[110px] truncate" title={course.subcategory}>
+                              {course.subcategory}
+                            </span>
+                          )}
                         </div>
 
                         {/* 3-Dots Quick Actions Menu */}
@@ -950,6 +1060,50 @@ function AdminLms({ role = "admin" }) {
                   className="text-xs leading-relaxed resize-none"
                 />
               </div>
+
+              {/* Business Category & Subcategory Selectors */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Target Business Category</Label>
+                  <Select value={newCategory} onValueChange={(val) => {
+                    setNewCategory(val);
+                    setNewSubcategory("all");
+                  }}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">🌐 All Categories (General Course)</SelectItem>
+                      {mainCategories.map((c) => (
+                        <SelectItem key={c._id || c.name} value={c.name}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Target Subcategory</Label>
+                  <Select 
+                    value={newSubcategory} 
+                    onValueChange={setNewSubcategory}
+                    disabled={newCategory === "all" || availableSubcategoriesForNew.length === 0}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder={newCategory === "all" ? "Select Category First" : "Select Subcategory"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Subcategories</SelectItem>
+                      {availableSubcategoriesForNew.map((sc) => (
+                        <SelectItem key={sc._id || sc.name} value={sc.name}>
+                          {sc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
 
             {/* Section 2: Chapters & Content Builder */}
@@ -1305,6 +1459,52 @@ function AdminLms({ role = "admin" }) {
               <div className="space-y-1.5">
                 <Label>Description</Label>
                 <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Category</Label>
+                  <Select value={editCategory} onValueChange={(val) => {
+                    setEditCategory(val);
+                    setEditSubcategory("all");
+                  }}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">🌐 All Categories</SelectItem>
+                      {mainCategories.map((c) => (
+                        <SelectItem key={c._id || c.name} value={c.name}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Subcategory</Label>
+                  <Select 
+                    value={editSubcategory} 
+                    onValueChange={setEditSubcategory}
+                    disabled={editCategory === "all" || availableSubcategoriesForEdit.length === 0}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder={editCategory === "all" ? "Select Category First" : "Select Subcategory"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Subcategories</SelectItem>
+                      {availableSubcategoriesForEdit.map((sc) => (
+                        <SelectItem key={sc._id || sc.name} value={sc.name}>
+                          {sc.name}
+                        </SelectItem>
+                      ))}
+                      {editSubcategory && editSubcategory !== "all" && !availableSubcategoriesForEdit.some(sc => sc.name.toLowerCase() === editSubcategory.toLowerCase()) && (
+                        <SelectItem value={editSubcategory}>{editSubcategory}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
             <DialogFooter>
