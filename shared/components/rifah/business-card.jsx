@@ -55,7 +55,7 @@ function Monogram({ business, className }) {
 }
 
 /** Quick Review Submission Dialog Modal */
-function ReviewModal({ isOpen, onClose, business, onReviewSuccess }) {
+export function ReviewModal({ isOpen, onClose, business, onReviewSuccess }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedRating, setSelectedRating] = useState(0);
@@ -529,99 +529,5 @@ export function CompactBusinessCard({
         </div>
       </div>
     </div>
-  );
-}
-
-export function ReviewModal({ isOpen, onClose, business, onReviewSuccess }) {
-  const [rating, setRating] = useState(5);
-  const [title, setTitle] = useState("");
-  const [comment, setComment] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!user) {
-      toast.error("Please login to submit a review");
-      return;
-    }
-    setLoading(true);
-    try {
-      const bizId = business?.slug || business?._id || business?.id;
-      await reviewApi.submit({
-        business: bizId,
-        rating,
-        title,
-        comment,
-      });
-      toast.success("Review submitted successfully");
-      if (onReviewSuccess) onReviewSuccess();
-      onClose();
-      setRating(5);
-      setTitle("");
-      setComment("");
-    } catch (err) {
-      toast.error(err.message || "Failed to submit review");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-white">
-        <DialogHeader>
-          <DialogTitle>Write a Review</DialogTitle>
-          <DialogDescription>
-            Share your experience with {business?.name || "this business"}.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Rating</label>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setRating(star)}
-                  className="transition-colors cursor-pointer"
-                >
-                  <Star className={`h-6 w-6 ${rating >= star ? "fill-amber-400 text-amber-500" : "text-slate-300"}`} />
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Title</label>
-            <Input 
-              value={title} 
-              onChange={(e) => setTitle(e.target.value)} 
-              placeholder="Summary of your experience" 
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Review</label>
-            <Textarea 
-              value={comment} 
-              onChange={(e) => setComment(e.target.value)} 
-              placeholder="What did you like or dislike?" 
-              className="min-h-[100px]"
-              required
-            />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Submit Review
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }
