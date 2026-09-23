@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-const logo = "/rifah1-logo.png";
+const logo = "/rifah-logo.png?v=4";
+const logoDark = "/rifah-logo-dark.png?v=4";
 import { cn } from "@shared/lib/utils";
 
 export function RifahLogo({
@@ -13,9 +14,9 @@ export function RifahLogo({
   return (
     <Link href={to} className={cn("flex min-w-0 items-center gap-2.5", className)} aria-label="RIFAH Connect home">
       <img
-        src={onDark ? "/rifah-logo-dark.png" : logo}
+        src={onDark ? logoDark : logo}
         alt="RIFAH Chamber of Commerce and Industry"
-        className="h-10 w-auto shrink-0 md:h-12"
+        className="h-10 w-auto shrink-0 md:h-12 object-contain"
       />
       {showLabel && (
         <span
@@ -32,6 +33,6 @@ export function RifahLogo({
 }
 
 export function LogoMark({ className, onDark = false }) {
-  return <img src={onDark ? "/rifah-logo-dark.png" : logo} alt="RIFAH" className={cn("h-7 w-auto", className)} />;
+  return <img src={onDark ? logoDark : logo} alt="RIFAH" className={cn("h-7 w-auto object-contain", className)} />;
 }
 

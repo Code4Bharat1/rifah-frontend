@@ -1391,34 +1391,28 @@ function Checkout() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 text-xs text-muted-foreground leading-relaxed pt-2">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-foreground font-medium text-xs leading-relaxed">
+              "I, on behalf of my enterprise, hereby declare that all the above information submitted by me is correct to the best of my knowledge and that I am aware of the terms and conditions of the membership, and that RIFAH CHAMBER OF COMMERCE AND INDUSTRY reserves the right of acceptance of the membership. If any of the above submitted details are found to be false/malicious, RIFAH CHAMBER OF COMMERCE AND INDUSTRY reserves the right to reject/discontinue the membership without any notice."
+            </div>
+
             <div>
-              <h4 className="font-bold text-foreground text-sm">1. Membership & Chamber Privileges</h4>
+              <h4 className="font-bold text-foreground text-sm">1. Non-Refundable Fee & Statutory Compliance</h4>
               <p className="mt-1">
-                Membership in RIFAH Chamber of Commerce and Industry provides access to verified B2B directory listings, networking events, business referrals, chapter activities, and cross-border trade opportunities according to the tier selected.
+                I understand that the membership fee once paid shall not be refunded under any circumstances. I hereby agree to all terms and conditions of membership and give my consent to use the above mentioned data for organisational purposes and/or other statutory compliances as that may be deemed necessary by Central/State Governments.
               </p>
             </div>
+
             <div>
-              <h4 className="font-bold text-foreground text-sm">2. Verification & Compliance</h4>
+              <h4 className="font-bold text-foreground text-sm">2. Networking Platform & Commercial Autonomy</h4>
               <p className="mt-1">
-                All business listings and memberships undergo accreditation verification by Chapter and Central Administrators. Members agree to provide authentic business documentation (GST, Trade License, or Incorporation Certificate) upon request.
+                Rifah Chamber of Commerce and Industry (‘RIFAH’) provides platforms such as networking meets, workshops, expos, and national or international business delegations solely for the purpose of facilitating introductions and general business networking. Any discussions, negotiations, joint ventures, investments, collaborations, partnerships, or commercial arrangements entered into between participants are conducted strictly in their personal and/or organizational capacity, at their own discretion and risk.
               </p>
             </div>
+
             <div>
-              <h4 className="font-bold text-foreground text-sm">3. Code of Ethical Conduct</h4>
+              <h4 className="font-bold text-foreground text-sm">3. Limitation of Liability & Disputes Disclaimer</h4>
               <p className="mt-1">
-                Members are expected to adhere to ethical business practices, honest dealings, and respect the chamber community guidelines. Any fraudulent or misleading activity may result in suspension of chamber privileges without refund.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold text-foreground text-sm">4. Subscription Term & Renewal</h4>
-              <p className="mt-1">
-                Membership fees are billed on an annual or multi-year basis according to the selected plan. Invoices are generated with statutory tax compliances (GST/tax invoice).
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold text-foreground text-sm">5. Cancellations & Refunds</h4>
-              <p className="mt-1">
-                Membership fees are non-refundable once activated. In the event of a duplicate or incorrect charge, refund requests submitted within 7 business days will be processed through the original payment method.
+                RIFAH is not, and shall not be deemed to be, a party to any such arrangements and assumes no responsibility or liability whatsoever for any loss, damage, dispute, misunderstanding, or claim arising out of or in connection with any such arrangements, regardless of the cause or circumstances. By participating in RIFAH events or platforms, all participants expressly agree that RIFAH shall not be held liable, in any manner, for any direct, indirect, incidental, consequential, or other loss or issues that may arise between participants.
               </p>
             </div>
           </div>
