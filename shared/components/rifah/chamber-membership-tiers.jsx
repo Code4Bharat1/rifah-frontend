@@ -280,22 +280,36 @@ export function ChamberMembershipTiers({
   showHeader = true,
   showFooter = true,
   showInactive = false,
+  showTheory = true,
+  showSummary = true,
+  showFeatures = true,
   renderCardFooter = null,
   className,
 }) {
   const isIntl = currency === "USD";
   const { data: fetchedPlansData } = useMembershipPlans();
   const effectivePlansData = plansData ?? fetchedPlansData;
+  const hasTheory = Boolean(showTheory && (showSummary || showFeatures));
 
-  // Convert plansData map → ordered array using preferred display order.
+  // Convert plansData map → ordered array using canonical rank and display order.
   const plans = React.useMemo(() => {
+    const CANONICAL_ORDER = { silver: 1, gold: 2, platinum: 3, diamond: 4, free: 0, basic: 1, enterprise: 4 };
     const source = Array.isArray(effectivePlansData)
       ? effectivePlansData.map((plan) => ({ id: plan.id || plan.planId, ...plan }))
       : Object.entries(effectivePlansData || {}).map(([id, plan]) => ({ id, ...plan }));
 
     return source
       .filter((plan) => plan.id && (showInactive ? true : plan.isActive !== false))
-      .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
+      .sort((a, b) => {
+        const idA = String(a.id || a.planId || a.name || "").toLowerCase();
+        const idB = String(b.id || b.planId || b.name || "").toLowerCase();
+        const orderA = a.displayOrder !== undefined && a.displayOrder !== null && Number(a.displayOrder) > 0 ? Number(a.displayOrder) : (CANONICAL_ORDER[idA] ?? null);
+        const orderB = b.displayOrder !== undefined && b.displayOrder !== null && Number(b.displayOrder) > 0 ? Number(b.displayOrder) : (CANONICAL_ORDER[idB] ?? null);
+        if (orderA !== null && orderB !== null && orderA !== orderB) return orderA - orderB;
+        if (orderA !== null) return -1;
+        if (orderB !== null) return 1;
+        return (Number(a.price) || 0) - (Number(b.price) || 0);
+      });
   }, [effectivePlansData, showInactive]);
 
   return (
@@ -349,7 +363,8 @@ export function ChamberMembershipTiers({
             <div
               key={plan.id}
               className={cn(
-                "relative flex flex-col items-center justify-between rounded-3xl p-5 sm:p-6 pt-9 pb-7 text-center transition-all duration-300 min-h-[440px]",
+                "relative flex flex-col items-center justify-between rounded-3xl p-5 sm:p-6 pt-9 pb-7 text-center transition-all duration-300",
+                hasTheory ? "min-h-[440px]" : "min-h-[290px]",
                 style.cardBg || "bg-white dark:bg-slate-900",
                 style.cardBorder,
                 isCurrent && "ring-2 ring-emerald-500 border-emerald-500 shadow-xl",
@@ -428,14 +443,14 @@ export function ChamberMembershipTiers({
                 ) : null}
 
                 {/* Plan summary */}
-                {plan.summary && (
+                {hasTheory && showSummary && plan.summary && (
                   <p className="mt-2 text-xs text-muted-foreground line-clamp-2 px-1">
                     {plan.summary}
                   </p>
                 )}
 
                 {/* Plan features preview */}
-                {Array.isArray(plan.features) && plan.features.length > 0 && (
+                {hasTheory && showFeatures && Array.isArray(plan.features) && plan.features.length > 0 && (
                   <ul className="mt-3.5 space-y-1.5 w-full text-left px-1">
                     {plan.features.slice(0, 3).map((f, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-300">

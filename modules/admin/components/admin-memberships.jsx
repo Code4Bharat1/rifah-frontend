@@ -242,6 +242,7 @@ function AdminMemberships() {
                 showHeader={false}
                 showFooter={false}
                 showInactive={true}
+                showTheory={false}
                 renderCardFooter={(plan) => (
                   <div className="flex items-center gap-2 w-full mt-4">
                     <Button 

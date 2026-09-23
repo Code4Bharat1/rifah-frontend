@@ -54,9 +54,19 @@ export function OnboardingPage() {
     const source = Array.isArray(plansData)
       ? plansData.map((p) => ({ id: p.id || p.planId, ...p }))
       : Object.entries(plansData || {}).map(([id, p]) => ({ id, ...p }));
+    const CANONICAL = { silver: 1, gold: 2, platinum: 3, diamond: 4 };
     return source
       .filter((p) => p.id && p.isActive !== false)
-      .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0));
+      .sort((a, b) => {
+        const idA = String(a.id || a.planId || a.name || "").toLowerCase();
+        const idB = String(b.id || b.planId || b.name || "").toLowerCase();
+        const orderA = a.displayOrder !== undefined && a.displayOrder !== null && Number(a.displayOrder) > 0 ? Number(a.displayOrder) : (CANONICAL[idA] ?? null);
+        const orderB = b.displayOrder !== undefined && b.displayOrder !== null && Number(b.displayOrder) > 0 ? Number(b.displayOrder) : (CANONICAL[idB] ?? null);
+        if (orderA !== null && orderB !== null && orderA !== orderB) return orderA - orderB;
+        if (orderA !== null) return -1;
+        if (orderB !== null) return 1;
+        return (Number(a.price) || 0) - (Number(b.price) || 0);
+      });
   }, [plansData]);
 
   const { data: categoriesData } = useCategories();

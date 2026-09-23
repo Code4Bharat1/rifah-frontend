@@ -56,7 +56,17 @@ function Checkout() {
     ? (Array.isArray(plansData) ? plansData.map((p) => ({ id: p.id || p.planId, ...p })) : Object.entries(plansData))
         .map((item) => (Array.isArray(item) ? { id: item[0], ...item[1] } : item))
         .filter((p) => p.isActive !== false && p.price > 0)
-        .sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0))
+        .sort((a, b) => {
+          const CANONICAL = { silver: 1, gold: 2, platinum: 3, diamond: 4 };
+          const idA = String(a.id || a.planId || a.name || "").toLowerCase();
+          const idB = String(b.id || b.planId || b.name || "").toLowerCase();
+          const orderA = a.displayOrder !== undefined && a.displayOrder !== null && Number(a.displayOrder) > 0 ? Number(a.displayOrder) : (CANONICAL[idA] ?? null);
+          const orderB = b.displayOrder !== undefined && b.displayOrder !== null && Number(b.displayOrder) > 0 ? Number(b.displayOrder) : (CANONICAL[idB] ?? null);
+          if (orderA !== null && orderB !== null && orderA !== orderB) return orderA - orderB;
+          if (orderA !== null) return -1;
+          if (orderB !== null) return 1;
+          return (Number(a.price) || 0) - (Number(b.price) || 0);
+        })
     : [];
 
   const [step, setStep] = useState(0);
