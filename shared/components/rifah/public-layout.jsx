@@ -32,6 +32,7 @@ import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
 import { RifahCopilotWidget } from "@shared/components/rifah/rifah-copilot-widget";
 import { PolicyDialog } from "@shared/components/rifah/policy-dialog";
+import { UserAvatar } from "@shared/components/rifah/ui-bits";
 
 const primaryNav = [
   { tKey: "discover", to: "/discover" },
@@ -109,9 +110,7 @@ export function PublicHeader() {
                 <Link href={dashboardPath}>{t("dashboard")}</Link>
               </Button>
               <div className="hidden items-center gap-1.5 md:flex">
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                </span>
+                <UserAvatar user={user} className="h-8 w-8 text-xs" />
                 <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" title="Logout">
                   <LogOut className="h-4.5 w-4.5" />
                 </Button>
@@ -190,9 +189,7 @@ function MobileMenu() {
             <div className="mt-2 border-t border-border pt-3">
               {user && (
                 <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                    {user.name?.charAt(0)?.toUpperCase() || "U"}
-                  </span>
+                  <UserAvatar user={user} className="h-8 w-8 text-xs" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold">{user.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">{user.email}</span>

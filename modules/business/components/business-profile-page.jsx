@@ -548,15 +548,8 @@ function BusinessProfile() {
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
-    if (!user) {
-      router.push(`/login?redirect=/business/${business?.slug || business?._id || businessId}#reviews`);
-      return;
-    }
-    if (!reviewBody.trim() || reviewRating < 1) {
-      toast.error("Please select a star rating and write your review.");
-      return;
-    }
-    const authorName = user?.name || "Verified Member";
+    if (!reviewBody.trim()) return;
+    const authorName = user?.name || reviewerName.trim() || "Guest Reviewer";
     setReviewSubmitting(true);
     try {
       const res = await reviewApi.submit({
@@ -1229,21 +1222,9 @@ function BusinessProfile() {
                           className="mt-1 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       </div>
-                      {!user ? (
-                        <Button
-                          asChild
-                          type="button"
-                          className="font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
-                        >
-                          <Link href={`/login?redirect=/business/${business?.slug || business?._id || businessId}#reviews`}>
-                            Log In To Submit Review
-                          </Link>
-                        </Button>
-                      ) : (
-                        <Button type="submit" disabled={reviewSubmitting || reviewRating === 0 || !reviewBody.trim()}>
-                          {reviewSubmitting ? "Publishing review..." : "Submit review"}
-                        </Button>
-                      )}
+                      <Button type="submit" disabled={reviewSubmitting}>
+                        {reviewSubmitting ? "Publishing review..." : "Submit review"}
+                      </Button>
                     </form>
                   )}
                 </Panel>

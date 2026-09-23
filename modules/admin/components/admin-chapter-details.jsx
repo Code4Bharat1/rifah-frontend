@@ -22,7 +22,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@shared/components/ui/dialog";
-import { useChapterDetails } from "@shared/hooks/use-rifah-api";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@shared/components/ui/select";
+import { useChapterDetails, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 
@@ -37,9 +46,11 @@ export default function AdminChapterDetails({ chapterId }) {
   const membersHref = isChapterAdmin ? "/chapter-admin/members" : isStateAdmin ? "/state-admin/members" : "/admin/users";
   const unitsHref = isChapterAdmin ? "/chapter-admin/units" : isStateAdmin ? "/state-admin/chapters" : "/admin/units";
   const { data, isLoading, refetch } = useChapterDetails(chapterId);
+  const { data: businessesData } = useBusinesses({ limit: 150 });
 
   const [openAdminModal, setOpenAdminModal] = useState(false);
   const [adminLoading, setAdminLoading] = useState(false);
+  const [selectedBusinessId, setSelectedBusinessId] = useState("");
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "" });
 
   const [openStatusModal, setOpenStatusModal] = useState(false);
@@ -70,14 +81,66 @@ export default function AdminChapterDetails({ chapterId }) {
 
   const { chapter, stats, admin } = data;
 
+  const rawBusinesses = Array.isArray(businessesData)
+    ? businessesData
+    : (businessesData?.businesses || businessesData?.data || []);
+
+  const isEligibleBusiness = (b) =>
+    b.isPaid === true &&
+    b.membership &&
+    b.membership !== "Free" &&
+    ["verified", "Verified", "approved", "Approved"].includes(b.verification);
+
+  const eligibleBusinesses = rawBusinesses.filter(isEligibleBusiness);
+
+  const chapterBizList = eligibleBusinesses.filter((b) => {
+    if (!chapter) return false;
+    const bChapter = String(b.chapter || "").toLowerCase().trim();
+    const targetChapter = String(chapter.name || "").toLowerCase().trim();
+    const bChapterId = String(b.chapterId || "");
+    const targetId = String(chapter._id || chapter.id || "");
+    return (bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter);
+  });
+
+  const otherBizList = eligibleBusinesses.filter((b) => {
+    if (!chapter) return true;
+    const bChapter = String(b.chapter || "").toLowerCase().trim();
+    const targetChapter = String(chapter.name || "").toLowerCase().trim();
+    const bChapterId = String(b.chapterId || "");
+    const targetId = String(chapter._id || chapter.id || "");
+    return !((bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter));
+  });
+
+  const handleSelectBusinessOwner = (bizId) => {
+    setSelectedBusinessId(bizId);
+    const biz = rawBusinesses.find((b) => String(b._id) === String(bizId));
+    if (biz) {
+      const ownerName = biz.owner?.name || biz.contactPerson || biz.name || "";
+      const ownerEmail = biz.owner?.email || biz.ownerEmail || biz.email || "";
+      setNewAdmin({
+        name: ownerName,
+        email: ownerEmail,
+      });
+    }
+  };
+
   const handleChangeAdmin = async (e) => {
     e.preventDefault();
+    if (!newAdmin.name?.trim() || !newAdmin.email?.trim()) {
+      toast.error("Please provide both admin name and email");
+      return;
+    }
     setAdminLoading(true);
     try {
-      await chapterApi.assignAdmin(chapterId, newAdmin);
-      toast.success("Admin role successfully updated!");
+      await chapterApi.assignAdmin(chapterId, {
+        businessId: selectedBusinessId || undefined,
+        name: newAdmin.name.trim(),
+        email: newAdmin.email.trim(),
+      });
+      toast.success(admin ? "Admin role successfully reallocated!" : "Admin successfully appointed!");
       setOpenAdminModal(false);
       setNewAdmin({ name: "", email: "" });
+      setSelectedBusinessId("");
       refetch();
     } catch (error) {
       toast.error(error.message || "Failed to change admin.");
@@ -189,21 +252,46 @@ export default function AdminChapterDetails({ chapterId }) {
                 
                 <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs border border-blue-100 flex gap-2 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50">
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-600" />
-                  <p>Appointed by the State Admin for {chapter.state} to manage businesses, units, and leads within this chapter admin.</p>
+                  <p>Appointed to manage businesses, units, and operations within this chapter.</p>
                 </div>
+
+                {!isChapterAdmin && (
+                  <div className="pt-2 border-t border-border">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => {
+                        setSelectedBusinessId("");
+                        setNewAdmin({ name: "", email: "" });
+                        setOpenAdminModal(true);
+                      }}
+                    >
+                      <KeyRound className="mr-2 h-4 w-4" /> Reallocate Admin
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      This will revoke the current administrator and assign a new user.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
                 <UserCog className="h-10 w-10 text-muted-foreground opacity-20 mx-auto mb-3" />
                 <h3 className="font-semibold text-sm">No Chapter Administrator Assigned</h3>
                 <p className="text-xs text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
-                  Chapter Administrators are appointed and managed by the <strong>State Admin for {chapter.state}</strong>.
+                  Appoint or reallocate a Chapter Administrator to manage businesses and operations for {chapter.name}.
                 </p>
-                <Button variant="outline" asChild>
-                  <Link href="/admin/states">
-                    View State Desks
-                  </Link>
-                </Button>
+                {!isChapterAdmin && (
+                  <Button 
+                    onClick={() => {
+                      setSelectedBusinessId("");
+                      setNewAdmin({ name: "", email: "" });
+                      setOpenAdminModal(true);
+                    }}
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" /> Reallocate Admin
+                  </Button>
+                )}
               </div>
             )}
           </Panel>
@@ -229,29 +317,99 @@ export default function AdminChapterDetails({ chapterId }) {
         </div>
       </div>
 
-      {/* Change Admin Dialog */}
-      <Dialog open={openAdminModal} onOpenChange={setOpenAdminModal}>
+      {/* Change / Reallocate Admin Dialog */}
+      <Dialog 
+        open={openAdminModal} 
+        onOpenChange={(open) => {
+          setOpenAdminModal(open);
+          if (!open) {
+            setSelectedBusinessId("");
+            setNewAdmin({ name: "", email: "" });
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Assign New Administrator</DialogTitle>
+            <DialogTitle>{admin ? "Reallocate Chapter Admin" : "Allocate Chapter Admin"}</DialogTitle>
             <DialogDescription>
-              This will revoke access from the current admin (if any) and assign a new user.
+              {admin 
+                ? `Reallocate administrator for ${chapter.name}. This will revoke access from ${admin.name} and assign a new user.`
+                : `Appoint a new administrator for ${chapter.name}. They will receive login credentials by email.`
+              }
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleChangeAdmin} className="space-y-4 pt-4">
-            <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs border border-amber-200 mb-2 flex gap-2 items-start">
-              <KeyRound className="h-4 w-4 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold mb-1">What happens next?</p>
-                <ul className="list-disc pl-4 space-y-1">
-                  <li>Current admin will be downgraded to a regular user.</li>
-                  <li>A removal notification email will be sent to them.</li>
-                  <li>New admin will receive an email with login credentials.</li>
-                  <li>New admin must change their password on first login.</li>
-                </ul>
+          <form onSubmit={handleChangeAdmin} className="space-y-4 pt-2">
+            {admin && (
+              <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs border border-amber-200 flex gap-2 items-start dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50">
+                <KeyRound className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold mb-1">What happens next?</p>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li>Current admin ({admin.name}) will be downgraded to a regular user.</li>
+                    <li>A removal notification email will be sent to them.</li>
+                    <li>New admin will receive an email with login credentials.</li>
+                  </ul>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Business Owner Select (optional shortcut) */}
+            {eligibleBusinesses.length > 0 && (
+              <div className="space-y-1.5">
+                <Label htmlFor="biz-owner-select">Select Business Owner (Optional)</Label>
+                <Select
+                  value={selectedBusinessId || undefined}
+                  onValueChange={handleSelectBusinessOwner}
+                >
+                  <SelectTrigger id="biz-owner-select" className="w-full">
+                    <SelectValue placeholder="Choose a paid & verified owner..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {chapterBizList.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel className="text-xs font-semibold text-primary">
+                          {chapter.name} Businesses
+                        </SelectLabel>
+                        {chapterBizList.map((b) => {
+                          const oName = b.owner?.name || b.contactPerson || b.name;
+                          const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                          return (
+                            <SelectItem key={b._id} value={b._id}>
+                              <div className="flex flex-col text-left py-0.5">
+                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                <span className="text-[11px] text-muted-foreground">{oEmail}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectGroup>
+                    )}
+                    {otherBizList.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel className="text-xs font-semibold text-muted-foreground">
+                          {chapterBizList.length > 0 ? "Other State Business Owners" : "Registered Business Owners"}
+                        </SelectLabel>
+                        {otherBizList.map((b) => {
+                          const oName = b.owner?.name || b.contactPerson || b.name;
+                          const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                          return (
+                            <SelectItem key={b._id} value={b._id}>
+                              <div className="flex flex-col text-left py-0.5">
+                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {b.chapter ? `${b.chapter} · ` : ""}{oEmail}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectGroup>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="admin-name">Admin Name *</Label>
@@ -259,7 +417,10 @@ export default function AdminChapterDetails({ chapterId }) {
                 id="admin-name"
                 placeholder="e.g. Rahul Sharma"
                 value={newAdmin.name}
-                onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
+                onChange={(e) => {
+                  setSelectedBusinessId("");
+                  setNewAdmin({ ...newAdmin, name: e.target.value });
+                }}
                 required
               />
             </div>
@@ -271,13 +432,16 @@ export default function AdminChapterDetails({ chapterId }) {
                 type="email"
                 placeholder="e.g. rahul@example.com"
                 value={newAdmin.email}
-                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                onChange={(e) => {
+                  setSelectedBusinessId("");
+                  setNewAdmin({ ...newAdmin, email: e.target.value });
+                }}
                 required
               />
             </div>
 
             <Button type="submit" className="w-full mt-2" disabled={adminLoading}>
-              {adminLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Change"}
+              {adminLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (admin ? "Reallocate Admin" : "Confirm Allocation")}
             </Button>
           </form>
         </DialogContent>

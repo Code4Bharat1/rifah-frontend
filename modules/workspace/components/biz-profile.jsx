@@ -44,7 +44,7 @@ import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 import { getMainCategories, getSubCategoriesFor } from "@shared/lib/categories-data";
 import { useMyBusiness, useCategories, useBusinessCatalogue, useBusinessReviews } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
-import { businessApi } from "@shared/lib/api-services";
+import { businessApi, userApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@shared/lib/utils";
@@ -159,6 +159,7 @@ function BizProfile() {
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [uploadingCert, setUploadingCert] = useState(false);
   const [sameAsPhone, setSameAsPhone] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     const knownRoles = [
@@ -292,6 +293,32 @@ function BizProfile() {
       queryClient.invalidateQueries({ queryKey: ["business", business.slug] });
     }
     queryClient.invalidateQueries({ queryKey: ["businesses"] });
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      await userApi.uploadAvatar(file);
+      toast.success("Personal avatar uploaded successfully");
+      queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+    } catch (err) {
+      toast.error(err.message || "Failed to upload avatar.");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDeleteAvatar = async () => {
+    try {
+      await userApi.updateProfile({ avatar: "" });
+      toast.success("Personal avatar removed successfully");
+      queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+    } catch (err) {
+      toast.error(err.message || "Failed to remove avatar.");
+    }
   };
 
   const handleLogoUpload = async (e) => {
@@ -885,6 +912,48 @@ function BizProfile() {
                 <Package className="h-3.5 w-3.5" />
                 <span>Create & Manage Catalogue →</span>
               </Button>
+            </div>
+          </Panel>
+
+          <Panel title="Personal Avatar" description="Your profile picture across the platform">
+            {user?.avatar ? (
+              <div className="relative inline-block group rounded-full overflow-hidden border border-border">
+                <img
+                  src={resolveMediaUrl(user.avatar)}
+                  alt="Avatar"
+                  className="h-24 w-24 object-cover shadow-2xs"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+                <button
+                  type="button"
+                  onClick={handleDeleteAvatar}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid h-8 w-8 place-items-center rounded-full bg-red-600 text-white hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md cursor-pointer z-10"
+                  title="Remove avatar"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-3xl">
+                {user?.name?.charAt(0)?.toUpperCase() || "U"}
+              </div>
+            )}
+            <div className="mt-4">
+              <label className="inline-block">
+                <Button asChild size="sm" variant="outline" className="cursor-pointer" disabled={uploadingAvatar}>
+                  <span>
+                    {uploadingAvatar ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin inline" /> Uploading...</>
+                    ) : user?.avatar ? (
+                      "Change Avatar"
+                    ) : (
+                      "Upload Avatar"
+                    )}
+                  </span>
+                </Button>
+                <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+              </label>
+              <p className="mt-2 text-[11px] text-muted-foreground">Upload a square image (e.g., 200x200px) for best results.</p>
             </div>
           </Panel>
 
