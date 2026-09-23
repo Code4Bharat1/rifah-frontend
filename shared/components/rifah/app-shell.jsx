@@ -479,7 +479,8 @@ export function AppShell({
   const path = useCurrentPath();
   const router = useRouter();
   const { user, logout, switchRole, loading } = useAuth();
-  const nav = useResolvedNav(role) || navs.admin || navs.customer;
+  const nav = useResolvedNav(role) || navs.admin || navs.business;
+  const all = [...(nav?.primary || []).filter((i) => i.label !== "More"), ...(nav?.more || [])];
 
   useEffect(() => {
     if (!loading && !user) {
@@ -539,7 +540,7 @@ export function AppShell({
       try {
         sessionStorage.setItem(`rifah-sidebar-scroll-${role}`, String(top));
         sessionStorage.setItem("rifah_sidebar_scroll_top", String(top));
-      } catch {}
+      } catch { }
     }
   };
 
@@ -550,7 +551,7 @@ export function AppShell({
       try {
         sessionStorage.setItem(`rifah-sidebar-scroll-${role}`, String(top));
         sessionStorage.setItem("rifah_sidebar_scroll_top", String(top));
-      } catch {}
+      } catch { }
     }
   };
 
@@ -652,10 +653,10 @@ export function AppShell({
                 role === "business"
                   ? "/biz/profile"
                   : user?.role === "state_admin"
-                  ? "/state-admin/settings"
-                  : user?.role === "chapter_admin"
-                  ? "/chapter-admin/settings"
-                  : "/admin/settings"
+                    ? "/state-admin/settings"
+                    : user?.role === "chapter_admin"
+                      ? "/chapter-admin/settings"
+                      : "/admin/settings"
               }
               scroll={false}
               onClick={recordScroll}
@@ -734,10 +735,10 @@ export function AppShell({
                 {user.previousRole === "central_admin"
                   ? "Switch to Admin View"
                   : user.previousRole === "state_admin"
-                  ? "Switch to State Admin"
-                  : user.previousRole === "chapter_admin"
-                  ? "Switch to Chapter Admin"
-                  : "Switch to Business View"}
+                    ? "Switch to State Admin"
+                    : user.previousRole === "chapter_admin"
+                      ? "Switch to Chapter Admin"
+                      : "Switch to Business View"}
               </span>
             </button>
           )}
@@ -961,10 +962,10 @@ function UnderApprovalAccessGate({ business, path }) {
                 {isNotSubmitted
                   ? "PROFILE INCOMPLETE — NOT SUBMITTED"
                   : isChangesReq
-                  ? "CHANGES REQUESTED"
-                  : isRejected
-                  ? "VERIFICATION REJECTED"
-                  : "UNDER CENTRAL ADMIN APPROVAL"}
+                    ? "CHANGES REQUESTED"
+                    : isRejected
+                      ? "VERIFICATION REJECTED"
+                      : "UNDER CENTRAL ADMIN APPROVAL"}
               </span>
               <span className="text-xs text-muted-foreground">•</span>
               <span className="text-xs font-semibold text-foreground/80">{business?.name || "Business Enterprise"}</span>
@@ -979,10 +980,10 @@ function UnderApprovalAccessGate({ business, path }) {
               {isNotSubmitted
                 ? "Workspace Access Restricted — Profile Incomplete & Not Submitted"
                 : isChangesReq
-                ? "Action Required: Central Admin Requested Changes"
-                : isRejected
-                ? "Verification Application Rejected"
-                : "Workspace Access Restricted — Under Central Admin Approval"}
+                  ? "Action Required: Central Admin Requested Changes"
+                  : isRejected
+                    ? "Verification Application Rejected"
+                    : "Workspace Access Restricted — Under Central Admin Approval"}
             </h2>
 
             <p
@@ -996,10 +997,10 @@ function UnderApprovalAccessGate({ business, path }) {
               {isNotSubmitted
                 ? "Your business profile is incomplete and has not been submitted for Central Admin verification. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will remain restricted until your profile details are completed and submitted for review."
                 : isChangesReq
-                ? "The RIFAH Chamber Central Admin has reviewed your business application and requested specific changes or additional paperwork before granting verification approval."
-                : isRejected
-                ? "Your verification application has been rejected by the Central Admin. Please review the feedback reason below and update your documents to re-submit."
-                : "Your business profile is currently in the RIFAH Central Admin Verification queue. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
+                  ? "The RIFAH Chamber Central Admin has reviewed your business application and requested specific changes or additional paperwork before granting verification approval."
+                  : isRejected
+                    ? "Your verification application has been rejected by the Central Admin. Please review the feedback reason below and update your documents to re-submit."
+                    : "Your business profile is currently in the RIFAH Central Admin Verification queue. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
             </p>
 
             {isNotSubmitted && missingFields.length > 0 && (
@@ -1214,27 +1215,41 @@ export function MoreSheet({ role, isBizVerified = true }) {
           <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {nav.title}
           </p>
-          {items.map((i, idx) => {
-            const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
+          {categories.map((group, gIdx) => {
+            if (group.isStandalone && group.item) {
+              const i = group.item;
+              const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
+              return (
+                <div key={`ms-standalone-${i.to}-${gIdx}`} className="py-1">
+                  <Link
+                    href={i.to}
+                    scroll={false}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted",
+                      isActive(i.to) && "bg-primary/10 text-primary font-bold",
+                      isLocked && "opacity-75"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <i.icon className="h-[18px] w-[18px] text-primary" />
+                      <span>{i.label}</span>
+                    </div>
+                    {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  </Link>
+                </div>
+              );
+            }
+
             return (
-              <div key={`ms-item-${i.to}-${i.label}-${idx}`} className="py-1">
-                <Link
-                  href={i.to}
-                  scroll={false}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted",
-                    isActive(i.to) && "bg-primary/10 text-primary font-bold",
-                    isLocked && "opacity-75"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <i.icon className="h-[18px] w-[18px] text-primary" />
-                    <span>{i.label}</span>
-                  </div>
-                  {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
-                </Link>
-              </div>
+              <MobileCategoryGroup
+                key={`ms-cat-${group.category}-${gIdx}`}
+                group={group}
+                isActive={isActive}
+                role={role}
+                isBizVerified={isBizVerified}
+                onSelect={() => setOpen(false)}
+              />
             );
           })}
           <div className="mt-4 border-t border-border pt-3">

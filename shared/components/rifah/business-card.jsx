@@ -54,6 +54,218 @@ function Monogram({ business, className }) {
   );
 }
 
+/** Quick Review Submission Dialog Modal */
+function ReviewModal({ isOpen, onClose, business, onReviewSuccess }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewComments, setReviewComments] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedRating(0);
+      setHoverRating(0);
+      setReviewComments("");
+    }
+  }, [isOpen]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error("Please log in to submit a review for this business.");
+      if (typeof window !== "undefined") {
+        window.location.href = `/login?redirect=/business/${business?.slug || business?._id || ""}`;
+      }
+      return;
+    }
+    if (!reviewComments.trim() || selectedRating < 1) return;
+    const authorName = user?.name || "Verified Member";
+    const realBizId = business?._id || business?.id || business?.slug;
+    setIsSubmitting(true);
+    try {
+      const res = await reviewApi.submit({
+        businessId: realBizId,
+        rating: selectedRating,
+        title: "",
+        body: reviewComments.trim(),
+        authorName,
+      });
+
+      const submittedReview = res?.data || res;
+
+      // Optimistically update card rating on this page
+      onReviewSuccess?.(selectedRating);
+
+      // Inject into query cache so profile page and lists update immediately
+      const targetBizId = business?._id || realBizId;
+      if (targetBizId && submittedReview) {
+        const updateReviewList = (old) => {
+          const list = Array.isArray(old) ? old : (old?.data || old?.reviews || []);
+          const cleanReview = {
+            _id: submittedReview._id || submittedReview.id || `review-${Date.now()}`,
+            rating: Number(submittedReview.rating) || selectedRating,
+            title: "",
+            body: reviewComments.trim(),
+            authorName: submittedReview.authorName || authorName,
+            authorRole: submittedReview.authorRole || "Verified Member",
+            createdAt: submittedReview.createdAt || new Date().toISOString(),
+          };
+          const filtered = list.filter((r) => String(r._id || r.id) !== String(cleanReview._id));
+          return [cleanReview, ...filtered];
+        };
+        queryClient.setQueryData(["reviews", targetBizId], updateReviewList);
+        if (realBizId && realBizId !== targetBizId) {
+          queryClient.setQueryData(["reviews", realBizId], updateReviewList);
+        }
+      }
+
+      // Immediately refetch queries across the application
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["reviews"], type: "all" }),
+        queryClient.refetchQueries({ queryKey: ["business"], type: "all" }),
+        queryClient.refetchQueries({ queryKey: ["businesses"], type: "all" }),
+      ]);
+
+      toast.success("Review submitted successfully! Thank you for your feedback.");
+      setReviewComments("");
+      setSelectedRating(0);
+      onClose();
+    } catch (err) {
+      const msg = err?.message || "";
+      if (
+        msg.toLowerCase().includes("token") ||
+        msg.toLowerCase().includes("auth") ||
+        msg.toLowerCase().includes("unauthorized") ||
+        msg.toLowerCase().includes("log in") ||
+        err?.status === 401
+      ) {
+        toast.error("Please log in to submit a review for this business.");
+      } else {
+        toast.error(msg || "Failed to submit review. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md p-6">
+        <DialogHeader>
+          <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+            <Star className="h-5 w-5 fill-amber-400 text-amber-500" />
+            <span>Review {business?.name}</span>
+          </DialogTitle>
+          <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+            Rate your experience and share verified feedback with the chamber community.
+          </DialogDescription>
+        </DialogHeader>
+
+        {!user && (
+          <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 dark:bg-amber-950/20 dark:border-amber-900/40 p-3 text-xs text-amber-900 dark:text-amber-300 flex items-center justify-between gap-2 mt-1">
+            <span>Only logged-in chamber members can submit reviews.</span>
+            <Button asChild size="sm" variant="outline" className="shrink-0 h-7 text-xs font-semibold border-amber-300 text-amber-900 dark:text-amber-200 hover:bg-amber-100">
+              <Link href={`/login?redirect=/business/${business?.slug || business?._id || ""}`}>
+                Sign In
+              </Link>
+            </Button>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          {/* 1. Rate Star (1 to 5 Stars Selector) */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+              Rate Star *
+            </label>
+            <div className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setSelectedRating(star)}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  className="p-1 transition-transform hover:scale-120 active:scale-95 cursor-pointer focus:outline-none"
+                  aria-label={`Rate ${star} star`}
+                >
+                  <Star
+                    className={cn(
+                      "h-7 w-7 transition-colors",
+                      (hoverRating || selectedRating) >= star
+                        ? "fill-amber-400 text-amber-500 drop-shadow-xs"
+                        : "text-slate-300 dark:text-slate-600"
+                    )}
+                  />
+                </button>
+              ))}
+              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 ml-2">
+                {(hoverRating || selectedRating) > 0 ? `${hoverRating || selectedRating} / 5 Stars` : "Select rating"}
+              </span>
+            </div>
+          </div>
+
+          {/* 2. Input Text / Review Comments */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+              Review Comments *
+            </label>
+            <Textarea
+              value={reviewComments}
+              onChange={(e) => setReviewComments(e.target.value)}
+              placeholder="Write your review comments here..."
+              rows={3}
+              required
+              className="text-xs resize-none"
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="cursor-pointer"
+            >
+              Cancel
+            </Button>
+            {!user ? (
+              <Button
+                asChild
+                size="sm"
+                className="gap-1.5 font-semibold bg-[#00A6F4] hover:bg-[#0096dc] text-white cursor-pointer shadow-xs"
+              >
+                <Link href={`/login?redirect=/business/${business?.slug || business?._id || ""}`}>
+                  Log In To Submit Review
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isSubmitting || selectedRating === 0 || !reviewComments.trim()}
+                className="gap-1.5 font-semibold bg-[#00A6F4] hover:bg-[#0096dc] text-white cursor-pointer shadow-xs"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> Submitting...
+                  </>
+                ) : (
+                  "Post Review"
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /** Standard directory card — used in grids on tablet and desktop. */
 export function BusinessCard({
   business,
