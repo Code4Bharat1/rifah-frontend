@@ -31,7 +31,7 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Textarea } from "@shared/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
-import { useCourse } from "@shared/hooks/use-rifah-api";
+import { useCourse, useCategories } from "@shared/hooks/use-rifah-api";
 import { courseApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
@@ -60,14 +60,35 @@ export function AdminCourseBuilder({ role = "admin" }) {
   const [isUploading, setIsUploading] = useState(false);
   const [isSavingLesson, setIsSavingLesson] = useState(false);
 
+  const { data: categoriesData } = useCategories();
+  const allCategories = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.categories || []);
+  const mainCategories = allCategories.filter((c) => !c.parent);
+
   // Course Edit & Delete Modals
   const [isEditCourseOpen, setIsEditCourseOpen] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editScope, setEditScope] = useState("centre");
+  const [editCategory, setEditCategory] = useState("all");
+  const [editSubcategory, setEditSubcategory] = useState("all");
   const [savingCourse, setSavingCourse] = useState(false);
   const [isDeleteCourseOpen, setIsDeleteCourseOpen] = useState(false);
   const [deletingCourse, setDeletingCourse] = useState(false);
+
+  // Robust subcategory extractor matching parent name or parent id with trimming and case-insensitivity
+  const getSubcategories = (catNameOrId) => {
+    if (!catNameOrId || catNameOrId === "all") return [];
+    const cat = allCategories.find((c) => c.name === catNameOrId || c._id === catNameOrId);
+    const targetName = (cat?.name || catNameOrId).trim().toLowerCase();
+    const targetId = cat?._id ? String(cat._id) : "";
+    return allCategories.filter((c) => {
+      if (!c.parent) return false;
+      const p = String(c.parent).trim().toLowerCase();
+      return p === targetName || (targetId && String(c.parent) === targetId);
+    });
+  };
+
+  const availableSubcategoriesForEdit = getSubcategories(editCategory);
 
   // Collapsed Chapters State
   const [collapsedChapters, setCollapsedChapters] = useState({});
@@ -127,6 +148,8 @@ export function AdminCourseBuilder({ role = "admin" }) {
     setEditTitle(courseData.title || "");
     setEditDescription(courseData.description || "");
     setEditScope(courseData.scope || courseData.visibilityScope || "centre");
+    setEditCategory(courseData.category || "all");
+    setEditSubcategory(courseData.subcategory || "all");
     setIsEditCourseOpen(true);
   };
 
@@ -138,6 +161,8 @@ export function AdminCourseBuilder({ role = "admin" }) {
       await courseApi.update(courseData._id, {
         title: editTitle.trim(),
         description: editDescription.trim(),
+        category: editCategory === "all" ? "" : editCategory,
+        subcategory: editSubcategory === "all" ? "" : editSubcategory,
         scope: editScope,
         visibilityScope: editScope,
       });
@@ -337,13 +362,23 @@ export function AdminCourseBuilder({ role = "admin" }) {
         {/* Top Header Card */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl border bg-card shadow-xs">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="capitalize px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
                 {courseData.scope || courseData.visibilityScope || "Centre"} Scope
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${isPublished ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning-foreground'}`}>
                 {isPublished ? 'Published' : 'Draft'}
               </span>
+              {courseData.category && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                  {courseData.category}
+                </span>
+              )}
+              {courseData.subcategory && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                  {courseData.subcategory}
+                </span>
+              )}
             </div>
             <h1 className="text-2xl font-bold text-foreground">{courseData.title}</h1>
             <p className="text-sm text-muted-foreground line-clamp-2">{courseData.description || "No description provided."}</p>
@@ -707,6 +742,52 @@ export function AdminCourseBuilder({ role = "admin" }) {
               <div className="space-y-1.5">
                 <Label>Description</Label>
                 <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Category</Label>
+                  <Select value={editCategory} onValueChange={(val) => {
+                    setEditCategory(val);
+                    setEditSubcategory("all");
+                  }}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">🌐 All Categories</SelectItem>
+                      {mainCategories.map((c) => (
+                        <SelectItem key={c._id || c.name} value={c.name}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Subcategory</Label>
+                  <Select 
+                    value={editSubcategory} 
+                    onValueChange={setEditSubcategory}
+                    disabled={editCategory === "all" || availableSubcategoriesForEdit.length === 0}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder={editCategory === "all" ? "Select Category First" : "Select Subcategory"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Subcategories</SelectItem>
+                      {availableSubcategoriesForEdit.map((sc) => (
+                        <SelectItem key={sc._id || sc.name} value={sc.name}>
+                          {sc.name}
+                        </SelectItem>
+                      ))}
+                      {editSubcategory && editSubcategory !== "all" && !availableSubcategoriesForEdit.some(sc => sc.name.toLowerCase() === editSubcategory.toLowerCase()) && (
+                        <SelectItem value={editSubcategory}>{editSubcategory}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
             <DialogFooter>

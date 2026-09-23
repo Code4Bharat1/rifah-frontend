@@ -49,7 +49,7 @@ import {
 import { enquiryApi } from "@shared/lib/api-services";
 import { eventImage, resolveMediaUrl } from "@shared/lib/media";
 import { cn } from "@shared/lib/utils";
-import { getEventStatus, getEventStatusConfig } from "@shared/lib/event-utils";
+import { getEventStatus, getEventStatusConfig, formatEventDate } from "@shared/lib/event-utils";
 import {
   useBusinesses,
   useCatalogue,
@@ -243,10 +243,7 @@ function HomePage() {
 
         <div className="rifah-container relative z-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div className="max-w-2xl">
-            <Pill tone="brand" className="border-brand/30 bg-brand/15 text-brand-foreground text-xs px-3 py-1 font-medium">
-              RIFAH Chamber of Commerce & Industry
-            </Pill>
-            
+
             <h1 className="mt-4 text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-5xl">
               Connect. Discover. Grow.
             </h1>
@@ -292,32 +289,15 @@ function HomePage() {
           </div>
 
           <div className="hidden lg:block">
-            <div className="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 backdrop-blur-sm shadow-xl">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                How trade flows on RIFAH Connect
-              </p>
-              <ol className="mt-4 space-y-3">
-                {[
-                  { icon: Search, t: "Buyer searches the directory", d: "Filter by industry, product, location and chapter." },
-                  { icon: Building2, t: "Explores business profiles", d: "Verified catalogues, certifications and memberships." },
-                  { icon: Target, t: "Submits structured enquiry", d: "Enquiry automatically routed to verified suppliers." },
-                  { icon: MessageSquare, t: "Direct negotiation & deal closure", d: "In-platform messaging keeps a verified audit record." },
-                ].map((s, idx) => (
-                  <li
-                    key={s.t}
-                    className="flex gap-3.5 rounded-xl border border-slate-800/80 bg-slate-950/40 p-3.5 transition-colors hover:border-slate-700 hover:bg-slate-800/40"
-                  >
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-800 text-slate-200 text-xs font-semibold">
-                      {idx + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-100">{s.t}</p>
-                      <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">{s.d}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
+            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900/60 shadow-xl flex items-center justify-center">
+              <video 
+                src="/hero-video.mp4" 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                className="h-full w-full object-cover scale-[1.12] transform"
+              />
             </div>
           </div>
         </div>
@@ -493,13 +473,7 @@ function HomePage() {
                     </div>
                     <div className="p-4.5">
                       <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-                        <CalendarDays className="h-3.5 w-3.5" /> {(() => {
-                          if (!e.date) return "";
-                          const d = new Date(e.date);
-                          return isNaN(d.getTime()) 
-                            ? e.date 
-                            : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, "-");
-                        })()} · {e.time}
+                        <CalendarDays className="h-3.5 w-3.5" /> {formatEventDate(e.date) || e.date} · {e.time}
                       </p>
                       <h3 className="mt-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">{e.title}</h3>
                       <p className="mt-1 text-xs text-muted-foreground">

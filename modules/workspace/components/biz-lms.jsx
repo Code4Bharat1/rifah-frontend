@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Button } from "@shared/components/ui/button";
 import { Progress } from "@shared/components/ui/progress";
-import { useCourses } from "@shared/hooks/use-rifah-api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { useCourses, useCategories } from "@shared/hooks/use-rifah-api";
 import { courseApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/media";
 
@@ -140,6 +141,16 @@ function CourseCard({ course }) {
           <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${scopeBadgeCls}`}>
             {scopeLabel}
           </span>
+          {course.category && (
+            <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-semibold max-w-[150px] truncate" title={course.category}>
+              {course.category}
+            </span>
+          )}
+          {course.subcategory && (
+            <span className="inline-flex items-center rounded-full border border-border/80 bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground max-w-[120px] truncate" title={course.subcategory}>
+              {course.subcategory}
+            </span>
+          )}
           {isCompleted && (
             <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
               <CheckCircle2 className="h-3 w-3" /> Completed
@@ -278,14 +289,35 @@ function CertCard({ cert }) {
 // ── Main component
 export function BizLms() {
   const { data: coursesData, isLoading } = useCourses();
+  const { data: categoriesData } = useCategories();
   const courses = Array.isArray(coursesData?.data)
     ? coursesData.data
     : Array.isArray(coursesData) ? coursesData : [];
+
+  const allCategories = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.categories || []);
+  const mainCategories = allCategories.filter((c) => !c.parent);
 
   const [activeTab, setActiveTab] = useState("courses"); // "courses" | "certificates"
   const [searchTerm, setSearchTerm] = useState("");
   const [scopeFilter, setScopeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [subcategoryFilter, setSubcategoryFilter] = useState("all");
+
+  // Robust subcategory extractor matching parent name or parent id with trimming and case-insensitivity
+  const getSubcategories = (catNameOrId) => {
+    if (!catNameOrId || catNameOrId === "all") return [];
+    const cat = allCategories.find((c) => c.name === catNameOrId || c._id === catNameOrId);
+    const targetName = (cat?.name || catNameOrId).trim().toLowerCase();
+    const targetId = cat?._id ? String(cat._id) : "";
+    return allCategories.filter((c) => {
+      if (!c.parent) return false;
+      const p = String(c.parent).trim().toLowerCase();
+      return p === targetName || (targetId && String(c.parent) === targetId);
+    });
+  };
+
+  const availableSubcategories = getSubcategories(categoryFilter);
 
   // ── Derive certificates from completed courses
   const certificates = courses.filter(c => c?.progress?.isCompleted);
@@ -293,8 +325,14 @@ export function BizLms() {
   // ── Filter courses
   const filtered = courses.filter(course => {
     const q = searchTerm.toLowerCase();
-    if (q && !course.title?.toLowerCase().includes(q) && !course.description?.toLowerCase().includes(q)) {
-      return false;
+    if (q) {
+      const inTitle = course.title?.toLowerCase().includes(q);
+      const inDesc = course.description?.toLowerCase().includes(q);
+      const inCat = course.category?.toLowerCase().includes(q);
+      const inSub = course.subcategory?.toLowerCase().includes(q);
+      if (!inTitle && !inDesc && !inCat && !inSub) {
+        return false;
+      }
     }
     if (scopeFilter !== "all") {
       const scopeDef = SCOPES.find(s => s.key === scopeFilter);
@@ -303,6 +341,12 @@ export function BizLms() {
     if (statusFilter !== "all") {
       const { status } = getCourseProgress(course);
       if (status !== statusFilter) return false;
+    }
+    if (categoryFilter !== "all") {
+      if ((course.category || "").trim().toLowerCase() !== categoryFilter.trim().toLowerCase()) return false;
+    }
+    if (subcategoryFilter !== "all") {
+      if ((course.subcategory || "").trim().toLowerCase() !== subcategoryFilter.trim().toLowerCase()) return false;
     }
     return true;
   });
@@ -377,59 +421,122 @@ export function BizLms() {
         {activeTab === "courses" && (
           <div className="space-y-5">
 
-            {/* Search + Scope filters */}
+            {/* Search + Scope + Category filters */}
             <div className="space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search courses…"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-9 py-2.5 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              {/* Row 1: Search input + Category & Subcategory Dropdowns */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search courses by keyword, topic, or category…"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-9 py-2.5 text-xs sm:text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 transition shadow-2xs"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Category Dropdown */}
+                <div className="w-full sm:w-[200px] shrink-0">
+                  <Select value={categoryFilter} onValueChange={(val) => {
+                    setCategoryFilter(val);
+                    setSubcategoryFilter("all");
+                  }}>
+                    <SelectTrigger className="h-10 text-xs rounded-xl bg-background border">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">🌐 All Categories</SelectItem>
+                      {mainCategories.map((c) => (
+                        <SelectItem key={c._id || c.name} value={c.name}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Subcategory Dropdown */}
+                <div className="w-full sm:w-[190px] shrink-0">
+                  <Select 
+                    value={subcategoryFilter} 
+                    onValueChange={setSubcategoryFilter}
+                    disabled={categoryFilter === "all" || availableSubcategories.length === 0}
                   >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
+                    <SelectTrigger className="h-10 text-xs rounded-xl bg-background border">
+                      <SelectValue placeholder={categoryFilter === "all" ? "Select Category First" : "All Subcategories"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Subcategories</SelectItem>
+                      {availableSubcategories.map((sc) => (
+                        <SelectItem key={sc._id || sc.name} value={sc.name}>
+                          {sc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {/* Scope pills */}
-              <div className="flex gap-2 flex-wrap">
-                {SCOPES.map(s => (
-                  <button
-                    key={s.key}
-                    onClick={() => setScopeFilter(s.key)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                      scopeFilter === s.key
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background text-muted-foreground border-border hover:border-primary/50"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
+              {/* Row 2: Scope & Status Pills + Reset */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <div className="flex gap-1.5 flex-wrap items-center">
+                  <span className="text-[11px] font-semibold text-muted-foreground mr-1">Scope:</span>
+                  {SCOPES.map(s => (
+                    <button
+                      key={s.key}
+                      onClick={() => setScopeFilter(s.key)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
+                        scopeFilter === s.key
+                          ? "bg-primary text-primary-foreground border-primary shadow-2xs"
+                          : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
 
-              {/* Status pills */}
-              <div className="flex gap-2 flex-wrap">
-                {STATUS_FILTERS.map(s => (
-                  <button
-                    key={s.key}
-                    onClick={() => setStatusFilter(s.key)}
-                    className={`px-3 py-1 rounded-full text-[11px] font-semibold border transition-all ${
-                      statusFilter === s.key
-                        ? "bg-foreground text-background border-foreground"
-                        : "bg-background text-muted-foreground border-border hover:border-foreground/30"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
+                <div className="flex gap-1.5 flex-wrap items-center">
+                  <span className="text-[11px] font-semibold text-muted-foreground mr-1">Status:</span>
+                  {STATUS_FILTERS.map(s => (
+                    <button
+                      key={s.key}
+                      onClick={() => setStatusFilter(s.key)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                        statusFilter === s.key
+                          ? "bg-foreground text-background border-foreground shadow-2xs"
+                          : "bg-background text-muted-foreground border-border hover:border-foreground/30"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+
+                  {(categoryFilter !== "all" || subcategoryFilter !== "all" || scopeFilter !== "all" || statusFilter !== "all" || searchTerm) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCategoryFilter("all");
+                        setSubcategoryFilter("all");
+                        setScopeFilter("all");
+                        setStatusFilter("all");
+                        setSearchTerm("");
+                      }}
+                      className="ml-2 text-xs text-primary hover:underline font-medium inline-flex items-center gap-1"
+                    >
+                      <X className="h-3 w-3" /> Reset Filters
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

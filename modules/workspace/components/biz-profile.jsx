@@ -17,6 +17,7 @@ import {
   Sparkles,
   Plus,
   Star,
+  AlertTriangle,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -390,6 +391,24 @@ function BizProfile() {
 
   const bizSlugOrId = business?.slug || business?._id || "";
 
+  const missingProfileFields = React.useMemo(() => {
+    const list = [];
+    if (!formData.name?.trim()) list.push("Business Name");
+    if (!formData.industry?.trim()) list.push("Industry Category");
+    if (!formData.city?.trim()) list.push("City");
+    if (!formData.state?.trim()) list.push("State");
+    if (!formData.address?.trim()) list.push("Business Address");
+    if (!formData.phone?.trim()) list.push("Phone Number");
+    if (!formData.about?.trim() || formData.about.trim().toLowerCase() === "no description provided.") {
+      list.push("About / Description");
+    }
+    return list;
+  }, [formData]);
+
+  const vStatus = (business?.verification || business?.verificationStatus || "").toLowerCase();
+  const isProfileIncomplete = missingProfileFields.length > 0;
+  const isNotSubmitted = isProfileIncomplete || vStatus === "unverified" || vStatus === "draft" || vStatus === "not_submitted" || vStatus === "";
+
   return (
     <AppShell
       role="business"
@@ -413,6 +432,44 @@ function BizProfile() {
         </div>
       }
     >
+      {/* Incomplete Profile Alert Banner (Red for attention) */}
+      {isNotSubmitted && (
+        <div className="mb-6 rounded-2xl border border-red-400 bg-red-50/95 dark:border-red-800 dark:bg-red-950/40 p-4 sm:p-5 text-red-950 dark:text-red-100 shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-start gap-3.5">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-600 text-white shadow-xs">
+              <AlertTriangle className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="rounded-full bg-red-600 text-white px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                  PROFILE INCOMPLETE — NOT SUBMITTED
+                </span>
+                <span className="text-xs font-semibold text-red-800 dark:text-red-300">• Action Required</span>
+              </div>
+              <h3 className="text-sm sm:text-base font-bold text-red-950 dark:text-red-100">
+                Your Business Profile is Incomplete & Not Submitted
+              </h3>
+              <p className="mt-1 text-xs sm:text-sm text-red-900/90 dark:text-red-200 leading-relaxed font-medium">
+                Your profile has not been submitted for Central Admin verification. Please fill in the missing required details below (including About Business, Address, and Contact info) and click &quot;Save Changes&quot; to complete and submit your profile.
+              </p>
+              {missingProfileFields.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5 items-center">
+                  <span className="text-xs font-bold text-red-900 dark:text-red-300">Missing fields:</span>
+                  {missingProfileFields.map((f) => (
+                    <span
+                      key={f}
+                      className="rounded-md bg-red-100 dark:bg-red-950/80 px-2 py-0.5 text-[11px] font-semibold text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900"
+                    >
+                      • {f}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Segmented Navigation Switcher */}
       <div className="flex items-center gap-2 border-b border-border pb-3 mb-6 overflow-x-auto">
         <button

@@ -33,14 +33,19 @@ export function PresencePage() {
   const filteredStates = useMemo(() => {
     return statesList.filter((item) => {
       const q = searchQuery.trim().toLowerCase();
-      const profileName = item.profile?.name?.toLowerCase() || item.state.toLowerCase();
-      const matchesSearch =
-        !q ||
-        profileName.includes(q) ||
-        (item.profile?.address || "").toLowerCase().includes(q) ||
-        (item.admin?.name || "").toLowerCase().includes(q);
+      if (!q) return true;
+      
+      const stateName = (item.state || "").toLowerCase();
+      const profileName = (item.profile?.name || "").toLowerCase();
+      const address = (item.profile?.address || "").toLowerCase();
+      const adminName = (item.admin?.name || "").toLowerCase();
 
-      return matchesSearch;
+      return (
+        stateName.includes(q) ||
+        profileName.includes(q) ||
+        address.includes(q) ||
+        adminName.includes(q)
+      );
     });
   }, [statesList, searchQuery]);
 
@@ -85,7 +90,7 @@ export function PresencePage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
-              Active State Secretariats
+              State-Level RIFAH Presence
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               Showing {filteredStates.length} states
