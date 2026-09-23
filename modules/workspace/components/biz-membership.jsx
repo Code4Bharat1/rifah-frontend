@@ -34,6 +34,8 @@ import {
   XCircle,
   RotateCcw,
   Loader2,
+  Trash2,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,8 +60,9 @@ import {
   useMembershipPlans,
   useMyPayments,
   useMyMembership,
+  useChapters,
 } from "@shared/hooks/use-rifah-api";
-import { verificationApi } from "@shared/lib/api-services";
+import { verificationApi, businessApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { cn } from "@shared/lib/utils";
 
@@ -282,6 +285,14 @@ function handleDownloadAllInvoices(payments) {
 }
 
 function handleDownloadCertificate(business, membershipData) {
+  const tier = (membershipData?.planName || membershipData?.planId || business?.membership || "").toLowerCase();
+  if (tier === "free" || !membershipData || membershipData?.tier === "free") {
+    toast.info("Accreditation Required", {
+      description: "Official Chamber Membership Certificates are exclusively issued to accredited Chamber members (Silver/Gold/Platinum). Please upgrade to unlock.",
+    });
+    return;
+  }
+
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
     toast.error("Pop-up blocked. Please allow pop-ups to generate certificate.");
@@ -924,20 +935,39 @@ function handleDownloadCertificate(business, membershipData) {
 
 function BizMembership() {
   const { data: business, refetch: refetchBiz } = useMyBusiness();
+  const hasBusinessProfile = Boolean(
+    business &&
+    business._id &&
+    ((typeof business.name === "string" && business.name.trim().length > 0) ||
+     (typeof business.title === "string" && business.title.trim().length > 0) ||
+     (typeof business.legalName === "string" && business.legalName.trim().length > 0))
+  );
   const { data: membershipData } = useMyMembership();
   const { data: plansData } = useMembershipPlans();
   const { data: paymentsData } = useMyPayments();
+  const { data: chaptersData } = useChapters();
+
+  const chaptersList = useMemo(() => {
+    const list = Array.isArray(chaptersData) ? chaptersData : chaptersData?.chapters || [];
+    return list;
+  }, [chaptersData]);
+
+  const [chapterModalOpen, setChapterModalOpen] = useState(false);
+  const [assigningChapter, setAssigningChapter] = useState(false);
 
   const [verificationData, setVerificationData] = useState(null);
   const [loadingVerification, setLoadingVerification] = useState(false);
   const [replacingType, setReplacingType] = useState(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [submittingVerification, setSubmittingVerification] = useState(false);
 
   const [autoRenew, setAutoRenew] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState(null);
+  const [deletingType, setDeletingType] = useState(null);
+  const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null);
   const fileInputRef = useRef(null);
   const [activeAnchor, setActiveAnchor] = useState("overview");
 
@@ -952,7 +982,13 @@ function BizMembership() {
       } else {
         verif = res;
       }
-      setVerificationData(verif && typeof verif === "object" && verif.documents ? verif : null);
+      setVerificationData(
+        verif && typeof verif === "object" && Array.isArray(verif.documents)
+          ? verif
+          : verif && typeof verif === "object" && verif.documents
+          ? verif
+          : null
+      );
     } catch (err) {
       console.error("fetchVerification error in biz-membership:", err);
       setVerificationData(null);
@@ -968,6 +1004,12 @@ function BizMembership() {
   }, [business?._id]);
 
   const handleReplaceClick = (templateType) => {
+    if (!hasBusinessProfile) {
+      toast.warning("Complete Business Profile First", {
+        description: "Please fill in and save your business details under Workspace > Profile before uploading compliance documents.",
+      });
+      return;
+    }
     setReplacingType(templateType);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -979,8 +1021,10 @@ function BizMembership() {
     const file = e.target.files?.[0];
     if (!file || !replacingType) return;
 
-    if (!business?._id) {
-      toast.error("Business information is missing. Please refresh the page.");
+    if (!business?._id || !hasBusinessProfile) {
+      toast.warning("Complete Business Profile First", {
+        description: "Please fill in and save your business details under Workspace > Profile before uploading compliance documents.",
+      });
       return;
     }
 
@@ -1059,6 +1103,132 @@ function BizMembership() {
     }
   };
 
+  const handleDeleteDocument = async (templateType, docName, uploadedInfo = null) => {
+    if (!business?._id || !hasBusinessProfile) {
+      toast.warning("Complete Business Profile First", {
+        description: "Please fill in and save your business details under Workspace > Profile before managing compliance documents.",
+      });
+      return;
+    }
+
+    setDeletingType(templateType);
+    const toastId = toast.loading(`Deleting "${docName || "document"}"...`);
+    try {
+      const existingDocs = Array.isArray(verificationData?.documents)
+        ? verificationData.documents
+        : Array.isArray(business?.documents)
+        ? business.documents
+        : [];
+
+      const targetUrl = uploadedInfo?.fileUrl || uploadedInfo?.url || uploadedInfo?.path;
+      const targetId = uploadedInfo?._id;
+
+      const updatedDocs = existingDocs.filter((d) => {
+        if (targetId && d?._id && String(d._id) === String(targetId)) return false;
+        if (targetUrl && (d?.fileUrl === targetUrl || d?.url === targetUrl || d?.path === targetUrl)) return false;
+        if (isMatchingDoc(d?.type, templateType) || isMatchingDoc(d?.name, templateType)) return false;
+        return true;
+      });
+
+      const submitRes = await verificationApi.submit({
+        businessId: business._id,
+        documents: updatedDocs,
+        notes: `Business owner deleted document: ${docName || templateType}`,
+      });
+
+      const updatedRecord =
+        submitRes && typeof submitRes === "object" && "data" in submitRes
+          ? submitRes.data
+          : submitRes;
+
+      if (updatedRecord && Array.isArray(updatedRecord.documents)) {
+        setVerificationData(updatedRecord);
+      } else {
+        await fetchVerification();
+      }
+
+      if (refetchBiz) await refetchBiz();
+
+      toast.success(
+        `"${docName || "Document"}" deleted successfully. You can now upload the correct file.`,
+        { id: toastId }
+      );
+
+      if (
+        previewDoc &&
+        (previewDoc.type === templateType ||
+          isMatchingDoc(previewDoc.type, templateType) ||
+          isMatchingDoc(previewDoc.name, templateType))
+      ) {
+        setPreviewDoc(null);
+      }
+    } catch (err) {
+      console.error("Delete document error:", err);
+      toast.error(err.message || "Failed to delete document.", { id: toastId });
+    } finally {
+      setDeletingType(null);
+      setDeleteConfirmDoc(null);
+    }
+  };
+
+  const handleSubmitForVerification = async () => {
+    if (!hasBusinessProfile) {
+      toast.warning("Complete Business Profile First", {
+        description: "Please fill in and save your business details under Workspace > Profile before submitting verification documents.",
+      });
+      return;
+    }
+
+    if (totalUploadedDocsCount === 0) {
+      toast.warning("No Documents Uploaded", {
+        description: "Please upload your business compliance/registration documents before submitting for Chapter Admin verification.",
+      });
+      return;
+    }
+
+    setSubmittingVerification(true);
+    const toastId = toast.loading("Submitting documents to Chapter Admin for verification...");
+    try {
+      const existingDocs = Array.isArray(verificationData?.documents)
+        ? verificationData.documents
+        : Array.isArray(business?.documents)
+        ? business.documents
+        : [];
+
+      const docsToSend = existingDocs.length > 0 ? existingDocs : uploadedDocs;
+
+      const submitRes = await verificationApi.submit({
+        businessId: business._id,
+        documents: docsToSend,
+        notes: `Business owner submitted ${docsToSend.length} document(s) for Chapter Admin verification`,
+      });
+
+      const updatedRecord =
+        submitRes && typeof submitRes === "object" && "data" in submitRes
+          ? submitRes.data
+          : submitRes;
+
+      if (updatedRecord && Array.isArray(updatedRecord.documents)) {
+        setVerificationData(updatedRecord);
+      } else {
+        await fetchVerification();
+      }
+
+      if (refetchBiz) await refetchBiz();
+
+      const chapterName = business?.chapter || "your Chapter";
+      toast.success(`Verification documents submitted successfully! Sent to ${chapterName} Admin for review.`, {
+        id: toastId,
+        duration: 5000,
+      });
+    } catch (err) {
+      console.error("Submit verification error:", err);
+      toast.error(err.message || "Failed to submit verification to Chapter Admin.", { id: toastId });
+    } finally {
+      setSubmittingVerification(false);
+    }
+  };
+
   const [billingForm, setBillingForm] = useState({
     legalName: "",
     gstNo: "",
@@ -1089,24 +1259,25 @@ function BizMembership() {
   }, [business]);
 
   const plans = plansData || {};
-  const tierName = membershipData?.planName || membershipData?.planId || business?.membership || "Silver";
-  const currentTier = tierName.toLowerCase();
+  const tierName = membershipData?.planName || membershipData?.planId || business?.membership || "Free";
+  const currentTier = (tierName || "").toLowerCase();
 
   const matchedPlan = Object.values(plans).find(
     (p) => (p.id || p.planId || "").toLowerCase() === currentTier || (p.name || "").toLowerCase() === currentTier
   ) || plans[currentTier];
 
   const currentPlan = matchedPlan || {
-    name: membershipData?.planName || tierName || "Silver",
+    name: membershipData?.planName || (currentTier === "free" ? "Free" : tierName) || "Free",
     price: membershipData?.price ?? 0,
-    summary: membershipData?.summary || "Active Chamber Membership",
+    summary: membershipData?.summary || (currentTier === "free" ? "Get started on RIFAH Connect with basic directory presence." : "Active Chamber Membership"),
     features: membershipData?.features?.length > 0 ? membershipData.features : [
-      "Directory listing with Verified Chamber Badge",
-      "Lead enquiries access",
-      "Catalogue listing",
-      "Chamber community & chapter networking",
+      "Directory listing on RIFAH Connect",
+      "Basic business presence",
+      "Search visibility",
     ],
   };
+
+  const isFreeTier = currentTier === "free" || (currentPlan?.name || "").toLowerCase() === "free";
 
   const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || []);
 
@@ -1155,10 +1326,10 @@ function BizMembership() {
 
   // Verification status logic & uploaded documents
   const uploadedDocs = useMemo(() => {
-    if (Array.isArray(verificationData?.documents) && verificationData.documents.length > 0) {
+    if (verificationData && Array.isArray(verificationData.documents)) {
       return verificationData.documents;
     }
-    if (Array.isArray(business?.documents) && business.documents.length > 0) {
+    if (Array.isArray(business?.documents)) {
       return business.documents;
     }
     return [];
@@ -1223,7 +1394,77 @@ function BizMembership() {
     });
   };
 
-  const chapterName = typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || "Hyderabad Chapter");
+  const rawChapter = typeof business?.chapter === "object" ? business?.chapter?.name : business?.chapter;
+  const isChapterInvalid = !rawChapter || rawChapter.trim().toLowerCase() === "unassigned" || rawChapter.trim().toLowerCase() === "none";
+
+  const chapterName = useMemo(() => {
+    if (rawChapter && !isChapterInvalid) {
+      return rawChapter.includes("Chapter") ? rawChapter : `${rawChapter} Chapter`;
+    }
+
+    if (business?.chapterId && chaptersList.length > 0) {
+      const matchById = chaptersList.find((c) => String(c._id) === String(business.chapterId));
+      if (matchById?.name) return matchById.name;
+    }
+
+    if (business?.city && chaptersList.length > 0) {
+      const cleanCity = business.city.trim().toLowerCase();
+      const matchByCity = chaptersList.find(
+        (c) =>
+          c.city?.trim().toLowerCase() === cleanCity ||
+          c.name?.trim().toLowerCase().includes(cleanCity)
+      );
+      if (matchByCity?.name) return matchByCity.name;
+    }
+
+    if (business?.state && chaptersList.length > 0) {
+      const cleanState = business.state.trim().toLowerCase();
+      const matchByState = chaptersList.find(
+        (c) => c.state?.trim().toLowerCase() === cleanState
+      );
+      if (matchByState?.name) return matchByState.name;
+    }
+
+    if (business?.city && business.city.trim()) {
+      return `${business.city} Chapter`;
+    }
+
+    return "Hyderabad Chapter";
+  }, [rawChapter, isChapterInvalid, business, chaptersList]);
+
+  // Auto-sync resolved chapter to backend if business had unassigned/missing chapter
+  useEffect(() => {
+    if (business?._id && isChapterInvalid && chapterName && chapterName.toLowerCase() !== "unassigned") {
+      const matched = chaptersList.find((c) => c.name?.toLowerCase() === chapterName.toLowerCase());
+      businessApi.update(business._id, {
+        chapter: chapterName,
+        ...(matched?._id ? { chapterId: matched._id } : {}),
+      })
+      .then(() => {
+        if (refetchBiz) refetchBiz();
+      })
+      .catch(() => {});
+    }
+  }, [business?._id, isChapterInvalid, chapterName, chaptersList]);
+
+  const handleAssignChapter = async (selectedCh) => {
+    if (!business?._id || !selectedCh) return;
+    setAssigningChapter(true);
+    const toastId = toast.loading(`Assigning ${selectedCh.name}...`);
+    try {
+      await businessApi.update(business._id, {
+        chapter: selectedCh.name,
+        chapterId: selectedCh._id,
+      });
+      if (refetchBiz) await refetchBiz();
+      toast.success(`Assigned to ${selectedCh.name} successfully!`, { id: toastId });
+      setChapterModalOpen(false);
+    } catch (err) {
+      toast.error(err.message || "Failed to update chapter.", { id: toastId });
+    } finally {
+      setAssigningChapter(false);
+    }
+  };
 
   const handleBillingSave = (e) => {
     e.preventDefault();
@@ -1300,10 +1541,17 @@ function BizMembership() {
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
               <span>My Membership</span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold px-2.5 py-0.5">
-                <Crown className="h-3 w-3" />
-                <span>{currentPlan.name}</span>
-              </span>
+              {isVerified ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold px-2.5 py-0.5">
+                  <Crown className="h-3 w-3" />
+                  <span>{currentPlan.name}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 text-xs font-bold px-3 py-0.5 shadow-2xs">
+                  <Clock className="h-3 w-3 text-amber-600 animate-pulse" />
+                  <span>{currentPlan.name} (Approval Pending)</span>
+                </span>
+              )}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Manage your chamber plan, compliance audit, accredited perks and payment records.
@@ -1311,130 +1559,344 @@ function BizMembership() {
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-            <div className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card/80 px-3.5 py-2 text-xs font-semibold text-foreground shadow-2xs">
-              <CalendarDays className="h-3.5 w-3.5 text-primary" />
-              <span>Member since <strong className="font-bold">{formattedStarted}</strong></span>
-            </div>
+            {!isFreeTier && (
+              <div className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card/80 px-3.5 py-2 text-xs font-semibold text-foreground shadow-2xs">
+                <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                <span>{isVerified ? "Member since" : "Application submitted"} <strong className="font-bold">{formattedStarted}</strong></span>
+              </div>
+            )}
 
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-3.5 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-2xs">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <span>{isExpired ? "Expired Plan" : "Active Accredited Member"}</span>
-            </div>
+            {isFreeTier ? (
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 shadow-2xs">
+                <span className="h-2 w-2 rounded-full bg-slate-400" />
+                <span>Free Basic Plan</span>
+              </div>
+            ) : isVerified ? (
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-3.5 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-2xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span>{isExpired ? "Expired Plan" : "Active Accredited Member"}</span>
+              </div>
+            ) : isRejected ? (
+              <div className="inline-flex items-center gap-2 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 px-3.5 py-2 text-xs font-bold text-rose-700 dark:text-rose-300 shadow-2xs">
+                <XCircle className="h-3.5 w-3.5" />
+                <span>Verification Rejected</span>
+              </div>
+            ) : isChangesRequired ? (
+              <div className="inline-flex items-center gap-2 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/80 px-3.5 py-2 text-xs font-bold text-sky-700 dark:text-sky-300 shadow-2xs">
+                <RotateCcw className="h-3.5 w-3.5 text-sky-600 animate-spin" />
+                <span>Changes Requested by Secretariat</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/80 px-3.5 py-2 text-xs font-bold text-amber-800 dark:text-amber-200 shadow-2xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                </span>
+                <span>Membership Confirmation Pending</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Hero Plan Overview Banner (Executive VIP Luxury Styling) */}
-        <div className="relative overflow-hidden rounded-3xl border border-amber-300/60 dark:border-amber-900/50 bg-gradient-to-br from-amber-50/70 via-card to-card dark:from-amber-950/20 dark:via-card dark:to-card p-6 sm:p-8 shadow-sm transition-all">
-          {/* Subtle Ambient Radial Glows */}
-          <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-amber-400/15 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-          <div className="absolute right-2 -bottom-4 opacity-10 dark:opacity-15 pointer-events-none transform rotate-12">
-            <Crown className="h-56 w-56 text-amber-500" />
-          </div>
+        {/* Hero Plan Overview Banner: Redesigned for Pending Buyer/Business vs Active Member */}
+        {!isVerified && !isFreeTier ? (
+          <div className="relative overflow-hidden rounded-3xl border border-amber-300/80 dark:border-amber-800/70 bg-gradient-to-br from-amber-50/90 via-card to-card dark:from-amber-950/30 dark:via-card dark:to-card p-6 sm:p-8 shadow-sm transition-all">
+            {/* Subtle Ambient Radial Glows */}
+            <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-amber-400/15 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute right-4 -bottom-6 opacity-5 dark:opacity-10 pointer-events-none transform rotate-6">
+              <ShieldCheck className="h-64 w-64 text-amber-600" />
+            </div>
 
-          <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 lg:gap-8">
-            {/* Left Info with Crown & Progress Bar */}
-            <div className="flex items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
-              <div className="relative grid h-16 w-16 sm:h-18 sm:w-18 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/25 ring-4 ring-amber-100 dark:ring-amber-950/60">
-                <Crown className="h-8 w-8 sm:h-9 sm:w-9" />
-                <span className="absolute -bottom-1.5 -right-1.5 grid h-6 w-6 place-items-center rounded-full bg-emerald-500 text-white ring-2 ring-background text-[10px]">
-                  <Check className="h-3.5 w-3.5" />
-                </span>
-              </div>
+            <div className="relative z-10 space-y-6">
+              {/* Top Banner Row: Icon + Title & Explanation */}
+              <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6">
+                <div className="flex items-start gap-4 sm:gap-5 flex-1 min-w-0">
+                  <div className="relative grid h-16 w-16 sm:h-18 sm:w-18 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/25 ring-4 ring-amber-100 dark:ring-amber-950/60">
+                    <Clock className="h-8 w-8 sm:h-9 sm:w-9" />
+                    <span className="absolute -bottom-1.5 -right-1.5 grid h-6 w-6 place-items-center rounded-full bg-amber-600 text-white ring-2 ring-background text-[10px]">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                    {currentPlan.name} Tier
-                  </h2>
-                  <span className="rounded-full bg-amber-100/80 dark:bg-amber-900/50 border border-amber-300 dark:border-amber-700 px-3 py-0.5 text-[11px] font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1 shadow-2xs">
-                    <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                    <span>VIP Member Access</span>
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                        Membership Confirmation Pending
+                      </h2>
+                      <span className="rounded-full bg-amber-100/90 dark:bg-amber-900/60 border border-amber-300 dark:border-amber-700 px-3 py-0.5 text-[11px] font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1.5 shadow-2xs">
+                        <Clock className="h-3 w-3 text-amber-600 animate-pulse" />
+                        <span>Awaiting Secretariat Approval</span>
+                      </span>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-3xl leading-relaxed">
+                      Your application for the <strong className="font-semibold text-foreground">{currentPlan.name} Chamber Membership</strong> has been registered and is currently under compliance audit. Once your verification documents are reviewed and approved by the Chapter Secretariat desk, your official green verified shield badge, directory search visibility, and full membership benefits will be activated.
+                    </p>
+
+                    <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground flex-wrap">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-primary" />
+                        <span>Submitted: <strong className="text-foreground">{formattedStarted}</strong></span>
+                      </span>
+                      <span className="text-border">•</span>
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-rose-500" />
+                        <span>Chapter: <strong className="text-foreground">{chapterName}</strong></span>
+                        <button
+                          type="button"
+                          onClick={() => setChapterModalOpen(true)}
+                          className="text-[10px] text-primary hover:underline ml-1 cursor-pointer font-medium"
+                        >
+                          (Change)
+                        </button>
+                      </span>
+                      <span className="text-border">•</span>
+                      <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>Estimated review: 24–48 business hours</span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">
-                  {currentPlan.summary}
+                {/* Right Quick Action Buttons */}
+                <div className="flex flex-wrap sm:flex-nowrap xl:flex-col gap-2.5 shrink-0">
+                  <Button
+                    type="button"
+                    onClick={() => scrollToAnchor("verification")}
+                    className="gap-1.5 rounded-xl font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-sm shadow-amber-600/20 cursor-pointer"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    <span>{totalUploadedDocsCount < docTemplates.length ? "Upload Pending Documents" : "Review Submitted Documents"}</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => scrollToAnchor("payment-history")}
+                    className="gap-1.5 rounded-xl font-semibold text-xs border-border hover:bg-muted cursor-pointer"
+                  >
+                    <Receipt className="h-3.5 w-3.5 text-sky-500" />
+                    <span>View Payment Invoice</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* 4-Step Milestone Progress Bar */}
+              <div className="pt-4 border-t border-amber-200/60 dark:border-amber-900/40">
+                <p className="text-xs font-bold text-foreground mb-3 flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Membership Activation Milestones:</span>
                 </p>
 
-                {/* Days Remaining Progress Bar */}
-                <div className="mt-3.5 max-w-md">
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground mb-1">
-                    <span className="flex items-center gap-1 text-foreground font-bold">
-                      <Clock className="h-3 w-3 text-amber-500" />
-                      <span>{daysRemaining} days remaining in current cycle</span>
-                    </span>
-                    <span className="text-muted-foreground font-normal">Renews {formattedRenews}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Milestone 1 */}
+                  <div className="p-3 rounded-2xl bg-background/90 dark:bg-card/90 border border-emerald-200 dark:border-emerald-900/50 shadow-2xs flex items-center gap-3">
+                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white shadow-xs">
+                      <Check className="h-4 w-4 stroke-[2.5]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground">1. Application & Plan</p>
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">{currentPlan.name} Recorded ✓</p>
+                    </div>
                   </div>
-                  <div className="h-2 w-full rounded-full bg-muted/80 overflow-hidden p-0.5 border border-border/40">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-amber-500 via-emerald-500 to-emerald-400 transition-all duration-500"
-                      style={{ width: `${daysProgress}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Right Meta Chips & Actions */}
-            <div className="flex flex-col sm:flex-row xl:flex-col justify-between items-start xl:items-end gap-4 pt-4 xl:pt-0 border-t xl:border-t-0 border-border/70 shrink-0">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full xl:w-auto">
-                <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px]">
-                  <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Calendar className="h-3 w-3 text-primary" /> Valid Until
-                  </span>
-                  <span className="text-xs sm:text-sm font-bold text-foreground mt-1 block truncate">{formattedRenews}</span>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px]">
-                  <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Wallet className="h-3 w-3 text-emerald-500" /> Billing
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleToggleAutoRenew}
-                    className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-foreground hover:text-primary transition-colors cursor-pointer group"
-                    title="Click to toggle auto-renewal"
-                  >
-                    <span>Annual</span>
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold border transition-all shadow-2xs",
-                        autoRenew
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 group-hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
-                          : "bg-slate-100 text-slate-600 border-slate-200 group-hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                  {/* Milestone 2 */}
+                  <div className={cn(
+                    "p-3 rounded-2xl bg-background/90 dark:bg-card/90 border shadow-2xs flex items-center gap-3",
+                    totalUploadedDocsCount >= docTemplates.length
+                      ? "border-emerald-200 dark:border-emerald-900/50"
+                      : "border-amber-300 dark:border-amber-800"
+                  )}>
+                    <div className={cn(
+                      "grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white shadow-xs",
+                      totalUploadedDocsCount >= docTemplates.length ? "bg-emerald-500" : "bg-amber-500"
+                    )}>
+                      {totalUploadedDocsCount >= docTemplates.length ? (
+                        <Check className="h-4 w-4 stroke-[2.5]" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
                       )}
-                    >
-                      <span className={cn("h-1.5 w-1.5 rounded-full", autoRenew ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
-                      {autoRenew ? "Auto ON" : "Auto OFF"}
-                    </span>
-                  </button>
-                </div>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground">2. Compliance Docs</p>
+                      <p className={cn(
+                        "text-[11px] font-semibold",
+                        totalUploadedDocsCount >= docTemplates.length
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-amber-700 dark:text-amber-300"
+                      )}>
+                        {totalUploadedDocsCount} of {docTemplates.length} Attached
+                      </p>
+                    </div>
+                  </div>
 
-                <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px] col-span-2 sm:col-span-1">
-                  <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-rose-500" /> Chapter
-                  </span>
-                  <span className="text-xs sm:text-sm font-bold text-foreground mt-1 block truncate">{chapterName}</span>
-                </div>
-              </div>
+                  {/* Milestone 3 */}
+                  <div className="p-3 rounded-2xl bg-background/90 dark:bg-card/90 border border-amber-300 dark:border-amber-800 shadow-2xs flex items-center gap-3">
+                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-amber-500 text-white shadow-xs">
+                      <Clock className="h-4 w-4 animate-spin" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground">3. Secretariat Desk</p>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold">Under Audit ⏳</p>
+                    </div>
+                  </div>
 
-              <div className="flex items-center gap-2 w-full xl:w-auto">
-                <Button
-                  type="button"
-                  onClick={() => setUpgradeDialogOpen(true)}
-                  className="flex-1 xl:flex-none gap-1.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white shadow-sm shadow-amber-500/20"
-                >
-                  <Crown className="h-3.5 w-3.5" />
-                  <span>Upgrade / Change Plan</span>
-                </Button>
+                  {/* Milestone 4 */}
+                  <div className="p-3 rounded-2xl bg-background/60 dark:bg-card/60 border border-border/60 shadow-2xs flex items-center gap-3 opacity-75">
+                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground border">
+                      <Lock className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground">4. Live Accreditation</p>
+                      <p className="text-[11px] text-muted-foreground">Unlocks upon approval</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="relative overflow-hidden rounded-3xl border border-amber-300/60 dark:border-amber-900/50 bg-gradient-to-br from-amber-50/70 via-card to-card dark:from-amber-950/20 dark:via-card dark:to-card p-6 sm:p-8 shadow-sm transition-all">
+            {/* Subtle Ambient Radial Glows */}
+            <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-amber-400/15 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+            <div className="absolute right-2 -bottom-4 opacity-10 dark:opacity-15 pointer-events-none transform rotate-12">
+              <Crown className="h-56 w-56 text-amber-500" />
+            </div>
+
+            <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 lg:gap-8">
+              {/* Left Info with Crown & Progress Bar */}
+              <div className="flex items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
+                <div className="relative grid h-16 w-16 sm:h-18 sm:w-18 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/25 ring-4 ring-amber-100 dark:ring-amber-950/60">
+                  <Crown className="h-8 w-8 sm:h-9 sm:w-9" />
+                  <span className="absolute -bottom-1.5 -right-1.5 grid h-6 w-6 place-items-center rounded-full bg-emerald-500 text-white ring-2 ring-background text-[10px]">
+                    <Check className="h-3.5 w-3.5" />
+                  </span>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                      {currentPlan.name} Tier
+                    </h2>
+                    {!isFreeTier && (
+                      <span className="rounded-full bg-amber-100/80 dark:bg-amber-900/50 border border-amber-300 dark:border-amber-700 px-3 py-0.5 text-[11px] font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1 shadow-2xs">
+                        <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                        <span>VIP Member Access</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">
+                    {currentPlan.summary}
+                  </p>
+
+                  {/* Days Remaining Progress Bar - ONLY for Paid Active Tiers */}
+                  {!isFreeTier && (
+                    <div className="mt-3.5 max-w-md">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground mb-1">
+                        <span className="flex items-center gap-1 text-foreground font-bold">
+                          <Clock className="h-3 w-3 text-amber-500" />
+                          <span>{daysRemaining} days remaining in current cycle</span>
+                        </span>
+                        <span className="text-muted-foreground font-normal">Renews {formattedRenews}</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted/80 overflow-hidden p-0.5 border border-border/40">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-amber-500 via-emerald-500 to-emerald-400 transition-all duration-500"
+                          style={{ width: `${daysProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Meta Chips & Actions */}
+              <div className="flex flex-col sm:flex-row xl:flex-col justify-between items-start xl:items-end gap-4 pt-4 xl:pt-0 border-t xl:border-t-0 border-border/70 shrink-0">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full xl:w-auto">
+                  {!isFreeTier && (
+                    <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px]">
+                      <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-primary" /> Valid Until
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-foreground mt-1 block truncate">{formattedRenews}</span>
+                    </div>
+                  )}
+
+                  {!isFreeTier && (
+                    <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px]">
+                      <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        <Wallet className="h-3 w-3 text-emerald-500" /> Billing
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleToggleAutoRenew}
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-foreground hover:text-primary transition-colors cursor-pointer group"
+                        title="Click to toggle auto-renewal"
+                      >
+                        <span>Annual</span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold border transition-all shadow-2xs",
+                            autoRenew
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 group-hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+                              : "bg-slate-100 text-slate-600 border-slate-200 group-hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                          )}
+                        >
+                          <span className={cn("h-1.5 w-1.5 rounded-full", autoRenew ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
+                          {autoRenew ? "Auto ON" : "Auto OFF"}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+
+                  <div className={cn(
+                    "p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px]",
+                    isFreeTier ? "col-span-2 sm:col-span-3 min-w-[220px]" : "col-span-2 sm:col-span-1"
+                  )}>
+                    <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3 text-rose-500" /> Chapter
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setChapterModalOpen(true)}
+                        className="text-[9px] font-semibold text-primary hover:underline cursor-pointer"
+                      >
+                        Change
+                      </button>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setChapterModalOpen(true)}
+                      className="text-xs sm:text-sm font-bold text-foreground mt-1 block truncate hover:text-primary transition-colors text-left cursor-pointer w-full group flex items-center justify-between gap-1"
+                      title="Click to view or change chapter"
+                    >
+                      <span className="truncate">{chapterName}</span>
+                      <ChevronRight className="h-3 w-3 text-muted-foreground opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full xl:w-auto">
+                  <Button
+                    type="button"
+                    onClick={() => setUpgradeDialogOpen(true)}
+                    className="flex-1 xl:flex-none gap-1.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white shadow-sm shadow-amber-500/20 cursor-pointer"
+                  >
+                    <Crown className="h-3.5 w-3.5" />
+                    <span>{isFreeTier ? "Upgrade Plan" : "Upgrade / Change Plan"}</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Anchor Sub-Tabs (Segmented Frosted Pill Bar) */}
         <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-muted/60 border border-border/80 overflow-x-auto no-scrollbar shadow-2xs">
@@ -1463,8 +1925,21 @@ function BizMembership() {
           >
             <ShieldCheck className="h-4 w-4 text-emerald-500" />
             <span>Compliance & Documents</span>
-            <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-bold px-1.5 py-0.2">
-              Verified ✓
+            <span className={cn(
+              "rounded-full text-[10px] font-bold px-1.5 py-0.2",
+              isVerified
+                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                : isRejected
+                ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+            )}>
+              {isVerified
+                ? "Verified ✓"
+                : isRejected
+                ? "Correction Needed"
+                : totalUploadedDocsCount >= docTemplates.length
+                ? "Under Review"
+                : `${totalUploadedDocsCount}/${docTemplates.length} Attached`}
             </span>
           </button>
           <button
@@ -1502,12 +1977,19 @@ function BizMembership() {
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold text-foreground">Membership Status</h3>
                   <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", isVerified ? "bg-emerald-400" : "bg-amber-400")} />
+                    <span className={cn("relative inline-flex rounded-full h-2 w-2", isVerified ? "bg-emerald-500" : "bg-amber-500")} />
                   </span>
                 </div>
-                <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-0.5">
-                  {isExpired ? "Expired" : "Active"}
+                <span className={cn(
+                  "rounded-full text-[11px] font-bold px-2.5 py-0.5",
+                  !isVerified
+                    ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                    : isExpired
+                    ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                    : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                )}>
+                  {!isVerified ? "Confirmation Pending" : isExpired ? "Expired" : "Active"}
                 </span>
               </div>
 
@@ -1518,59 +2000,83 @@ function BizMembership() {
                   </span>
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-foreground">{currentPlan.name}</span>
-                    <span className="rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-amber-700 dark:text-amber-300 text-[10px] font-semibold px-2 py-0.2">
-                      ⭐ {currentPlan.name}
+                    <span className={cn(
+                      "rounded-full border text-[10px] font-semibold px-2 py-0.2",
+                      isFreeTier
+                        ? "bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-700 dark:text-slate-300"
+                        : isVerified
+                        ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 text-amber-700 dark:text-amber-300"
+                        : "bg-amber-100/70 dark:bg-amber-950/60 border-amber-300 text-amber-800 dark:text-amber-200"
+                    )}>
+                      {isFreeTier ? "Basic" : isVerified ? `⭐ ${currentPlan.name}` : "⏳ Pending Approval"}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
-                  <span className="text-muted-foreground font-medium flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5 text-sky-500" /> Started On
-                  </span>
-                  <span className="font-bold text-foreground">{formattedStarted}</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
-                  <span className="text-muted-foreground font-medium flex items-center gap-2">
-                    <Clock className="h-3.5 w-3.5 text-emerald-500" /> Valid Until
-                  </span>
-                  <span className="font-bold text-foreground">{formattedRenews}</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
-                  <span className="text-muted-foreground font-medium flex items-center gap-2">
-                    <Wallet className="h-3.5 w-3.5 text-violet-500" /> Billing Cycle
-                  </span>
-                  <span className="font-bold text-foreground">Annual Subscription</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
-                  <div className="min-w-0">
+                {!isFreeTier && (
+                  <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
                     <span className="text-muted-foreground font-medium flex items-center gap-2">
-                      <RotateCcw className="h-3.5 w-3.5 text-primary" /> Auto-Renewal
+                      <Calendar className="h-3.5 w-3.5 text-sky-500" /> Started On
                     </span>
-                    <span className="text-[10px] text-muted-foreground block pl-5.5">
-                      {autoRenew ? "Renews automatically" : "Manual renewal required"}
+                    <span className="font-bold text-foreground">{formattedStarted}</span>
+                  </div>
+                )}
+
+                {!isFreeTier && (
+                  <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
+                    <span className="text-muted-foreground font-medium flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5 text-emerald-500" /> Valid Until
+                    </span>
+                    <span className="font-bold text-foreground">
+                      {isVerified ? formattedRenews : "Activates on approval"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={cn("text-xs font-bold", autoRenew ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-                      {autoRenew ? "ON" : "OFF"}
+                )}
+
+                {!isFreeTier && (
+                  <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
+                    <span className="text-muted-foreground font-medium flex items-center gap-2">
+                      <Wallet className="h-3.5 w-3.5 text-violet-500" /> Billing Cycle
                     </span>
-                    <Switch
-                      checked={autoRenew}
-                      onCheckedChange={handleToggleAutoRenew}
-                      aria-label="Toggle auto-renewal"
-                    />
+                    <span className="font-bold text-foreground">Annual Subscription</span>
                   </div>
-                </div>
+                )}
+
+                {!isFreeTier && (
+                  <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
+                    <div className="min-w-0">
+                      <span className="text-muted-foreground font-medium flex items-center gap-2">
+                        <RotateCcw className="h-3.5 w-3.5 text-primary" /> Auto-Renewal
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block pl-5.5">
+                        {!isVerified ? "Scheduled upon approval" : autoRenew ? "Renews automatically" : "Manual renewal required"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={cn("text-xs font-bold", autoRenew ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
+                        {autoRenew ? "ON" : "OFF"}
+                      </span>
+                      <Switch
+                        checked={autoRenew}
+                        onCheckedChange={handleToggleAutoRenew}
+                        aria-label="Toggle auto-renewal"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
                   <span className="text-muted-foreground font-medium flex items-center gap-2">
                     <MapPin className="h-3.5 w-3.5 text-rose-500" /> Chamber Chapter
                   </span>
-                  <span className="font-bold text-foreground truncate max-w-[140px] text-right">{chapterName}</span>
+                  <button
+                    type="button"
+                    onClick={() => setChapterModalOpen(true)}
+                    className="font-bold text-foreground truncate max-w-[140px] text-right hover:text-primary hover:underline transition-colors cursor-pointer text-xs"
+                    title="Click to view or change chapter"
+                  >
+                    {chapterName}
+                  </button>
                 </div>
               </div>
             </div>
@@ -1597,13 +2103,15 @@ function BizMembership() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                          Upgrade or Change Plan
+                          {isFreeTier ? "Upgrade Plan" : "Upgrade or Change Plan"}
                         </p>
                         <span className="rounded-full bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300 text-[9px] font-extrabold px-1.5 py-0.2">
                           Tier
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">Explore higher membership benefits</p>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {isFreeTier ? "Unlock verified badge, leads & chamber perks" : "Explore higher membership benefits"}
+                      </p>
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all shrink-0 ml-2" />
@@ -1628,29 +2136,57 @@ function BizMembership() {
                   <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all shrink-0 ml-2" />
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleDownloadCertificate(business, membershipData)}
-                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-border bg-card hover:bg-muted/50 hover:shadow-md hover:-translate-y-0.5 transition-all text-left cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-                      <FileCheck className="h-4.5 w-4.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                          Download Membership Certificate
-                        </p>
-                        <span className="rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[9px] font-extrabold px-1.5 py-0.2">
-                          PDF
-                        </span>
+                {/* Membership Certificate - ONLY FOR ACCREDITED PAID MEMBERS, NOT FREE TIER */}
+                {!isFreeTier && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isVerified) {
+                        toast.info("Certificate Locked", {
+                          description: "Your official Membership Certificate will be available to download once the Chapter Secretariat verifies and approves your application."
+                        });
+                        return;
+                      }
+                      handleDownloadCertificate(business, membershipData);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between p-3.5 rounded-2xl border text-left cursor-pointer group transition-all",
+                      isVerified
+                        ? "border-border bg-card hover:bg-muted/50 hover:shadow-md hover:-translate-y-0.5"
+                        : "border-border/60 bg-muted/20 opacity-80 hover:bg-muted/40"
+                    )}
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className={cn(
+                        "grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow-sm transition-transform group-hover:scale-105",
+                        isVerified
+                          ? "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20"
+                          : "bg-gradient-to-br from-slate-400 to-slate-600"
+                      )}>
+                        {isVerified ? <FileCheck className="h-4.5 w-4.5" /> : <Lock className="h-4.5 w-4.5" />}
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">Official Chamber membership certificate</p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                            Download Membership Certificate
+                          </p>
+                          <span className={cn(
+                            "rounded-full text-[9px] font-extrabold px-1.5 py-0.2",
+                            isVerified
+                              ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
+                              : "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300"
+                          )}>
+                            {isVerified ? "PDF" : "Locked"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                          {isVerified ? "Official Chamber membership certificate" : "Unlocks once Secretariat approves membership"}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all shrink-0 ml-2" />
-                </button>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all shrink-0 ml-2" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1669,8 +2205,15 @@ function BizMembership() {
                     {currentPlan.features.length} Perks
                   </span>
                 </div>
-                <span className="rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 text-amber-700 dark:text-amber-300 text-[10px] font-bold px-2 py-0.5">
-                  {currentPlan.name} VIP
+                <span className={cn(
+                  "rounded-full border text-[10px] font-bold px-2 py-0.5",
+                  isFreeTier
+                    ? "bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-700 dark:text-slate-300"
+                    : isVerified
+                    ? "bg-amber-50 dark:bg-amber-950/50 border-amber-200 text-amber-700 dark:text-amber-300"
+                    : "bg-amber-100/70 dark:bg-amber-950/60 border-amber-300 text-amber-800 dark:text-amber-200"
+                )}>
+                  {isFreeTier ? "Free Tier" : isVerified ? `${currentPlan.name} VIP` : `${currentPlan.name} (Pending)`}
                 </span>
               </div>
 
@@ -1687,6 +2230,15 @@ function BizMembership() {
                   </div>
                 ))}
               </div>
+
+              {!isVerified && (
+                <div className="mt-3 p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 flex items-start gap-2">
+                  <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-tight">
+                    Benefits and verified chapter accreditation will activate immediately upon confirmation.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="pt-4 border-t border-border/70 mt-3">
@@ -1758,22 +2310,71 @@ function BizMembership() {
                 {/* Step 1: Profile & Application Submitted */}
                 <div className="relative flex items-start gap-4.5 group">
                   {/* Vertical Track connecting to step 2 */}
-                  <div className="absolute left-[17px] top-11 -bottom-9 w-[2px] bg-emerald-500 rounded-full" />
-                  
-                  <div className="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-600 text-white shadow-sm shadow-emerald-600/25 ring-4 ring-card transition-transform group-hover:scale-105">
-                    <Check className="h-4.5 w-4.5 stroke-[2.5]" />
+                  <div
+                    className={cn(
+                      "absolute left-[17px] top-11 -bottom-9 w-[2px] rounded-full transition-all duration-500",
+                      hasBusinessProfile
+                        ? totalUploadedDocsCount >= docTemplates.length
+                          ? "bg-emerald-500"
+                          : totalUploadedDocsCount > 0
+                          ? "bg-gradient-to-b from-emerald-500 to-amber-500"
+                          : "bg-emerald-500"
+                        : "bg-muted-foreground/20"
+                    )}
+                  />
+
+                  <div
+                    className={cn(
+                      "relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ring-4 ring-card transition-all duration-300",
+                      hasBusinessProfile
+                        ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25"
+                        : "bg-amber-500 text-white shadow-sm shadow-amber-500/30 ring-amber-100 dark:ring-amber-950/40"
+                    )}
+                  >
+                    {hasBusinessProfile ? (
+                      <Check className="h-4.5 w-4.5 stroke-[2.5]" />
+                    ) : (
+                      <AlertTriangle className="h-4.5 w-4.5" />
+                    )}
+
+                    {!hasBusinessProfile && (
+                      <span className="absolute -inset-1 rounded-full bg-amber-400/35 animate-ping pointer-events-none" />
+                    )}
                   </div>
 
                   <div className="min-w-0 flex-1 pt-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="text-xs sm:text-sm font-bold text-foreground">1. Application & Profile Submitted</h4>
-                      <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
-                        Completed
-                      </span>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">
+                        1. Application & Profile Submitted
+                      </h4>
+                      {hasBusinessProfile ? (
+                        <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
+                          Completed
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          Action Required
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                      Business profile, registration details & contact credentials recorded.
+                      {hasBusinessProfile
+                        ? "Business profile, registration details & contact credentials recorded."
+                        : "Enterprise details are missing. Complete your business profile before submitting compliance paperwork."}
                     </p>
+                    {!hasBusinessProfile && (
+                      <div className="mt-2.5">
+                        <Link
+                          href="/biz/profile"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 hover:underline"
+                        >
+                          <Building2 className="h-3 w-3" />
+                          <span>Complete Business Profile</span>
+                          <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1782,7 +2383,9 @@ function BizMembership() {
                   {/* Vertical Track connecting to step 3 */}
                   <div className={cn(
                     "absolute left-[17px] top-11 -bottom-9 w-[2px] rounded-full transition-all duration-500",
-                    totalUploadedDocsCount >= docTemplates.length
+                    !hasBusinessProfile
+                      ? "bg-muted-foreground/20"
+                      : totalUploadedDocsCount >= docTemplates.length
                       ? "bg-emerald-500"
                       : totalUploadedDocsCount > 0
                       ? "bg-gradient-to-b from-emerald-500 to-amber-500"
@@ -1791,13 +2394,17 @@ function BizMembership() {
 
                   <div className={cn(
                     "relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ring-4 ring-card transition-all duration-300",
-                    totalUploadedDocsCount >= docTemplates.length
+                    !hasBusinessProfile
+                      ? "bg-muted text-muted-foreground/50 border border-border/70"
+                      : totalUploadedDocsCount >= docTemplates.length
                       ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25"
                       : totalUploadedDocsCount > 0
                       ? "bg-amber-500 text-white shadow-sm shadow-amber-500/30"
                       : "bg-muted text-muted-foreground border border-border"
                   )}>
-                    {totalUploadedDocsCount >= docTemplates.length ? (
+                    {!hasBusinessProfile ? (
+                      <Lock className="h-4 w-4 text-muted-foreground/60" />
+                    ) : totalUploadedDocsCount >= docTemplates.length ? (
                       <Check className="h-4.5 w-4.5 stroke-[2.5]" />
                     ) : totalUploadedDocsCount > 0 ? (
                       <FileCheck className="h-4.5 w-4.5" />
@@ -1805,8 +2412,8 @@ function BizMembership() {
                       <FileText className="h-4.5 w-4.5 text-muted-foreground/70" />
                     )}
 
-                    {/* Animated Pulsing Beacon only when currently in active upload progress */}
-                    {totalUploadedDocsCount > 0 && totalUploadedDocsCount < docTemplates.length && (
+                    {/* Animated Pulsing Beacon only when Step 1 is done and currently in active upload progress */}
+                    {hasBusinessProfile && totalUploadedDocsCount > 0 && totalUploadedDocsCount < docTemplates.length && (
                       <span className="absolute -inset-1 rounded-full bg-amber-400/30 animate-ping pointer-events-none" />
                     )}
                   </div>
@@ -1814,7 +2421,12 @@ function BizMembership() {
                   <div className="min-w-0 flex-1 pt-1">
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="text-xs sm:text-sm font-bold text-foreground">2. Compliance Documents Uploaded</h4>
-                      {totalUploadedDocsCount >= docTemplates.length ? (
+                      {!hasBusinessProfile ? (
+                        <span className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2.5 py-0.5 shrink-0 flex items-center gap-1">
+                          <Lock className="h-2.5 w-2.5" />
+                          Locked
+                        </span>
+                      ) : totalUploadedDocsCount >= docTemplates.length ? (
                         <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2.5 py-0.5 shrink-0">
                           {totalUploadedDocsCount} of {docTemplates.length} Done
                         </span>
@@ -1830,7 +2442,9 @@ function BizMembership() {
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                      {totalUploadedDocsCount > 0
+                      {!hasBusinessProfile
+                        ? "Locked until Step 1 (Business Profile) is completed."
+                        : totalUploadedDocsCount > 0
                         ? `${totalUploadedDocsCount} of ${docTemplates.length} legal paperwork and registration files attached.`
                         : "Upload incorporation certificate, GSTIN, PAN & bank verification papers."}
                     </p>
@@ -2012,27 +2626,98 @@ function BizMembership() {
           {/* Card 2: Verification Documents */}
           <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-border/90 transition-all">
             <div>
-              <div className="flex items-center justify-between pb-4 border-b border-border/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/80">
                 <div>
                   <h3 className="text-base font-bold text-foreground">Verification Documents (PDF)</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Official certificates, registration papers & identity proof
                   </p>
                 </div>
-                {isVerified ? (
-                  <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 shrink-0">
-                    {verifiedDocsCount || docTemplates.length} of {docTemplates.length} Verified
-                  </span>
-                ) : totalUploadedDocsCount > 0 ? (
-                  <span className="rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-[11px] font-bold px-2.5 py-0.5 shrink-0">
-                    {totalUploadedDocsCount} of {docTemplates.length} Under Review
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[11px] font-bold px-2.5 py-0.5 shrink-0">
-                    0 of {docTemplates.length} Uploaded
-                  </span>
-                )}
+
+                <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap">
+                  {/* Submit Button placed on the left side of the verification status badge */}
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSubmitForVerification}
+                    disabled={submittingVerification || uploadingDoc || totalUploadedDocsCount === 0 || !hasBusinessProfile}
+                    className={cn(
+                      "h-8 px-3 rounded-xl text-xs font-semibold gap-1.5 shadow-2xs transition-all cursor-pointer",
+                      isVerified
+                        ? "bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900"
+                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 disabled:opacity-50"
+                    )}
+                    title={
+                      !hasBusinessProfile
+                        ? "Complete business profile first"
+                        : totalUploadedDocsCount === 0
+                        ? "Upload documents first"
+                        : "Submit documents to Chapter Admin for verification"
+                    }
+                  >
+                    {submittingVerification ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-3.5 w-3.5" />
+                        <span>{isVerified ? "Re-submit" : "Submit for Verification"}</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {isVerified ? (
+                    <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-1 shrink-0">
+                      {verifiedDocsCount || docTemplates.length} of {docTemplates.length} Verified
+                    </span>
+                  ) : totalUploadedDocsCount > 0 ? (
+                    <span className="rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-[11px] font-bold px-2.5 py-1 shrink-0">
+                      {totalUploadedDocsCount} of {docTemplates.length} Under Review
+                    </span>
+                  ) : !hasBusinessProfile ? (
+                    <span className="rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-[11px] font-bold px-2.5 py-1 shrink-0 flex items-center gap-1">
+                      <Lock className="h-3 w-3" />
+                      Locked · Profile Incomplete
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[11px] font-bold px-2.5 py-1 shrink-0">
+                      0 of {docTemplates.length} Uploaded
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Guidance Callout when Business Profile is not yet completed */}
+              {!hasBusinessProfile && (
+                <div className="mt-4 rounded-2xl border border-amber-300/80 bg-amber-50/90 dark:border-amber-900/60 dark:bg-amber-950/30 p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                      <AlertTriangle className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs sm:text-sm font-bold text-amber-950 dark:text-amber-100 flex items-center gap-2">
+                        <span>Complete Business Details First</span>
+                        <span className="rounded-full bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-[10px] font-bold px-2 py-0.5">
+                          Step 1 Required
+                        </span>
+                      </h4>
+                      <p className="text-[11px] sm:text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5 leading-relaxed">
+                        Document uploads are locked because your enterprise profile details are not submitted yet. Complete your business information on Workspace &gt; Profile to unlock uploads.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/biz/profile"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 shadow-xs transition-colors"
+                  >
+                    <Building2 className="h-3.5 w-3.5" />
+                    <span>Complete Profile</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              )}
 
               <div className="space-y-2.5 pt-4">
                 {docTemplates.map((template) => {
@@ -2048,7 +2733,12 @@ function BizMembership() {
                   return (
                     <div
                       key={template.type}
-                      className="flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border border-border/70 bg-card hover:bg-muted/30 hover:border-border hover:shadow-2xs transition-all"
+                      className={cn(
+                        "flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border transition-all",
+                        !hasBusinessProfile && !isUploaded
+                          ? "border-border/60 bg-muted/20 opacity-75"
+                          : "border-border/70 bg-card hover:bg-muted/30 hover:border-border hover:shadow-2xs"
+                      )}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className={cn(
@@ -2071,7 +2761,7 @@ function BizMembership() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap justify-end">
                         {isDocVerified ? (
                           <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2.5 py-0.5">
                             Verified
@@ -2083,6 +2773,11 @@ function BizMembership() {
                         ) : isUploaded ? (
                           <span className="rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-[11px] font-semibold px-2.5 py-0.5">
                             Under Review
+                          </span>
+                        ) : !hasBusinessProfile ? (
+                          <span className="rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[11px] font-medium px-2 py-0.5 flex items-center gap-1">
+                            <Lock className="h-2.5 w-2.5" />
+                            <span>Locked</span>
                           </span>
                         ) : (
                           <span className="rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[11px] font-semibold px-2.5 py-0.5">
@@ -2104,17 +2799,56 @@ function BizMembership() {
 
                         <button
                           type="button"
-                          onClick={() => handleReplaceClick(template.type)}
-                          disabled={uploadingDoc}
-                          className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground bg-card border border-border hover:bg-muted rounded-xl px-2.5 py-1.5 shadow-2xs transition-all cursor-pointer hover:border-foreground/20 disabled:opacity-50"
+                          onClick={() => {
+                            if (!hasBusinessProfile) {
+                              toast.warning("Complete Business Profile First", {
+                                description: "Please fill in and save your business details under Workspace > Profile before uploading compliance documents.",
+                              });
+                              return;
+                            }
+                            handleReplaceClick(template.type);
+                          }}
+                          disabled={!hasBusinessProfile || uploadingDoc || deletingType === template.type}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 text-xs font-medium rounded-xl px-2.5 py-1.5 shadow-2xs transition-all",
+                            !hasBusinessProfile
+                              ? "bg-muted/60 text-muted-foreground/50 border border-border/50 cursor-not-allowed opacity-50"
+                              : "text-foreground bg-card border border-border hover:bg-muted cursor-pointer hover:border-foreground/20 disabled:opacity-50"
+                          )}
+                          title={
+                            !hasBusinessProfile
+                              ? "Complete your business profile on Workspace > Profile first to unlock file upload"
+                              : isUploaded
+                              ? "Replace uploaded document"
+                              : "Upload document"
+                          }
                         >
                           {uploadingDoc && replacingType === template.type ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                          ) : !hasBusinessProfile ? (
+                            <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
                           ) : (
                             <Upload className="h-3.5 w-3.5 text-muted-foreground" />
                           )}
                           <span>{isUploaded ? "Replace" : "Upload"}</span>
                         </button>
+
+                        {isUploaded && !isDocVerified && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmDoc({ template, uploaded })}
+                            disabled={!hasBusinessProfile || uploadingDoc || deletingType === template.type}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-600 dark:text-rose-400 bg-card border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 rounded-xl px-2.5 py-1.5 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                            title={`Delete ${template.name}`}
+                          >
+                            {deletingType === template.type ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                            <span>Delete</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -2431,12 +3165,19 @@ function BizMembership() {
                 </p>
                 <Button
                   size="sm"
+                  disabled={!hasBusinessProfile}
                   onClick={() => {
+                    if (!hasBusinessProfile) {
+                      toast.warning("Complete Business Profile First", {
+                        description: "Please fill in and save your business details under Workspace > Profile before uploading compliance documents.",
+                      });
+                      return;
+                    }
                     const typeToReplace = previewDoc?.type;
                     setPreviewDoc(null);
                     if (typeToReplace) handleReplaceClick(typeToReplace);
                   }}
-                  className="mt-3 text-xs font-semibold gap-1.5"
+                  className="mt-3 text-xs font-semibold gap-1.5 disabled:opacity-50"
                 >
                   <Upload className="h-3.5 w-3.5" />
                   <span>Upload Document Now</span>
@@ -2445,7 +3186,7 @@ function BizMembership() {
             )}
           </div>
 
-          <div className="p-3 sm:p-4 border-t bg-background flex items-center justify-between gap-3">
+          <div className="p-3 sm:p-4 border-t bg-background flex flex-col sm:flex-row items-center justify-between gap-3">
             {previewDoc?.fileUrl ? (
               <div className="flex items-center gap-3">
                 <a
@@ -2469,10 +3210,125 @@ function BizMembership() {
               <span className="text-xs text-muted-foreground">Compliance Verification Record</span>
             )}
 
-            <Button variant="outline" size="sm" onClick={() => setPreviewDoc(null)}>
-              Close
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {!isVerified && previewDoc?.type && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!hasBusinessProfile}
+                    onClick={() => {
+                      if (!hasBusinessProfile) {
+                        toast.warning("Complete Business Profile First", {
+                          description: "Please fill in and save your business details under Workspace > Profile before uploading compliance documents.",
+                        });
+                        return;
+                      }
+                      const tType = previewDoc.type;
+                      setPreviewDoc(null);
+                      handleReplaceClick(tType);
+                    }}
+                    className="gap-1.5 text-xs font-semibold rounded-xl disabled:opacity-50"
+                  >
+                    <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Replace</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      const targetTemplate = docTemplates.find((t) => isMatchingDoc(t.type, previewDoc.type)) || {
+                        type: previewDoc.type,
+                        name: previewDoc.name,
+                      };
+                      setDeleteConfirmDoc({
+                        template: targetTemplate,
+                        uploaded: { name: previewDoc.name, fileUrl: previewDoc.fileUrl },
+                      });
+                    }}
+                    className="gap-1.5 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Delete</span>
+                  </Button>
+                </>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setPreviewDoc(null)} className="rounded-xl text-xs font-semibold">
+                Close
+              </Button>
+            </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Document Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmDoc} onOpenChange={(open) => !open && setDeleteConfirmDoc(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 mb-2 border border-rose-200 dark:border-rose-900/50">
+              <Trash2 className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center text-lg font-bold text-foreground">
+              Delete Uploaded Document?
+            </DialogTitle>
+            <DialogDescription className="text-center text-xs text-muted-foreground">
+              Are you sure you want to delete <span className="font-semibold text-foreground font-sans">"{deleteConfirmDoc?.template?.name || "this document"}"</span>?
+              <br />
+              This slot will revert to <span className="font-semibold text-amber-600 dark:text-amber-400">Pending</span> so you can upload the correct file.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-2xl border border-border bg-muted/40 p-3.5 flex items-center gap-3 mt-1">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-foreground truncate">
+                {deleteConfirmDoc?.uploaded?.name || deleteConfirmDoc?.template?.name}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Status: Under Review · Will be removed from compliance submission
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteConfirmDoc(null)}
+              disabled={deletingType !== null}
+              className="rounded-xl text-xs font-semibold"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (deleteConfirmDoc?.template?.type) {
+                  handleDeleteDocument(
+                    deleteConfirmDoc.template.type,
+                    deleteConfirmDoc.template.name,
+                    deleteConfirmDoc.uploaded
+                  );
+                }
+              }}
+              disabled={deletingType !== null}
+              className="rounded-xl text-xs font-semibold gap-1.5 bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {deletingType ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              <span>Yes, Delete Document</span>
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2564,6 +3420,81 @@ function BizMembership() {
               <Button type="submit">Save details</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Chapter Selection Modal ── */}
+      <Dialog open={chapterModalOpen} onOpenChange={setChapterModalOpen}>
+        <DialogContent className="sm:max-w-[480px] rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-rose-500" />
+              <span>Select Chamber Chapter</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Your chapter determines your regional networking events, local leadership desk, and member community.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 space-y-2 max-h-[340px] overflow-y-auto no-scrollbar">
+            {chaptersList.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
+                Loading official chamber chapters...
+              </div>
+            ) : (
+              chaptersList.map((ch) => {
+                const isCurrent = (ch.name || "").toLowerCase() === chapterName.toLowerCase();
+                return (
+                  <button
+                    key={ch._id || ch.name}
+                    type="button"
+                    disabled={assigningChapter}
+                    onClick={() => handleAssignChapter(ch)}
+                    className={cn(
+                      "w-full flex items-center justify-between p-3 rounded-2xl border text-left cursor-pointer transition-all",
+                      isCurrent
+                        ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-2xs font-bold"
+                        : "border-border bg-card hover:bg-muted/50 hover:border-border/90"
+                    )}
+                  >
+                    <div className="min-w-0 flex items-center gap-3">
+                      <div className={cn(
+                        "grid h-8 w-8 shrink-0 place-items-center rounded-xl text-xs font-bold",
+                        isCurrent
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      )}>
+                        <MapPin className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm font-bold text-foreground truncate">{ch.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {[ch.city, ch.state].filter(Boolean).join(", ") || "Chamber Region"}
+                        </p>
+                      </div>
+                    </div>
+                    {isCurrent && (
+                      <span className="rounded-full bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 shrink-0 ml-2">
+                        Active
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setChapterModalOpen(false)}
+              className="rounded-xl text-xs"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppShell>

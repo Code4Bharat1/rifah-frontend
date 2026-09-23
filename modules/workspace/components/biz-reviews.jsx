@@ -258,6 +258,13 @@ export function BizReviews({ embedded = false }) {
   };
 
   const handleOpenReply = (review) => {
+    const isPending = !review?.status || review?.status === "pending";
+    if (isPending) {
+      toast.info("Reply Not Available", {
+        description: "You cannot reply to a review that is awaiting moderation. Replies will be available once approved.",
+      });
+      return;
+    }
     setSelectedReview(review);
     setReplyText(repliedMap[review._id] || "");
     setReplyDialogOpen(true);
@@ -823,15 +830,17 @@ export function BizReviews({ embedded = false }) {
                     >
                       <Eye className="h-3.5 w-3.5 mr-1 text-slate-500" /> View
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenReply(review)}
-                      className="rounded-xl text-xs h-8 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    >
-                      <Reply className="h-3.5 w-3.5 mr-1 text-sky-600" /> Reply
-                    </Button>
+                    {!isPending && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenReply(review)}
+                        className="rounded-xl text-xs h-8 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        <Reply className="h-3.5 w-3.5 mr-1 text-sky-600" /> Reply
+                      </Button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleOpenView(review)}
@@ -892,13 +901,13 @@ export function BizReviews({ embedded = false }) {
                 </div>
               </div>
 
-              {selectedReview.status === "pending" && (
+              {(!selectedReview.status || selectedReview.status === "pending") && (
                 <div className="p-3 rounded-xl bg-amber-50 text-amber-800 text-xs flex items-start gap-2 border border-amber-200">
                   <Clock className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
                   <div>
                     <span className="font-semibold">Under Central Desk Moderation.</span>
                     <p className="text-[11px] text-amber-700 mt-0.5">
-                      RIFAH moderation checks ensure all buyer feedback is genuine and adheres to community guidelines.
+                      RIFAH moderation checks ensure all buyer feedback is genuine and adheres to community guidelines. Replies will be available once the review is approved.
                     </p>
                   </div>
                 </div>
@@ -909,15 +918,17 @@ export function BizReviews({ embedded = false }) {
             <Button variant="outline" onClick={() => setViewDialogOpen(false)} className="rounded-xl text-xs">
               Close
             </Button>
-            <Button
-              onClick={() => {
-                setViewDialogOpen(false);
-                setReplyDialogOpen(true);
-              }}
-              className="rounded-xl text-xs bg-[#0284c7] hover:bg-[#0369a1] text-white"
-            >
-              <Reply className="h-3.5 w-3.5 mr-1" /> Write Response
-            </Button>
+            {selectedReview && selectedReview.status !== "pending" && selectedReview.status !== "rejected" && (
+              <Button
+                onClick={() => {
+                  setViewDialogOpen(false);
+                  setReplyDialogOpen(true);
+                }}
+                className="rounded-xl text-xs bg-[#0284c7] hover:bg-[#0369a1] text-white"
+              >
+                <Reply className="h-3.5 w-3.5 mr-1" /> Write Response
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -2,7 +2,7 @@
 // App Shell Layout & Navigation (Updated)
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { resolveMediaUrl } from "@shared/lib/media";
 import {
   Bell,
@@ -600,6 +600,12 @@ export function AppShell({
     router.push("/login");
   };
 
+  const all = useMemo(() => {
+    const primaryItems = (nav?.primary || []).filter((item) => item.label !== "More");
+    const moreItems = nav?.more || [];
+    return [...primaryItems, ...moreItems];
+  }, [nav]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
@@ -1174,6 +1180,13 @@ export function MoreSheet({ role, isBizVerified = true }) {
   const nav = useResolvedNav(role);
   const items = role === "chapter_admin" ? [...(nav?.primary || []), ...(nav?.more || [])] : (nav?.more || []);
 
+  const isActive = (to) => {
+    if (path === to) return true;
+    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
+    if (rootRoutes.includes(to)) return false;
+    return to !== "/" && path.startsWith(to + "/");
+  };
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -1201,41 +1214,27 @@ export function MoreSheet({ role, isBizVerified = true }) {
           <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {nav.title}
           </p>
-          {categories.map((group, gIdx) => {
-            if (group.isStandalone && group.item) {
-              const i = group.item;
-              const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
-              return (
-                <div key={`ms-standalone-${i.to}-${gIdx}`} className="py-1">
-                  <Link
-                    href={i.to}
-                    scroll={false}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      "flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted",
-                      isActive(i.to) && "bg-primary/10 text-primary font-bold",
-                      isLocked && "opacity-75"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <i.icon className="h-[18px] w-[18px] text-primary" />
-                      <span>{i.label}</span>
-                    </div>
-                    {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
-                  </Link>
-                </div>
-              );
-            }
-
+          {items.map((i, idx) => {
+            const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
             return (
-              <MobileCategoryGroup
-                key={`ms-cat-${group.category}-${gIdx}`}
-                group={group}
-                isActive={isActive}
-                role={role}
-                isBizVerified={isBizVerified}
-                onSelect={() => setOpen(false)}
-              />
+              <div key={`ms-item-${i.to}-${i.label}-${idx}`} className="py-1">
+                <Link
+                  href={i.to}
+                  scroll={false}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted",
+                    isActive(i.to) && "bg-primary/10 text-primary font-bold",
+                    isLocked && "opacity-75"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <i.icon className="h-[18px] w-[18px] text-primary" />
+                    <span>{i.label}</span>
+                  </div>
+                  {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                </Link>
+              </div>
             );
           })}
           <div className="mt-4 border-t border-border pt-3">

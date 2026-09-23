@@ -19,6 +19,7 @@ import {
   Building2,
   Sparkles,
   Lock,
+  Trash2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -28,7 +29,7 @@ import { FieldRow, Panel, Steps } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Textarea } from "@shared/components/ui/textarea";
 import { Label } from "@shared/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
 import { toast } from "sonner";
 import { useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { verificationApi } from "@shared/lib/api-services";
@@ -144,6 +145,8 @@ function BizVerification() {
   const [verificationData, setVerificationData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploadingDoc, setUploadingDoc] = useState(null);
+  const [deletingDoc, setDeletingDoc] = useState(null);
+  const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null);
   const [resubmitting, setResubmitting] = useState(false);
   const [resubmitNotes, setResubmitNotes] = useState("");
   const [previewDoc, setPreviewDoc] = useState(null);
@@ -159,7 +162,13 @@ function BizVerification() {
       } else {
         verif = res;
       }
-      setVerificationData(verif && typeof verif === "object" && verif.documents ? verif : null);
+      setVerificationData(
+        verif && typeof verif === "object" && Array.isArray(verif.documents)
+          ? verif
+          : verif && typeof verif === "object" && verif.documents
+          ? verif
+          : null
+      );
     } catch (err) {
       console.error("fetchVerification error:", err);
       setVerificationData(null);
@@ -256,7 +265,75 @@ function BizVerification() {
     }
   };
 
-  const uploadedDocs = Array.isArray(verificationData?.documents) ? verificationData.documents : (business?.documents || []);
+  const handleDeleteDocument = async (templateType, docName, uploadedInfo = null) => {
+    if (!business?._id) {
+      toast.error("Business information is missing. Please refresh the page.");
+      return;
+    }
+
+    setDeletingDoc(templateType);
+    const toastId = toast.loading(`Deleting "${docName || "document"}"...`);
+    try {
+      const existingDocs = Array.isArray(verificationData?.documents)
+        ? verificationData.documents
+        : Array.isArray(business?.documents)
+        ? business.documents
+        : [];
+
+      const targetUrl = uploadedInfo?.fileUrl || uploadedInfo?.url || uploadedInfo?.path;
+      const targetId = uploadedInfo?._id;
+
+      const updatedDocs = existingDocs.filter((d) => {
+        if (targetId && d?._id && String(d._id) === String(targetId)) return false;
+        if (targetUrl && (d?.fileUrl === targetUrl || d?.url === targetUrl || d?.path === targetUrl)) return false;
+        if (isMatchingDoc(d?.type, templateType) || isMatchingDoc(d?.name, templateType)) return false;
+        return true;
+      });
+
+      const submitRes = await verificationApi.submit({
+        businessId: business._id,
+        documents: updatedDocs,
+        notes: `Business owner deleted document: ${docName || templateType}`,
+      });
+
+      const updatedRecord =
+        submitRes && typeof submitRes === "object" && "data" in submitRes
+          ? submitRes.data
+          : submitRes;
+
+      if (updatedRecord && Array.isArray(updatedRecord.documents)) {
+        setVerificationData(updatedRecord);
+      }
+
+      await fetchVerification();
+      await refetchBiz();
+
+      toast.success(
+        `"${docName || "Document"}" deleted successfully. You can now upload the correct file.`,
+        { id: toastId }
+      );
+
+      if (
+        previewDoc &&
+        (isMatchingDoc(previewDoc.type, templateType) || isMatchingDoc(previewDoc.name, templateType))
+      ) {
+        setPreviewDoc(null);
+      }
+    } catch (err) {
+      console.error("Delete document error:", err);
+      toast.error(err.message || "Failed to delete document.", { id: toastId });
+    } finally {
+      setDeletingDoc(null);
+      setDeleteConfirmDoc(null);
+    }
+  };
+
+  const uploadedDocs =
+    verificationData && Array.isArray(verificationData.documents)
+      ? verificationData.documents
+      : Array.isArray(business?.documents)
+      ? business.documents
+      : [];
   const totalRequiredDocs = docTemplates.length;
   const missingTemplates = docTemplates.filter(
     (template) => !uploadedDocs.some((d) => isMatchingDoc(d?.type, template.type))
@@ -753,6 +830,25 @@ function BizVerification() {
                             disabled={uploadingDoc === template.type}
                           />
                         </label>
+
+                        {uploaded && !isChecked && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setDeleteConfirmDoc({ template, uploaded })}
+                            disabled={deletingDoc === template.type || uploadingDoc === template.type}
+                            className="h-8 px-2.5 text-xs font-semibold gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 dark:border-rose-900/50 dark:hover:bg-rose-950/40"
+                            title={`Delete ${template.name}`}
+                          >
+                            {deletingDoc === template.type ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                            <span>Delete</span>
+                          </Button>
+                        )}
                       </div>
                     </li>
                   );
@@ -1046,6 +1142,75 @@ function BizVerification() {
               Close
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Document Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmDoc} onOpenChange={(open) => !open && setDeleteConfirmDoc(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 mb-2 border border-rose-200 dark:border-rose-900/50">
+              <Trash2 className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center text-lg font-bold text-foreground">
+              Delete Uploaded Document?
+            </DialogTitle>
+            <DialogDescription className="text-center text-xs text-muted-foreground">
+              Are you sure you want to delete <span className="font-semibold text-foreground font-sans">"{deleteConfirmDoc?.template?.name || "this document"}"</span>?
+              <br />
+              This slot will revert to <span className="font-semibold text-amber-600 dark:text-amber-400">Pending</span> so you can upload the correct file.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-2xl border border-border bg-muted/40 p-3.5 flex items-center gap-3 mt-1">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-foreground truncate">
+                {deleteConfirmDoc?.uploaded?.name || deleteConfirmDoc?.template?.name}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Status: Under Review · Will be removed from compliance submission
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteConfirmDoc(null)}
+              disabled={deletingDoc !== null}
+              className="rounded-xl text-xs font-semibold"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (deleteConfirmDoc?.template?.type) {
+                  handleDeleteDocument(
+                    deleteConfirmDoc.template.type,
+                    deleteConfirmDoc.template.name,
+                    deleteConfirmDoc.uploaded
+                  );
+                }
+              }}
+              disabled={deletingDoc !== null}
+              className="rounded-xl text-xs font-semibold gap-1.5 bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {deletingDoc ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              <span>Yes, Delete Document</span>
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppShell>
