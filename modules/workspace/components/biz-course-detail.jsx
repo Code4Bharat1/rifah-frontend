@@ -1,7 +1,7 @@
 "use client";
 import {
   ArrowLeft, PlayCircle, Play, FileText, CheckCircle2, Download,
-  Video, Loader2, ChevronLeft, ChevronRight, Award, BookOpen, Trophy, X, ExternalLink
+  Video, Loader2, ChevronLeft, ChevronRight, Award, BookOpen, Trophy, X, ExternalLink, Star
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -14,6 +14,7 @@ import { Progress } from "@shared/components/ui/progress";
 import { useCourse } from "@shared/hooks/use-rifah-api";
 import { courseApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/media";
+import { cn } from "@shared/lib/utils";
 
 const SCOPE_LABELS = {
   central: { label: "🏛️ Central HQ", color: "bg-violet-100 text-violet-700 border-violet-200" },
@@ -248,6 +249,42 @@ export function BizCourseDetail() {
   const completedCount = completedIds.length;
   const progressPercent = totalContents === 0 ? 0 : Math.round((completedCount / totalContents) * 100);
 
+  // ── Star / Save for later state
+  const [isStarred, setIsStarred] = useState(false);
+
+  useEffect(() => {
+    if (course?._id) {
+      const idStr = String(course._id);
+      try {
+        const stored = JSON.parse(localStorage.getItem("rifah_saved_course_ids") || "[]");
+        if (stored.includes(idStr) || course.progress?.isStarred) {
+          setIsStarred(true);
+        }
+      } catch (e) {}
+    }
+  }, [course]);
+
+  const handleToggleStar = async () => {
+    if (!course?._id) return;
+    const idStr = String(course._id);
+    const nextState = !isStarred;
+    setIsStarred(nextState);
+
+    try {
+      const stored = JSON.parse(localStorage.getItem("rifah_saved_course_ids") || "[]");
+      const nextList = nextState
+        ? Array.from(new Set([...stored, idStr]))
+        : stored.filter(id => id !== idStr);
+      localStorage.setItem("rifah_saved_course_ids", JSON.stringify(nextList));
+    } catch (e) {}
+
+    toast.success(nextState ? "Course saved for later!" : "Course removed from Saved");
+
+    try {
+      await courseApi.toggleStar(course._id);
+    } catch (err) {}
+  };
+
   // ── Auto-select first content
   useEffect(() => {
     if (allContents.length > 0 && !activeContent) {
@@ -413,6 +450,21 @@ export function BizCourseDetail() {
             <Trophy className="h-3 w-3" /> Completed
           </span>
         )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleToggleStar}
+          className={cn(
+            "ml-auto text-xs gap-1.5 h-8 font-medium transition-all",
+            isStarred
+              ? "bg-amber-50 text-amber-600 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:border-amber-800"
+              : "text-muted-foreground hover:text-amber-500 hover:border-amber-300"
+          )}
+        >
+          <Star className={cn("h-3.5 w-3.5", isStarred ? "fill-amber-400 text-amber-500" : "")} />
+          <span>{isStarred ? "Starred / Saved" : "Save for later"}</span>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -1,10 +1,10 @@
 "use client";
 import {
   GraduationCap, PlayCircle, CheckCircle2, ChevronRight,
-  Search, Award, Download, Loader2, BookOpen, Trophy, X
+  Search, Award, Download, Loader2, BookOpen, Trophy, X, Star, Bookmark
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Button } from "@shared/components/ui/button";
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCourses, useCategories } from "@shared/hooks/use-rifah-api";
 import { courseApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/media";
+import { cn } from "@shared/lib/utils";
 
 // ── Scope config
 const SCOPES = [
@@ -27,6 +28,7 @@ const STATUS_FILTERS = [
   { key: "inprogress", label: "⏳ In Progress" },
   { key: "completed", label: "🎓 Completed" },
   { key: "notstarted", label: "New" },
+  { key: "saved", label: "⭐ Starred / Saved" },
 ];
 
 const SCOPE_BADGE = {
@@ -114,7 +116,7 @@ async function downloadCert(course, setLoading) {
 }
 
 // ── Course card
-function CourseCard({ course }) {
+function CourseCard({ course, isSaved, onToggleSave }) {
   const [certLoading, setCertLoading] = useState(false);
   const { percent, completed, total, status } = getCourseProgress(course);
   const scopeStr = getScopeStr(course);
@@ -136,31 +138,58 @@ function CourseCard({ course }) {
       }`} />
 
       <div className="p-5 flex-1 flex flex-col">
-        {/* Scope + status badges */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${scopeBadgeCls}`}>
-            {scopeLabel}
-          </span>
-          {course.category && (
-            <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-semibold max-w-[150px] truncate" title={course.category}>
-              {course.category}
+        {/* Scope + status badges on left, Star / Save button on right */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${scopeBadgeCls}`}>
+              {scopeLabel}
             </span>
-          )}
-          {course.subcategory && (
-            <span className="inline-flex items-center rounded-full border border-border/80 bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground max-w-[120px] truncate" title={course.subcategory}>
-              {course.subcategory}
-            </span>
-          )}
-          {isCompleted && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
-              <CheckCircle2 className="h-3 w-3" /> Completed
-            </span>
-          )}
-          {isStarted && (
-            <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-600">
-              In Progress
-            </span>
-          )}
+            {course.category && (
+              <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-semibold max-w-[140px] truncate" title={course.category}>
+                {course.category}
+              </span>
+            )}
+            {course.subcategory && (
+              <span className="inline-flex items-center rounded-full border border-border/80 bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground max-w-[120px] truncate" title={course.subcategory}>
+                {course.subcategory}
+              </span>
+            )}
+            {isCompleted && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                <CheckCircle2 className="h-3 w-3" /> Completed
+              </span>
+            )}
+            {isStarted && (
+              <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-600">
+                In Progress
+              </span>
+            )}
+          </div>
+
+          {/* Star / Save for Later toggle button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSave?.(course._id || course.id);
+            }}
+            title={isSaved ? "Starred / Saved for later (Click to remove)" : "Save for later"}
+            className={cn(
+              "shrink-0 h-7 w-7 rounded-full flex items-center justify-center border transition-all cursor-pointer",
+              isSaved
+                ? "bg-amber-50 text-amber-500 border-amber-300 shadow-2xs dark:bg-amber-950/40 dark:border-amber-700"
+                : "bg-muted/40 text-slate-400 border-slate-200 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50/50"
+            )}
+            aria-label={isSaved ? "Remove from Starred / Saved for later" : "Star / Save for later"}
+          >
+            <Star
+              className={cn(
+                "h-3.5 w-3.5 transition-transform active:scale-125",
+                isSaved ? "fill-amber-400 text-amber-500" : ""
+              )}
+            />
+          </button>
         </div>
 
         <h3 className="font-bold text-base line-clamp-2 mb-2 leading-snug">{course.title}</h3>
@@ -304,6 +333,61 @@ export function BizLms() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [subcategoryFilter, setSubcategoryFilter] = useState("all");
 
+  // ── Starred / Saved courses state with localStorage caching
+  const [savedCourseIds, setSavedCourseIds] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("rifah_saved_course_ids");
+        return stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  // Sync server-side isStarred flags into local state
+  useEffect(() => {
+    if (courses && courses.length > 0) {
+      const serverStarred = courses.filter(c => c?.progress?.isStarred).map(c => String(c._id));
+      if (serverStarred.length > 0) {
+        setSavedCourseIds(prev => {
+          const merged = Array.from(new Set([...prev, ...serverStarred]));
+          try {
+            localStorage.setItem("rifah_saved_course_ids", JSON.stringify(merged));
+          } catch (e) {}
+          return merged;
+        });
+      }
+    }
+  }, [courses]);
+
+  const handleToggleStar = async (courseId) => {
+    const idStr = String(courseId);
+    const isCurrentlySaved = savedCourseIds.includes(idStr);
+    const nextSaved = isCurrentlySaved
+      ? savedCourseIds.filter(id => id !== idStr)
+      : [...savedCourseIds, idStr];
+
+    setSavedCourseIds(nextSaved);
+    try {
+      localStorage.setItem("rifah_saved_course_ids", JSON.stringify(nextSaved));
+    } catch (e) {}
+
+    toast.success(isCurrentlySaved ? "Course removed from Saved" : "Course saved for later!");
+
+    try {
+      await courseApi.toggleStar(courseId);
+    } catch (err) {
+      console.warn("Server star toggle:", err);
+    }
+  };
+
+  const isCourseSaved = (c) => {
+    const id = String(c._id || c.id);
+    return savedCourseIds.includes(id) || c?.progress?.isStarred === true;
+  };
+
   // Robust subcategory extractor matching parent name or parent id with trimming and case-insensitivity
   const getSubcategories = (catNameOrId) => {
     if (!catNameOrId || catNameOrId === "all") return [];
@@ -339,8 +423,12 @@ export function BizLms() {
       if (scopeDef?.match && !scopeDef.match.includes(getScopeStr(course))) return false;
     }
     if (statusFilter !== "all") {
-      const { status } = getCourseProgress(course);
-      if (status !== statusFilter) return false;
+      if (statusFilter === "saved") {
+        if (!isCourseSaved(course)) return false;
+      } else {
+        const { status } = getCourseProgress(course);
+        if (status !== statusFilter) return false;
+      }
     }
     if (categoryFilter !== "all") {
       if ((course.category || "").trim().toLowerCase() !== categoryFilter.trim().toLowerCase()) return false;
@@ -356,6 +444,7 @@ export function BizLms() {
     const { status } = getCourseProgress(c);
     return status === "inprogress";
   }).length;
+  const savedCount = courses.filter(c => isCourseSaved(c)).length;
 
   return (
     <AppShell
@@ -367,11 +456,12 @@ export function BizLms() {
 
         {/* ── Stats row */}
         {!isLoading && courses.length > 0 && (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { label: "Total Courses", value: courses.length, icon: BookOpen, color: "text-primary bg-primary/10" },
               { label: "In Progress", value: inProgressCount, icon: PlayCircle, color: "text-blue-600 bg-blue-100" },
               { label: "Completed", value: completedCount, icon: Trophy, color: "text-emerald-600 bg-emerald-100" },
+              { label: "Saved for Later", value: savedCount, icon: Star, color: "text-amber-600 bg-amber-100" },
             ].map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="rounded-2xl border bg-card px-4 py-4 flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${color}`}>
@@ -507,19 +597,29 @@ export function BizLms() {
 
                 <div className="flex gap-1.5 flex-wrap items-center">
                   <span className="text-[11px] font-semibold text-muted-foreground mr-1">Status:</span>
-                  {STATUS_FILTERS.map(s => (
-                    <button
-                      key={s.key}
-                      onClick={() => setStatusFilter(s.key)}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
-                        statusFilter === s.key
-                          ? "bg-foreground text-background border-foreground shadow-2xs"
-                          : "bg-background text-muted-foreground border-border hover:border-foreground/30"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
+                  {STATUS_FILTERS.map(s => {
+                    const isSelected = statusFilter === s.key;
+                    return (
+                      <button
+                        key={s.key}
+                        onClick={() => setStatusFilter(s.key)}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all inline-flex items-center gap-1.5 ${
+                          isSelected
+                            ? "bg-foreground text-background border-foreground shadow-2xs"
+                            : "bg-background text-muted-foreground border-border hover:border-foreground/30"
+                        }`}
+                      >
+                        <span>{s.label}</span>
+                        {s.key === "saved" && savedCount > 0 && (
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold leading-tight ${
+                            isSelected ? "bg-amber-400 text-slate-900" : "bg-amber-100 text-amber-800"
+                          }`}>
+                            {savedCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
 
                   {(categoryFilter !== "all" || subcategoryFilter !== "all" || scopeFilter !== "all" || statusFilter !== "all" || searchTerm) && (
                     <button
@@ -549,17 +649,27 @@ export function BizLms() {
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center border rounded-2xl">
                 <div className="bg-muted p-5 rounded-full mb-4">
-                  <GraduationCap className="h-10 w-10 text-muted-foreground" />
+                  {statusFilter === "saved" ? (
+                    <Star className="h-10 w-10 text-amber-500 fill-amber-100" />
+                  ) : (
+                    <GraduationCap className="h-10 w-10 text-muted-foreground" />
+                  )}
                 </div>
                 <h3 className="text-base font-semibold text-foreground">
-                  {courses.length === 0 ? "No Courses Available" : "No Courses Found"}
+                  {statusFilter === "saved"
+                    ? "No Starred Courses Yet"
+                    : courses.length === 0
+                    ? "No Courses Available"
+                    : "No Courses Found"}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-                  {courses.length === 0
+                  {statusFilter === "saved"
+                    ? "You haven't saved any courses for later. Click the star icon on any course card to bookmark it."
+                    : courses.length === 0
                     ? "There are currently no training materials assigned to your business. Check back later."
                     : "Try adjusting your search or filters."}
                 </p>
-                {courses.length > 0 && (
+                {(courses.length > 0 || statusFilter !== "all") && (
                   <Button variant="outline" size="sm" className="mt-4" onClick={() => {
                     setSearchTerm(""); setScopeFilter("all"); setStatusFilter("all");
                   }}>
@@ -570,7 +680,12 @@ export function BizLms() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map(course => (
-                  <CourseCard key={course._id} course={course} />
+                  <CourseCard
+                    key={course._id}
+                    course={course}
+                    isSaved={isCourseSaved(course)}
+                    onToggleSave={() => handleToggleStar(course._id)}
+                  />
                 ))}
               </div>
             )}

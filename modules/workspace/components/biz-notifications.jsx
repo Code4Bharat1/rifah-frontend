@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useNotifications } from "@shared/hooks/use-rifah-api";
 import { notificationApi } from "@shared/lib/api-services";
 import { useState } from "react";
-import { Megaphone, Eye, Calendar, MapPin, Clock, Building2 } from "lucide-react";
+import { Megaphone, Eye, Calendar, MapPin, Clock, Building2, CheckCheck } from "lucide-react";
+import { toast } from "sonner";
 
 function formatRelativeTime(dateString) {
   if (!dateString) return "Just now";
@@ -59,8 +60,10 @@ function BizNotifications() {
   const handleMarkAllRead = async () => {
     try {
       await notificationApi.markAllAsRead();
+      toast.success("All notifications marked as read");
       refetch();
     } catch (err) {
+      toast.error(err?.message || "Failed to mark notifications as read");
       console.error(err);
     }
   };
@@ -70,13 +73,24 @@ function BizNotifications() {
       role="business"
       title="Notifications"
       subtitle={`${unreadCount} unread`}
-      actions={
-        <Button variant="outline" onClick={handleMarkAllRead}>
-          Mark all as read
-        </Button>
-      }
     >
-      <Panel bodyClassName="p-0 md:p-0">
+      <Panel
+        title="All Notifications"
+        description={`${unreadCount} unread alert${unreadCount === 1 ? "" : "s"}`}
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={unreadCount === 0}
+            onClick={handleMarkAllRead}
+            className="h-8 text-xs font-medium gap-1.5"
+          >
+            <CheckCheck className="h-3.5 w-3.5 text-primary" />
+            Mark all as read
+          </Button>
+        }
+        bodyClassName="p-0 md:p-0"
+      >
         {notifications.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted-foreground">No notifications at this time.</p>
         ) : (

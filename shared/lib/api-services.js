@@ -427,6 +427,7 @@ export const courseApi = {
   },
   markWatched: (id, contentId, data = {}) => apiClient(`/courses/${id}/contents/${contentId}/watch`, { method: "POST", body: JSON.stringify(data) }),
   getCertificates: (params = {}) => apiClient(`/courses/certificates${toQueryString(params)}`),
+  toggleStar: (id) => apiClient(`/courses/${id}/toggle-star`, { method: "PATCH" }),
 };
 
 export const birthdayApi = {

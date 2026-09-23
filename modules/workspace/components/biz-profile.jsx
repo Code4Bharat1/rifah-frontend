@@ -28,6 +28,7 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
+import { Checkbox } from "@shared/components/ui/checkbox";
 import { Progress } from "@shared/components/ui/progress";
 import { Textarea } from "@shared/components/ui/textarea";
 import {
@@ -157,6 +158,7 @@ function BizProfile() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [uploadingCert, setUploadingCert] = useState(false);
+  const [sameAsPhone, setSameAsPhone] = useState(false);
 
   useEffect(() => {
     const knownRoles = [
@@ -195,6 +197,11 @@ function BizProfile() {
         joiningDate: business.joiningDate ? new Date(business.joiningDate).toISOString().split("T")[0] : (user?.joiningDate ? new Date(user.joiningDate).toISOString().split("T")[0] : ""),
         timezone: business.timezone || user?.timezone || "Asia/Kolkata",
       });
+      const ph = (business.phone || "").trim();
+      const wa = (business.whatsapp || business.whatsappNumber || "").trim();
+      if (ph && wa && ph === wa) {
+        setSameAsPhone(true);
+      }
     } else if (user) {
       setFormData((prev) => ({
         ...prev,
@@ -210,6 +217,11 @@ function BizProfile() {
         joiningDate: prev.joiningDate || (user.joiningDate ? new Date(user.joiningDate).toISOString().split("T")[0] : ""),
         timezone: prev.timezone || user.timezone || "Asia/Kolkata",
       }));
+      const ph = (user.phone || "").trim();
+      const wa = (user.whatsapp || user.phone || "").trim();
+      if (ph && wa && ph === wa) {
+        setSameAsPhone(true);
+      }
     }
   }, [business, user]);
 
@@ -676,17 +688,49 @@ function BizProfile() {
                   id="biz-phone"
                   required
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => {
+                    const newPhone = e.target.value;
+                    setFormData((prev) => ({
+                      ...prev,
+                      phone: newPhone,
+                      ...(sameAsPhone ? { whatsapp: newPhone } : {}),
+                    }));
+                  }}
                   placeholder="98765 43210"
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="biz-whatsapp">WhatsApp Number *</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="biz-whatsapp">WhatsApp Number *</Label>
+                  <label
+                    htmlFor="same-as-phone"
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-normal cursor-pointer select-none hover:text-foreground transition-colors"
+                  >
+                    <Checkbox
+                      id="same-as-phone"
+                      checked={sameAsPhone}
+                      onCheckedChange={(checked) => {
+                        const isChecked = !!checked;
+                        setSameAsPhone(isChecked);
+                        if (isChecked) {
+                          setFormData((prev) => ({ ...prev, whatsapp: prev.phone || "" }));
+                        }
+                      }}
+                    />
+                    <span>Same as Phone</span>
+                  </label>
+                </div>
                 <PhoneInput
                   id="biz-whatsapp"
                   required
                   value={formData.whatsapp}
-                  onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                  onChange={(e) => {
+                    const newWhatsapp = e.target.value;
+                    setFormData((prev) => ({ ...prev, whatsapp: newWhatsapp }));
+                    if (sameAsPhone && newWhatsapp !== formData.phone) {
+                      setSameAsPhone(false);
+                    }
+                  }}
                   placeholder="98765 43210"
                 />
                 <p className="text-[10px] text-muted-foreground">Used for direct buyer chat, quotation alerts & instant WhatsApp messages.</p>

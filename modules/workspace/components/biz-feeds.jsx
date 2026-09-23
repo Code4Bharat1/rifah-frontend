@@ -141,11 +141,8 @@ function RifahFeedCard({
 }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showAllComments, setShowAllComments] = useState(false);
-  const [commentInput, setCommentInput] = useState("");
   const [showHeartPop, setShowHeartPop] = useState(false);
   const [imageErrorMap, setImageErrorMap] = useState({});
-  const commentInputRef = useRef(null);
 
   // Auto-reset imageErrorMap when post data or images change
   useEffect(() => {
@@ -176,13 +173,6 @@ function RifahFeedCard({
     setCurrentSlide((prev) => (prev - 1 + totalImages) % totalImages);
   };
 
-  const handlePostComment = (e) => {
-    e?.preventDefault();
-    if (!commentInput.trim()) return;
-    onAddComment(post.id, commentInput.trim());
-    setCommentInput("");
-    setShowAllComments(true);
-  };
 
   const handleShare = () => {
     if (typeof window !== "undefined" && navigator.clipboard) {
@@ -404,103 +394,6 @@ function RifahFeedCard({
           />
           <span>{post.likesCount || 0}</span>
         </button>
-
-        {/* Comments Count / Toggle */}
-        <button
-          type="button"
-          onClick={() => {
-            setShowAllComments((prev) => !prev);
-            commentInputRef.current?.focus();
-          }}
-          className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#00A6F4] transition-colors cursor-pointer"
-        >
-          <MessageCircle className="h-4.5 w-4.5 text-slate-500" />
-          <span>{post.comments?.length || 0}</span>
-        </button>
-      </div>
-
-      {/* 6. Comments Section (Comments header, comment bubbles & pill comment input) */}
-      <div className="pt-2 border-t border-slate-100 space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold text-slate-900 tracking-tight">
-            Comments ({post.comments?.length || 0})
-          </h4>
-          {post.comments?.length > 2 && (
-            <button
-              type="button"
-              onClick={() => setShowAllComments(!showAllComments)}
-              className="text-xs text-[#00A6F4] hover:text-[#008fe0] font-semibold hover:underline cursor-pointer"
-            >
-              {showAllComments ? "Show less" : `View all ${post.comments.length} comments`}
-            </button>
-          )}
-        </div>
-
-        {/* Comments Stream */}
-        {post.comments && post.comments.length > 0 && (
-          <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 text-xs no-scrollbar [scrollbar-width:thin]">
-            {(showAllComments ? post.comments : post.comments.slice(-2)).map((comment) => (
-              <div
-                key={comment.id || comment._id || Math.random()}
-                className="flex items-start justify-between gap-2.5 p-2.5 rounded-2xl bg-slate-50/90 border border-slate-200/60 shadow-2xs"
-              >
-                <div className="flex items-start gap-2 min-w-0">
-                  <UserAvatar
-                    src={resolveMediaUrl(comment.avatar)}
-                    name={comment.username || comment.name}
-                    className="h-6 w-6 mt-0.5 border border-slate-200 shrink-0"
-                    iconClassName="h-3.5 w-3.5 text-slate-400"
-                  />
-                  <p className="leading-snug break-words">
-                    <span className="font-bold mr-1.5 text-slate-900 hover:underline cursor-pointer hover:text-[#00A6F4]">
-                      {comment.username || comment.name}
-                    </span>
-                    <span className="text-slate-700 font-normal">{comment.text}</span>
-                  </p>
-                </div>
-                {(comment.createdAt || comment.timeAgo) && (
-                  <span className="text-[10px] text-slate-400 shrink-0 mt-0.5">
-                    {formatRelativeTime(comment.createdAt || comment.timeAgo)}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Comment Input Bar: Pill format matching the screenshot */}
-        <form
-          onSubmit={handlePostComment}
-          className="flex items-center gap-2 p-1.5 pl-3.5 rounded-full bg-white border border-slate-200 focus-within:border-[#00A6F4] focus-within:ring-2 focus-within:ring-[#00A6F4]/20 shadow-2xs transition-all"
-        >
-          <UserAvatar
-            src={currentUser?.avatar}
-            name={currentUser?.username}
-            className="h-5 w-5 border border-slate-200 shrink-0"
-            iconClassName="h-3 w-3 text-slate-400"
-          />
-          <input
-            ref={commentInputRef}
-            type="text"
-            value={commentInput}
-            onChange={(e) => setCommentInput(e.target.value)}
-            placeholder="Write a comment..."
-            className="flex-1 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 outline-none"
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={!commentInput.trim()}
-            className={cn(
-              "h-7 px-4 rounded-full font-semibold text-xs transition-all cursor-pointer shrink-0 shadow-xs",
-              commentInput.trim()
-                ? "bg-[#00A6F4] hover:bg-[#0095dc] text-white"
-                : "bg-slate-100 text-slate-400 cursor-not-allowed"
-            )}
-          >
-            Post
-          </Button>
-        </form>
       </div>
     </article>
   );
