@@ -110,7 +110,7 @@ function AdminNetworkingAnalytics() {
                 <div className="space-y-2">
                   {leaderboardRows.map((row, index) => (
                     <div
-                      key={row.businessId}
+                      key={`leaderboard-${row.businessId || index}-${index}`}
                       className="flex items-center justify-between gap-3 rounded-xl border border-border p-3.5"
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -161,8 +161,8 @@ function AdminNetworkingAnalytics() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {breakdownRows.map((row) => (
-                      <tr key={row.label} className="hover:bg-muted/30">
+                    {breakdownRows.map((row, index) => (
+                      <tr key={`breakdown-${row.chapterId || row.label || index}-${index}`} className="hover:bg-muted/30">
                         <td className="px-4 py-3 font-medium">{row.label}</td>
                         <td className="px-4 py-3 text-success font-semibold">{currencyFormatter.format(row.given)}</td>
                         <td className="px-4 py-3 text-primary font-semibold">{currencyFormatter.format(row.received)}</td>
