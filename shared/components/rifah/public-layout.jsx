@@ -8,9 +8,7 @@ import {
   Bookmark,
   Building2,
   CalendarDays,
-  ExternalLink,
   FileStack,
-  HelpCircle,
   Home,
   LogOut,
   Mail,
@@ -32,6 +30,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@sha
 import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
 import { RifahCopilotWidget } from "@shared/components/rifah/rifah-copilot-widget";
+import { PolicyDialog } from "@shared/components/rifah/policy-dialog";
 
 const primaryNav = [
   { tKey: "discover", to: "/discover" },
@@ -226,32 +225,13 @@ function MobileMenu() {
 }
 
 export function PublicFooter() {
-  const router = useRouter();
-  const [cityQuery, setCityQuery] = useState("");
-
-  const popularCities = ["Mumbai", "Delhi", "Bengaluru", "Pune", "Hyderabad"];
-
-  const handleCitySearch = (e) => {
-    e.preventDefault();
-    const q = cityQuery.trim();
-    if (q) {
-      router.push(`/discover?city=${encodeURIComponent(q)}`);
-    } else {
-      router.push("/discover");
-    }
-  };
+  const [activePolicy, setActivePolicy] = useState(null);
 
   const quickLinks = [
-    { label: "Frequently Asked Questions (FAQs)", to: "/membership#faqs", highlight: true },
-    { label: "Contact Us", to: "/contact" },
-    {
-      label: "Chat With Us",
-      to: "https://wa.me/918097781851?text=Hello%0AI%20would%20like%20to%20know%20more%20about%20your%20services.%20Please%20share%20the%20details.",
-      isExternal: true,
-    },
-    { label: "Connect With Us", to: "/register-business" },
-    { label: "Payment Policy", to: "#", isDummy: true },
-    { label: "Membership Policy", to: "#", isDummy: true },
+    { key: "faqs", label: "Frequently Asked Questions (FAQs)" },
+    { key: "terms", label: "Terms & Conditions" },
+    { key: "payment", label: "Payment Policy" },
+    { key: "membership", label: "Membership Policy" },
   ];
 
   const socialLinks = [
@@ -309,17 +289,17 @@ export function PublicFooter() {
   };
 
   return (
-    <footer className="mt-16 border-t border-navy-foreground/10 bg-navy text-navy-foreground">
+    <footer className="mt-10 sm:mt-12 border-t border-navy-foreground/10 bg-navy text-navy-foreground">
       {/* Tier 1: Action CTAs & Connect App Download Badges */}
       <div className="border-b border-navy-foreground/10 bg-navy/95 backdrop-blur">
-        <div className="rifah-container flex flex-col gap-5 py-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="rifah-container flex flex-col gap-4 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-semibold uppercase tracking-wider text-navy-foreground/60">
-              Quick Actions:
+            <span className="text-xs font-bold uppercase tracking-wider text-navy-foreground/90">
+              QUICK ACTIONS:
             </span>
             <Link
               href="/register-business"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/50 bg-primary/15 px-4 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition shadow-sm"
             >
               Connect With Us
             </Link>
@@ -327,22 +307,23 @@ export function PublicFooter() {
               href="https://wa.me/918097781851?text=Hello%0AI%20would%20like%20to%20know%20more%20about%20your%20services.%20Please%20share%20the%20details."
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/50 bg-emerald-500/15 px-4 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-600 hover:text-white transition shadow-sm"
             >
               <MessageCircle className="h-3.5 w-3.5" />
               Chat With Us
             </a>
             <Link
               href="/contact"
-              className="inline-flex items-center gap-2 rounded-lg border border-navy-foreground/20 px-4 py-2 text-xs font-semibold text-navy-foreground transition hover:bg-white/5 hover:border-navy-foreground/40"
+              className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/50 bg-sky-400/15 px-4 py-1.5 text-xs font-semibold text-sky-300 hover:bg-sky-500 hover:text-white transition shadow-sm"
             >
+              <Mail className="h-3.5 w-3.5" />
               Contact Us
             </Link>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-xs font-semibold text-navy-foreground/75">
-              RIFAH Connect App:
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-navy-foreground/80">
+              DOWNLOAD THE RIFAH CONNECT APP
             </span>
             <a
               href="https://play.google.com/store"
@@ -376,84 +357,119 @@ export function PublicFooter() {
         </div>
       </div>
 
-      {/* Tier 2: 4-Column Core Content Grid */}
-      <div className="rifah-container grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:py-14">
-        {/* Column 1: Brand Logo, Mission & Registered Office */}
-        <div className="space-y-4">
+      {/* Tier 2: 3-Column Core Content Grid */}
+      <div className="rifah-container grid gap-8 py-8 md:grid-cols-2 lg:grid-cols-12 lg:gap-10 lg:py-10">
+        {/* Column 1: Brand Logo & Mission */}
+        <div className="space-y-3.5 md:col-span-2 lg:col-span-5 lg:pr-6">
           <div>
             <RifahLogo showLabel={true} onDark={true} className="inline-flex" />
           </div>
-          <p className="text-xs leading-relaxed text-navy-foreground/75">
+          <p className="text-xs leading-relaxed text-navy-foreground/75 sm:text-[13px]">
             Rifah’s mission is to create a platform where business is generated through effective networking, and to scale up existing businesses by implementing proper systems using the latest management techniques.
           </p>
-          <div className="rounded-lg border border-navy-foreground/15 bg-black/20 p-3 text-xs leading-relaxed text-navy-foreground/80">
-            <div className="flex items-center gap-1.5 font-semibold text-navy-foreground">
-              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>Registered Office (Mumbai)</span>
-            </div>
-            <p className="mt-1 text-navy-foreground/70">
-              Flat No. 4 C &amp; D, 1st Floor, Plot No. 96, 77C, Hamid Building, Hafiz Ali Bahadur Khan Marg, Mominpura, Jacob Circle, Byculla West, Mumbai – 400011, Maharashtra, India.
-            </p>
-          </div>
-          <div>
-            <Link
-              href="/discover"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition"
-            >
-              <Search className="h-3.5 w-3.5" />
-              Find Like-Minded Businesses
-            </Link>
-          </div>
         </div>
 
-        {/* Column 2: Contact Numbers, Emails & Social Media */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold tracking-wide text-navy-foreground">
-            Contact &amp; Helplines
+        {/* Column 2: GET IN TOUCH */}
+        <div className="space-y-3.5 md:col-span-1 lg:col-span-4 lg:px-2">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-foreground">
+            GET IN TOUCH
           </h3>
-          <div className="space-y-2 text-xs text-navy-foreground/75">
-            <div className="flex items-start gap-2">
-              <Phone className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-              <div className="space-y-1">
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-xs">
+            {/* Sub-col 1: Support & Helplines */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 font-semibold text-navy-foreground">
+                <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>Support &amp; Helplines</span>
+              </div>
+              <div className="space-y-1 pl-5 text-navy-foreground/75">
                 <div>
-                  <a href="tel:+91-809-778-1851" className="hover:text-primary transition">
+                  <a href="tel:+91-809-778-1851" className="hover:text-primary transition-colors">
                     +91-809-778-1851
                   </a>
                 </div>
                 <div>
-                  <a href="tel:+91-730-407-8398" className="hover:text-primary transition">
+                  <a href="tel:+91-730-407-8398" className="hover:text-primary transition-colors">
                     +91-730-407-8398
                   </a>
                 </div>
                 <div>
-                  <a href="tel:+91-913-613-0398" className="hover:text-primary transition">
+                  <a href="tel:+91-913-613-0398" className="hover:text-primary transition-colors">
                     +91-913-613-0398
                   </a>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-2 pt-2 border-t border-navy-foreground/10">
-              <Mail className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-              <div className="space-y-1">
+            {/* Sub-col 2: Email Queries */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 font-semibold text-navy-foreground">
+                <Mail className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span>Email Queries</span>
+              </div>
+              <div className="space-y-1 pl-5 text-navy-foreground/75">
                 <div>
-                  <a href="mailto:office@rifah.org" className="hover:text-primary transition">
+                  <a href="mailto:office@rifah.org" className="hover:text-primary transition-colors">
                     office@rifah.org
                   </a>
                 </div>
                 <div>
-                  <a href="mailto:info@rifah.org" className="hover:text-primary transition">
+                  <a href="mailto:info@rifah.org" className="hover:text-primary transition-colors">
                     info@rifah.org
                   </a>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="pt-2">
-            <div className="text-xs font-semibold text-navy-foreground/80 mb-2">
-              Official Social Media
+        {/* Column 3: Quick Links */}
+        <div className="space-y-3.5 md:col-span-1 lg:col-span-3 lg:pl-6">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-foreground">
+            Quick Links
+          </h3>
+          <ul className="space-y-2.5 text-xs text-navy-foreground/75">
+            {quickLinks.map((l) => (
+              <li key={l.key}>
+                <button
+                  type="button"
+                  onClick={() => setActivePolicy(l.key)}
+                  className="group inline-flex items-center gap-1.5 transition-colors hover:text-primary cursor-pointer text-left text-navy-foreground/75 hover:text-navy-foreground"
+                  title={`View ${l.label}`}
+                >
+                  <span className="text-primary/70 transition-transform group-hover:translate-x-0.5">•</span>
+                  <span>{l.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Horizontal Registered Head Office Banner across full width */}
+        <div className="rounded-xl border border-navy-foreground/15 bg-black/25 p-3.5 text-xs text-navy-foreground/80 shadow-inner md:col-span-2 lg:col-span-12">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <div className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-bold uppercase tracking-wider text-primary">
+              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>REGISTERED HEAD OFFICE:</span>
             </div>
+            <p className="text-[11px] leading-relaxed text-navy-foreground/75 sm:text-xs">
+              Flat No. 4 C &amp; D, 1st Floor, Plot No. 96, 77C, Hamid Building, Hafiz Ali Bahadur Khan Marg, Mominpura, Jacob Circle, Byculla West, Mumbai – 400011, Maharashtra, India.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Tier 3: Legal Copyright, Social Media & Back-to-Top Bar */}
+      <div className="border-t border-navy-foreground/10 bg-navy/95">
+        <div className="rifah-container flex flex-wrap items-center justify-between gap-4 py-4 text-xs text-navy-foreground/70">
+          <p>© 2026 RIFAH Chamber of Commerce and Industry | All rights reserved</p>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="hidden sm:inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-[11px] text-navy-foreground/75">
+              <Star className="h-3.5 w-3.5 text-amber-400" /> TOGETHER FOR A SUSTAINABLE FUTURE
+            </span>
+            <span className="hidden lg:inline text-navy-foreground/30">•</span>
+            {/* Social Media Handles at the Bottom */}
             <div className="flex items-center gap-2">
               {socialLinks.map((s) => (
                 <a
@@ -462,7 +478,7 @@ export function PublicFooter() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.name}
-                  className="grid h-8 w-8 place-items-center rounded-lg border border-navy-foreground/15 bg-black/25 text-navy-foreground transition hover:border-primary/50 hover:bg-black/50"
+                  className="grid h-7 w-7 place-items-center rounded-lg border border-navy-foreground/15 bg-black/25 text-navy-foreground transition hover:border-primary/50 hover:bg-black/50 hover:scale-105"
                   title={s.name}
                 >
                   {s.icon}
@@ -470,127 +486,23 @@ export function PublicFooter() {
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Column 3: Search Members / Businesses in Specific City / State */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold tracking-wide text-navy-foreground">
-            Search Members / Businesses
-          </h3>
-          <p className="text-xs text-navy-foreground/75 leading-relaxed">
-            Search verified chamber members and businesses across any specific city or state.
-          </p>
-          <form onSubmit={handleCitySearch} className="space-y-2">
-            <div className="relative">
-              <input
-                type="text"
-                value={cityQuery}
-                onChange={(e) => setCityQuery(e.target.value)}
-                placeholder="Enter city or state (e.g. Mumbai, Kerala)..."
-                className="w-full rounded-lg border border-navy-foreground/20 bg-black/30 px-3 py-2 text-xs text-navy-foreground placeholder:text-navy-foreground/45 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-            <button
-              type="submit"
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 shadow-sm"
-            >
-              <Search className="h-3.5 w-3.5" />
-              <span>Search in City / State</span>
-            </button>
-          </form>
-          <div className="space-y-1.5 pt-1 text-xs text-navy-foreground/65">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-medium text-navy-foreground/50">Popular:</span>
-              {popularCities.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => router.push(`/discover?city=${encodeURIComponent(c)}`)}
-                  className="rounded border border-navy-foreground/15 bg-black/20 px-2 py-0.5 text-[11px] text-navy-foreground/80 hover:border-primary/50 hover:text-primary transition"
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-            <div className="pt-2">
-              <a
-                href="https://rifah.nexcorealliance.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-              >
-                <span>Explore Interactive Presence Map</span>
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Column 4: Quick Links */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold tracking-wide text-navy-foreground">
-            Quick Links
-          </h3>
-          <ul className="space-y-2.5 text-xs text-navy-foreground/75">
-            {quickLinks.map((l) => (
-              <li key={l.label}>
-                {l.isExternal ? (
-                  <a
-                    href={l.to}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 transition-colors hover:text-primary"
-                  >
-                    <span>{l.label}</span>
-                    <ExternalLink className="h-3 w-3 opacity-60" />
-                  </a>
-                ) : l.isDummy ? (
-                  <a
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
-                    className="inline-flex items-center gap-1.5 transition-colors hover:text-primary cursor-pointer text-navy-foreground/70 hover:text-navy-foreground"
-                    title={`${l.label} (Policy document)`}
-                  >
-                    <span>{l.label}</span>
-                  </a>
-                ) : (
-                  <Link
-                    href={l.to}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 transition-colors hover:text-primary",
-                      l.highlight && "font-semibold text-primary"
-                    )}
-                  >
-                    {l.highlight && <HelpCircle className="h-3.5 w-3.5 shrink-0" />}
-                    <span>{l.label}</span>
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      {/* Tier 3: Legal Copyright & Back-to-Top Bar */}
-      <div className="border-t border-navy-foreground/10 bg-navy/95">
-        <div className="rifah-container flex flex-wrap items-center justify-between gap-3 py-4 text-xs text-navy-foreground/65">
-          <div className="flex flex-wrap items-center gap-2">
-            <p>© 2026 Rifah Chamber of Commerce and Industry | All rights reserved</p>
-            <span className="hidden sm:inline text-navy-foreground/30">•</span>
-            <span className="inline-flex items-center gap-1">
-              <Star className="h-3 w-3 text-amber-400" /> Together for a sustainable future
-            </span>
-          </div>
           <button
             onClick={handleScrollTop}
-            className="inline-flex items-center gap-1.5 text-xs text-navy-foreground/75 hover:text-navy-foreground transition"
+            className="inline-flex items-center gap-1.5 text-xs text-navy-foreground/75 hover:text-primary transition"
             type="button"
           >
-            <span>Back to top</span>
+            <span>Back to Top</span>
             <ArrowUp className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
+
+      {/* Global Policy Dialog for Quick Links */}
+      <PolicyDialog
+        openKey={activePolicy}
+        onClose={() => setActivePolicy(null)}
+      />
     </footer>
   );
 }
