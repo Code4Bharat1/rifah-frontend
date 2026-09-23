@@ -1,6 +1,6 @@
 "use client";
 import { Megaphone, Send, Loader2, Bell } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -11,6 +11,15 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Textarea } from "@shared/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@shared/components/ui/dialog";
+import { useAuth } from "@shared/providers/auth-provider";
 import { useNotifications, useChapters } from "@shared/hooks/use-rifah-api";
 import { notificationApi } from "@shared/lib/api-services";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@shared/components/ui/dropdown-menu";
@@ -24,12 +33,22 @@ function formatEventDate(val) {
 }
 
 function AdminNotifications() {
-  const [audience, setAudience] = useState("all");
-  const [selectedChapter, setSelectedChapter] = useState("");
+  const { user } = useAuth();
+  const role = user?.role === "chapter_admin" ? "chapter_admin" : user?.role === "state_admin" ? "state_admin" : "admin";
+
+  const [audience, setAudience] = useState(user?.role === "chapter_admin" ? "chapter" : "all");
+  const [selectedChapter, setSelectedChapter] = useState(user?.chapter || "");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [filter, setFilter] = useState("all");
+
+  useEffect(() => {
+    if (user?.role === "chapter_admin" && user?.chapter) {
+      setSelectedChapter(user.chapter);
+      setAudience("chapter");
+    }
+  }, [user]);
 
   const { data: notifData, refetch } = useNotifications();
   const { data: chaptersData } = useChapters();
@@ -52,8 +71,12 @@ function AdminNotifications() {
 
   const handleBroadcast = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !message.trim()) return;
-    if (audience === "chapter" && !selectedChapter) {
+    const effectiveChapter =
+      role === "chapter_admin"
+        ? (user?.chapter || selectedChapter)
+        : (audience === "chapter" ? selectedChapter : undefined);
+
+    if (audience === "chapter" && !effectiveChapter) {
       toast.error("Please select a chapter to broadcast to.");
       return;
     }
@@ -64,7 +87,7 @@ function AdminNotifications() {
         title: title.trim(),
         body: message.trim(),
         targetRole: ["all", "chapter"].includes(audience) ? undefined : audience,
-        chapter: audience === "chapter" ? selectedChapter : undefined,
+        chapter: effectiveChapter || undefined,
       });
       toast.success("Broadcast announcement sent successfully!");
       setTitle("");
@@ -113,7 +136,7 @@ function AdminNotifications() {
   };
 
   return (
-    <AppShell role="admin" title="Announcements & Broadcasts" subtitle="Chamber-wide circulars and alerts">
+    <AppShell role={role} title="Announcements & Broadcasts" subtitle="Chamber-wide circulars and alerts">
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
