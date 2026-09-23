@@ -42,6 +42,7 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   XCircle,
   ArrowRight,
   Shield,
@@ -101,7 +102,6 @@ const navs = {
           { label: "Enquiries", to: "/biz/enquiries", icon: FileStack },
           { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },
           { label: "My Profile", to: "/biz/profile", icon: UserRound },
-          { label: "Reviews", to: "/biz/reviews", icon: MessageSquare },
         ],
       },
       {
@@ -978,12 +978,32 @@ export function AppShell({
 }
 
 function UnderApprovalAccessGate({ business, path }) {
-  const vStatus = (business?.verification || business?.verificationStatus || "under_review").toLowerCase();
+  const vStatus = (business?.verification || business?.verificationStatus || "").toLowerCase();
   const isChangesReq = vStatus === "changes_required" || vStatus === "correction" || vStatus === "correction_requested";
   const isRejected = vStatus === "rejected";
-  const isUnderReview = !isChangesReq && !isRejected;
+
+  const missingFields = [];
+  if (!business?.name?.trim()) missingFields.push("Business Name");
+  if (!business?.industry?.trim() && !business?.category?.trim() && (!business?.categories || business.categories.length === 0)) missingFields.push("Industry Category");
+  if (!business?.city?.trim()) missingFields.push("City");
+  if (!business?.state?.trim()) missingFields.push("State");
+  if (!business?.address?.trim()) missingFields.push("Business Address");
+  if (!business?.phone?.trim()) missingFields.push("Phone Number");
+  if (!business?.about?.trim() || business.about.trim().toLowerCase() === "no description provided.") missingFields.push("About / Description");
+
+  const isProfileIncomplete = missingFields.length > 0;
+  const isNotSubmitted = isProfileIncomplete || vStatus === "unverified" || vStatus === "not_submitted" || vStatus === "draft" || vStatus === "";
+  const isUnderReview = !isChangesReq && !isRejected && !isNotSubmitted;
 
   const accessibleModules = [
+    {
+      title: "Business Profile & Details",
+      description: "Review and update your enterprise profile, address, business type, founded year, and contact details.",
+      to: "/biz/profile",
+      icon: Building2,
+      badge: isNotSubmitted ? "Action Required" : "Accessible",
+      actionText: isNotSubmitted ? "Complete Profile Now →" : "Edit Business Profile →",
+    },
     {
       title: "Verification & Document Upload",
       description: "Upload and replace official business documents (GST, PAN, Trade License) and track review status.",
@@ -991,14 +1011,6 @@ function UnderApprovalAccessGate({ business, path }) {
       icon: ShieldCheck,
       badge: isChangesReq ? "Action Required" : "Accessible",
       actionText: "Open Verification Desk →",
-    },
-    {
-      title: "Business Profile & Details",
-      description: "Review and update your enterprise profile, address, business type, founded year, and contact details.",
-      to: "/biz/profile",
-      icon: Building2,
-      badge: "Accessible",
-      actionText: "Edit Business Profile →",
     },
     {
       title: "Membership & Payments",
@@ -1024,6 +1036,7 @@ function UnderApprovalAccessGate({ business, path }) {
       <div
         className={cn(
           "rounded-3xl border p-6 sm:p-8 shadow-xs relative overflow-hidden",
+          isNotSubmitted && "border-red-400 bg-red-50/95 dark:border-red-800 dark:bg-red-950/40 text-red-950 dark:text-red-100",
           isChangesReq && "border-blue-300 bg-blue-50/90 dark:border-blue-800 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100",
           isRejected && "border-rose-300 bg-rose-50/90 dark:border-rose-800 dark:bg-rose-950/40 text-rose-950 dark:text-rose-100",
           isUnderReview && "border-amber-300 bg-amber-50/90 dark:border-amber-800 dark:bg-amber-950/40 text-amber-950 dark:text-amber-100"
@@ -1033,12 +1046,21 @@ function UnderApprovalAccessGate({ business, path }) {
           <div
             className={cn(
               "grid h-14 w-14 shrink-0 place-items-center rounded-2xl shadow-xs",
+              isNotSubmitted && "bg-red-600 text-white shadow-red-500/20",
               isChangesReq && "bg-blue-600 text-white",
               isRejected && "bg-rose-600 text-white",
               isUnderReview && "bg-amber-500 text-white"
             )}
           >
-            {isChangesReq ? <RotateCcw className="h-7 w-7" /> : isRejected ? <XCircle className="h-7 w-7" /> : <Clock className="h-7 w-7" />}
+            {isNotSubmitted ? (
+              <AlertTriangle className="h-7 w-7 text-white" />
+            ) : isChangesReq ? (
+              <RotateCcw className="h-7 w-7" />
+            ) : isRejected ? (
+              <XCircle className="h-7 w-7" />
+            ) : (
+              <Clock className="h-7 w-7" />
+            )}
           </div>
 
           <div className="flex-1 min-w-0">
@@ -1046,32 +1068,73 @@ function UnderApprovalAccessGate({ business, path }) {
               <span
                 className={cn(
                   "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                  isNotSubmitted && "bg-red-600 text-white dark:bg-red-600 dark:text-white",
                   isChangesReq && "bg-blue-200 text-blue-900 dark:bg-blue-900 dark:text-blue-200",
                   isRejected && "bg-rose-600 text-white dark:bg-rose-600 dark:text-white",
                   isUnderReview && "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200"
                 )}
               >
-                {isChangesReq ? "CHANGES REQUESTED" : isRejected ? "VERIFICATION REJECTED" : "UNDER CENTRAL ADMIN APPROVAL"}
+                {isNotSubmitted
+                  ? "PROFILE INCOMPLETE — NOT SUBMITTED"
+                  : isChangesReq
+                  ? "CHANGES REQUESTED"
+                  : isRejected
+                  ? "VERIFICATION REJECTED"
+                  : "UNDER CENTRAL ADMIN APPROVAL"}
               </span>
               <span className="text-xs text-muted-foreground">•</span>
               <span className="text-xs font-semibold text-foreground/80">{business?.name || "Business Enterprise"}</span>
             </div>
 
-            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
-              {isChangesReq
+            <h2
+              className={cn(
+                "text-lg sm:text-xl font-bold tracking-tight",
+                isNotSubmitted ? "text-red-950 dark:text-red-100" : "text-foreground"
+              )}
+            >
+              {isNotSubmitted
+                ? "Workspace Access Restricted — Profile Incomplete & Not Submitted"
+                : isChangesReq
                 ? "Action Required: Central Admin Requested Changes"
                 : isRejected
                 ? "Verification Application Rejected"
                 : "Workspace Access Restricted — Under Central Admin Approval"}
             </h2>
 
-            <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              {isChangesReq
+            <p
+              className={cn(
+                "mt-2 text-xs sm:text-sm leading-relaxed",
+                isNotSubmitted
+                  ? "text-red-900/90 dark:text-red-200 font-medium"
+                  : "text-muted-foreground"
+              )}
+            >
+              {isNotSubmitted
+                ? "Your business profile is incomplete and has not been submitted for Central Admin verification. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will remain restricted until your profile details are completed and submitted for review."
+                : isChangesReq
                 ? "The RIFAH Chamber Central Admin has reviewed your business application and requested specific changes or additional paperwork before granting verification approval."
                 : isRejected
                 ? "Your verification application has been rejected by the Central Admin. Please review the feedback reason below and update your documents to re-submit."
                 : "Your business profile is currently in the RIFAH Central Admin Verification queue. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
             </p>
+
+            {isNotSubmitted && missingFields.length > 0 && (
+              <div className="mt-3.5 rounded-2xl bg-white/95 dark:bg-slate-900/90 p-3.5 border border-red-200 dark:border-red-900/60 text-xs shadow-2xs">
+                <span className="block font-bold text-red-700 dark:text-red-400 text-[11px] uppercase tracking-wider mb-1.5">
+                  Missing required profile information:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {missingFields.map((field) => (
+                    <span
+                      key={field}
+                      className="rounded-md bg-red-100 dark:bg-red-950/80 px-2.5 py-0.5 text-[11px] font-semibold text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900"
+                    >
+                      • {field}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {business?.verificationReviewReason && (
               <div className="mt-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 p-4 border border-border/80 text-xs">
@@ -1085,16 +1148,33 @@ function UnderApprovalAccessGate({ business, path }) {
             )}
 
             <div className="mt-4 flex flex-wrap gap-2.5">
-              <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs gap-2">
+              <Button
+                asChild
+                size="sm"
+                className={cn(
+                  "font-semibold shadow-xs gap-2",
+                  isNotSubmitted
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                )}
+              >
+                <Link href="/biz/profile">
+                  <Building2 className="h-4 w-4" />
+                  <span>{isNotSubmitted ? "Complete Business Profile" : "Edit Business Profile"}</span>
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className={cn(
+                  "font-semibold gap-2",
+                  isNotSubmitted && "border-red-300 text-red-900 hover:bg-red-100 dark:border-red-800 dark:text-red-200 dark:hover:bg-red-900/40"
+                )}
+              >
                 <Link href="/biz/verification">
                   <ShieldCheck className="h-4 w-4" />
                   <span>Go to Verification & Documents</span>
-                </Link>
-              </Button>
-              <Button asChild size="sm" variant="outline" className="font-semibold gap-2">
-                <Link href="/biz/profile">
-                  <Building2 className="h-4 w-4" />
-                  <span>Edit Business Profile</span>
                 </Link>
               </Button>
             </div>

@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Bell,
   Sparkles,
+  AlertTriangle,
   ChevronDown,
 } from "lucide-react";
 
@@ -328,27 +329,27 @@ function BusinessHome() {
 
           if (isProfileIncomplete && !hasUploadedDocs && !isVer && !isChanges && !isRej) {
             return (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-sky-300 bg-sky-50/90 dark:border-sky-800 dark:bg-sky-950/40 p-4 text-sky-950 dark:text-sky-200 shadow-2xs animate-in fade-in duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-red-400 bg-red-50/95 dark:border-red-800 dark:bg-red-950/40 p-4 text-red-950 dark:text-red-100 shadow-2xs animate-in fade-in duration-200">
                 <div className="flex items-start gap-3">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400">
-                    <Sparkles className="h-5 w-5" />
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-600 text-white shadow-xs">
+                    <AlertTriangle className="h-5 w-5 text-white" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-sm font-bold text-sky-950 dark:text-white">
-                        Chamber Workspace!
+                      <h4 className="text-sm font-bold text-red-950 dark:text-red-100">
+                        Profile Incomplete — Not Submitted
                       </h4>
-                      <span className="rounded-full bg-sky-200/70 dark:bg-sky-900 px-2 py-0.5 text-[10px] font-bold text-sky-800 dark:text-sky-300 uppercase">
-                        Profile Incomplete ({completeness}%)
+                      <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
+                        Not Submitted ({completeness}%)
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-sky-900/80 dark:text-sky-300/80">
-                      Your business profile has been activated. Please complete your profile details and business branding.
+                    <p className="mt-1 text-xs text-red-900/90 dark:text-red-200 leading-relaxed font-medium">
+                      Your business profile is incomplete and has not been submitted for Central Admin verification. Please complete your profile details and business branding.
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Button asChild size="sm" className="bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs shadow-xs">
+                  <Button asChild size="sm" className="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-xs">
                     <Link href="/biz/profile">
                       <span>Complete Profile</span>
                     </Link>

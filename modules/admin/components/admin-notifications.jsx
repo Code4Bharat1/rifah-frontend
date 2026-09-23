@@ -14,8 +14,14 @@ import { Textarea } from "@shared/components/ui/textarea";
 import { useNotifications, useChapters } from "@shared/hooks/use-rifah-api";
 import { notificationApi } from "@shared/lib/api-services";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@shared/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
-import { MoreHorizontal, Trash2, Undo2, Eye, Trash } from "lucide-react";
+import { MoreHorizontal, Trash2, Undo2, Eye, Trash, Calendar, MapPin, Clock, Building2 } from "lucide-react";
+
+function formatEventDate(val) {
+  if (!val) return "";
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return String(val);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 function AdminNotifications() {
   const [audience, setAudience] = useState("all");
@@ -271,6 +277,28 @@ function AdminNotifications() {
                     </div>
                   </div>
                   <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{n.body || n.message}</p>
+                  {(n.eventDate || n.eventCity || n.metadata?.eventDate || n.metadata?.eventCity) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {(n.eventDate || n.metadata?.eventDate) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 text-[11px] font-medium border border-blue-200/60 dark:border-blue-800/40">
+                          <Calendar className="h-3 w-3 shrink-0 text-blue-600 dark:text-blue-400" />
+                          {formatEventDate(n.eventDate || n.metadata?.eventDate)}
+                        </span>
+                      )}
+                      {(n.eventCity || n.metadata?.eventCity) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 text-[11px] font-medium border border-emerald-200/60 dark:border-emerald-800/40">
+                          <MapPin className="h-3 w-3 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                          {n.eventCity || n.metadata?.eventCity}
+                        </span>
+                      )}
+                      {(n.eventTime || n.metadata?.eventTime) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 text-[11px] font-medium border border-slate-200/60 dark:border-slate-700">
+                          <Clock className="h-3 w-3 shrink-0 text-slate-500" />
+                          {n.eventTime || n.metadata?.eventTime}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <p className="mt-1 text-[11px] text-muted-foreground">{new Date(n.createdAt).toLocaleString()}</p>
                 </li>
               ))}
@@ -288,6 +316,43 @@ function AdminNotifications() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
+             {/* Event Information Block */}
+             {(viewNotif?.eventDate || viewNotif?.eventCity || viewNotif?.metadata?.eventDate || viewNotif?.metadata?.eventCity || viewNotif?.type?.toLowerCase() === "event") && (
+               <div className="rounded-lg border bg-blue-50/40 dark:bg-blue-950/20 p-3.5 space-y-2.5 border-blue-200/60 dark:border-blue-900/40">
+                 <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 uppercase tracking-wider">Event Details</p>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                   {(viewNotif?.eventDate || viewNotif?.metadata?.eventDate) && (
+                     <div className="flex items-center gap-2 text-foreground">
+                       <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                       <span className="font-medium text-muted-foreground">Date:</span>
+                       <span className="font-semibold">{formatEventDate(viewNotif.eventDate || viewNotif.metadata?.eventDate)}</span>
+                     </div>
+                   )}
+                   {(viewNotif?.eventCity || viewNotif?.metadata?.eventCity) && (
+                     <div className="flex items-center gap-2 text-foreground">
+                       <MapPin className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                       <span className="font-medium text-muted-foreground">City:</span>
+                       <span className="font-semibold">{viewNotif.eventCity || viewNotif.metadata?.eventCity}</span>
+                     </div>
+                   )}
+                   {(viewNotif?.eventTime || viewNotif?.metadata?.eventTime) && (
+                     <div className="flex items-center gap-2 text-foreground">
+                       <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                       <span className="font-medium text-muted-foreground">Time:</span>
+                       <span className="font-semibold">{viewNotif.eventTime || viewNotif.metadata?.eventTime}</span>
+                     </div>
+                   )}
+                   {(viewNotif?.eventVenue || viewNotif?.metadata?.eventVenue) && (
+                     <div className="flex items-center gap-2 text-foreground sm:col-span-2">
+                       <Building2 className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                       <span className="font-medium text-muted-foreground">Venue:</span>
+                       <span className="font-semibold truncate">{viewNotif.eventVenue || viewNotif.metadata?.eventVenue}</span>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             )}
+
              <div className="bg-muted/50 p-4 rounded-lg text-sm text-foreground whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
                {viewNotif?.body || viewNotif?.message}
              </div>
