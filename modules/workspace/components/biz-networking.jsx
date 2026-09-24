@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -319,10 +320,17 @@ function BizNetworking() {
       <div className="space-y-3">
         {list.map((n) => {
           const counterpart = n[counterpartKey];
+          const bizId = counterpart?.slug || counterpart?._id || "";
           return (
             <div key={n._id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3.5">
               <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">{counterpart?.name || "RIFAH Member"}</p>
+                {bizId ? (
+                  <Link href={`/business/${bizId}`} className="text-sm font-semibold truncate hover:text-primary hover:underline block">
+                    {counterpart?.name || "RIFAH Member"}
+                  </Link>
+                ) : (
+                  <p className="text-sm font-semibold truncate">{counterpart?.name || "RIFAH Member"}</p>
+                )}
                 {n.note && <p className="text-xs text-muted-foreground truncate">{n.note}</p>}
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {new Date(n.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}

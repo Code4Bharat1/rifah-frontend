@@ -31,7 +31,7 @@ export function BizEvents() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [activeView, setActiveView] = useState("all"); // "all" | "my-passes"
+  const [activeView, setActiveView] = useState("all"); // "all" | "my-passes" | "in-person" | "webinar"
   const [searchQuery, setSearchQuery] = useState("");
   const [sharingEvent, setSharingEvent] = useState(null);
 
@@ -75,6 +75,10 @@ export function BizEvents() {
 
     if (activeView === "my-passes") {
       list = list.filter(isRegistered);
+    } else if (activeView === "in-person") {
+      list = list.filter((e) => (e.mode || "").toLowerCase() === "in-person");
+    } else if (activeView === "webinar") {
+      list = list.filter((e) => ["online", "hybrid"].includes((e.mode || "").toLowerCase()));
     }
 
     if (searchQuery.trim()) {
@@ -153,7 +157,16 @@ export function BizEvents() {
             </span>
           </button>
 
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
+          <button
+            type="button"
+            onClick={() => setActiveView("in-person")}
+            className={cn(
+              "text-left rounded-2xl border bg-card p-4 shadow-xs transition-all hover:border-blue-500/60 cursor-pointer",
+              activeView === "in-person"
+                ? "border-blue-500 bg-blue-50/40 dark:bg-blue-950/20 ring-2 ring-blue-500/30"
+                : "border-border"
+            )}
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 In-Person Meets
@@ -168,9 +181,18 @@ export function BizEvents() {
             <span className="mt-1 block text-xs text-muted-foreground">
               Chapter networking meets
             </span>
-          </div>
+          </button>
 
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
+          <button
+            type="button"
+            onClick={() => setActiveView("webinar")}
+            className={cn(
+              "text-left rounded-2xl border bg-card p-4 shadow-xs transition-all hover:border-purple-500/60 cursor-pointer",
+              activeView === "webinar"
+                ? "border-purple-500 bg-purple-50/40 dark:bg-purple-950/20 ring-2 ring-purple-500/30"
+                : "border-border"
+            )}
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Webinars
@@ -185,7 +207,7 @@ export function BizEvents() {
             <span className="mt-1 block text-xs text-muted-foreground">
               Virtual masterclasses
             </span>
-          </div>
+          </button>
         </div>
 
         {/* Filter Toolbar: Only "All Events", "My Passes" and Search */}

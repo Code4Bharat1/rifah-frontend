@@ -189,6 +189,11 @@ export function RifahCopilotWidget({ role, user }) {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  // Refs (read/written synchronously) instead of `isLoading` state, which is stale in the
+  // render closure when two sends fire back-to-back before a re-render commits — this let a
+  // rapid Enter-press race the "open-rifah-copilot" auto-send and reply to the wrong message.
+  const sendingRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   const effectiveRole =
     role === "central_admin" || user?.role === "central_admin"
@@ -247,7 +252,9 @@ export function RifahCopilotWidget({ role, user }) {
 
   const handleSend = async (textToSend) => {
     const query = (textToSend || input).trim();
-    if (!query || isLoading) return;
+    if (!query || sendingRef.current) return;
+    sendingRef.current = true;
+    const myRequestId = ++requestIdRef.current;
 
     const userMsg = {
       id: Date.now().toString(),
@@ -270,6 +277,7 @@ export function RifahCopilotWidget({ role, user }) {
         }));
 
       const res = await copilotApi.chat(query, history, effectiveRole);
+      if (myRequestId !== requestIdRef.current) return; // a newer send superseded this one
 
       if (res && res.data && res.data.reply) {
         setMessages((prev) => [
@@ -285,6 +293,7 @@ export function RifahCopilotWidget({ role, user }) {
         throw new Error(res?.message || "Could not retrieve answer.");
       }
     } catch (err) {
+      if (myRequestId !== requestIdRef.current) return;
       console.error("[COPILOT WIDGET ERROR]", err);
       setMessages((prev) => [
         ...prev,
@@ -295,7 +304,10 @@ export function RifahCopilotWidget({ role, user }) {
         },
       ]);
     } finally {
-      setIsLoading(false);
+      if (myRequestId === requestIdRef.current) {
+        sendingRef.current = false;
+        setIsLoading(false);
+      }
     }
   };
 

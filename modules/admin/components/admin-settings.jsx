@@ -29,21 +29,56 @@ import { Label } from "@shared/components/ui/label";
 import { Switch } from "@shared/components/ui/switch";
 import { useSettings } from "@shared/hooks/use-rifah-api";
 import { settingsApi, authApi } from "@shared/lib/api-services";
+import { useAuth } from "@shared/providers/auth-provider";
 
-const modules = [
-  { label: "Businesses", to: "/admin/businesses", icon: Building2 },
-  { label: "Users & roles", to: "/admin/users", icon: Users },
-  { label: "Memberships", to: "/admin/memberships", icon: Star },
-  { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
-  { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
-  { label: "States", to: "/admin/states", icon: MapPin },
-  { label: "Units", to: "/admin/units", icon: Users },
-  { label: "Events", to: "/admin/events", icon: CalendarDays },
-  { label: "Payments", to: "/admin/payments", icon: CreditCard },
-  { label: "Announcements", to: "/admin/notifications", icon: Bell },
-  { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
-  { label: "Audit log", to: "/admin/audit", icon: ScrollText },
+// Central-admin-only modules that have no state-admin/chapter-admin equivalent route.
+const CENTRAL_ONLY = new Set(["Memberships", "States"]);
+// Modules that exist for chapter_admin but not state_admin.
+const CHAPTER_ONLY = new Set(["Reviews", "Units", "Payments"]);
+
+const ALL_MODULES = [
+  { label: "Businesses", to: "/businesses", icon: Building2 },
+  { label: "Users & roles", to: "/users", icon: Users },
+  { label: "Memberships", to: "/memberships", icon: Star },
+  { label: "Enquiries", to: "/enquiries", icon: FileStack },
+  { label: "Reviews", to: "/reviews", icon: MessageSquare },
+  { label: "States", to: "/states", icon: MapPin },
+  { label: "Units", to: "/units", icon: Users },
+  { label: "Events", to: "/events", icon: CalendarDays },
+  { label: "Payments", to: "/payments", icon: CreditCard },
+  { label: "Announcements", to: "/notifications", icon: Bell },
+  { label: "Reports", to: "/reports", icon: ChartNoAxesColumn },
+  { label: "Audit log", to: "/audit", icon: ScrollText },
 ];
+
+const ROLE_CONFIG = {
+  state_admin: {
+    basePath: "/state-admin",
+    title: "Settings and modules",
+    subtitle: "Platform configuration for state administration",
+    modules: ALL_MODULES.filter((m) => !CENTRAL_ONLY.has(m.label) && !CHAPTER_ONLY.has(m.label)),
+  },
+  chapter_admin: {
+    basePath: "/chapter-admin",
+    title: "Settings and modules",
+    subtitle: "Platform configuration for chapter administration",
+    modules: ALL_MODULES.filter((m) => !CENTRAL_ONLY.has(m.label)),
+  },
+  admin: {
+    basePath: "/admin",
+    title: "Settings and modules",
+    subtitle: "Platform configuration for central admin",
+    modules: ALL_MODULES,
+  },
+};
+
+function getRoleConfig(role) {
+  const config = ROLE_CONFIG[role] || ROLE_CONFIG.admin;
+  return {
+    ...config,
+    modules: config.modules.map((m) => ({ ...m, to: `${config.basePath}${m.to}` })),
+  };
+}
 
 import {
   Dialog,
@@ -63,8 +98,10 @@ const togglesTemplate = [
 
 export function AdminSettings() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { basePath, title, subtitle, modules } = getRoleConfig(user?.role);
   const { data: globalSettings, refetch, isLoading } = useSettings();
-  
+
   const [chamberDetails, setChamberDetails] = useState({
     organisationName: "RIFAH Chamber of Commerce & Industry",
     secretariatEmail: "secretariat@rifah.org",
@@ -199,7 +236,7 @@ export function AdminSettings() {
   };
 
   return (
-    <AppShell role="admin" title="Settings and modules" subtitle="Platform configuration for central admin">
+    <AppShell role={user?.role || "admin"} title={title} subtitle={subtitle}>
       <div className="space-y-4">
         {isLoading && !globalSettings && (
           <div className="p-4 flex items-center justify-center bg-blue-50/50 rounded-lg text-sm text-blue-600 mb-4">

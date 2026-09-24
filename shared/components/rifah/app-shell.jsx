@@ -2,6 +2,7 @@
 // App Shell Layout & Navigation (Updated)
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { resolveMediaUrl } from "@shared/lib/media";
 import {
@@ -160,8 +161,6 @@ const roleNavs = {
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
-
-      { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
       { label: "Events", to: "/state-admin/events", icon: CalendarDays },
@@ -320,7 +319,14 @@ function SidebarLink({ item, active, badge, isLocked, onSelect }) {
       href={item.to}
       scroll={false}
       data-active={active ? "true" : "false"}
-      onClick={onSelect}
+      onClick={(e) => {
+        if (isLocked) {
+          e.preventDefault();
+          toast.error(`${item.label} is locked. Upgrade your plan to unlock this module.`);
+          return;
+        }
+        onSelect?.(e);
+      }}
       data-sidebar-active={active ? "true" : undefined}
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -756,7 +762,7 @@ export function AppShell({
         <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
           <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 md:h-16 md:px-6">
             {backTo ? (
-              <Button asChild variant="ghost" size="icon" className="shrink-0 lg:hidden">
+              <Button asChild variant="ghost" size="icon" className="shrink-0">
                 <Link href={backTo} aria-label="Go back">
                   <ChevronLeft className="h-5 w-5" />
                 </Link>
@@ -818,20 +824,22 @@ export function AppShell({
                   )}
                 </Link>
               </Button>
-              <Button asChild variant="ghost" size="icon" className="relative">
-                <Link
-                  href={toRoleAwarePath(isBizVerified ? "/biz/messages" : "/biz/verification", role, user)}
-                  aria-label="Messages"
-                >
-                  <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
-                  {unreadMsgs > 0 && (
-                    <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600 border border-white"></span>
-                    </span>
-                  )}
-                </Link>
-              </Button>
+              {role === "business" && (
+                <Button asChild variant="ghost" size="icon" className="relative">
+                  <Link
+                    href={toRoleAwarePath(isBizVerified ? "/biz/messages" : "/biz/verification", role, user)}
+                    aria-label="Messages"
+                  >
+                    <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
+                    {unreadMsgs > 0 && (
+                      <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600 border border-white"></span>
+                      </span>
+                    )}
+                  </Link>
+                </Button>
+              )}
               {actions}
               <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" title="Logout">
                 <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -1153,7 +1161,14 @@ function MobileCategoryGroup({ group, isActive, role, isBizVerified, onSelect })
                 key={`ms-${group.category}-${i.to}-${i.label}-${idx}`}
                 href={i.to}
                 scroll={false}
-                onClick={onSelect}
+                onClick={(e) => {
+                  if (isLocked) {
+                    e.preventDefault();
+                    toast.error(`${i.label} is locked. Upgrade your plan to unlock this module.`);
+                    return;
+                  }
+                  onSelect?.(e);
+                }}
                 className={cn(
                   "flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted transition-colors",
                   isActive(i.to) && "bg-primary/10 text-primary font-bold",
@@ -1221,7 +1236,14 @@ export function MoreSheet({ role, isBizVerified = true }) {
                 <Link
                   href={i.to}
                   scroll={false}
-                  onClick={() => setOpen(false)}
+                  onClick={(e) => {
+                    if (isLocked) {
+                      e.preventDefault();
+                      toast.error(`${i.label} is locked. Upgrade your plan to unlock this module.`);
+                      return;
+                    }
+                    setOpen(false);
+                  }}
                   className={cn(
                     "flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted",
                     isActive(i.to) && "bg-primary/10 text-primary font-bold",
@@ -1268,6 +1290,12 @@ export function BottomNav({ role, isBizVerified = true }) {
               <Link
                 href={item.to}
                 scroll={false}
+                onClick={(e) => {
+                  if (isLocked) {
+                    e.preventDefault();
+                    toast.error(`${item.label} is locked. Upgrade your plan to unlock this module.`);
+                  }
+                }}
                 className={cn(
                   "flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium text-muted-foreground relative",
                   active && "text-primary",

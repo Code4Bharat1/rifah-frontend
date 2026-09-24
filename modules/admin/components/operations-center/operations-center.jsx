@@ -89,6 +89,7 @@ import { DynamicQrCode } from "@shared/components/rifah/dynamic-qr";
 import { cn } from "@shared/lib/utils";
 import { StatCard } from "@shared/components/rifah/ui-bits";
 import { Pill } from "@shared/components/rifah/badges";
+import { isValidName, isValidEmail } from "@shared/lib/validators";
 import { EventGallery } from "@shared/components/rifah/event-gallery";
 import { FinanceTab } from "./finance-tab";
 import { CertificatesTab } from "./certificates-tab";
@@ -835,6 +836,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       toast.error("Please enter a description and amount.");
       return;
     }
+    if (!(Number(financeForm.amount) > 0)) {
+      toast.error("Amount must be greater than 0.");
+      return;
+    }
     try {
       setSubmittingFinance(true);
       const payload = {
@@ -879,12 +884,16 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
   const handleAddSpeaker = async (e) => {
     e?.preventDefault();
-    if (!newSpeaker.name) {
-      toast.error("Please enter the speaker's name.");
+    if (!isValidName(newSpeaker.name)) {
+      toast.error("Enter a valid speaker name (letters only).");
       return;
     }
     if (!newSpeaker.mobile || !newSpeaker.mobile.trim()) {
       toast.error("Please enter the speaker's mobile number.");
+      return;
+    }
+    if (newSpeaker.email && !isValidEmail(newSpeaker.email)) {
+      toast.error("Enter a valid speaker email address.");
       return;
     }
     try {
@@ -1426,7 +1435,8 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         (attendeeFilter === "members" && a.isMember) ||
         (attendeeFilter === "non-members" && !a.isMember) ||
         (attendeeFilter === "checked-in" && a.entryStatus === "Checked In") ||
-        (attendeeFilter === "pending" && a.entryStatus === "Pending");
+        (attendeeFilter === "pending" && a.entryStatus === "Pending") ||
+        (attendeeFilter === "approved" && a.approvalStatus === "Approved");
 
       return matchesSearch && matchesFilter;
     });
@@ -2052,8 +2062,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             hint="Total attendee registrations"
             icon={Ticket}
             tone="primary"
-            active={currentTab === "attendees"}
-            onClick={() => setTab("attendees")}
+            active={currentTab === "attendees" && attendeeFilter === "all"}
+            onClick={() => {
+              setAttendeeFilter("all");
+              setTab("attendees");
+            }}
           />
 
           <StatCard
@@ -2062,8 +2075,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             hint="Confirmed & allowed entry"
             icon={CheckCircle2}
             tone="success"
-            active={currentTab === "attendees"}
-            onClick={() => setTab("attendees")}
+            active={currentTab === "attendees" && attendeeFilter === "approved"}
+            onClick={() => {
+              setAttendeeFilter("approved");
+              setTab("attendees");
+            }}
           />
 
           <StatCard
@@ -2979,13 +2995,17 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     </div>
                     <div>
                       <Label className="text-xs font-semibold">Amount (₹)</Label>
-                      <Input type="number" value={sponsorForm.amount} onChange={e => setSponsorForm(p => ({ ...p, amount: e.target.value }))} placeholder="0" className="mt-1" />
+                      <Input type="number" min="0" value={sponsorForm.amount} onChange={e => setSponsorForm(p => ({ ...p, amount: e.target.value }))} placeholder="0" className="mt-1" />
                     </div>
                   </div>
                   <Button
                     className="w-full rounded-xl"
                     onClick={() => {
                       if (!sponsorForm.name) return;
+                      if (!(Number(sponsorForm.amount) > 0)) {
+                        toast.error("Sponsor amount must be greater than 0.");
+                        return;
+                      }
                       setSponsorsList(prev => [...prev, { id: `sp-${Date.now()}`, ...sponsorForm, amount: Number(sponsorForm.amount) || 0 }]);
                       setSponsorForm({ name: "", category: "Main Sponsor", logo: "", contact: "", amount: "", notes: "" });
                       setAddingSponsor(false);
@@ -3040,6 +3060,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Attendees</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="members">Members Only</SelectItem>
                     <SelectItem value="non-members">Non-Members</SelectItem>
                     <SelectItem value="checked-in">Checked In</SelectItem>

@@ -25,6 +25,7 @@ import { cities, industries } from "@shared/lib/mock-data";
 import { useCategories } from "@shared/hooks/use-rifah-api";
 import { enquiryApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
+import { isValidName } from "@shared/lib/validators";
 
 const steps = ["Requirement", "Details", "Contact", "Review"];
 
@@ -142,6 +143,14 @@ function NewEnquiry() {
               }
               if (step === 2 && (!formData.buyerPhone || !formData.buyerPhone.trim())) {
                 setError("Phone number is mandatory. Please enter your contact number.");
+                return;
+              }
+              if (step === 2 && !isValidName(formData.buyerName)) {
+                setError("Enter a valid full name (letters only).");
+                return;
+              }
+              if (step === 2 && formData.buyerOrg && !isValidName(formData.buyerOrg)) {
+                setError("Enter a valid organisation name (letters only).");
                 return;
               }
               if (step < steps.length - 1) {

@@ -614,11 +614,11 @@ export function AdminReports() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Start Date (Optional)</Label>
-                    <Input type="date" value={revenueDates.start} onChange={e => setRevenueDates({...revenueDates, start: e.target.value})} />
+                    <Input type="date" max="9999-12-31" value={revenueDates.start} onChange={e => setRevenueDates({...revenueDates, start: e.target.value})} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">End Date (Optional)</Label>
-                    <Input type="date" value={revenueDates.end} onChange={e => setRevenueDates({...revenueDates, end: e.target.value})} />
+                    <Input type="date" max="9999-12-31" value={revenueDates.end} onChange={e => setRevenueDates({...revenueDates, end: e.target.value})} />
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -660,11 +660,11 @@ export function AdminReports() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Start Date (Optional)</Label>
-                <Input type="date" value={memberDates.start} onChange={e => setMemberDates({...memberDates, start: e.target.value})} />
+                <Input type="date" max="9999-12-31" value={memberDates.start} onChange={e => setMemberDates({...memberDates, start: e.target.value})} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">End Date (Optional)</Label>
-                <Input type="date" value={memberDates.end} onChange={e => setMemberDates({...memberDates, end: e.target.value})} />
+                <Input type="date" max="9999-12-31" value={memberDates.end} onChange={e => setMemberDates({...memberDates, end: e.target.value})} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -709,11 +709,11 @@ export function AdminReports() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Start Date (Optional)</Label>
-                <Input type="date" value={leadDates.start} onChange={e => setLeadDates({...leadDates, start: e.target.value})} />
+                <Input type="date" max="9999-12-31" value={leadDates.start} onChange={e => setLeadDates({...leadDates, start: e.target.value})} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">End Date (Optional)</Label>
-                <Input type="date" value={leadDates.end} onChange={e => setLeadDates({...leadDates, end: e.target.value})} />
+                <Input type="date" max="9999-12-31" value={leadDates.end} onChange={e => setLeadDates({...leadDates, end: e.target.value})} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -755,11 +755,11 @@ export function AdminReports() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Start Date (Optional)</Label>
-                  <Input type="date" value={businessDates.start} onChange={e => setBusinessDates({...businessDates, start: e.target.value})} />
+                  <Input type="date" max="9999-12-31" value={businessDates.start} onChange={e => setBusinessDates({...businessDates, start: e.target.value})} />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">End Date (Optional)</Label>
-                  <Input type="date" value={businessDates.end} onChange={e => setBusinessDates({...businessDates, end: e.target.value})} />
+                  <Input type="date" max="9999-12-31" value={businessDates.end} onChange={e => setBusinessDates({...businessDates, end: e.target.value})} />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">

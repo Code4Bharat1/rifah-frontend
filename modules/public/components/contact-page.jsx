@@ -18,6 +18,7 @@ import {
 import { Textarea } from "@shared/components/ui/textarea";
 import { useChapters, useSettings } from "@shared/hooks/use-rifah-api";
 import { contactApi } from "@shared/lib/api-services";
+import { isValidName } from "@shared/lib/validators";
 import { toast } from "sonner";
 
 function ContactPage() {
@@ -86,6 +87,18 @@ function ContactPage() {
 
                   if (!payload.chapter) {
                     toast.error("Please select a chapter.");
+                    setIsSubmitting(false);
+                    return;
+                  }
+
+                  if (!isValidName(payload.fullName)) {
+                    toast.error("Enter a valid full name (letters only).");
+                    setIsSubmitting(false);
+                    return;
+                  }
+
+                  if (!isValidName(payload.organization)) {
+                    toast.error("Enter a valid organisation name (letters only).");
                     setIsSubmitting(false);
                     return;
                   }

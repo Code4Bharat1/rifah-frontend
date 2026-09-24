@@ -24,6 +24,7 @@ import {
 import { useChapters, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
+import { isValidName } from "@shared/lib/validators";
 
 function AdminChapters() {
   const { user } = useAuth();
@@ -93,6 +94,10 @@ function AdminChapters() {
   const handleCreateChapter = async (e) => {
     e.preventDefault();
     if (!newChapter.name || !newChapter.city) return;
+    if (!isValidName(newChapter.name)) {
+      toast.error("Enter a valid chapter name (letters only).");
+      return;
+    }
     setLoading(true);
     try {
       await chapterApi.create(newChapter);

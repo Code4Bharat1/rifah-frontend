@@ -22,10 +22,15 @@ export function LanguageSelector() {
       // Set NEXT_LOCALE for any remaining next-intl functionality
       document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
       
-      // Set Google Translate cookie
+      // Set Google Translate cookie. Google's widget sets googtrans with a
+      // leading-dot domain, so clearing it must match that exact domain
+      // attribute (a cookie can only be deleted by a write with the same
+      // domain it was set with) — clear every plausible variant.
       if (newLocale === 'en') {
+        const hostname = window.location.hostname;
         document.cookie = `googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-        document.cookie = `googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+        document.cookie = `googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${hostname};`;
+        document.cookie = `googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${hostname};`;
       } else {
         document.cookie = `googtrans=/en/${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
       }

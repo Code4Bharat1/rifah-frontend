@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import Script from 'next/script';
 import "@/app/globals.css";
+import { withAssetPrefix } from "@shared/lib/asset-prefix";
 
 export const metadata = {
   title: "RIFAH Connect",
@@ -18,10 +19,10 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.png?v=4" },
-      { url: "/favicon.ico?v=4" },
+      { url: withAssetPrefix("/favicon.png?v=4") },
+      { url: withAssetPrefix("/favicon.ico?v=4") },
     ],
-    apple: "/favicon.png?v=4",
+    apple: withAssetPrefix("/favicon.png?v=4"),
   },
 };
 
@@ -32,9 +33,9 @@ export default async function RootLayout({ children }) {
   return (
     <html lang={locale}>
       <head>
-        <link rel="icon" href="/favicon.png?v=4" type="image/png" />
-        <link rel="shortcut icon" href="/favicon.ico?v=4" />
-        <link rel="apple-touch-icon" href="/favicon.png?v=4" />
+        <link rel="icon" href={withAssetPrefix("/favicon.png?v=4")} type="image/png" />
+        <link rel="shortcut icon" href={withAssetPrefix("/favicon.ico?v=4")} />
+        <link rel="apple-touch-icon" href={withAssetPrefix("/favicon.png?v=4")} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

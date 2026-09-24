@@ -42,11 +42,12 @@ import { useStateDetails, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { stateApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { useAuth } from "@shared/providers/auth-provider";
+import { isValidName, isValidEmail } from "@shared/lib/validators";
 
 export default function AdminStateDetails({ stateName }) {
   const router = useRouter();
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
+  const isCentralAdmin = user?.role === "central_admin";
   const currentRole = isCentralAdmin ? "admin" : "state_admin";
   const backHref = "/admin/states";
   
@@ -112,6 +113,16 @@ export default function AdminStateDetails({ stateName }) {
   const handleChangeAdmin = async (e) => {
     e.preventDefault();
 
+    if (!isValidName(newAdmin.name)) {
+      toast.error("Enter a valid name (letters only).");
+      return;
+    }
+
+    if (newAdmin.email && !isValidEmail(newAdmin.email)) {
+      toast.error("Enter a valid email address.");
+      return;
+    }
+
     if (!newAdmin.phone || !newAdmin.phone.trim()) {
       toast.error("Admin phone number is mandatory.");
       return;
@@ -141,6 +152,11 @@ export default function AdminStateDetails({ stateName }) {
 
     if (!profileData.useAdminContact && (!profileData.phone || !profileData.phone.trim())) {
       toast.error("Public phone number is mandatory.");
+      return;
+    }
+
+    if (!profileData.useAdminContact && profileData.email && !isValidEmail(profileData.email)) {
+      toast.error("Enter a valid email address.");
       return;
     }
 

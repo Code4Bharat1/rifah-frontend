@@ -238,7 +238,14 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="pincode">Pincode</Label>
-                <Input id="pincode" name="pincode" value={formData.pincode} onChange={handleChange} />
+                <Input
+                  id="pincode"
+                  name="pincode"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={formData.pincode}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                />
               </div>
             </div>
           </div>

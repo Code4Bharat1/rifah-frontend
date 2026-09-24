@@ -319,6 +319,10 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         toast.error("Cannot schedule in the past. Please select a future time.");
         return;
       }
+      if (formData.date && formData.scheduledDate > formData.date) {
+        toast.error("Scheduled (publication) date cannot be after the event date.");
+        return;
+      }
     }
 
     if (formData.isPaid) {
@@ -445,6 +449,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   id="date"
                   type="date"
                   required
+                  max="9999-12-31"
                   min={!isEditMode ? new Date().toISOString().split("T")[0] : undefined}
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -781,6 +786,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   <Input
                     id="scheduledDate"
                     type="date"
+                    max="9999-12-31"
                     value={formData.scheduledDate}
                     onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
                     className="w-40"

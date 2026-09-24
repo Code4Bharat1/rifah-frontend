@@ -41,6 +41,22 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
     setNationalNumber(nextParsed.nationalNumber || "");
   }, [value, defaultCountry]);
 
+  // Native <form onReset> clears the DOM input but not this component's own
+  // state, so the visible value snaps back on the next render (BUG-010).
+  useEffect(() => {
+    const form = numberInputRef.current?.form;
+    if (!form) return;
+    const handleFormReset = () => {
+      setTimeout(() => {
+        const nextParsed = parsePhoneNumber(value, defaultCountry);
+        setSelectedCountry(nextParsed.country || DEFAULT_COUNTRY);
+        setNationalNumber(nextParsed.nationalNumber || "");
+      }, 0);
+    };
+    form.addEventListener("reset", handleFormReset);
+    return () => form.removeEventListener("reset", handleFormReset);
+  }, [value, defaultCountry]);
+
   // Focus search input when dropdown opens
   useEffect(() => {
     if (isOpen) {
@@ -117,10 +133,14 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
     }, 50);
   };
 
+  const MAX_NATIONAL_DIGITS = 10;
+
   const handleNumberChange = (e) => {
     const inputVal = e.target.value;
     // Allow digits, spaces, hyphens
     const cleaned = inputVal.replace(/[^\d\s\-]/g, "");
+    const digitCount = (cleaned.match(/\d/g) || []).length;
+    if (digitCount > MAX_NATIONAL_DIGITS) return;
     setNationalNumber(cleaned);
     triggerChange(selectedCountry, cleaned);
   };

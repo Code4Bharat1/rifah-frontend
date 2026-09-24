@@ -162,11 +162,13 @@ export function ScriptsTab({ eventId, teamRoles = {} }) {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-9 gap-1.5" disabled>
+              <Button variant="outline" size="sm" className="h-9 gap-1.5" disabled title="Coming soon">
                 <Languages className="h-4 w-4" /> Translate
+                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">Soon</Badge>
               </Button>
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-indigo-600 border-indigo-200 hover:bg-indigo-50" disabled>
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-indigo-600 border-indigo-200 hover:bg-indigo-50" disabled title="Coming soon">
                 <Sparkles className="h-4 w-4" /> AI Polish
+                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">Soon</Badge>
               </Button>
             </div>
           </div>

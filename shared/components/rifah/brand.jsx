@@ -1,8 +1,10 @@
 import Link from "next/link";
 
-const logo = "/rifah-logo.png?v=4";
-const logoDark = "/rifah-logo-dark.png?v=4";
 import { cn } from "@shared/lib/utils";
+import { withAssetPrefix } from "@shared/lib/asset-prefix";
+
+const logo = withAssetPrefix("/rifah-logo.png?v=4");
+const logoDark = withAssetPrefix("/rifah-logo-dark.png?v=4");
 
 export function RifahLogo({
   className,

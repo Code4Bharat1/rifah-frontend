@@ -46,6 +46,7 @@ import { useMyBusiness, useCategories, useBusinessCatalogue, useBusinessReviews 
 import { useAuth } from "@shared/providers/auth-provider";
 import { businessApi, userApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
+import { isValidEmail } from "@shared/lib/validators";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@shared/lib/utils";
 import { BizCatalogueManager } from "./biz-catalogue";
@@ -235,6 +236,10 @@ function BizProfile() {
     }
     if (!formData.whatsapp || !formData.whatsapp.trim()) {
       toast.error("WhatsApp number is mandatory. Please enter a WhatsApp contact number.");
+      return;
+    }
+    if (formData.email && !isValidEmail(formData.email)) {
+      toast.error("Enter a valid business email address.");
       return;
     }
 
@@ -646,6 +651,16 @@ function BizProfile() {
                   </p>
                 )}
               </div>
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label htmlFor="biz-address">Business Address</Label>
+                <Input
+                  id="biz-address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Registered office / unit address"
+                  className="h-11"
+                />
+              </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="biz-city">City</Label>
                 <Input
@@ -766,6 +781,7 @@ function BizProfile() {
                 <Label htmlFor="biz-email">Public Business Email</Label>
                 <Input
                   id="biz-email"
+                  type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="contact@company.com"

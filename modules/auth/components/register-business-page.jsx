@@ -1638,8 +1638,9 @@ function RegisterBusiness({ isAdmin = false }) {
                     <FastInput
                       id="byear"
                       inputMode="numeric"
+                      maxLength={4}
                       value={formData.founded}
-                      onValueChange={(val) => setFormData({ ...formData, founded: val })}
+                      onValueChange={(val) => setFormData({ ...formData, founded: val.replace(/\D/g, "").slice(0, 4) })}
                       placeholder="e.g. 2014"
                     />
                   </div>

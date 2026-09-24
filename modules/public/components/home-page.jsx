@@ -49,6 +49,7 @@ import {
 import { enquiryApi } from "@shared/lib/api-services";
 import { eventImage, resolveMediaUrl } from "@shared/lib/media";
 import { cn } from "@shared/lib/utils";
+import { withAssetPrefix } from "@shared/lib/asset-prefix";
 import { getEventStatus, getEventStatusConfig, formatEventDate } from "@shared/lib/event-utils";
 import {
   useBusinesses,
@@ -290,8 +291,8 @@ function HomePage() {
 
           <div className="hidden lg:block">
             <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900/60 shadow-xl flex items-center justify-center">
-              <video 
-                src="/hero-video.mp4" 
+              <video
+                src={withAssetPrefix("/hero-video.mp4")}
                 autoPlay 
                 loop 
                 muted 
