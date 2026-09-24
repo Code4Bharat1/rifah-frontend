@@ -33,6 +33,7 @@ import {
   powerNetworkingApi,
   postsApi,
 } from "../lib/api-services";
+import { useAuth } from "../providers/auth-provider";
 
 // ==================== BUSINESS HOOKS ====================
 
@@ -496,6 +497,7 @@ export function useAdminReviews(params = {}, options = {}) {
 // ==================== MESSAGING & NOTIFICATIONS ====================
 
 export function useConversations() {
+  const { isAuthenticated } = useAuth();
   return useQuery({
     queryKey: ["conversations"],
     queryFn: async () => {
@@ -507,6 +509,7 @@ export function useConversations() {
         return [];
       }
     },
+    enabled: isAuthenticated,
     refetchInterval: 6000,
     retry: 0,              // already handled inside queryFn — no React Query retries needed
     throwOnError: false,   // never bubble to error boundary for polling failures
@@ -534,6 +537,7 @@ export function useMessages(otherUserId) {
 }
 
 export function useNotifications() {
+  const { isAuthenticated } = useAuth();
   return useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
@@ -552,6 +556,7 @@ export function useNotifications() {
         return { notifications: [], unreadCount: 0 };
       }
     },
+    enabled: isAuthenticated,
     refetchInterval: 8000,
     retry: 1,
   });
