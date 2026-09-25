@@ -87,6 +87,7 @@ const navs = {
     more: [
       { label: "Messages", to: "/biz/messages", icon: MessageSquare },
       { label: "My Profile", to: "/biz/profile", icon: UserRound },
+      { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
       { label: "Membership", to: "/biz/membership", icon: Star },
       { label: "Notifications", to: "/biz/notifications", icon: Bell },
@@ -725,8 +726,8 @@ export function AppShell({
           {user?.previousRole && (
             <button
               onClick={async () => {
-                const switched = await switchRole(user.previousRole);
                 const targetRole = user.previousRole;
+                await switchRole(targetRole);
                 if (targetRole === "central_admin") {
                   router.push("/admin");
                 } else if (targetRole === "state_admin") {
@@ -734,7 +735,6 @@ export function AppShell({
                 } else if (targetRole === "chapter_admin") {
                   router.push("/chapter-admin");
                 } else if (targetRole === "business_owner") {
-                  // Navigate to the admin's own registered business workspace
                   router.push("/biz");
                 } else {
                   router.push("/biz");
@@ -745,13 +745,26 @@ export function AppShell({
               <RotateCcw className="h-[18px] w-[18px] shrink-0" />
               <span>
                 {user.previousRole === "central_admin"
-                  ? "Switch to Admin View"
+                  ? "Switch to Admin Panel"
                   : user.previousRole === "state_admin"
-                    ? "Switch to State Admin"
+                    ? "Switch to State Admin Panel"
                     : user.previousRole === "chapter_admin"
-                      ? "Switch to Chapter Admin"
-                      : "Switch to Business View"}
+                      ? "Switch to Chapter Admin Panel"
+                      : "Switch to Business Panel"}
               </span>
+            </button>
+          )}
+          {/* Show switch-to-business for admins who have a business but haven't switched yet */}
+          {!user?.previousRole && ["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (user?.businessId || user?.businessSlug) && (
+            <button
+              onClick={async () => {
+                await switchRole("business_owner");
+                router.push("/biz");
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-amber-500/10 hover:text-amber-500 mb-1"
+            >
+              <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+              <span>Switch to Business Panel</span>
             </button>
           )}
           <button
@@ -1218,12 +1231,12 @@ export function MoreSheet({ role, isBizVerified = true }) {
   };
   const switchBackLabel =
     user?.previousRole === "central_admin"
-      ? "Switch to Admin View"
+      ? "Switch to Admin Panel"
       : user?.previousRole === "state_admin"
-        ? "Switch to State Admin"
+        ? "Switch to State Admin Panel"
         : user?.previousRole === "chapter_admin"
-          ? "Switch to Chapter Admin"
-          : "Switch to Business View";
+          ? "Switch to Chapter Admin Panel"
+          : "Switch to Business Panel";
 
   const isActive = (to) => {
     if (path === to) return true;
@@ -1297,6 +1310,21 @@ export function MoreSheet({ role, isBizVerified = true }) {
               >
                 <RotateCcw className="h-[18px] w-[18px] shrink-0" />
                 <span>{switchBackLabel}</span>
+              </button>
+            )}
+            {/* Show switch-to-business for admins who have a business but haven't switched yet */}
+            {!user?.previousRole && ["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (user?.businessId || user?.businessSlug) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  await switchRole("business_owner");
+                  setOpen(false);
+                  router.push("/biz");
+                }}
+                className="flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-amber-600 hover:bg-amber-500/10"
+              >
+                <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+                <span>Switch to Business Panel</span>
               </button>
             )}
             <Link href="/" className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted">

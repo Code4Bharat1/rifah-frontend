@@ -673,49 +673,163 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Role Selection Modal */}
-      <Dialog open={showRoleModal} onOpenChange={setShowRoleModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Choose your workspace</DialogTitle>
-            <DialogDescription>
-              Your account has multiple roles. Please select which workspace you'd like to log into.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {availableRoles.map((role) => {
-              const normalizedRole = (role || "").toString().toLowerCase().replace(/ /g, "_");
-              const roleDetails = {
-                central_admin: { label: "Central Admin", desc: "Manage entire platform & central operations", icon: <Shield className="h-5 w-5 text-primary" /> },
-                state_admin: { label: "State Admin", desc: "Manage your state", icon: <ShieldCheck className="h-5 w-5 text-primary" /> },
-                chapter_admin: { label: "Chapter Admin", desc: "Manage your chapter", icon: <ShieldCheck className="h-5 w-5 text-primary" /> },
-                business_owner: { label: "Business Owner", desc: "Manage your business profile", icon: <Building2 className="h-5 w-5 text-primary" /> },
-                customer: { label: "Member", desc: "Browse the chamber directory", icon: <Building2 className="h-5 w-5 text-primary" /> },
-              }[normalizedRole] || { label: role || "Unknown Role", desc: "Manage workspace", icon: <Building2 className="h-5 w-5 text-primary" /> };
+      {/* Workspace / Role Selection Modal — shown at login when user has multiple panel access */}
+      <Dialog open={showRoleModal} onOpenChange={(o) => { if (!roleSwitchLoading) setShowRoleModal(o); }}>
+        <DialogContent className="w-[94vw] max-w-[500px] rounded-[28px] border-0 bg-white shadow-2xl p-0 overflow-hidden">
+          {/* Top gradient banner */}
+          <div className="h-1.5 w-full bg-gradient-to-r from-[#0060df] via-[#0077e6] via-60% to-[#dc2626]" />
+          <div className="p-6 sm:p-8">
+            {/* Header */}
+            <div className="flex items-start gap-4 mb-6">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#f0f7ff] border border-[#d9ebfb]">
+                <svg className="h-6 w-6 text-[#0060df]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold text-slate-900 leading-tight">
+                  Select Your <span className="text-[#0060df]">Panel</span>
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-sm text-slate-500 leading-snug">
+                  Welcome back! Your account has access to multiple panels. Choose where you&apos;d like to log in.
+                </DialogDescription>
+              </div>
+            </div>
 
-              return (
-              <Button
-                key={role}
-                variant="outline"
-                className="justify-start h-14 text-left px-4 hover:border-primary hover:bg-primary/5"
-                disabled={roleSwitchLoading}
-                onClick={() => handleRoleSelect(role)}
-              >
-                <div className="flex items-center gap-3 w-full">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    {roleDetails.icon}
-                  </div>
-                  <div>
-                    <div className="font-semibold">{roleDetails.label}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {roleDetails.desc}
+            {/* Role cards */}
+            <div className="space-y-3">
+              {availableRoles.map((role) => {
+                const normalizedRole = (role || "").toString().toLowerCase().replace(/ /g, "_");
+                const isLoading = roleSwitchLoading;
+
+                const ROLE_META = {
+                  central_admin: {
+                    label: "Central Admin Panel",
+                    badge: "FULL ACCESS",
+                    desc: "Manage entire RIFAH platform — businesses, chapters, states, members & all operations",
+                    gradient: "from-blue-600 to-indigo-700",
+                    bg: "bg-blue-50 hover:bg-blue-100/70 border-blue-200 hover:border-blue-400",
+                    badgeBg: "bg-blue-600 text-white",
+                    iconBg: "bg-blue-100 text-blue-700",
+                    icon: (
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      </svg>
+                    ),
+                  },
+                  state_admin: {
+                    label: "State Admin Panel",
+                    badge: "STATE LEVEL",
+                    desc: "Oversee all chapters, members and businesses within your state jurisdiction",
+                    gradient: "from-emerald-600 to-teal-700",
+                    bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
+                    badgeBg: "bg-emerald-600 text-white",
+                    iconBg: "bg-emerald-100 text-emerald-700",
+                    icon: (
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                      </svg>
+                    ),
+                  },
+                  chapter_admin: {
+                    label: "Chapter Admin Panel",
+                    badge: "CHAPTER",
+                    desc: "Manage your chapter members, events, verifications and chapter-level operations",
+                    gradient: "from-cyan-600 to-sky-700",
+                    bg: "bg-cyan-50 hover:bg-cyan-100/70 border-cyan-200 hover:border-cyan-400",
+                    badgeBg: "bg-cyan-600 text-white",
+                    iconBg: "bg-cyan-100 text-cyan-700",
+                    icon: (
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                      </svg>
+                    ),
+                  },
+                  business_owner: {
+                    label: "Business Owner Panel",
+                    badge: "BUSINESS",
+                    desc: "Manage your business profile, enquiries, catalogue, analytics and B2B networking",
+                    gradient: "from-orange-500 to-amber-600",
+                    bg: "bg-amber-50 hover:bg-amber-100/70 border-amber-200 hover:border-amber-400",
+                    badgeBg: "bg-amber-500 text-white",
+                    iconBg: "bg-amber-100 text-amber-700",
+                    icon: (
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                      </svg>
+                    ),
+                  },
+                  customer: {
+                    label: "Member Panel",
+                    badge: "MEMBER",
+                    desc: "Browse the chamber directory, network with members and post sourcing requirements",
+                    gradient: "from-violet-600 to-purple-700",
+                    bg: "bg-violet-50 hover:bg-violet-100/70 border-violet-200 hover:border-violet-400",
+                    badgeBg: "bg-violet-600 text-white",
+                    iconBg: "bg-violet-100 text-violet-700",
+                    icon: (
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                      </svg>
+                    ),
+                  },
+                };
+
+                const meta = ROLE_META[normalizedRole] || {
+                  label: role || "Workspace",
+                  badge: "ACCESS",
+                  desc: "Access your workspace",
+                  bg: "bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-400",
+                  badgeBg: "bg-slate-600 text-white",
+                  iconBg: "bg-slate-100 text-slate-700",
+                  icon: (
+                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/>
+                    </svg>
+                  ),
+                };
+
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => handleRoleSelect(role)}
+                    className={`group w-full rounded-2xl border-2 p-4 text-left transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99] ${meta.bg}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${meta.iconBg} transition-colors`}>
+                        {isLoading ? (
+                          <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                          </svg>
+                        ) : meta.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-slate-900">{meta.label}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-black tracking-widest uppercase ${meta.badgeBg}`}>
+                            {meta.badge}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-slate-500 leading-snug line-clamp-2">{meta.desc}</p>
+                      </div>
+                      <div className="shrink-0 text-slate-400 group-hover:text-slate-700 transition-colors">
+                        <svg className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 18l6-6-6-6"/>
+                        </svg>
+                      </div>
                     </div>
-                  </div>
-                  {roleSwitchLoading && pendingUser?.role === role && <Loader2 className="h-4 w-4 animate-spin ml-auto" />}
-                </div>
-              </Button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer note */}
+            <p className="mt-5 text-center text-[11px] text-slate-400 leading-relaxed">
+              You can switch between panels anytime from the sidebar after logging in.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
