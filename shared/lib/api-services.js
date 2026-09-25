@@ -83,7 +83,8 @@ export const businessApi = {
 };
 
 export const categoryApi = {
-  list: () => apiClient("/categories"),
+  list: (params = {}) => apiClient(`/categories${toQueryString(params)}`),
+  getAll: (params = {}) => apiClient(`/categories${toQueryString(params)}`),
   create: (data) => apiClient("/categories", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/categories/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/categories/${id}`, { method: "DELETE" }),

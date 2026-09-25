@@ -85,6 +85,7 @@ const navs = {
       { label: "More", to: "/biz/profile", icon: LayoutGrid },
     ],
     more: [
+      { label: "Power Networking", to: "/biz/power-networking", icon: Zap },
       { label: "Messages", to: "/biz/messages", icon: MessageSquare },
       { label: "My Profile", to: "/biz/profile", icon: UserRound },
       { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },

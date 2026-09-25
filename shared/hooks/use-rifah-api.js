@@ -107,7 +107,7 @@ export function useCategories() {
     queryKey: ["categories"],
     queryFn: async () => {
       const res = await categoryApi.list();
-      return res?.data || res;
+      return res?.data?.categories || res?.data || res;
     },
   });
 }
@@ -133,8 +133,6 @@ export function useChapterDetails(id) {
     enabled: Boolean(id),
   });
 }
-
-
 
 // ----------------------------------------------------------------------
 // LMS

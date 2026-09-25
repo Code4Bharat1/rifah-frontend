@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Search,
   X,
+  Zap,
 } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -364,12 +365,39 @@ function BizNetworking() {
       title="Networking"
       subtitle="Log 1-2-1 meetings with fellow members and track the business you've generated for each other"
       actions={
-        <Button variant="outline" onClick={() => setIsThankYouDialogOpen(true)}>
-          <Handshake className="mr-2 h-4 w-4" /> Give Thank You Note
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/biz/power-networking">
+            <Button
+              variant="outline"
+              className="border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-semibold shadow-xs"
+            >
+              <Zap className="mr-1.5 h-4 w-4 fill-primary text-primary" /> Power Networking
+            </Button>
+          </Link>
+          <Button variant="outline" onClick={() => setIsThankYouDialogOpen(true)}>
+            <Handshake className="mr-2 h-4 w-4" /> Give Thank You Note
+          </Button>
+        </div>
       }
     >
       <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/20 text-primary">
+              <Zap className="h-5 w-5 fill-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">B2B Power Networking Engine</h3>
+              <p className="text-xs text-muted-foreground">Discover verified suppliers, post business requirements & create permanent collaboration circles.</p>
+            </div>
+          </div>
+          <Link href="/biz/power-networking">
+            <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
+              Open Power Network <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
+
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <StatCard label="One to One meetings" value={String(meetings.length)} icon={Users2} tone="primary" />
           <StatCard
