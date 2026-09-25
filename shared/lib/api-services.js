@@ -303,9 +303,17 @@ export const eventApi = {
     }),
 
   // ─── Certificate Generation ────────────────────────────────────────────────
+  // BUG-041: this URL is used directly (as an <img>/<a> src or window.open target,
+  // not via apiClient), so it never carried an Authorization header. The route
+  // requires authMiddleware, which also accepts the token as a ?token= query
+  // param specifically for this kind of direct-link use — without it, every
+  // certificate view/download 401'd and nothing rendered for the viewer.
   getCertificateUrl: (id, attendeeId, style, accentColor) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") || "http://localhost:5000";
-    return `${baseUrl}/api/v1/events/${id}/certificates/${attendeeId}?style=${style}&accentColor=${encodeURIComponent(accentColor)}`;
+    const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
+    const params = new URLSearchParams({ style: style || "", accentColor: accentColor || "" });
+    if (token) params.set("token", token);
+    return `${baseUrl}/api/v1/events/${id}/certificates/${attendeeId}?${params.toString()}`;
   },
 
   // ─── Event Scripts ─────────────────────────────────────────────────────────

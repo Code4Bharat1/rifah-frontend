@@ -30,6 +30,7 @@ import { Switch } from "@shared/components/ui/switch";
 import { useSettings } from "@shared/hooks/use-rifah-api";
 import { settingsApi, authApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
+import { isValidPhone } from "@shared/lib/validators";
 
 // Central-admin-only modules that have no state-admin/chapter-admin equivalent route.
 const CENTRAL_ONLY = new Set(["Memberships", "States"]);
@@ -100,6 +101,10 @@ export function AdminSettings() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { basePath, title, subtitle, modules } = getRoleConfig(user?.role);
+  // BUG-017: Chamber details, moderation rules, fees and system limits are
+  // organisation-wide settings owned by Central Admin. State/chapter admins
+  // should only see the module shortcuts and their own account security.
+  const isCentralAdmin = (user?.role || "admin") === "admin";
   const { data: globalSettings, refetch, isLoading } = useSettings();
 
   const [chamberDetails, setChamberDetails] = useState({
@@ -198,8 +203,8 @@ export function AdminSettings() {
   };
 
   const handleSaveChamberDetails = async () => {
-    if (!chamberDetails.supportPhone || !chamberDetails.supportPhone.trim()) {
-      toast.error("Support phone number is mandatory.");
+    if (!isValidPhone(chamberDetails.supportPhone)) {
+      toast.error("Enter a valid support phone number.");
       return;
     }
     setSavingChamber(true);
@@ -257,6 +262,7 @@ export function AdminSettings() {
           </div>
         </Panel>
 
+        {isCentralAdmin && (
         <Panel title="Moderation rules">
           <ul className="divide-y divide-border">
             {togglesTemplate.map(({ key, title, desc, defaultOn }) => {
@@ -267,16 +273,18 @@ export function AdminSettings() {
                     <p className="text-sm font-medium">{title}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
                   </div>
-                  <Switch 
-                    checked={isOn} 
-                    onCheckedChange={(checked) => handleToggleClick(key, checked, title)} 
+                  <Switch
+                    checked={isOn}
+                    onCheckedChange={(checked) => handleToggleClick(key, checked, title)}
                   />
                 </li>
               );
             })}
           </ul>
         </Panel>
+        )}
 
+        {isCentralAdmin && (
         <Panel title="Chamber details">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -341,7 +349,9 @@ export function AdminSettings() {
             </div>
           </div>
         </Panel>
+        )}
 
+        {isCentralAdmin && (
         <Panel title="Fees configuration">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -367,7 +377,9 @@ export function AdminSettings() {
             </div>
           </div>
         </Panel>
+        )}
 
+        {isCentralAdmin && (
         <Panel title="System limits">
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
@@ -405,6 +417,7 @@ export function AdminSettings() {
             </div>
           </div>
         </Panel>
+        )}
 
         <Panel title="Security & Authentication">
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 max-w-3xl">

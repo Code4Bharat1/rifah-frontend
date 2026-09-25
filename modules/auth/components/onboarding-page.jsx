@@ -435,8 +435,9 @@ export function OnboardingPage() {
                           <Input
                             id="b-founded"
                             placeholder="e.g. 2016"
+                            inputMode="numeric"
                             value={bizData.founded}
-                            onChange={(e) => setBizData({ ...bizData, founded: e.target.value })}
+                            onChange={(e) => setBizData({ ...bizData, founded: e.target.value.replace(/\D/g, "").slice(0, 4) })}
                           />
                         </div>
 

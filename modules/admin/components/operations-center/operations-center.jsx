@@ -2519,30 +2519,40 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             </div>
             <div className="px-5 py-5 space-y-5">
 
-              {/* Event Name */}
+              {/* Event Name — BUG-045: this used to be a preset Select AND a free-text
+                  Input that both wrote to the same `title`, so the page showed two
+                  "Event Name" fields for one value. Consolidated to a single text
+                  field with quick-fill suggestion chips instead of a second control. */}
               <div>
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Event Name</Label>
-                <Select
-                  value={eventSetupForm.nameTemplate}
-                  onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, nameTemplate: val, title: val !== "custom" ? val : prev.title }))}
-                >
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="— choose a name, or type your own below —" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="RIFAH Business Networking Meet">RIFAH Business Networking Meet</SelectItem>
-                    <SelectItem value="RIFAH Chapter Monthly Meet">RIFAH Chapter Monthly Meet</SelectItem>
-                    <SelectItem value="RIFAH Grand Business Summit">RIFAH Grand Business Summit</SelectItem>
-                    <SelectItem value="RIFAH Quarterly Business Forum">RIFAH Quarterly Business Forum</SelectItem>
-                    <SelectItem value="custom">— type your own below —</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Input
                   value={eventSetupForm.title}
                   onChange={(e) => setEventSetupForm(prev => ({ ...prev, title: e.target.value, nameTemplate: "custom" }))}
                   placeholder="e.g. RIFAH Business Networking Meet"
                   className="mt-2"
                 />
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[
+                    "RIFAH Business Networking Meet",
+                    "RIFAH Chapter Monthly Meet",
+                    "RIFAH Grand Business Summit",
+                    "RIFAH Quarterly Business Forum",
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setEventSetupForm(prev => ({ ...prev, title: preset, nameTemplate: preset }))}
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                        eventSetupForm.title === preset
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
+                      )}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Date & Chapter */}

@@ -42,7 +42,7 @@ import { useStateDetails, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { stateApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { useAuth } from "@shared/providers/auth-provider";
-import { isValidName, isValidEmail } from "@shared/lib/validators";
+import { isValidName, isValidEmail, isValidPhone } from "@shared/lib/validators";
 
 export default function AdminStateDetails({ stateName }) {
   const router = useRouter();
@@ -123,8 +123,8 @@ export default function AdminStateDetails({ stateName }) {
       return;
     }
 
-    if (!newAdmin.phone || !newAdmin.phone.trim()) {
-      toast.error("Admin phone number is mandatory.");
+    if (!isValidPhone(newAdmin.phone)) {
+      toast.error("Enter a valid 10-digit admin phone number.");
       return;
     }
 
@@ -150,8 +150,8 @@ export default function AdminStateDetails({ stateName }) {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
 
-    if (!profileData.useAdminContact && (!profileData.phone || !profileData.phone.trim())) {
-      toast.error("Public phone number is mandatory.");
+    if (!profileData.useAdminContact && !isValidPhone(profileData.phone)) {
+      toast.error("Enter a valid 10-digit public phone number.");
       return;
     }
 

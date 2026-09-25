@@ -363,7 +363,8 @@ function EventAnalyticsTab() {
               variant="outline"
               size="sm"
               onClick={handleDownloadAnalyticsPdf}
-              disabled={downloadingAnalytics}
+              disabled={downloadingAnalytics || events.length === 0}
+              title={events.length === 0 ? "No events to export yet" : undefined}
             >
               <FileDown className="mr-2 h-4 w-4" /> Download PDF
             </Button>

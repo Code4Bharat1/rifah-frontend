@@ -52,7 +52,9 @@ export function AdminAudit() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchLogs(searchTerm);
+    // BUG-011: a leading/trailing space in the query made the backend search
+    // (an exact-ish match on actor/action) return nothing, so trim before sending.
+    fetchLogs(searchTerm.trim());
   };
 
   const getActionColor = (action) => {

@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authApi, userApi } from "../lib/api-services";
 
@@ -10,26 +10,44 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
 
+  // BUG-013: the mount-time session check (fetchCurrentUser, below) and an
+  // explicit login() both call setUser asynchronously. If a user logs in
+  // (e.g. picks "State Admin") before the background session check has
+  // resolved, whichever call *resolves last* used to win, silently
+  // overwriting the freshly logged-in user/role and sending the post-login
+  // redirect down the wrong (stale/default) branch on the very first load
+  // of the tab. A second login worked because by then the background check
+  // had already settled. requestIdRef makes only the most recently
+  // *started* write authoritative, so a slow, stale fetchCurrentUser can
+  // never clobber a newer login/switchRole result.
+  const requestIdRef = useRef(0);
+
   const fetchCurrentUser = async () => {
+    const requestId = ++requestIdRef.current;
     const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
     if (!token) {
-      setUser(null);
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setUser(null);
+        setLoading(false);
+      }
       return;
     }
     try {
       const res = await authApi.getMe();
       const userData = res?.data || res;
+      if (requestId !== requestIdRef.current) return;
       setUser(userData);
       localStorage.setItem("rifah_user", JSON.stringify(userData));
     } catch (err) {
       console.warn("Session expired or invalid token:", err.message);
-      setUser(null);
-      localStorage.removeItem("rifah_access_token");
-      localStorage.removeItem("rifah_refresh_token");
-      localStorage.removeItem("rifah_user");
+      if (requestId === requestIdRef.current) {
+        setUser(null);
+        localStorage.removeItem("rifah_access_token");
+        localStorage.removeItem("rifah_refresh_token");
+        localStorage.removeItem("rifah_user");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   };
 
@@ -52,6 +70,7 @@ export function AuthProvider({ children }) {
     if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
     if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
     if (loggedInUser) {
+      requestIdRef.current++; // invalidate any in-flight fetchCurrentUser (BUG-013)
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
     }
@@ -76,6 +95,7 @@ export function AuthProvider({ children }) {
     if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
     if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
     if (registeredUser) {
+      requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(registeredUser));
       setUser(registeredUser);
     }
@@ -91,6 +111,7 @@ export function AuthProvider({ children }) {
     if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
     if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
     if (registeredUser) {
+      requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(registeredUser));
       setUser(registeredUser);
     }
@@ -106,6 +127,7 @@ export function AuthProvider({ children }) {
     if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
     if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
     if (loggedInUser) {
+      requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
     }
@@ -121,6 +143,7 @@ export function AuthProvider({ children }) {
     if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
     if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
     if (loggedInUser) {
+      requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
     }
@@ -136,6 +159,7 @@ export function AuthProvider({ children }) {
     if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
     if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
     if (updatedUser) {
+      requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(updatedUser));
       setUser(updatedUser);
     }
@@ -143,6 +167,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    requestIdRef.current++;
     localStorage.removeItem("rifah_access_token");
     localStorage.removeItem("rifah_refresh_token");
     localStorage.removeItem("rifah_user");
@@ -189,6 +214,7 @@ export function AuthProvider({ children }) {
           if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
           if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
           if (loggedInUser) {
+            requestIdRef.current++;
             localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
             setUser(loggedInUser);
           }

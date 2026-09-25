@@ -18,7 +18,7 @@ import {
 import { Textarea } from "@shared/components/ui/textarea";
 import { useChapters, useSettings } from "@shared/hooks/use-rifah-api";
 import { contactApi } from "@shared/lib/api-services";
-import { isValidName } from "@shared/lib/validators";
+import { isValidName, isValidPhone } from "@shared/lib/validators";
 import { toast } from "sonner";
 
 function ContactPage() {
@@ -99,6 +99,12 @@ function ContactPage() {
 
                   if (!isValidName(payload.organization)) {
                     toast.error("Enter a valid organisation name (letters only).");
+                    setIsSubmitting(false);
+                    return;
+                  }
+
+                  if (!isValidPhone(payload.phone)) {
+                    toast.error("Enter a valid 10-digit phone number.");
                     setIsSubmitting(false);
                     return;
                   }

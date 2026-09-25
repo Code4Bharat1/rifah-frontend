@@ -184,6 +184,10 @@ function renderInline(text, onLinkClick) {
 
 export function RifahCopilotWidget({ role, user }) {
   const [isOpen, setIsOpen] = useState(false);
+  // BUG-036: the widget only ever rendered as a small fixed-size floating
+  // panel — Maximize2/Minimize2 were already imported but never wired up to
+  // anything. This adds an actual full-screen toggle.
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -342,7 +346,12 @@ export function RifahCopilotWidget({ role, user }) {
       {/* Floating Copilot Modal Window */}
       {isOpen && (
         <div
-          className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-50 w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-7rem)] flex flex-col rounded-2xl bg-card border border-border/80 shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-200"
+          className={cn(
+            "fixed z-50 flex flex-col bg-card border border-border/80 shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-200",
+            isFullscreen
+              ? "inset-2 sm:inset-6 rounded-2xl"
+              : "bottom-20 lg:bottom-6 right-4 sm:right-6 w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-7rem)] rounded-2xl"
+          )}
           role="dialog"
           aria-label="RIFAH AI Copilot Assistant"
         >
@@ -371,6 +380,16 @@ export function RifahCopilotWidget({ role, user }) {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
+                onClick={() => setIsFullscreen((v) => !v)}
+                aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
+                title={isFullscreen ? "Exit full screen" : "Full screen"}
+              >
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"

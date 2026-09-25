@@ -304,6 +304,15 @@ function useCurrentPath() {
   return usePathname();
 }
 
+// BUG-021: nav links here used to pass `scroll={false}` to Next's <Link>,
+// which stops it resetting the window scroll on navigation. That was meant to
+// preserve the *sidebar's own* scroll position, but the sidebar already
+// restores its scroll independently via sessionStorage (see setNavRef /
+// globalSidebarScrollTop below), so `scroll={false}` only had the side effect
+// of leaving the *page* wherever it was scrolled on the previous route —
+// e.g. landing on Verification already scrolled past its own heading after a
+// redirect from a page the user had scrolled down on. Links below rely on
+// the default scroll-to-top behavior now.
 function SidebarLink({ item, active, badge, isLocked, onSelect }) {
   const linkRef = useRef(null);
 
@@ -317,7 +326,6 @@ function SidebarLink({ item, active, badge, isLocked, onSelect }) {
     <Link
       ref={linkRef}
       href={item.to}
-      scroll={false}
       data-active={active ? "true" : "false"}
       onClick={(e) => {
         if (isLocked) {
@@ -617,7 +625,7 @@ export function AppShell({
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-sidebar lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-          <Link href="/" scroll={false} className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-lg bg-surface">
               <LogoMark className="h-5" />
             </span>
@@ -663,7 +671,6 @@ export function AppShell({
                       ? "/chapter-admin/settings"
                       : "/admin/settings"
               }
-              scroll={false}
               onClick={recordScroll}
               className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50 transition-colors cursor-pointer group"
               title="View profile"
@@ -1160,7 +1167,6 @@ function MobileCategoryGroup({ group, isActive, role, isBizVerified, onSelect })
               <Link
                 key={`ms-${group.category}-${i.to}-${i.label}-${idx}`}
                 href={i.to}
-                scroll={false}
                 onClick={(e) => {
                   if (isLocked) {
                     e.preventDefault();
@@ -1192,8 +1198,32 @@ function MobileCategoryGroup({ group, isActive, role, isBizVerified, onSelect })
 export function MoreSheet({ role, isBizVerified = true }) {
   const [open, setOpen] = useState(false);
   const path = useCurrentPath();
+  const router = useRouter();
+  const { user, switchRole } = useAuth();
   const nav = useResolvedNav(role);
   const items = role === "chapter_admin" ? [...(nav?.primary || []), ...(nav?.more || [])] : (nav?.more || []);
+
+  // BUG-014: mobile "More" sheet had no way back to the admin workspace
+  // after switching into the Business view; mirror the desktop sidebar's
+  // switch-back control here using user.previousRole from the session.
+  const handleSwitchBack = async () => {
+    const targetRole = user?.previousRole;
+    if (!targetRole) return;
+    await switchRole(targetRole);
+    setOpen(false);
+    if (targetRole === "central_admin") router.push("/admin");
+    else if (targetRole === "state_admin") router.push("/state-admin");
+    else if (targetRole === "chapter_admin") router.push("/chapter-admin");
+    else router.push("/biz");
+  };
+  const switchBackLabel =
+    user?.previousRole === "central_admin"
+      ? "Switch to Admin View"
+      : user?.previousRole === "state_admin"
+        ? "Switch to State Admin"
+        : user?.previousRole === "chapter_admin"
+          ? "Switch to Chapter Admin"
+          : "Switch to Business View";
 
   const isActive = (to) => {
     if (path === to) return true;
@@ -1235,7 +1265,6 @@ export function MoreSheet({ role, isBizVerified = true }) {
               <div key={`ms-item-${i.to}-${i.label}-${idx}`} className="py-1">
                 <Link
                   href={i.to}
-                  scroll={false}
                   onClick={(e) => {
                     if (isLocked) {
                       e.preventDefault();
@@ -1260,7 +1289,17 @@ export function MoreSheet({ role, isBizVerified = true }) {
             );
           })}
           <div className="mt-4 border-t border-border pt-3">
-            <Link href="/" scroll={false} className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted">
+            {user?.previousRole && (
+              <button
+                type="button"
+                onClick={handleSwitchBack}
+                className="flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-primary hover:bg-primary/10"
+              >
+                <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+                <span>{switchBackLabel}</span>
+              </button>
+            )}
+            <Link href="/" className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted">
               Public website
             </Link>
             <MobileLogoutButton />
@@ -1289,7 +1328,6 @@ export function BottomNav({ role, isBizVerified = true }) {
             <li key={item.label}>
               <Link
                 href={item.to}
-                scroll={false}
                 onClick={(e) => {
                   if (isLocked) {
                     e.preventDefault();

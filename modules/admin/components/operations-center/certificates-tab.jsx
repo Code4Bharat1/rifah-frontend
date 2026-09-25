@@ -6,14 +6,12 @@ import { Button } from "@shared/components/ui/button";
 import { Badge } from "@shared/components/ui/badge";
 import { toast } from "sonner";
 import { eventApi } from "@shared/lib/api-services";
-import { useAuth } from "@shared/providers/auth-provider";
 
 export function CertificatesTab({ eventId }) {
   const [attendees, setAttendees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStyle, setSelectedStyle] = useState("classic");
   const [accentColor, setAccentColor] = useState("#06b6d4");
-  const { token } = useAuth();
 
   useEffect(() => {
     if (eventId) {
@@ -41,7 +39,9 @@ export function CertificatesTab({ eventId }) {
   };
 
   const getCertificateDownloadUrl = (attendeeId) => {
-    return `${eventApi.getCertificateUrl(eventId, attendeeId, selectedStyle, accentColor)}&token=${token}`;
+    // eventApi.getCertificateUrl already appends the current access token as
+    // a ?token= param (BUG-041), so this no longer needs to add its own.
+    return eventApi.getCertificateUrl(eventId, attendeeId, selectedStyle, accentColor);
   };
 
   const downloadAll = () => {

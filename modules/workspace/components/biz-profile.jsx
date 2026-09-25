@@ -41,6 +41,7 @@ import {
   SelectLabel
 } from "@shared/components/ui/select";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
+import { CityCombobox } from "@shared/components/rifah/city-combobox";
 import { getMainCategories, getSubCategoriesFor } from "@shared/lib/categories-data";
 import { useMyBusiness, useCategories, useBusinessCatalogue, useBusinessReviews } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -663,12 +664,11 @@ function BizProfile() {
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="biz-city">City</Label>
-                <Input
+                <CityCombobox
                   id="biz-city"
                   value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="e.g. Ahmedabad, Delhi, Bangalore"
-                  className="h-11"
+                  onValueChange={(v) => setFormData({ ...formData, city: v })}
+                  placeholder="e.g. Ahmedabad, Delhi, Bengaluru"
                 />
               </div>
               <div className="grid gap-1.5">

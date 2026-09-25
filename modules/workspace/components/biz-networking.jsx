@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -88,6 +88,20 @@ function BizNetworking() {
 
   const { data: referralsData, isLoading: referralsLoading } = useMyReferrals();
   const referrals = Array.isArray(referralsData) ? referralsData : [];
+
+  // BUG-022: "Business given"/"Business received" stat cards were purely
+  // decorative. Clicking them now switches to the relevant tab of the
+  // "Business Generated" panel below and scrolls it into view.
+  const [outerTab, setOuterTab] = useState("one-to-one");
+  const [thankYouTab, setThankYouTab] = useState("given");
+  const businessGeneratedRef = useRef(null);
+  const goToBusinessGenerated = (tab) => {
+    setOuterTab("one-to-one");
+    setThankYouTab(tab);
+    requestAnimationFrame(() => {
+      businessGeneratedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
@@ -364,6 +378,7 @@ function BizNetworking() {
             icon={ArrowUpRight}
             tone="success"
             hint="Business you generated for others"
+            onClick={() => goToBusinessGenerated("given")}
           />
           <StatCard
             label="Business received"
@@ -371,10 +386,11 @@ function BizNetworking() {
             icon={ArrowDownLeft}
             tone="brand"
             hint="Business others generated for you"
+            onClick={() => goToBusinessGenerated("received")}
           />
         </div>
 
-        <Tabs defaultValue="one-to-one">
+        <Tabs value={outerTab} onValueChange={setOuterTab}>
           <TabsList>
             <TabsTrigger value="one-to-one">One to One</TabsTrigger>
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
@@ -478,32 +494,34 @@ function BizNetworking() {
               )}
             </Panel>
 
-            <Panel
-              title="Business Generated"
-              description="Thank you notes exchanged with fellow members for business given and received"
-              action={
-                <Button size="sm" variant="outline" onClick={() => setIsThankYouDialogOpen(true)}>
-                  <Handshake className="mr-1.5 h-4 w-4" /> Give Thank You Note
-                </Button>
-              }
-            >
-              <Tabs defaultValue="given">
-                <TabsList>
-                  <TabsTrigger value="given">
-                    <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" /> Business Given
-                  </TabsTrigger>
-                  <TabsTrigger value="received">
-                    <ArrowDownLeft className="mr-1.5 h-3.5 w-3.5" /> Business Received
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="given">
-                  {renderNotesList(givenNotes, "receiverBusiness", "You haven't given business to any member yet.")}
-                </TabsContent>
-                <TabsContent value="received">
-                  {renderNotesList(receivedNotes, "giverBusiness", "You haven't received business from any member yet.")}
-                </TabsContent>
-              </Tabs>
-            </Panel>
+            <div ref={businessGeneratedRef}>
+              <Panel
+                title="Business Generated"
+                description="Thank you notes exchanged with fellow members for business given and received"
+                action={
+                  <Button size="sm" variant="outline" onClick={() => setIsThankYouDialogOpen(true)}>
+                    <Handshake className="mr-1.5 h-4 w-4" /> Give Thank You Note
+                  </Button>
+                }
+              >
+                <Tabs value={thankYouTab} onValueChange={setThankYouTab}>
+                  <TabsList>
+                    <TabsTrigger value="given">
+                      <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" /> Business Given
+                    </TabsTrigger>
+                    <TabsTrigger value="received">
+                      <ArrowDownLeft className="mr-1.5 h-3.5 w-3.5" /> Business Received
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="given">
+                    {renderNotesList(givenNotes, "receiverBusiness", "You haven't given business to any member yet.")}
+                  </TabsContent>
+                  <TabsContent value="received">
+                    {renderNotesList(receivedNotes, "giverBusiness", "You haven't received business from any member yet.")}
+                  </TabsContent>
+                </Tabs>
+              </Panel>
+            </div>
           </TabsContent>
 
           <TabsContent value="referrals" className="space-y-4">

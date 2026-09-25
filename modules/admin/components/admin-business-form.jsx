@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 import { useChapters, useCategories, useMembershipPlans } from "@shared/hooks/use-rifah-api";
+import { CityCombobox } from "@shared/components/rifah/city-combobox";
+import { isValidPhone, isValidPincode, isValidName } from "@shared/lib/validators";
 
 export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -65,8 +67,23 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.phone || !formData.phone.trim()) {
-      toast.error("Phone number is required.");
+    if (!isValidPhone(formData.phone)) {
+      toast.error("Enter a valid 10-digit phone number.");
+      return;
+    }
+
+    if (!isValidName(formData.businessName)) {
+      toast.error("Enter a valid business name (letters only).");
+      return;
+    }
+
+    if (formData.ownerName && !isValidName(formData.ownerName)) {
+      toast.error("Enter a valid owner name (letters only).");
+      return;
+    }
+
+    if (formData.pincode && !isValidPincode(formData.pincode)) {
+      toast.error("Enter a valid 6-digit pincode.");
       return;
     }
 
@@ -200,7 +217,14 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="founded">Founded Year</Label>
-              <Input id="founded" name="founded" type="number" min="1800" max={new Date().getFullYear()} value={formData.founded} onChange={handleChange} />
+              <Input
+                id="founded"
+                name="founded"
+                inputMode="numeric"
+                placeholder="e.g. 2016"
+                value={formData.founded}
+                onChange={(e) => handleSelectChange("founded", e.target.value.replace(/\D/g, "").slice(0, 4))}
+              />
             </div>
           </div>
 
@@ -234,7 +258,11 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
-                <Input id="city" name="city" value={formData.city} onChange={handleChange} />
+                <CityCombobox
+                  id="city"
+                  value={formData.city}
+                  onValueChange={(v) => handleSelectChange("city", v)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="pincode">Pincode</Label>
