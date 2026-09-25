@@ -192,10 +192,7 @@ function AboutPage() {
       <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-navy via-navy to-[#0a192f] text-navy-foreground py-14 sm:py-20">
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none opacity-40" />
         <div className="rifah-container relative z-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3.5 py-1 text-xs font-semibold text-amber-300 backdrop-blur-xs mb-4">
-            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-            <span>RIFAH CHAMBER OF COMMERCE & INDUSTRY</span>
-          </div>
+
 
           <h1 className="max-w-4xl text-3xl font-extrabold tracking-tight sm:text-5xl leading-tight sm:leading-tight">
             Together for a <span className="text-amber-400">Sustainable</span> & Ethical Future
