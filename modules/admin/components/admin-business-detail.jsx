@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, ShieldCheck, MapPinned, Mail, Phone, ExternalLink, FileCheck2, Download, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { Building2, ShieldCheck, MapPinned, Mail, Phone, ExternalLink, FileCheck2, Download, AlertTriangle, CheckCircle2, Loader2, Edit2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -9,7 +9,11 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { MembershipBadge, VerificationBadge, Pill } from "@shared/components/rifah/badges";
 import { Button } from "@shared/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@shared/components/ui/dialog";
+import { Input } from "@shared/components/ui/input";
+import { Label } from "@shared/components/ui/label";
+import { Textarea } from "@shared/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +40,9 @@ export function AdminBusinessDetail({ id }) {
   const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -79,6 +86,37 @@ export function AdminBusinessDetail({ id }) {
     }
   };
 
+  const handleEditSave = async (e) => {
+    e.preventDefault();
+    try {
+      setIsSaving(true);
+      await businessApi.update(business._id, editData);
+      setBusiness({ ...business, ...editData });
+      toast.success("Business details updated successfully globally");
+      setEditModalOpen(false);
+      router.refresh();
+    } catch (err) {
+      toast.error(err.message || "Failed to update business");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openEditModal = () => {
+    setEditData({
+      chapter: business.chapter || "",
+      membershipTier: business.membershipTier || "",
+      registrationType: business.registrationType || "",
+      paymentStatus: business.paymentStatus || "",
+      paymentMode: business.paymentMode || "",
+      transactionId: business.transactionId || "",
+      paymentAmount: business.paymentAmount || "",
+      about: business.about || "",
+      adminRemark: business.adminRemark || "",
+    });
+    setEditModalOpen(true);
+  };
+
   if (loading) {
     return (
       <AppShell role={shellRole} title="Loading..." backTo={`${basePath}/businesses`}>
@@ -106,12 +144,18 @@ export function AdminBusinessDetail({ id }) {
                 <h2 className="text-xl font-bold">{business.name}</h2>
                 <p className="text-muted-foreground">{business.tagline || "No tagline provided"}</p>
               </div>
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/business/${business.slug || business._id}`} target="_blank">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Public Profile
-                </Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={openEditModal}>
+                  <Edit2 className="mr-2 h-4 w-4" />
+                  Edit Details
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/business/${business.slug || business._id}`} target="_blank">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Public Profile
+                  </Link>
+                </Button>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -400,6 +444,137 @@ export function AdminBusinessDetail({ id }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Edit Business Dialog */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Business Details</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSave} className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Chapter</Label>
+                <Input 
+                  value={editData.chapter} 
+                  onChange={(e) => setEditData({...editData, chapter: e.target.value})} 
+                  placeholder="e.g. Pune Chapter"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Membership Plan</Label>
+                <Select value={editData.membershipTier} onValueChange={(val) => setEditData({...editData, membershipTier: val})}>
+                  <SelectTrigger><SelectValue placeholder="Select Plan" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Free member">Free Member</SelectItem>
+                    <SelectItem value="Silver">Silver</SelectItem>
+                    <SelectItem value="Gold">Gold</SelectItem>
+                    <SelectItem value="Platinum">Platinum</SelectItem>
+                    <SelectItem value="Diamond">Diamond</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 col-span-2 md:col-span-1">
+                <Label>Registration Type</Label>
+                <Select value={editData.registrationType} onValueChange={(val) => setEditData({...editData, registrationType: val})}>
+                  <SelectTrigger><SelectValue placeholder="Select Type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="online">Online</SelectItem>
+                    <SelectItem value="offline">Offline</SelectItem>
+                    <SelectItem value="event">Event Registration</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-sm font-semibold mb-3">Payment Details</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Payment Status</Label>
+                  <Select value={editData.paymentStatus} onValueChange={(val) => setEditData({...editData, paymentStatus: val})}>
+                    <SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                      <SelectItem value="refunded">Refunded</SelectItem>
+                      <SelectItem value="free">Free</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Payment Mode</Label>
+                  <Select value={editData.paymentMode} onValueChange={(val) => setEditData({...editData, paymentMode: val})}>
+                    <SelectTrigger><SelectValue placeholder="Select Mode" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UPI">UPI/QR</SelectItem>
+                      <SelectItem value="Net Banking">Net Banking</SelectItem>
+                      <SelectItem value="Direct Cash">Direct Cash</SelectItem>
+                      <SelectItem value="Gateway">Online Gateway</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Transaction ID</Label>
+                  <Input 
+                    value={editData.transactionId} 
+                    onChange={(e) => setEditData({...editData, transactionId: e.target.value})} 
+                    placeholder="TXN..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Amount</Label>
+                  <Input 
+                    type="number"
+                    value={editData.paymentAmount} 
+                    onChange={(e) => setEditData({...editData, paymentAmount: e.target.value})} 
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <div className="space-y-2">
+                <Label>About Business</Label>
+                <Textarea 
+                  value={editData.about} 
+                  onChange={(e) => setEditData({...editData, about: e.target.value})} 
+                  placeholder="Describe the business..."
+                  rows={4}
+                />
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <div className="space-y-2 p-4 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-900/50">
+                <Label className="text-orange-800 dark:text-orange-400 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> 
+                  Admin Remark (Visible to Business Owner)
+                </Label>
+                <Textarea 
+                  value={editData.adminRemark} 
+                  onChange={(e) => setEditData({...editData, adminRemark: e.target.value})} 
+                  placeholder="Enter remarks or instructions for the business owner here (e.g., 'Please upload GST document')..."
+                  rows={3}
+                  className="bg-white dark:bg-background border-orange-200 dark:border-orange-900/50"
+                />
+                <p className="text-xs text-orange-700/80 dark:text-orange-400/80">
+                  Whatever you write here will be displayed on the user's dashboard.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setEditModalOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
