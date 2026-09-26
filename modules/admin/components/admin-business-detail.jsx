@@ -489,28 +489,16 @@ export function AdminBusinessDetail({ id }) {
             <div className="border-t pt-4 mt-4">
               <h4 className="text-sm font-semibold mb-3">Payment Details</h4>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Payment Status</Label>
-                  <Select value={editData.paymentStatus} onValueChange={(val) => setEditData({...editData, paymentStatus: val})}>
-                    <SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="failed">Failed</SelectItem>
-                      <SelectItem value="refunded">Refunded</SelectItem>
-                      <SelectItem value="free">Free</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
                 <div className="space-y-2">
                   <Label>Payment Mode</Label>
                   <Select value={editData.paymentMode} onValueChange={(val) => setEditData({...editData, paymentMode: val})}>
                     <SelectTrigger><SelectValue placeholder="Select Mode" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="UPI">UPI/QR</SelectItem>
+                      <SelectItem value="UPI">UPI / QR</SelectItem>
                       <SelectItem value="Net Banking">Net Banking</SelectItem>
-                      <SelectItem value="Direct Cash">Direct Cash</SelectItem>
-                      <SelectItem value="Gateway">Online Gateway</SelectItem>
+                      <SelectItem value="Cash">Cash</SelectItem>
+                      <SelectItem value="Cheque">Cheque</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
