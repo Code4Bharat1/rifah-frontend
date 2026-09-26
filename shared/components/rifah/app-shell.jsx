@@ -509,9 +509,27 @@ export function AppShell({
   const { data: convData } = useConversations();
   const unreadMsgs = (convData || []).reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
-  const { data: businessData, isLoading: isBizLoading } = useMyBusiness();
+  // BUG-FIX: Only fetch and use business data for business-workspace roles.
+  // Admin roles (chapter_admin, state_admin, central_admin) should NEVER be
+  // subject to the business verification gate. Previously, useMyBusiness() ran
+  // for every role — if an admin also had a business account, the returned data
+  // (or the response-wrapper fallback from the || res bug) would make
+  // Boolean(businessData)=true and hasEverBeenVerified=false, which after a
+  // background refetch would lock their sidebar items.
+  const isBusinessRole =
+    role === "business" ||
+    user?.role === "business_owner" ||
+    user?.role === "customer" ||
+    user?.role === "business";
+
+  const { data: rawBusinessData, isLoading: isBizLoading } = useMyBusiness();
+
+  // Only treat the data as valid when the user is actually in a business role
+  const businessData = isBusinessRole ? rawBusinessData : null;
+
   const rawVerification = businessData?.verification || businessData?.verificationStatus;
   const isBizVerified =
+    !isBusinessRole || // Admins are always "verified" — never lock their sidebar
     (rawVerification || "").toLowerCase() === "verified" ||
     (rawVerification || "").toLowerCase() === "approved" ||
     businessData?.isVerified === true ||
@@ -527,7 +545,7 @@ export function AppShell({
     user?.previousRole === "chapter_admin";
 
   const isGatedPage =
-    role === "business" &&
+    isBusinessRole &&
     !isBizLoading &&
     Boolean(businessData) &&
     !hasEverBeenVerified &&
@@ -648,7 +666,7 @@ export function AppShell({
             let badge = null;
             if (item.label === "Messages") badge = unreadMsgs;
             if (item.label === "Notifications") badge = unreadNotifs;
-            const isItemLocked = role === "business" && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to) && !isAdminSwitchedToBusiness;
+            const isItemLocked = isBusinessRole && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to) && !isAdminSwitchedToBusiness;
             return (
               <SidebarLink
                 key={`sidebar-${item.to}-${item.label}-${index}`}

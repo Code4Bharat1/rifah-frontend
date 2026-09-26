@@ -70,7 +70,10 @@ export function useMyBusiness() {
     queryKey: ["my-business"],
     queryFn: async () => {
       const res = await businessApi.getMyBusiness();
-      return res?.data || res;
+      // BUG-FIX: use ?? null so that when the API returns { data: null }
+      // we correctly return null instead of falling back to the entire
+      // response wrapper object (which is truthy and broke admin sidebar locking).
+      return res?.data ?? null;
     },
   });
 }
