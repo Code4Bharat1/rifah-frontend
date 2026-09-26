@@ -45,6 +45,7 @@ import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { PhoneInput } from "@shared/components/ui/phone-input";
+import { parsePhoneNumber } from "@shared/lib/countries";
 import { Checkbox } from "@shared/components/ui/checkbox";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
@@ -68,6 +69,12 @@ import { Textarea } from "@shared/components/ui/textarea";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 import { cities, industries } from "@shared/lib/mock-data";
 import { getMainCategories, getSubCategoriesFor } from "@shared/lib/categories-data";
+import {
+  ALL_INDIAN_STATES,
+  getCitiesForState,
+  getPincodeForCity,
+  getStateForCity,
+} from "@shared/lib/indian-states-cities";
 import { useChapters, useMembershipPlans, useCategories } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
 import { authApi, paymentApi, businessApi, verificationApi } from "@shared/lib/api-services";
@@ -88,7 +95,7 @@ const loadRazorpayScript = () => {
   });
 };
 
-const FastInput = ({ value, onValueChange, ...props }) => {
+const FastInput = ({ value, onValueChange, onChange, onBlur, ...props }) => {
   const [localValue, setLocalValue] = useState(value || "");
   
   useEffect(() => {
@@ -99,11 +106,15 @@ const FastInput = ({ value, onValueChange, ...props }) => {
     <Input
       {...props}
       value={localValue}
-      onChange={(e) => setLocalValue(e.target.value)}
-      onBlur={() => {
+      onChange={(e) => {
+        setLocalValue(e.target.value);
+        onChange?.(e);
+      }}
+      onBlur={(e) => {
         if (localValue !== value) {
-          onValueChange(localValue);
+          onValueChange?.(localValue);
         }
+        onBlur?.(e);
       }}
     />
   );
@@ -130,6 +141,12 @@ const FastTextarea = ({ value, onValueChange, ...props }) => {
   );
 };
 
+const DEFAULT_OWNER_PHOTO = "/images/default-avatar.svg";
+
+const AdminRegisterWrapper = ({ children }) => (
+  <div className="py-6 animate-in fade-in">{children}</div>
+);
+
 function RegisterBusiness({ isAdmin = false }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -142,9 +159,8 @@ function RegisterBusiness({ isAdmin = false }) {
   const chapters = chaptersData || [];
 
   const states = React.useMemo(() => {
-    return Array.from(
-      new Set(chapters.map((c) => (c.state || "").trim()).filter(Boolean))
-    ).sort();
+    const chapterStates = chapters.map((c) => (c.state || "").trim()).filter(Boolean);
+    return Array.from(new Set([...ALL_INDIAN_STATES, ...chapterStates])).sort((a, b) => a.localeCompare(b));
   }, [chapters]);
   
   const plans = React.useMemo(() => {
@@ -280,6 +296,13 @@ function RegisterBusiness({ isAdmin = false }) {
   const [otpSuccess, setOtpSuccess] = useState("");
   const otpInputRefs = useRef([]);
 
+  // Email Duplicity / Availability Check States
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailCheckResult, setEmailCheckResult] = useState(null);
+  const [businessEmailChecking, setBusinessEmailChecking] = useState(false);
+  const [businessEmailCheckResult, setBusinessEmailCheckResult] = useState(null);
+  const emailDebounceTimerRef = useRef(null);
+  const businessEmailDebounceTimerRef = useRef(null);
   const handleBusinessLogoUpload = async (file) => {
     if (!file) return;
 
@@ -396,6 +419,56 @@ function RegisterBusiness({ isAdmin = false }) {
     );
   }, [chapters, formData.state]);
 
+  const availableCities = React.useMemo(() => {
+    const stateCities = getCitiesForState(formData.state);
+    const chapterCities = chapters
+      .filter((c) => !formData.state || (c.state || "").trim().toLowerCase() === (formData.state || "").trim().toLowerCase())
+      .map((c) => (c.city || "").trim())
+      .filter(Boolean);
+    return Array.from(new Set([...stateCities, ...chapterCities])).sort((a, b) => a.localeCompare(b));
+  }, [formData.state, chapters]);
+
+  const handleStateChange = (selectedState) => {
+    const chapterStillValid = chapters.some(
+      (c) => c.name === formData.chapter && (c.state || "").trim().toLowerCase() === (selectedState || "").trim().toLowerCase()
+    );
+    const newCities = getCitiesForState(selectedState);
+    const currentCityStillValid = newCities.some((c) => c.toLowerCase() === (formData.city || "").trim().toLowerCase());
+
+    setFormData((prev) => ({
+      ...prev,
+      state: selectedState,
+      city: currentCityStillValid ? prev.city : "",
+      pincode: currentCityStillValid ? prev.pincode : "",
+      chapter: chapterStillValid ? prev.chapter : "",
+    }));
+    setError("");
+  };
+
+  const handleCityChange = (selectedCity) => {
+    const autoPin = getPincodeForCity(selectedCity);
+    const inferredState = !formData.state ? getStateForCity(selectedCity) : "";
+
+    // Auto-match chapter if one exists for this city
+    let matchedChapter = formData.chapter;
+    if (!matchedChapter) {
+      const directChapter = chapters.find(
+        (c) => (c.city || "").trim().toLowerCase() === (selectedCity || "").trim().toLowerCase() ||
+               (c.name || "").trim().toLowerCase().includes((selectedCity || "").trim().toLowerCase())
+      );
+      if (directChapter) matchedChapter = directChapter.name;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      city: selectedCity,
+      state: prev.state || inferredState || prev.state,
+      pincode: autoPin || prev.pincode,
+      chapter: matchedChapter,
+    }));
+    setError("");
+  };
+
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60)
       .toString()
@@ -451,6 +524,7 @@ function RegisterBusiness({ isAdmin = false }) {
     setOtpDigits(["", "", "", "", "", ""]);
     setOtpError("");
     setOtpSuccess("");
+    setEmailCheckResult(null);
     setError("");
     setTimeout(() => {
       const el = document.getElementById("reg-email");
@@ -461,9 +535,170 @@ function RegisterBusiness({ isAdmin = false }) {
     }, 50);
   };
 
+  const verifyEmailAvailability = async (emailToTest) => {
+    const clean = (emailToTest || formData.email || "").trim().toLowerCase();
+    if (!clean || !clean.includes("@") || !clean.includes(".")) {
+      setEmailChecking(false);
+      return { available: true };
+    }
+    // If admin converting an existing user
+    if (isAdmin && convertEmail && clean === convertEmail.toLowerCase().trim()) {
+      setEmailChecking(false);
+      setEmailCheckResult({ available: true, message: "Email is available for this account." });
+      return { available: true };
+    }
+    setEmailChecking(true);
+    try {
+      const res = await authApi.checkEmail(clean);
+      const data = res?.data !== undefined ? res.data : res;
+      if (data && data.available === false) {
+        const msg = data.message || "Email validation failed: This email is already registered with an existing business. Email duplicity is not allowed.";
+        setEmailCheckResult({ available: false, message: msg, email: clean });
+        setError(msg);
+        return { available: false, message: msg };
+      }
+      setEmailCheckResult({ available: true, message: "Email is available for registration.", email: clean });
+      if (error && (error.toLowerCase().includes("email") || error.toLowerCase().includes("duplicity"))) {
+        setError("");
+      }
+      return { available: true };
+    } catch (err) {
+      const errMsg = err?.message || "";
+      const isConflict = err?.status === 409 ||
+        errMsg.toLowerCase().includes("already exists") ||
+        errMsg.toLowerCase().includes("registered") ||
+        errMsg.toLowerCase().includes("duplicity") ||
+        errMsg.toLowerCase().includes("validation failed");
+
+      if (isConflict) {
+        const fullMsg = errMsg || "Email validation failed: This email is already registered with an existing business. Email duplicity is not allowed.";
+        setEmailCheckResult({ available: false, message: fullMsg, email: clean });
+        setError(fullMsg);
+        return { available: false, message: fullMsg };
+      }
+      console.warn("[CheckEmail] Warning:", err);
+      return { available: true };
+    } finally {
+      setEmailChecking(false);
+    }
+  };
+
+  const handleEmailChange = (newVal) => {
+    const rawVal = newVal;
+    const clean = (newVal || "").trim().toLowerCase();
+    setFormData((prev) => ({ ...prev, email: rawVal }));
+    setEmailCheckResult(null);
+    if (error && (error.toLowerCase().includes("email") || error.toLowerCase().includes("duplicity"))) {
+      setError("");
+    }
+
+    if (emailDebounceTimerRef.current) {
+      clearTimeout(emailDebounceTimerRef.current);
+    }
+
+    // Only run debounced check if email has basic structure
+    if (!clean || !clean.includes("@") || !clean.includes(".") || clean.length < 5) {
+      return;
+    }
+
+    setEmailChecking(true);
+    emailDebounceTimerRef.current = setTimeout(async () => {
+      await verifyEmailAvailability(clean);
+    }, 350);
+  };
+
+  const handleEmailBlur = async () => {
+    if (emailDebounceTimerRef.current) {
+      clearTimeout(emailDebounceTimerRef.current);
+    }
+    const clean = (formData.email || "").trim().toLowerCase();
+    if (clean && clean.includes("@") && clean.includes(".")) {
+      await verifyEmailAvailability(clean);
+    }
+  };
+
+  const verifyBusinessEmailAvailability = async (emailToTest) => {
+    const clean = (emailToTest || formData.businessEmail || "").trim().toLowerCase();
+    if (!clean || !clean.includes("@") || !clean.includes(".")) {
+      setBusinessEmailChecking(false);
+      return { available: true };
+    }
+
+    setBusinessEmailChecking(true);
+    try {
+      const res = await authApi.checkEmail(clean);
+      const data = res?.data !== undefined ? res.data : res;
+      if (data && data.available === false) {
+        const msg = data.message || "Email validation failed: This business email is already registered with an existing business. Email duplicity is not allowed.";
+        setBusinessEmailCheckResult({ available: false, message: msg, email: clean });
+        setError(msg);
+        return { available: false, message: msg };
+      }
+      setBusinessEmailCheckResult({ available: true, message: "Business email is available.", email: clean });
+      if (error && error.toLowerCase().includes("business email")) {
+        setError("");
+      }
+      return { available: true };
+    } catch (err) {
+      const errMsg = err?.message || "";
+      const isConflict = err?.status === 409 ||
+        errMsg.toLowerCase().includes("already exists") ||
+        errMsg.toLowerCase().includes("registered") ||
+        errMsg.toLowerCase().includes("duplicity") ||
+        errMsg.toLowerCase().includes("validation failed");
+
+      if (isConflict) {
+        const fullMsg = errMsg || "Email validation failed: This business email is already registered with an existing business. Email duplicity is not allowed.";
+        setBusinessEmailCheckResult({ available: false, message: fullMsg, email: clean });
+        setError(fullMsg);
+        return { available: false, message: fullMsg };
+      }
+      return { available: true };
+    } finally {
+      setBusinessEmailChecking(false);
+    }
+  };
+
+  const handleBusinessEmailChange = (newVal) => {
+    const rawVal = newVal;
+    const clean = (newVal || "").trim().toLowerCase();
+    setFormData((prev) => ({ ...prev, businessEmail: rawVal }));
+    setBusinessEmailCheckResult(null);
+    if (error && error.toLowerCase().includes("business email")) {
+      setError("");
+    }
+
+    if (businessEmailDebounceTimerRef.current) {
+      clearTimeout(businessEmailDebounceTimerRef.current);
+    }
+
+    if (!clean || !clean.includes("@") || !clean.includes(".") || clean.length < 5) {
+      return;
+    }
+
+    setBusinessEmailChecking(true);
+    businessEmailDebounceTimerRef.current = setTimeout(async () => {
+      await verifyBusinessEmailAvailability(clean);
+    }, 350);
+  };
+
+  const handleBusinessEmailBlur = async () => {
+    if (businessEmailDebounceTimerRef.current) {
+      clearTimeout(businessEmailDebounceTimerRef.current);
+    }
+    const clean = (formData.businessEmail || "").trim().toLowerCase();
+    if (clean && clean.includes("@") && clean.includes(".")) {
+      await verifyBusinessEmailAvailability(clean);
+    }
+  };
+
   const handleSendOtp = async () => {
     if (!formData.email || !formData.email.includes("@")) {
       setError("Please enter a valid email address first.");
+      return;
+    }
+    const check = await verifyEmailAvailability(formData.email);
+    if (check && check.available === false) {
       return;
     }
     setError("");
@@ -480,7 +715,11 @@ function RegisterBusiness({ isAdmin = false }) {
         otpInputRefs.current[0]?.focus();
       }, 100);
     } catch (err) {
-      setError(err.message || "Failed to send verification code. Please check your email.");
+      const errMsg = err.message || "Failed to send verification code. Please check your email.";
+      if (errMsg.toLowerCase().includes("already exists") || errMsg.toLowerCase().includes("registered") || errMsg.toLowerCase().includes("duplicity")) {
+        setEmailCheckResult({ available: false, message: errMsg });
+      }
+      setError(errMsg);
     } finally {
       setOtpSending(false);
     }
@@ -689,6 +928,11 @@ function RegisterBusiness({ isAdmin = false }) {
         }
       }
 
+      // If Admin registering and no photo provided, assign the clean default avatar
+      if (isAdmin && !finalAvatarUrl) {
+        finalAvatarUrl = DEFAULT_OWNER_PHOTO;
+      }
+
       const finalRole = (
         formData.roleInBusiness === "Other" && formData.customRoleInBusiness
           ? formData.customRoleInBusiness
@@ -743,6 +987,7 @@ function RegisterBusiness({ isAdmin = false }) {
           linkedin: (formData.linkedin || "").trim(),
           logo: finalLogoUrl,
           avatar: finalAvatarUrl,
+          ownerPhoto: finalAvatarUrl,
           amountCollected: planAmount
         });
         
@@ -961,7 +1206,7 @@ function RegisterBusiness({ isAdmin = false }) {
     );
   }
 
-  const Wrapper = isAdmin ? ({children}) => <div className="py-6 animate-in fade-in">{children}</div> : PublicLayout;
+  const Wrapper = isAdmin ? AdminRegisterWrapper : PublicLayout;
 
   return (
     <Wrapper>
@@ -1083,7 +1328,7 @@ function RegisterBusiness({ isAdmin = false }) {
 
           <form
             className="mt-5 space-y-4"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
               setError("");
 
@@ -1091,8 +1336,8 @@ function RegisterBusiness({ isAdmin = false }) {
               if (step === 0) {
                 // GSTIN is completely optional — no blocking validation on format or verification status
 
-                // Owner Photo is MANDATORY in Step 0
-                if (!ownerPhotoFile && !formData.avatar) {
+                // Owner Photo is mandatory for public self-registration, but OPTIONAL when central admin is registering
+                if (!isAdmin && !ownerPhotoFile && !formData.avatar) {
                   setOwnerPhotoRequired(true);
                   setError("Business owner photo is mandatory. Please upload a clear photo of the business owner before proceeding.");
                   document.getElementById("owner-photo-upload")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1123,20 +1368,43 @@ function RegisterBusiness({ isAdmin = false }) {
                   setError("Please specify your role / designation in the business.");
                   return;
                 }
-                if (!formData.phone || formData.phone.trim().length < 7) {
+
+                // Strict Phone / Mobile Number Validation
+                const parsedPhone = parsePhoneNumber(formData.phone || "");
+                const nationalDigits = (parsedPhone?.nationalNumber || "").replace(/\D/g, "");
+
+                if (!formData.phone || !nationalDigits) {
                   setError("Mobile / Phone number is mandatory. Please enter a valid mobile number before proceeding.");
+                  return;
+                }
+
+                if (parsedPhone?.country?.code === "IN" && nationalDigits.length !== 10) {
+                  setError("Verification failed - Mobile number should be 10 digit");
+                  return;
+                }
+
+                if (nationalDigits.length < 7 || nationalDigits.length > 15) {
+                  setError("Verification failed - Please enter a valid mobile number");
                   return;
                 }
                 if (formData.businessEmail && (!formData.businessEmail.includes("@") || !formData.businessEmail.includes("."))) {
                   setError("Please provide a valid official business email or leave it empty.");
                   return;
                 }
-                if (!formData.city || formData.city.trim().length < 2) {
-                  setError("City is mandatory. Please enter your business city.");
-                  return;
+                if (formData.businessEmail && formData.businessEmail.trim()) {
+                  const beCheck = await verifyBusinessEmailAvailability(formData.businessEmail.trim());
+                  if (beCheck && beCheck.available === false) {
+                    setError(beCheck.message || "Email validation failed: This business email is already registered with an existing business. Email duplicity is not allowed.");
+                    return;
+                  }
                 }
+                // Location validation: State must be selected first, then City
                 if (formData.region === "national" && (!formData.state || !formData.state.trim())) {
                   setError("State is mandatory. Please select your business state.");
+                  return;
+                }
+                if (!formData.city || formData.city.trim().length < 2) {
+                  setError("City is mandatory. Please select or enter your business city.");
                   return;
                 }
                 // RIFAH Chapter is optional (visitor feedback)
@@ -1144,10 +1412,23 @@ function RegisterBusiness({ isAdmin = false }) {
 
               // Validation for Step 2 (Account)
               if (step === 2) {
-                if (!formData.email || !formData.email.includes("@")) {
-                  setError("Please provide a valid account email.");
+                const targetEmail = (formData.email || "").trim().toLowerCase();
+                if (!targetEmail || !targetEmail.includes("@") || !targetEmail.includes(".")) {
+                  setError("Please provide a valid account email address.");
+                  const el = document.getElementById("reg-email");
+                  if (el) el.focus();
                   return;
                 }
+
+                // Verify email availability against duplicity
+                const emailCheck = await verifyEmailAvailability(targetEmail);
+                if (emailCheck && emailCheck.available === false) {
+                  setError(emailCheck.message || "Email validation failed: This email is already registered with an existing business. Email duplicity is not allowed.");
+                  const el = document.getElementById("reg-email");
+                  if (el) el.focus();
+                  return; // CRITICAL: Stop here, DO NOT proceed to Step 3 (Membership)
+                }
+
                 if (!isAdmin) {
                   if (!formData.password || formData.password.length < 6) {
                     setError("Please enter an account password with at least 6 characters.");
@@ -1155,7 +1436,7 @@ function RegisterBusiness({ isAdmin = false }) {
                   }
                   if (!emailVerified) {
                     if (!otpSent) {
-                      handleSendOtp();
+                      await handleSendOtp();
                       return;
                     }
                     setError("Please enter the 6-digit verification code sent to your email.");
@@ -1453,12 +1734,12 @@ function RegisterBusiness({ isAdmin = false }) {
                     </div>
                   )}
 
-                  {/* 1. Business Owner / Profile Photo Upload (MANDATORY) */}
+                  {/* 1. Business Owner / Profile Photo Upload (MANDATORY for user, OPTIONAL for admin) */}
                   <div
                     id="owner-photo-upload"
                     className={cn(
                       "sm:col-span-2 space-y-2 rounded-2xl border p-3.5 sm:p-4 transition-colors",
-                      ownerPhotoRequired && !ownerPhotoPreview
+                      !isAdmin && ownerPhotoRequired && !ownerPhotoPreview
                         ? "border-red-400 bg-red-50/40 dark:border-red-800 dark:bg-red-950/20"
                         : "border-slate-200/90 bg-slate-50/50 dark:bg-slate-800/40 dark:border-slate-800"
                     )}
@@ -1468,13 +1749,17 @@ function RegisterBusiness({ isAdmin = false }) {
                         <Label className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
                           <Camera className="h-4 w-4 text-primary shrink-0" />
                           <span>Business Owner / Personal Photo</span>
-                          <span className="text-red-500 font-bold">*</span>
+                          {isAdmin ? (
+                            <span className="text-xs font-normal text-muted-foreground ml-1">(Optional)</span>
+                          ) : (
+                            <span className="text-red-500 font-bold">*</span>
+                          )}
+                          {!isAdmin && ownerPhotoRequired && !ownerPhotoPreview && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-2 py-0.5 rounded-full border border-red-200 dark:border-red-800 ml-1">
+                              <AlertCircle className="h-3 w-3" /> Required
+                            </span>
+                          )}
                         </Label>
-                        {ownerPhotoRequired && !ownerPhotoPreview && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-2 py-0.5 rounded-full border border-red-200 dark:border-red-800 ml-1">
-                            <AlertCircle className="h-3 w-3" /> Required
-                          </span>
-                        )}
                       </div>
                       {ownerPhotoPreview && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
@@ -1538,8 +1823,8 @@ function RegisterBusiness({ isAdmin = false }) {
                         <div
                           onClick={() => ownerPhotoInputRef.current?.click()}
                           className={cn(
-                            "w-full flex items-center gap-3 p-3 sm:p-3.5 rounded-xl border-2 border-dashed transition-all cursor-pointer group",
-                            ownerPhotoRequired
+                            "w-full flex items-center gap-3 sm:gap-3.5 p-3 sm:p-3.5 rounded-xl border-2 border-dashed transition-all cursor-pointer group",
+                            !isAdmin && ownerPhotoRequired
                               ? "border-red-400 dark:border-red-700 bg-red-50/60 dark:bg-red-950/20 hover:border-red-500 hover:bg-red-50"
                               : "border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60 hover:border-primary hover:bg-primary/5"
                           )}
@@ -1553,10 +1838,12 @@ function RegisterBusiness({ isAdmin = false }) {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors leading-snug">
-                              Click to upload Business Owner / Personal Photo <span className="text-red-500 font-bold">*</span>
+                              Click to upload Business Owner / Personal Photo {isAdmin ? <span className="text-muted-foreground font-normal">(Optional)</span> : <span className="text-red-500 font-bold">*</span>}
                             </p>
                             <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
-                              PNG, JPG, WEBP up to 10 MB (Displayed on your profile, directory & member badge)
+                              {isAdmin
+                                ? "PNG, JPG, WEBP up to 10 MB (Optional — default photo used if omitted)"
+                                : "PNG, JPG, WEBP up to 10 MB (Displayed on your profile, directory & member badge)"}
                             </p>
                           </div>
                           <Button
@@ -1779,10 +2066,10 @@ function RegisterBusiness({ isAdmin = false }) {
                       required
                       value={formData.phone}
                       onValueChange={(val) => {
-                        setFormData({ ...formData, phone: val });
+                        setFormData((prev) => ({ ...prev, phone: val }));
                         setError("");
                       }}
-                      placeholder="Mobile number (Mandatory)"
+                      placeholder="10-digit mobile number"
                     />
                     <p className="text-[10px] text-muted-foreground">Direct mobile contact is mandatory for lead notifications.</p>
                   </div>
@@ -1810,101 +2097,174 @@ function RegisterBusiness({ isAdmin = false }) {
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <div className="flex flex-wrap items-center justify-between gap-1.5">
-                      <Label htmlFor="bemail" className="font-semibold text-slate-800 dark:text-slate-200">
-                        Official Business Email
+                      <Label htmlFor="bemail" className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <span>Official Business Email</span>
+                        {businessEmailChecking && (
+                          <span className="flex items-center gap-1 text-[11px] font-normal text-blue-600 dark:text-blue-400">
+                            <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                            Checking...
+                          </span>
+                        )}
                       </Label>
                       <span className="text-[11px] text-muted-foreground font-medium">
                         Public & Buyer Facing (Optional)
                       </span>
                     </div>
-                    <FastInput
-                      id="bemail"
-                      type="email"
-                      value={formData.businessEmail}
-                      onValueChange={(val) => {
-                        setFormData({ ...formData, businessEmail: val });
-                        setError("");
-                      }}
-                      placeholder="e.g. contact@yourbusiness.com or sales@company.in"
-                      className="h-11"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="bemail"
+                        type="email"
+                        value={formData.businessEmail || ""}
+                        onChange={(e) => handleBusinessEmailChange(e.target.value)}
+                        onBlur={handleBusinessEmailBlur}
+                        placeholder="e.g. contact@yourbusiness.com or sales@company.in"
+                        className={cn(
+                          "h-11 transition-all duration-200",
+                          businessEmailCheckResult && !businessEmailCheckResult.available
+                            ? "border-rose-500 focus-visible:ring-rose-500 bg-rose-50/30 text-rose-900 pr-10"
+                            : businessEmailCheckResult && businessEmailCheckResult.available
+                              ? "border-emerald-500 focus-visible:ring-emerald-500 bg-emerald-50/20 pr-10"
+                              : ""
+                        )}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+                        {businessEmailChecking ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                        ) : businessEmailCheckResult && !businessEmailCheckResult.available ? (
+                          <AlertCircle className="h-4 w-4 text-rose-600" />
+                        ) : businessEmailCheckResult && businessEmailCheckResult.available ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {businessEmailChecking && (
+                      <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium mt-1 animate-in fade-in">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-blue-600" />
+                        <span>Verifying business email availability...</span>
+                      </div>
+                    )}
+
+                    {businessEmailCheckResult && !businessEmailCheckResult.available && (
+                      <div className="flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300 font-semibold bg-rose-50 dark:bg-rose-950/50 p-3 rounded-xl border border-rose-300 dark:border-rose-900/60 mt-1.5 shadow-xs animate-in fade-in slide-in-from-top-1">
+                        <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-rose-900 dark:text-rose-200">
+                            Email Validation Failed
+                          </p>
+                          <p className="text-[11.5px] font-normal leading-relaxed text-rose-700 dark:text-rose-300">
+                            {businessEmailCheckResult.message || "This email is already registered with an existing business. Email duplicity is not allowed."}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {businessEmailCheckResult && businessEmailCheckResult.available && (
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1 animate-in fade-in">
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                        <span>Business email is available.</span>
+                      </div>
+                    )}
+
                     <p className="text-[11px] text-muted-foreground">
                       Public email displayed on your business directory card & catalogue for buyer RFQs and customer enquiries. (If left blank, your owner login email will be used).
                     </p>
                   </div>
+                  {/* 1. State (Searchable Dropdown, Selected First) */}
                   <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="baddress">Address</Label>
-                    <FastInput
-                      id="baddress"
-                      value={formData.address}
-                      onValueChange={(val) => setFormData({ ...formData, address: val })}
-                      placeholder="Street, area, premises"
-                    />
+                    {formData.region === "national" ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="bstate" className="font-semibold text-slate-800 dark:text-slate-200">
+                            State *
+                          </Label>
+                          <span className="text-[11px] text-muted-foreground font-medium">
+                            Select first
+                          </span>
+                        </div>
+                        <CreatableCombobox
+                          id="bstate"
+                          value={formData.state}
+                          onValueChange={handleStateChange}
+                          options={states}
+                          placeholder="Select your business state"
+                          emptyText="No matching state. Type to enter a custom state."
+                          className="h-11"
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <Label htmlFor="bstate" className="font-semibold text-slate-800 dark:text-slate-200">
+                          Country / Region *
+                        </Label>
+                        <FastInput
+                          id="bstate"
+                          value={formData.state}
+                          onValueChange={(val) => {
+                            setFormData({ ...formData, state: val });
+                            setError("");
+                          }}
+                          placeholder="e.g. United Arab Emirates"
+                          className="h-11"
+                        />
+                      </>
+                    )}
                   </div>
+
+                  {/* 2. City (Searchable Dropdown, Cascaded from State) */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="bcity">City *</Label>
-                    <FastInput
+                    <Label htmlFor="bcity" className="font-semibold text-slate-800 dark:text-slate-200">
+                      City *
+                    </Label>
+                    <CreatableCombobox
                       id="bcity"
-                      required
                       value={formData.city}
-                      onValueChange={(val) => {
-                        setFormData({ ...formData, city: val });
-                        setError("");
-                      }}
-                      placeholder="e.g. Mumbai, Bhopal, Dubai, London"
+                      onValueChange={handleCityChange}
+                      options={availableCities}
+                      placeholder={
+                        formData.region === "national" && !formData.state
+                          ? "Select state first (or search city)"
+                          : "Select or search city"
+                      }
+                      emptyText="No matching city. Type to enter a custom city."
+                      className="h-11"
                     />
                   </div>
+
+                  {/* 3. Pincode / Postal code (Auto-captured based on City, Editable) */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="bpincode">Pincode / Postal code</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="bpincode" className="font-semibold text-slate-800 dark:text-slate-200">
+                        Pincode / Postal code
+                      </Label>
+                      {formData.pincode && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                          Auto-captured
+                        </span>
+                      )}
+                    </div>
                     <FastInput
                       id="bpincode"
                       inputMode="numeric"
                       value={formData.pincode}
                       onValueChange={(val) => setFormData({ ...formData, pincode: val })}
                       placeholder="Postal / Zip code"
+                      className="h-11"
                     />
                   </div>
+
+                  {/* 4. Address */}
                   <div className="space-y-1.5 sm:col-span-2">
-                    {formData.region === "national" ? (
-                      <>
-                        <Label htmlFor="bstate">State *</Label>
-                        <Select
-                          value={formData.state}
-                          onValueChange={(v) => {
-                            const chapterStillValid = chapters.some(
-                              (c) => c.name === formData.chapter && (c.state || "").trim().toLowerCase() === v.trim().toLowerCase()
-                            );
-                            setFormData({
-                              ...formData,
-                              state: v,
-                              chapter: chapterStillValid ? formData.chapter : "",
-                            });
-                            setError("");
-                          }}
-                        >
-                          <SelectTrigger id="bstate" className="h-11">
-                            <SelectValue placeholder="Select your business state" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {states.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {s}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </>
-                    ) : (
-                      <>
-                        <Label htmlFor="bstate">Country / Region</Label>
-                        <FastInput
-                          id="bstate"
-                          value={formData.state}
-                          onValueChange={(val) => setFormData({ ...formData, state: val })}
-                          placeholder="e.g. United Arab Emirates"
-                        />
-                      </>
-                    )}
+                    <Label htmlFor="baddress" className="font-semibold text-slate-800 dark:text-slate-200">
+                      Address <span className="text-muted-foreground font-normal text-xs">(Street, area, premises)</span>
+                    </Label>
+                    <FastInput
+                      id="baddress"
+                      value={formData.address}
+                      onValueChange={(val) => setFormData({ ...formData, address: val })}
+                      placeholder="Street, area, premises"
+                      className="h-11"
+                    />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="bchapter">
@@ -1994,16 +2354,22 @@ function RegisterBusiness({ isAdmin = false }) {
                   {/* Account Email Field */}
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center justify-between gap-1.5">
-                      <Label htmlFor="reg-email" className="font-bold text-sm text-slate-900 dark:text-white">
-                        Owner Personal Email *
+                      <Label htmlFor="reg-email" className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Owner Personal Email *</span>
+                        {emailChecking && (
+                          <span className="flex items-center gap-1 text-[11px] font-normal text-blue-600 dark:text-blue-400">
+                            <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                            Checking...
+                          </span>
+                        )}
                       </Label>
                       <div className="flex items-center gap-2">
                         {formData.businessEmail && formData.email !== formData.businessEmail && !emailVerified && !otpSent && (
                           <button
                             type="button"
                             onClick={() => {
-                              setFormData((prev) => ({ ...prev, email: prev.businessEmail }));
-                              setError("");
+                              const be = (formData.businessEmail || "").trim();
+                              handleEmailChange(be);
                             }}
                             className="text-xs font-semibold text-[#0060df] hover:underline flex items-center gap-1 cursor-pointer"
                           >
@@ -2014,26 +2380,42 @@ function RegisterBusiness({ isAdmin = false }) {
                       </div>
                     </div>
                     <div className="relative">
-                      <FastInput
+                      <Input
                         id="reg-email"
                         type="email"
                         required
-                        value={formData.email}
-                        onValueChange={(val) => {
-                          setFormData({ ...formData, email: val });
-                          setError("");
-                        }}
+                        value={formData.email || ""}
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        onBlur={handleEmailBlur}
                         placeholder="e.g. owner.name@gmail.com"
                         className={cn(
-                          "h-11",
-                          (!isAdmin && emailVerified)
-                            ? "bg-emerald-50/50 border-emerald-200 text-emerald-900 pr-36 focus-visible:ring-emerald-500"
-                            : (!isAdmin && otpSent) || (isAdmin && convertEmail)
-                              ? "bg-slate-50 text-slate-600 pr-24"
-                              : ""
+                          "h-11 transition-all duration-200",
+                          emailCheckResult && !emailCheckResult.available
+                            ? "border-rose-500 focus-visible:ring-rose-500 bg-rose-50/30 text-rose-900 pr-10"
+                            : emailCheckResult && emailCheckResult.available && !emailVerified
+                              ? "border-emerald-500 focus-visible:ring-emerald-500 bg-emerald-50/20 pr-10"
+                              : (!isAdmin && emailVerified)
+                                ? "bg-emerald-50/50 border-emerald-200 text-emerald-900 pr-36 focus-visible:ring-emerald-500"
+                                : (!isAdmin && otpSent) || (isAdmin && convertEmail)
+                                  ? "bg-slate-50 text-slate-600 pr-24"
+                                  : ""
                         )}
                         disabled={(!isAdmin && (emailVerified || otpSent)) || (isAdmin && !!convertEmail)}
                       />
+
+                      {/* Status indicator inside input for Admin or before OTP is sent */}
+                      {((isAdmin || !otpSent) && !emailVerified) && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+                          {emailChecking ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                          ) : emailCheckResult && !emailCheckResult.available ? (
+                            <AlertCircle className="h-4 w-4 text-rose-600" />
+                          ) : emailCheckResult && emailCheckResult.available ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          ) : null}
+                        </div>
+                      )}
+
                       {(!isAdmin && emailVerified) ? (
                         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
                           <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
@@ -2067,7 +2449,7 @@ function RegisterBusiness({ isAdmin = false }) {
                           <Button
                             type="button"
                             onClick={handleSendOtp}
-                            disabled={otpSending || !formData.email || !formData.email.includes("@")}
+                            disabled={otpSending || !formData.email || !formData.email.includes("@") || (emailCheckResult && !emailCheckResult.available)}
                             size="sm"
                             className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-[#0060df] hover:bg-[#0051bd] text-white rounded-lg font-semibold flex items-center gap-1.5"
                           >
@@ -2085,12 +2467,45 @@ function RegisterBusiness({ isAdmin = false }) {
                         )
                       )}
                     </div>
-                    {!isAdmin && !emailVerified && !otpSent && (
+
+                    {/* Email Verification / Duplicity Status Indicators */}
+                    {emailChecking && (
+                      <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium mt-1.5 animate-in fade-in">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-blue-600" />
+                        <span>Verifying email availability...</span>
+                      </div>
+                    )}
+
+                    {emailCheckResult && !emailCheckResult.available && (
+                      <div className="flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300 font-semibold bg-rose-50 dark:bg-rose-950/50 p-3.5 rounded-xl border border-rose-300 dark:border-rose-900/60 mt-2 shadow-xs animate-in fade-in slide-in-from-top-1">
+                        <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-rose-900 dark:text-rose-200">
+                            Email Already Registered
+                          </p>
+                          <p className="text-[11.5px] font-normal leading-relaxed text-rose-700 dark:text-rose-300">
+                            {emailCheckResult.message || "This email is already registered with an existing business. Email duplicity is not allowed."}
+                          </p>
+                          <p className="text-[11px] font-medium text-rose-600 dark:text-rose-400 pt-0.5">
+                            Please enter a different personal email address to proceed.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {emailCheckResult && emailCheckResult.available && !emailVerified && (
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1.5 animate-in fade-in">
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                        <span>Email is available for registration.</span>
+                      </div>
+                    )}
+
+                    {!isAdmin && !emailVerified && !otpSent && !emailCheckResult && (
                       <p className="text-xs text-muted-foreground">
                         We will send a 6-digit verification code to confirm this email.
                       </p>
                     )}
-                    {isAdmin && (
+                    {isAdmin && (!emailCheckResult || emailCheckResult.available) && (
                       <p className="text-xs text-muted-foreground">
                         An auto-generated secure password will be sent to this email.
                       </p>
@@ -2483,11 +2898,30 @@ function RegisterBusiness({ isAdmin = false }) {
                   Back
                 </Button>
               )}
-              <Button type="submit" size="lg" className="sm:min-w-52" disabled={loading}>
+              <Button
+                type="submit"
+                size="lg"
+                className="sm:min-w-52"
+                disabled={
+                  loading ||
+                  emailChecking ||
+                  businessEmailChecking ||
+                  (step === 2 && emailCheckResult && emailCheckResult.available === false) ||
+                  (step === 1 && businessEmailCheckResult && businessEmailCheckResult.available === false)
+                }
+              >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                   </>
+                ) : (emailChecking || businessEmailChecking) ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying Email...
+                  </>
+                ) : step === 2 && emailCheckResult && emailCheckResult.available === false ? (
+                  "Fix Duplicate Email to Continue"
+                ) : step === 1 && businessEmailCheckResult && businessEmailCheckResult.available === false ? (
+                  "Fix Duplicate Email to Continue"
                 ) : step === steps.length - 1 ? (
                   (() => {
                     const isIntl = formData.region === "international";

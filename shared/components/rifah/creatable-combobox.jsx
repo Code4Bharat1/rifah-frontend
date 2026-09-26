@@ -42,7 +42,13 @@ export function CreatableCombobox({
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) setSearch("");
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           id={id}
