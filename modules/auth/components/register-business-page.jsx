@@ -187,16 +187,7 @@ function RegisterBusiness({ isAdmin = false }) {
   const [cashCollectingState, setCashCollectingState] = useState("");
   const [cashCollectingChapter, setCashCollectingChapter] = useState("");
 
-  useEffect(() => {
-    if (isAdmin) {
-      if (!cashCollectingState && (formData.state || user?.state)) {
-        setCashCollectingState(formData.state || user?.state || "");
-      }
-      if (!cashCollectingChapter && (formData.chapter || user?.chapter)) {
-        setCashCollectingChapter(formData.chapter || user?.chapter || "");
-      }
-    }
-  }, [isAdmin, formData.state, formData.chapter, user?.state, user?.chapter, cashCollectingState, cashCollectingChapter]);
+
 
   const collectingChaptersList = React.useMemo(() => {
     if (!cashCollectingState) return chapters;
@@ -279,6 +270,17 @@ function RegisterBusiness({ isAdmin = false }) {
     timezone: typeof window !== "undefined" ? (Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata") : "Asia/Kolkata",
     region: "national",
   });
+
+  useEffect(() => {
+    if (isAdmin) {
+      if (!cashCollectingState && (formData.state || user?.state)) {
+        setCashCollectingState(formData.state || user?.state || "");
+      }
+      if (!cashCollectingChapter && (formData.chapter || user?.chapter)) {
+        setCashCollectingChapter(formData.chapter || user?.chapter || "");
+      }
+    }
+  }, [isAdmin, formData.state, formData.chapter, user?.state, user?.chapter, cashCollectingState, cashCollectingChapter]);
 
   const handleBusinessLogoUpload = async (file) => {
     if (!file) return;
