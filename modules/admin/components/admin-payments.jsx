@@ -97,11 +97,49 @@ function AdminPayments() {
 
       // --- Details table ---
       y += 8;
+
+      // Resolve Plan Name
+      let rawPlan = r.planTier || r.membershipTier || r.business?.membership || r.membership || "";
+      if (rawPlan) {
+        const clean = rawPlan.replace(/\bplan\b/gi, "").trim();
+        rawPlan = clean ? `${clean} Plan` : rawPlan;
+      }
+
+      // Resolve Subscription Item Text
+      let subItemText = "";
+      if (r.itemType === "Event Pass" && r.eventId) {
+        subItemText = `Event: ${r.eventId.title || "Pass"}`;
+      } else {
+        const baseDesc = r.description || r.purpose || "Admin Registered Business";
+        if (rawPlan && !baseDesc.toLowerCase().includes(rawPlan.toLowerCase())) {
+          if (/\(Cash\)/i.test(baseDesc)) {
+            subItemText = `${baseDesc.replace(/\(Cash\)/i, "").trim()} (${rawPlan}) (Cash)`;
+          } else {
+            subItemText = `${baseDesc} (${rawPlan})`;
+          }
+        } else {
+          subItemText = baseDesc;
+        }
+      }
+
+      // Resolve Chapter / State
+      const chName = (r.collectingChapter || r.chapter || r.business?.chapter || r.payer?.chapter || "").trim();
+      const stName = (r.collectingState || r.state || r.business?.state || r.payer?.state || "").trim();
+      let chapterStateLocation = "RIFAH Central";
+      if (chName && stName && chName.toLowerCase() !== "unassigned") {
+        chapterStateLocation = `${chName}, ${stName}`;
+      } else if (chName && chName.toLowerCase() !== "unassigned") {
+        chapterStateLocation = chName;
+      } else if (stName) {
+        chapterStateLocation = stName;
+      }
+
       const rows = [
         ["Payer Member", r.payer?.name || r.user?.name || "Member User"],
         ["Business / Enterprise", r.business?.name || "Member Enterprise"],
         ["Contact Email", r.payer?.email || "N/A"],
-        ["Subscription Item", (r.itemType === "Event Pass" && r.eventId) ? `Event: ${r.eventId.title || "Pass"}` : (r.description || r.purpose || r.itemType || "Membership Subscription")],
+        ["Subscription Item", subItemText],
+        ["Chapter / State", chapterStateLocation],
         ["Payment Method", r.method || "Online Gateway"],
         ["Currency", r.currency || "INR"],
         ["Transaction ID", r.transactionId || "N/A"],
@@ -155,12 +193,12 @@ function AdminPayments() {
           doc.setFont("helvetica", "bold");
           doc.setFontSize(9.5);
           doc.setTextColor(30, 41, 59);
-          doc.text(String(value || "").slice(0, 45), mx + labelW + 5, ry + 6.5);
+          doc.text(String(value || "").slice(0, 50), mx + labelW + 5, ry + 6.5);
         } else {
           doc.setFont("helvetica", "normal");
-          doc.setFontSize(9.5);
+          doc.setFontSize(value && String(value).length > 36 ? 8.5 : 9.5);
           doc.setTextColor(30, 41, 59);
-          doc.text(String(value || "").slice(0, 45), mx + labelW + 5, ry + 6.5);
+          doc.text(String(value || "").slice(0, 60), mx + labelW + 5, ry + 6.5);
         }
       });
 
@@ -285,7 +323,39 @@ function AdminPayments() {
               columns={[
                 { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{r.invoiceNumber || "N/A"}</span> },
                 { key: "payer", header: "Payer", cell: (r) => r.payer?.name || r.user?.name || "Member Enterprise" },
-                { key: "purpose", header: "Purpose", cell: (r) => (r.itemType === "Event Pass" && r.eventId) ? <span className="font-medium text-primary">Event: {r.eventId.title}</span> : (r.description || r.purpose || r.itemType || "Membership Subscription") },
+                {
+                  key: "purpose",
+                  header: "Purpose / Plan",
+                  cell: (r) => {
+                    if (r.itemType === "Event Pass" && r.eventId) {
+                      return <span className="font-medium text-primary">Event: {r.eventId.title}</span>;
+                    }
+                    let rawPlan = r.planTier || r.membershipTier || r.business?.membership || r.membership || "";
+                    if (rawPlan) {
+                      const clean = rawPlan.replace(/\bplan\b/gi, "").trim();
+                      rawPlan = clean ? `${clean} Plan` : rawPlan;
+                    }
+                    const baseDesc = r.description || r.purpose || "Admin Registered Business";
+                    let formattedDesc = baseDesc;
+                    if (rawPlan && !baseDesc.toLowerCase().includes(rawPlan.toLowerCase())) {
+                      if (/\(Cash\)/i.test(baseDesc)) {
+                        formattedDesc = `${baseDesc.replace(/\(Cash\)/i, "").trim()} (${rawPlan}) (Cash)`;
+                      } else {
+                        formattedDesc = `${baseDesc} (${rawPlan})`;
+                      }
+                    }
+                    const ch = (r.collectingChapter || r.chapter || r.business?.chapter || "").trim();
+                    const st = (r.collectingState || r.state || r.business?.state || "").trim();
+                    const loc = ch && ch.toLowerCase() !== "unassigned" ? (st ? `${ch}, ${st}` : ch) : (st || "");
+
+                    return (
+                      <div className="flex flex-col">
+                        <span className="font-medium text-slate-800 dark:text-slate-100">{formattedDesc}</span>
+                        {loc && <span className="text-[11px] text-muted-foreground">{loc}</span>}
+                      </div>
+                    );
+                  },
+                },
                 { key: "date", header: "Date", cell: (r) => new Date(r.paidAt || r.createdAt).toLocaleDateString() },
                 {
                   key: "amount",
@@ -425,8 +495,36 @@ function AdminPayments() {
                   <span className="text-sm">{selectedTransaction.method || "Online"}</span>
                 </div>
                 <div className="col-span-2">
-                  <span className="block text-xs text-muted-foreground mb-1">Description</span>
-                  <span className="text-sm">{selectedTransaction.description || selectedTransaction.purpose || "Membership Subscription"}</span>
+                  <span className="block text-xs text-muted-foreground mb-1">Subscription Item</span>
+                  <span className="text-sm font-semibold">
+                    {(() => {
+                      let rawPlan = selectedTransaction.planTier || selectedTransaction.membershipTier || selectedTransaction.business?.membership || selectedTransaction.membership || "";
+                      if (rawPlan) {
+                        const clean = rawPlan.replace(/\bplan\b/gi, "").trim();
+                        rawPlan = clean ? `${clean} Plan` : rawPlan;
+                      }
+                      const baseDesc = selectedTransaction.description || selectedTransaction.purpose || "Membership Subscription";
+                      if (rawPlan && !baseDesc.toLowerCase().includes(rawPlan.toLowerCase())) {
+                        if (/\(Cash\)/i.test(baseDesc)) {
+                          return `${baseDesc.replace(/\(Cash\)/i, "").trim()} (${rawPlan}) (Cash)`;
+                        }
+                        return `${baseDesc} (${rawPlan})`;
+                      }
+                      return baseDesc;
+                    })()}
+                  </span>
+                </div>
+                <div className="col-span-2">
+                  <span className="block text-xs text-muted-foreground mb-1">Chapter / State</span>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {(() => {
+                      const ch = (selectedTransaction.collectingChapter || selectedTransaction.chapter || selectedTransaction.business?.chapter || selectedTransaction.payer?.chapter || "").trim();
+                      const st = (selectedTransaction.collectingState || selectedTransaction.state || selectedTransaction.business?.state || selectedTransaction.payer?.state || "").trim();
+                      if (ch && st && ch.toLowerCase() !== "unassigned") return `${ch}, ${st}`;
+                      if (ch && ch.toLowerCase() !== "unassigned") return ch;
+                      return st || "RIFAH Central";
+                    })()}
+                  </span>
                 </div>
                 <div className="col-span-2">
                   <span className="block text-xs text-muted-foreground mb-1">Transaction ID</span>

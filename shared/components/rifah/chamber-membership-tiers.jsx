@@ -37,7 +37,7 @@ const TIER_STYLE_CONFIG = {
     waveColor: "text-slate-100/90 dark:text-slate-800/40",
     buttonClass:
       "border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs",
-    buttonText: "Select Silver",
+    buttonText: "Proceed",
     highlight: false,
   },
   gold: {
@@ -54,7 +54,7 @@ const TIER_STYLE_CONFIG = {
     waveColor: "text-amber-100/50 dark:text-amber-950/30",
     buttonClass:
       "border border-amber-500/90 dark:border-amber-500 bg-white dark:bg-slate-900 text-amber-800 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 shadow-2xs",
-    buttonText: "Select Gold",
+    buttonText: "Proceed",
     highlight: false,
   },
   platinum: {
@@ -71,7 +71,7 @@ const TIER_STYLE_CONFIG = {
     waveColor: "text-blue-100/60 dark:text-blue-950/30",
     buttonClass:
       "bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/30",
-    buttonText: "Select Platinum",
+    buttonText: "Proceed",
     highlight: true,
     badgeText: "Most Popular",
   },
@@ -89,7 +89,7 @@ const TIER_STYLE_CONFIG = {
     waveColor: "text-purple-100/50 dark:text-purple-950/30",
     buttonClass:
       "border border-purple-500 dark:border-purple-400 bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 shadow-2xs",
-    buttonText: "Select Diamond",
+    buttonText: "Proceed",
     highlight: false,
   },
   // Legacy aliases
@@ -104,7 +104,7 @@ const TIER_STYLE_CONFIG = {
     durationLabel: "Standard",
     waveColor: "text-slate-100",
     buttonClass: "border border-border bg-card hover:bg-muted text-foreground",
-    buttonText: "Get Started",
+    buttonText: "Proceed",
     highlight: false,
   },
   basic: {
@@ -118,7 +118,7 @@ const TIER_STYLE_CONFIG = {
     durationLabel: "2 Years Validity",
     waveColor: "text-amber-100/50",
     buttonClass: "border border-amber-600 bg-card text-amber-700",
-    buttonText: "Select Basic",
+    buttonText: "Proceed",
     highlight: false,
   },
   premium: {
@@ -132,7 +132,7 @@ const TIER_STYLE_CONFIG = {
     durationLabel: "10 Years Validity",
     waveColor: "text-blue-100/60",
     buttonClass: "bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/30",
-    buttonText: "Select Premium",
+    buttonText: "Proceed",
     highlight: true,
     badgeText: "Most Popular",
   },
@@ -147,7 +147,7 @@ const TIER_STYLE_CONFIG = {
     durationLabel: "25 Years Validity",
     waveColor: "text-purple-100/50",
     buttonClass: "border border-purple-500 bg-card text-purple-700",
-    buttonText: "Select Enterprise",
+    buttonText: "Proceed",
     highlight: false,
   },
 };
@@ -354,10 +354,8 @@ export function ChamberMembershipTiers({
           // Button label
           const isActionSelect = Boolean(onSelectPlan);
           const ctaLabel = isCurrent
-            ? isActionSelect
-              ? "Selected"
-              : `Renew ${plan.name}`
-            : `Select ${plan.name}`;
+            ? (isActionSelect ? "Selected" : `Renew ${plan.name}`)
+            : (style.buttonText || "Proceed");
 
           return (
             <div
@@ -476,17 +474,17 @@ export function ChamberMembershipTiers({
                     type="button"
                     onClick={() => onSelectPlan(plan)}
                     className={cn(
-                      "w-full rounded-full h-11 px-4 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none",
+                      "w-full rounded-full h-11 px-4 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none group",
                       isCurrent
                         ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/25"
                         : style.buttonClass
                     )}
                   >
-                    <span className="whitespace-nowrap">{ctaLabel}</span>
+                    <span className="whitespace-nowrap tracking-wide">{ctaLabel}</span>
                     {isCurrent ? (
                       <Check className="h-4 w-4 shrink-0 stroke-[2.5]" />
                     ) : (
-                      <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.2]" />
+                      <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.2] transition-transform duration-200 group-hover:translate-x-0.5" />
                     )}
                   </button>
                 ) : (
@@ -495,12 +493,12 @@ export function ChamberMembershipTiers({
                       isIntl ? "&currency=USD" : ""
                     }`}
                     className={cn(
-                      "w-full rounded-full h-11 px-4 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none",
+                      "w-full rounded-full h-11 px-4 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none group",
                       style.buttonClass
                     )}
                   >
-                    <span className="whitespace-nowrap">{ctaLabel}</span>
-                    <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.2]" />
+                    <span className="whitespace-nowrap tracking-wide">{ctaLabel}</span>
+                    <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.2] transition-transform duration-200 group-hover:translate-x-0.5" />
                   </Link>
                 )}
               </div>
