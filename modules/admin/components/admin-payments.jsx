@@ -95,25 +95,6 @@ function AdminPayments() {
       doc.setLineWidth(0.5);
       doc.line(mx, y, pw - mx, y);
 
-      // Format Subscription Item with plan name in ()
-      let subscriptionItemText = (r.itemType === "Event Pass" && r.eventId)
-        ? `Event: ${r.eventId.title || "Pass"}`
-        : (r.description || r.purpose || r.itemType || "Membership Subscription");
-
-      const planName = r.planTier || r.business?.membership || "";
-      if (planName && planName !== "Free") {
-        const formattedPlan = planName.toLowerCase().includes("plan") ? planName : `${planName} Plan`;
-        if (subscriptionItemText.includes("Admin Registered Business (Cash)")) {
-          subscriptionItemText = `Admin Registered Business (${formattedPlan}) (Cash)`;
-        } else if (!subscriptionItemText.toLowerCase().includes(formattedPlan.toLowerCase()) && !subscriptionItemText.includes("(")) {
-          subscriptionItemText = `${subscriptionItemText} (${formattedPlan})`;
-        }
-      }
-
-      const chapterName = r.collectingChapter || r.chapter || r.business?.chapter || r.payer?.chapter || "";
-      const stateName = r.collectingState || r.state || r.business?.state || r.payer?.state || "";
-      const chapterStateLocation = [chapterName, stateName].filter(Boolean).join(", ") || (r.business?.city ? `${r.business.city}` : "General / All Chapters");
-
       // --- Details table ---
       y += 8;
 

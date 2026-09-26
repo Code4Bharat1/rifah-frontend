@@ -303,6 +303,7 @@ function RegisterBusiness({ isAdmin = false }) {
   const [businessEmailCheckResult, setBusinessEmailCheckResult] = useState(null);
   const emailDebounceTimerRef = useRef(null);
   const businessEmailDebounceTimerRef = useRef(null);
+
   const handleBusinessLogoUpload = async (file) => {
     if (!file) return;
 
