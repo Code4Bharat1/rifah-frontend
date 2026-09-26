@@ -176,6 +176,38 @@ function RegisterBusiness({ isAdmin = false }) {
   const [submitted, setSubmitted] = useState(false);
   const [paidSuccess, setPaidSuccess] = useState(false);
 
+  const [formData, setFormData] = useState({
+    businessName: "",
+    businessType: "Proprietorship",
+    industry: "",
+    subCategory: "",
+    founded: "",
+    employees: "11–50",
+    about: "",
+    logo: "",
+    avatar: "",
+    contactPerson: "",
+    roleInBusiness: "Founder / Owner",
+    customRoleInBusiness: "",
+    phone: "",
+    businessEmail: "",
+    website: "",
+    instagram: "",
+    linkedin: "",
+    email: convertEmail || "",
+    password: "",
+    taxId: "",
+    address: "",
+    city: "",
+    pincode: "",
+    state: "",
+    chapter: "",
+    dob: "",
+    joiningDate: new Date().toISOString().split("T")[0],
+    timezone: typeof window !== "undefined" ? (Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata") : "Asia/Kolkata",
+    region: "national",
+  });
+
   useEffect(() => {
     if (plans.length > 0 && !plans.some((plan) => plan.id === tier)) {
       setTier((plans.find((plan) => plan.isRecommended) || plans[0]).id);
@@ -247,38 +279,6 @@ function RegisterBusiness({ isAdmin = false }) {
   const [otpError, setOtpError] = useState("");
   const [otpSuccess, setOtpSuccess] = useState("");
   const otpInputRefs = useRef([]);
-
-  const [formData, setFormData] = useState({
-    businessName: "",
-    businessType: "Proprietorship",
-    industry: "",
-    subCategory: "",
-    founded: "",
-    employees: "11–50",
-    about: "",
-    logo: "",
-    avatar: "",
-    contactPerson: "",
-    roleInBusiness: "Founder / Owner",
-    customRoleInBusiness: "",
-    phone: "",
-    businessEmail: "",
-    website: "",
-    instagram: "",
-    linkedin: "",
-    email: convertEmail || "",
-    password: "",
-    taxId: "",
-    address: "",
-    city: "",
-    pincode: "",
-    state: "",
-    chapter: "",
-    dob: "",
-    joiningDate: new Date().toISOString().split("T")[0],
-    timezone: typeof window !== "undefined" ? (Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata") : "Asia/Kolkata",
-    region: "national",
-  });
 
   const handleBusinessLogoUpload = async (file) => {
     if (!file) return;
