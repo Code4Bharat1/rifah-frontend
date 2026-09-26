@@ -363,8 +363,8 @@ export function ChamberMembershipTiers({
             <div
               key={plan.id}
               className={cn(
-                "relative flex flex-col items-center justify-between rounded-3xl p-5 sm:p-6 pt-9 pb-7 text-center transition-all duration-300",
-                hasTheory ? "min-h-[440px]" : "min-h-[290px]",
+                "relative flex flex-col items-center justify-between rounded-2xl sm:rounded-3xl p-4 sm:p-6 pt-8 sm:pt-9 pb-6 sm:pb-7 text-center transition-all duration-300 w-full min-w-0",
+                hasTheory ? "min-h-[400px] sm:min-h-[440px]" : "min-h-[270px] sm:min-h-[290px]",
                 style.cardBg || "bg-white dark:bg-slate-900",
                 style.cardBorder,
                 isCurrent && "ring-2 ring-emerald-500 border-emerald-500 shadow-xl",

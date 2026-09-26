@@ -130,18 +130,11 @@ export function Panel({
   children,
   className,
   bodyClassName,
-}
-
-
-
-
-
-
-) {
+}) {
   return (
-    <section className={cn("rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden", className)}>
+    <section className={cn("rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden w-full min-w-0", className)}>
       {(title || action) && (
-        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-slate-100 dark:border-slate-800 px-5 py-4">
+        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 border-b border-slate-100 dark:border-slate-800 px-3.5 sm:px-5 py-3 sm:py-4">
           <div className="min-w-0">
             {title && (
               typeof title === "string" ? (
@@ -155,7 +148,7 @@ export function Panel({
           {action}
         </header>
       )}
-      <div className={cn("p-4 md:p-5", bodyClassName)}>{children}</div>
+      <div className={cn("p-3.5 sm:p-5", bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -271,14 +264,14 @@ export function FieldRow({ label, value }) {
 
 export function Steps({ steps, current }) {
   return (
-    <ol className="flex items-center gap-2 overflow-x-auto no-scrollbar" aria-label="Progress">
+    <ol className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar w-full min-w-0 py-1" aria-label="Progress">
       {steps.map((s, i) => {
         const state = i < current ? "done" : i === current ? "current" : "todo";
         return (
-          <li key={s} className="flex shrink-0 items-center gap-2">
+          <li key={s} className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <span
               className={cn(
-                "grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold",
+                "grid h-5.5 w-5.5 sm:h-6 sm:w-6 shrink-0 place-items-center rounded-full text-[10px] sm:text-[11px] font-bold",
                 state === "done" && "bg-success text-success-foreground",
                 state === "current" && "bg-primary text-primary-foreground",
                 state === "todo" && "bg-muted text-muted-foreground",
@@ -294,7 +287,7 @@ export function Steps({ steps, current }) {
             >
               {s}
             </span>
-            {i < steps.length - 1 && <span className="h-px w-6 bg-border" />}
+            {i < steps.length - 1 && <span className="h-px w-3 sm:w-6 bg-border shrink-0" />}
           </li>
         );
       })}

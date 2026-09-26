@@ -920,7 +920,7 @@ function RegisterBusiness({ isAdmin = false }) {
     <Wrapper>
       {/* INITIAL JURISDICTION SELECTION MODAL POPUP */}
       <Dialog open={showRegionModal && !isAdmin} onOpenChange={setShowRegionModal}>
-        <DialogContent className="w-[94vw] max-w-xl p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl font-sans">
+        <DialogContent className="w-[94vw] max-w-xl p-4 sm:p-7 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl font-sans max-h-[90vh] overflow-y-auto">
           <DialogHeader className="space-y-1.5 text-left">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold w-fit">
               <Sparkles className="h-3.5 w-3.5" /> Select Business Jurisdiction
@@ -1017,13 +1017,13 @@ function RegisterBusiness({ isAdmin = false }) {
         </DialogContent>
       </Dialog>
 
-      <div className="rifah-container py-6 sm:py-10">
-        <div className={cn("mx-auto transition-all duration-300", step === 3 ? "max-w-6xl" : "max-w-2xl")}>
+      <div className="rifah-container py-4 sm:py-10 max-w-full overflow-x-hidden">
+        <div className={cn("mx-auto w-full min-w-0 transition-all duration-300", step === 3 ? "max-w-6xl" : "max-w-2xl")}>
           <SectionHeader
             title="List your business with RIFAH"
             description="Four short steps. Join the chamber network to receive verified buyer leads."
           />
-          <div className="mt-5">
+          <div className="mt-4 sm:mt-5 w-full min-w-0">
             <Steps steps={steps} current={step} />
           </div>
 
@@ -1129,19 +1129,19 @@ function RegisterBusiness({ isAdmin = false }) {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {/* Jurisdiction Selector Toggle Bar */}
                   <div className="space-y-2 sm:col-span-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2">
                       <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                         Business Jurisdiction & Currency *
                       </Label>
                       <button
                         type="button"
                         onClick={() => setShowRegionModal(true)}
-                        className="text-xs text-primary font-semibold hover:underline cursor-pointer"
+                        className="text-xs text-primary font-semibold hover:underline cursor-pointer self-start sm:self-auto"
                       >
                         Change Registration Type
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                       <button
                         type="button"
                         onClick={() => {
@@ -1149,7 +1149,7 @@ function RegisterBusiness({ isAdmin = false }) {
                           setError("");
                         }}
                         className={cn(
-                          "flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all cursor-pointer",
+                          "flex items-center gap-3 p-3 sm:p-3.5 rounded-xl border text-left transition-all cursor-pointer w-full min-w-0",
                           formData.region === "national"
                             ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs"
                             : "border-border hover:bg-muted/40"
@@ -1160,7 +1160,7 @@ function RegisterBusiness({ isAdmin = false }) {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-sm font-bold text-slate-900 dark:text-white">National (India)</span>
+                            <span className="text-sm font-bold text-slate-900 dark:text-white truncate">National (India)</span>
                             {formData.region === "national" && (
                               <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                             )}
@@ -1178,7 +1178,7 @@ function RegisterBusiness({ isAdmin = false }) {
                           setError("");
                         }}
                         className={cn(
-                          "flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all cursor-pointer",
+                          "flex items-center gap-3 p-3 sm:p-3.5 rounded-xl border text-left transition-all cursor-pointer w-full min-w-0",
                           formData.region === "international"
                             ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs"
                             : "border-border hover:bg-muted/40"
@@ -1189,7 +1189,7 @@ function RegisterBusiness({ isAdmin = false }) {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-sm font-bold text-slate-900 dark:text-white">International</span>
+                            <span className="text-sm font-bold text-slate-900 dark:text-white truncate">International</span>
                             {formData.region === "international" && (
                               <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                             )}
@@ -1204,9 +1204,9 @@ function RegisterBusiness({ isAdmin = false }) {
 
                   {/* NATIONAL ONLY: 15-digit GSTIN Verification Box */}
                   {formData.region === "national" && (
-                    <div className="space-y-2 sm:col-span-2 rounded-2xl border border-slate-200/90 bg-slate-50/50 dark:bg-slate-800/40 dark:border-slate-800 p-4 animate-in fade-in duration-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                    <div className="space-y-2 sm:col-span-2 rounded-2xl border border-slate-200/90 bg-slate-50/50 dark:bg-slate-800/40 dark:border-slate-800 p-3.5 sm:p-4 animate-in fade-in duration-200">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <Label htmlFor="bgst" className="font-bold text-sm text-slate-900 dark:text-white">
                             GSTIN / GST Number <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
                           </Label>
@@ -1214,13 +1214,13 @@ function RegisterBusiness({ isAdmin = false }) {
                             Optional (India)
                           </span>
                         </div>
-                        <span className="text-[11px] font-mono text-muted-foreground font-semibold">
+                        <span className="text-[11px] font-mono text-muted-foreground font-semibold shrink-0">
                           {(formData.taxId || "").length}/15
                         </span>
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <div className="relative flex-1">
+                        <div className="relative flex-1 min-w-0">
                           <FastInput
                             id="bgst"
                             maxLength={15}
@@ -1298,9 +1298,9 @@ function RegisterBusiness({ isAdmin = false }) {
 
                   {/* INTERNATIONAL ONLY: Business Certificate Upload Section (NO GST/TAX FIELD) */}
                   {formData.region === "international" && (
-                    <div className="space-y-3 sm:col-span-2 rounded-2xl border border-slate-200/90 bg-slate-50/50 dark:bg-slate-800/40 dark:border-slate-800 p-4 animate-in fade-in duration-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                    <div className="space-y-3 sm:col-span-2 rounded-2xl border border-slate-200/90 bg-slate-50/50 dark:bg-slate-800/40 dark:border-slate-800 p-3.5 sm:p-4 animate-in fade-in duration-200">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <Label className="font-bold text-sm text-slate-900 dark:text-white">
                             Official Business Certificate / License <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
                           </Label>
@@ -1410,24 +1410,24 @@ function RegisterBusiness({ isAdmin = false }) {
                   <div
                     id="owner-photo-upload"
                     className={cn(
-                      "sm:col-span-2 space-y-2 rounded-2xl border p-4 transition-colors",
+                      "sm:col-span-2 space-y-2 rounded-2xl border p-3.5 sm:p-4 transition-colors",
                       ownerPhotoRequired && !ownerPhotoPreview
                         ? "border-red-400 bg-red-50/40 dark:border-red-800 dark:bg-red-950/20"
                         : "border-slate-200/90 bg-slate-50/50 dark:bg-slate-800/40 dark:border-slate-800"
                     )}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                         <Label className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <Camera className="h-4 w-4 text-primary" />
-                          Business Owner / Personal Photo
+                          <Camera className="h-4 w-4 text-primary shrink-0" />
+                          <span>Business Owner / Personal Photo</span>
                           <span className="text-red-500 font-bold">*</span>
-                          {ownerPhotoRequired && !ownerPhotoPreview && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-2 py-0.5 rounded-full border border-red-200 dark:border-red-800 ml-1">
-                              <AlertCircle className="h-3 w-3" /> Required
-                            </span>
-                          )}
                         </Label>
+                        {ownerPhotoRequired && !ownerPhotoPreview && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-2 py-0.5 rounded-full border border-red-200 dark:border-red-800 ml-1">
+                            <AlertCircle className="h-3 w-3" /> Required
+                          </span>
+                        )}
                       </div>
                       {ownerPhotoPreview && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
@@ -1436,9 +1436,9 @@ function RegisterBusiness({ isAdmin = false }) {
                       )}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <div className="w-full min-w-0">
                       {ownerPhotoPreview ? (
-                        <div className="flex items-center gap-4 w-full bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3.5 w-full bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
                           <div className="relative h-16 w-16 shrink-0 rounded-full overflow-hidden border-2 border-primary/30 bg-muted grid place-items-center">
                             <img
                               src={ownerPhotoPreview}
@@ -1451,7 +1451,7 @@ function RegisterBusiness({ isAdmin = false }) {
                               </div>
                             )}
                           </div>
-                          <div className="min-w-0 flex-1">
+                          <div className="min-w-0 flex-1 text-center sm:text-left">
                             <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
                               {ownerPhotoFile?.name || "Owner Profile Photo"}
                             </p>
@@ -1462,7 +1462,7 @@ function RegisterBusiness({ isAdmin = false }) {
                                 ? `${(ownerPhotoFile.size / 1024).toFixed(1)} KB · Ready`
                                 : "Ready"}
                             </p>
-                            <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
                               <Button
                                 type="button"
                                 variant="outline"
@@ -1491,24 +1491,24 @@ function RegisterBusiness({ isAdmin = false }) {
                         <div
                           onClick={() => ownerPhotoInputRef.current?.click()}
                           className={cn(
-                            "w-full flex items-center gap-3.5 p-3.5 rounded-xl border-2 border-dashed transition-all cursor-pointer group",
+                            "w-full flex items-center gap-3 p-3 sm:p-3.5 rounded-xl border-2 border-dashed transition-all cursor-pointer group",
                             ownerPhotoRequired
                               ? "border-red-400 dark:border-red-700 bg-red-50/60 dark:bg-red-950/20 hover:border-red-500 hover:bg-red-50"
                               : "border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60 hover:border-primary hover:bg-primary/5"
                           )}
                         >
-                          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                          <div className="grid h-10 w-10 sm:h-12 sm:w-12 shrink-0 place-items-center rounded-full bg-primary/10 text-primary group-hover:scale-105 transition-transform">
                             {ownerPhotoUploading ? (
-                              <Loader2 className="h-6 w-6 animate-spin" />
+                              <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
                             ) : (
-                              <Camera className="h-6 w-6" />
+                              <Camera className="h-5 w-5 sm:h-6 sm:w-6" />
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors leading-snug">
                               Click to upload Business Owner / Personal Photo <span className="text-red-500 font-bold">*</span>
                             </p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                            <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
                               PNG, JPG, WEBP up to 10 MB (Displayed on your profile, directory & member badge)
                             </p>
                           </div>
@@ -1516,10 +1516,10 @@ function RegisterBusiness({ isAdmin = false }) {
                             type="button"
                             variant="secondary"
                             size="sm"
-                            className="h-8 text-xs px-3 shrink-0 pointer-events-none group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                            className="hidden sm:inline-flex h-8 text-xs px-3 shrink-0 pointer-events-none group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                           >
                             <Upload className="h-3.5 w-3.5 mr-1" />
-                            Browse Photo
+                            Browse
                           </Button>
                         </div>
                       )}
@@ -1762,7 +1762,7 @@ function RegisterBusiness({ isAdmin = false }) {
                     <p className="text-[10px] text-muted-foreground">Defaults to today. Used for annual RIFAH membership anniversary milestones & chapter recognition.</p>
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
                       <Label htmlFor="bemail" className="font-semibold text-slate-800 dark:text-slate-200">
                         Official Business Email
                       </Label>
@@ -1946,7 +1946,7 @@ function RegisterBusiness({ isAdmin = false }) {
 
                   {/* Account Email Field */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
                       <Label htmlFor="reg-email" className="font-bold text-sm text-slate-900 dark:text-white">
                         Owner Personal Email *
                       </Label>
@@ -2052,7 +2052,7 @@ function RegisterBusiness({ isAdmin = false }) {
 
                   {/* Step 2: 6-Digit Verification Code Box (Matching Forgot Password Theme) */}
                   {!isAdmin && otpSent && !emailVerified && (
-                    <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] p-5 space-y-4 shadow-sm animate-in fade-in duration-200">
+                    <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] p-4 sm:p-5 space-y-4 shadow-sm animate-in fade-in duration-200">
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <Label className="text-sm font-bold text-[#0f172a]">
@@ -2073,7 +2073,7 @@ function RegisterBusiness({ isAdmin = false }) {
                         </p>
 
                         {/* 6 Individual Digit Input Boxes */}
-                        <div className="flex items-center justify-between gap-2 sm:gap-2.5 my-3">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 my-3 w-full max-w-full">
                           {otpDigits.map((digit, idx) => (
                             <input
                               key={idx}
@@ -2093,7 +2093,7 @@ function RegisterBusiness({ isAdmin = false }) {
                                   handleOtpDigitChange(idx, pasteData);
                                 }
                               }}
-                              className={`h-16 w-11 sm:w-14 rounded-2xl border text-center text-2xl font-bold transition-all outline-none bg-white ${digit
+                              className={`h-12 w-9 sm:h-16 sm:w-14 rounded-xl sm:rounded-2xl border text-center text-xl sm:text-2xl font-bold transition-all outline-none bg-white ${digit
                                   ? "border-slate-300 text-slate-900 shadow-sm"
                                   : "border-slate-200 text-slate-900"
                                 } focus:border-[#0060df] focus:ring-4 focus:ring-blue-100/70`}
@@ -2256,7 +2256,7 @@ function RegisterBusiness({ isAdmin = false }) {
                   if (totalPayable > 0) {
                     return (
                       <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-900/40 p-4 sm:p-5 space-y-3 animate-in fade-in duration-200">
-                        <div className="flex items-center justify-between pb-3 border-b border-blue-200/70 dark:border-blue-900/50">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-blue-200/70 dark:border-blue-900/50">
                           <div>
                             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Selected Membership Tier</span>
                             <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mt-0.5">
@@ -2266,7 +2266,7 @@ function RegisterBusiness({ isAdmin = false }) {
                               </span>
                             </h4>
                           </div>
-                          <div className="text-right">
+                          <div className="text-left sm:text-right">
                             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                               Total Payable ({isIntl ? "USD" : "INR"})
                             </span>
