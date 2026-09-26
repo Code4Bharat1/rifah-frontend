@@ -36,6 +36,7 @@ function AdminPayments() {
   const [filter, setFilter] = useState("all");
 
   const filteredPayments = payments.filter((p) => {
+    if (filter === "revenue") return (p.status === "completed" || p.status === "Paid") && Number(p.amount || 0) > 0;
     if (filter === "completed") return p.status === "completed" || p.status === "Paid";
     if (filter === "pending") return p.status === "pending" || p.status === "Pending";
     if (filter === "events") return p.itemType === "Event Pass";
@@ -263,8 +264,8 @@ function AdminPayments() {
             value={`₹ ${totalRevenue.toLocaleString("en-IN")}`}
             icon={Wallet}
             tone="success"
-            active={filter === "all"}
-            onClick={() => setFilter("all")}
+            active={filter === "revenue"}
+            onClick={() => setFilter(filter === "revenue" ? "all" : "revenue")}
           />
           <StatCard
             label="Transactions"
@@ -280,7 +281,7 @@ function AdminPayments() {
             icon={CheckCircle2}
             tone="success"
             active={filter === "completed"}
-            onClick={() => setFilter("completed")}
+            onClick={() => setFilter(filter === "completed" ? "all" : "completed")}
           />
           <StatCard
             label="Pending"
@@ -288,7 +289,7 @@ function AdminPayments() {
             icon={Clock}
             tone="warning"
             active={filter === "pending"}
-            onClick={() => setFilter("pending")}
+            onClick={() => setFilter(filter === "pending" ? "all" : "pending")}
           />
           <StatCard
             label="Event Passes"
@@ -296,7 +297,7 @@ function AdminPayments() {
             icon={Ticket}
             tone="primary"
             active={filter === "events"}
-            onClick={() => setFilter("events")}
+            onClick={() => setFilter(filter === "events" ? "all" : "events")}
           />
           <StatCard
             label="Cash Registrations"
@@ -304,11 +305,25 @@ function AdminPayments() {
             icon={Banknote}
             tone="success"
             active={filter === "cash"}
-            onClick={() => setFilter("cash")}
+            onClick={() => setFilter(filter === "cash" ? "all" : "cash")}
           />
         </div>
 
-        <Panel title={filter === "all" ? "Transaction ledger" : filter === "completed" ? "Completed Transactions" : filter === "events" ? "Event Payments" : filter === "cash" ? "Cash Business Registrations" : "Pending Transactions"}>
+        <Panel 
+          title={
+            filter === "revenue"
+              ? `Revenue Ledger (${filteredPayments.length} Paid • ₹ ${totalRevenue.toLocaleString("en-IN")})`
+              : filter === "completed"
+                ? `Completed Transactions (${filteredPayments.length})`
+                : filter === "pending"
+                  ? `Pending Transactions (${filteredPayments.length})`
+                  : filter === "events"
+                    ? `Event Payments (${filteredPayments.length})`
+                    : filter === "cash"
+                      ? `Cash Business Registrations (${filteredPayments.length})`
+                      : `All Transactions (${payments.length})`
+          }
+        >
           {error ? (
             <EmptyState
               icon={Wallet}

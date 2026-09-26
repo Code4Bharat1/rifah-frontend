@@ -462,7 +462,7 @@ function BusinessHome() {
           />
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] w-full min-w-0">
           {/* Main Left Column */}
           <div className="space-y-4">
             {/* Matched Leads Panel */}

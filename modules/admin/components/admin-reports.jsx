@@ -631,8 +631,8 @@ export function AdminReports() {
           {user?.role !== "chapter_admin" && (
             <Panel 
               title={
-                <div className="flex items-center gap-2 whitespace-nowrap">
-                  <span className="font-bold text-slate-900 dark:text-white shrink-0">Revenue & Payments</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap min-w-0">
+                  <span className="font-bold text-slate-900 dark:text-white shrink-0 text-sm">Revenue & Payments</span>
                   <select
                     value={revenueFilter}
                     onChange={(e) => setRevenueFilter(e.target.value)}
@@ -682,7 +682,7 @@ export function AdminReports() {
                     ? `Export all ${revenueFilter} payment transactions and invoices.`
                     : `Export all ${revenueFilter.toLowerCase()} status transactions and receipts.`}
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                     <Input type="date" max="9999-12-31" value={revenueDates.start} onChange={e => setRevenueDates({...revenueDates, start: e.target.value})} />
@@ -692,29 +692,29 @@ export function AdminReports() {
                     <Input type="date" max="9999-12-31" value={revenueDates.end} onChange={e => setRevenueDates({...revenueDates, end: e.target.value})} />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full px-1.5 sm:px-3 text-xs"
                     onClick={() => handleView('revenue')}
                     disabled={viewing.revenue}
                   >
-                    <Eye className="mr-2 h-4 w-4" /> View
+                    <Eye className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> View
                   </Button>
                   <Button
-                    className="w-full"
+                    className="w-full px-1.5 sm:px-3 text-xs"
                     onClick={() => handleDownload('revenue', 'csv')}
                     disabled={loading.revenue}
                   >
-                    <FileDown className="mr-2 h-4 w-4" /> CSV
+                    <FileDown className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> CSV
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full px-1.5 sm:px-3 text-xs"
                     onClick={() => handleDownload('revenue', 'pdf')}
                     disabled={loading.revenue}
                   >
-                    <FileDown className="mr-2 h-4 w-4" /> PDF
+                    <FileDown className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> PDF
                   </Button>
                 </div>
               </div>
@@ -724,8 +724,8 @@ export function AdminReports() {
         {/* Memberships Report */}
         <Panel 
           title={
-            <div className="flex items-center gap-2 whitespace-nowrap">
-              <span className="font-bold text-slate-900 dark:text-white shrink-0">Memberships</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap min-w-0">
+              <span className="font-bold text-slate-900 dark:text-white shrink-0 text-sm">Memberships</span>
               <select
                 value={memberFilter}
                 onChange={(e) => setMemberFilter(e.target.value)}
@@ -768,7 +768,7 @@ export function AdminReports() {
                 ? "Export all registered active users, their roles, and chapters."
                 : `Export registered ${memberFilter} tier members, their roles, and chapters.`}
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                 <Input type="date" max="9999-12-31" value={memberDates.start} onChange={e => setMemberDates({...memberDates, start: e.target.value})} />
@@ -778,29 +778,29 @@ export function AdminReports() {
                 <Input type="date" max="9999-12-31" value={memberDates.end} onChange={e => setMemberDates({...memberDates, end: e.target.value})} />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full px-1.5 sm:px-3 text-xs"
                 onClick={() => handleView('memberships')}
                 disabled={viewing.members}
               >
-                <Eye className="mr-2 h-4 w-4" /> View
+                <Eye className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> View
               </Button>
               <Button
-                className="w-full"
+                className="w-full px-1.5 sm:px-3 text-xs"
                 onClick={() => handleDownload('memberships', 'csv')}
                 disabled={loading.members}
               >
-                <FileDown className="mr-2 h-4 w-4" /> CSV
+                <FileDown className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> CSV
               </Button>
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full px-1.5 sm:px-3 text-xs"
                 onClick={() => handleDownload('memberships', 'pdf')}
                 disabled={loading.members}
               >
-                <FileDown className="mr-2 h-4 w-4" /> PDF
+                <FileDown className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> PDF
               </Button>
             </div>
           </div>
@@ -832,7 +832,7 @@ export function AdminReports() {
                 ? "Export enquiry data, statuses, and sources." 
                 : "Export lead distribution data, statuses, and enquiry sources."}
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                 <Input type="date" max="9999-12-31" value={leadDates.start} onChange={e => setLeadDates({...leadDates, start: e.target.value})} />
@@ -842,29 +842,29 @@ export function AdminReports() {
                 <Input type="date" max="9999-12-31" value={leadDates.end} onChange={e => setLeadDates({...leadDates, end: e.target.value})} />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full px-1.5 sm:px-3 text-xs"
                 onClick={() => handleView('leads')}
                 disabled={viewing.leads}
               >
-                <Eye className="mr-2 h-4 w-4" /> View
+                <Eye className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> View
               </Button>
               <Button
-                className="w-full"
+                className="w-full px-1.5 sm:px-3 text-xs"
                 onClick={() => handleDownload('leads', 'csv')}
                 disabled={loading.leads}
               >
-                <FileDown className="mr-2 h-4 w-4" /> CSV
+                <FileDown className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> CSV
               </Button>
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full px-1.5 sm:px-3 text-xs"
                 onClick={() => handleDownload('leads', 'pdf')}
                 disabled={loading.leads}
               >
-                <FileDown className="mr-2 h-4 w-4" /> PDF
+                <FileDown className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> PDF
               </Button>
             </div>
           </div>
@@ -893,7 +893,7 @@ export function AdminReports() {
           >
             <div className="space-y-4 pt-2">
               <p className="text-sm text-muted-foreground">Export all registered businesses and their verification status.</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                   <Input type="date" max="9999-12-31" value={businessDates.start} onChange={e => setBusinessDates({...businessDates, start: e.target.value})} />
@@ -903,29 +903,29 @@ export function AdminReports() {
                   <Input type="date" max="9999-12-31" value={businessDates.end} onChange={e => setBusinessDates({...businessDates, end: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full px-1.5 sm:px-3 text-xs"
                   onClick={() => handleView('businesses')}
                   disabled={viewing.businesses}
                 >
-                  <Eye className="mr-2 h-4 w-4" /> View
+                  <Eye className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> View
                 </Button>
                 <Button
-                  className="w-full"
+                  className="w-full px-1.5 sm:px-3 text-xs"
                   onClick={() => handleDownload('businesses', 'csv')}
                   disabled={loading.businesses}
                 >
-                  <FileDown className="mr-2 h-4 w-4" /> CSV
+                  <FileDown className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> CSV
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full px-1.5 sm:px-3 text-xs"
                   onClick={() => handleDownload('businesses', 'pdf')}
                   disabled={loading.businesses}
                 >
-                  <FileDown className="mr-2 h-4 w-4" /> PDF
+                  <FileDown className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> PDF
                 </Button>
               </div>
             </div>

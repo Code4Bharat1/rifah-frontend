@@ -641,7 +641,7 @@ export function AppShell({
   }, [nav]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-sidebar lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
@@ -796,7 +796,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 w-full max-w-full overflow-x-hidden">
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
           <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 md:h-16 md:px-6">
@@ -859,8 +859,8 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="px-3 pb-24 pt-3 sm:px-4 sm:pb-24 sm:pt-4 md:px-6 md:pb-10 md:pt-6 xl:px-10">
-          <div className="mx-auto w-full max-w-[1440px]">
+        <main className="w-full max-w-full overflow-x-hidden px-3 pb-24 pt-3 sm:px-4 sm:pb-24 sm:pt-4 md:px-6 md:pb-10 md:pt-6 xl:px-10">
+          <div className="mx-auto w-full min-w-0 max-w-[1440px]">
             <BirthdayBanner />
             {isGatedPage ? (
               <UnderApprovalAccessGate business={businessData} path={path} />
@@ -1336,15 +1336,15 @@ export function BottomNav({ role, isBizVerified = true }) {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden max-w-full overflow-hidden"
       aria-label="Primary"
     >
-      <ul className={cn("grid", primary.length === 6 ? "grid-cols-6" : "grid-cols-5")}>
+      <ul className={cn("grid w-full", primary.length === 6 ? "grid-cols-6" : "grid-cols-5")}>
         {primary.map((item) => {
           const active = path === item.to;
           const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(item.to);
           return (
-            <li key={item.label}>
+            <li key={item.label} className="min-w-0">
               <Link
                 href={item.to}
                 onClick={(e) => {
@@ -1354,18 +1354,18 @@ export function BottomNav({ role, isBizVerified = true }) {
                   }
                 }}
                 className={cn(
-                  "flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium text-muted-foreground relative",
-                  active && "text-primary",
+                  "flex min-h-[54px] flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] sm:text-[11px] font-medium text-muted-foreground relative leading-tight",
+                  active && "text-primary font-semibold",
                   isLocked && "opacity-70"
                 )}
               >
                 <div className="relative">
-                  <item.icon className={cn("h-5 w-5", active && "text-primary")} />
+                  <item.icon className={cn("h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0", active && "text-primary")} />
                   {isLocked && (
                     <Lock className="h-2.5 w-2.5 absolute -top-1 -right-1 text-muted-foreground" />
                   )}
                 </div>
-                <span className="truncate">{item.label}</span>
+                <span className="truncate max-w-full text-center">{item.label}</span>
               </Link>
             </li>
           );
