@@ -34,12 +34,18 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
   const searchInputRef = useRef(null);
   const numberInputRef = useRef(null);
 
-  // Synchronize when value changes externally
+  // Synchronize when value changes externally (avoid resetting state if digits already match)
   useEffect(() => {
     const nextParsed = parsePhoneNumber(value, defaultCountry);
-    setSelectedCountry(nextParsed.country || DEFAULT_COUNTRY);
-    setNationalNumber(nextParsed.nationalNumber || "");
-  }, [value, defaultCountry]);
+    if (nextParsed.country && nextParsed.country.code !== selectedCountry.code) {
+      setSelectedCountry(nextParsed.country);
+    }
+    const currentDigits = (nationalNumber || "").replace(/\D/g, "");
+    const nextDigits = (nextParsed.nationalNumber || "").replace(/\D/g, "");
+    if (currentDigits !== nextDigits) {
+      setNationalNumber(nextParsed.nationalNumber || "");
+    }
+  }, [value, defaultCountry, selectedCountry.code]);
 
   // Native <form onReset> clears the DOM input but not this component's own
   // state, so the visible value snaps back on the next render (BUG-010).
@@ -135,10 +141,36 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
 
   const MAX_NATIONAL_DIGITS = 10;
 
+  const handleInputRef = React.useCallback(
+    (el) => {
+      numberInputRef.current = el;
+      if (typeof forwardedRef === "function") forwardedRef(el);
+      else if (forwardedRef) forwardedRef.current = el;
+    },
+    [forwardedRef]
+  );
+
   const handleNumberChange = (e) => {
-    const inputVal = e.target.value;
+    let inputVal = e.target.value;
+    // If user pasted a full number with country code like "+91 9876543210"
+    if (inputVal.startsWith("+")) {
+      const p = parsePhoneNumber(inputVal, selectedCountry?.code || defaultCountry);
+      if (p.country) setSelectedCountry(p.country);
+      const digits = (p.nationalNumber || "").replace(/\D/g, "").slice(0, MAX_NATIONAL_DIGITS);
+      setNationalNumber(digits);
+      triggerChange(p.country || selectedCountry, digits);
+      return;
+    }
     // Allow digits, spaces, hyphens
-    const cleaned = inputVal.replace(/[^\d\s\-]/g, "");
+    let cleaned = inputVal.replace(/[^\d\s\-]/g, "");
+    const rawDigits = cleaned.replace(/\D/g, "");
+    // If Indian number pasted with 91 prefix without plus (e.g. 919876543210)
+    if (selectedCountry?.code === "IN" && rawDigits.startsWith("91") && rawDigits.length === 12) {
+      cleaned = rawDigits.slice(2);
+    } else if (rawDigits.startsWith("0") && rawDigits.length > 10) {
+      // Strip leading 0 if full number entered with trunk prefix (e.g. 09876543210)
+      cleaned = rawDigits.replace(/^0+/, "");
+    }
     const digitCount = (cleaned.match(/\d/g) || []).length;
     if (digitCount > MAX_NATIONAL_DIGITS) return;
     setNationalNumber(cleaned);
@@ -189,11 +221,7 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
 
       {/* National Number Input */}
       <input
-        ref={(el) => {
-          numberInputRef.current = el;
-          if (typeof forwardedRef === "function") forwardedRef(el);
-          else if (forwardedRef) forwardedRef.current = el;
-        }}
+        ref={handleInputRef}
         id={id}
         name={name ? `${name}_national` : undefined}
         type="tel"

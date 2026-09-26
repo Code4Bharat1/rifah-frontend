@@ -193,7 +193,7 @@ export function ResponsiveTable({
 }) {
   if (!rows || rows.length === 0) return empty ? <>{empty}</> : null;
 
-  const renderMobileItem = typeof mobile === "function" ? mobile : (r) => (
+  const renderMobileItem = typeof mobile === "function" ? mobile : (r, i) => (
     <div 
       className={cn("rounded-xl border border-border bg-card p-3.5 space-y-2 text-xs", onRowClick && "cursor-pointer hover:border-primary/50 transition-colors")}
       onClick={() => onRowClick && onRowClick(r)}
@@ -202,10 +202,10 @@ export function ResponsiveTable({
         c.header ? (
           <div key={c.key} className="flex justify-between items-center">
             <span className="text-muted-foreground font-medium">{c.header}</span>
-            <div>{c.cell(r)}</div>
+            <div>{c.cell(r, i)}</div>
           </div>
         ) : (
-          <div key={c.key} className="pt-1 flex justify-end">{c.cell(r)}</div>
+          <div key={c.key} className="pt-1 flex justify-end">{c.cell(r, i)}</div>
         )
       ))}
     </div>
@@ -241,7 +241,7 @@ export function ResponsiveTable({
               >
                 {columns.map((c) => (
                   <td key={c.key} className={cn("px-3 py-3 align-middle", c.className)}>
-                    {c.cell(r)}
+                    {c.cell(r, i)}
                   </td>
                 ))}
               </tr>
