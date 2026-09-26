@@ -477,6 +477,25 @@ function BizProfile() {
         </div>
       }
     >
+      {business?.adminRemark && (
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-orange-300 bg-orange-50/90 dark:border-orange-800 dark:bg-orange-950/40 p-4 text-orange-950 dark:text-orange-200 shadow-2xs animate-in fade-in duration-200">
+          <div className="flex items-start gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-100 dark:bg-orange-900/60 text-orange-600 dark:text-orange-400">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-sm font-bold text-orange-950 dark:text-white">
+                  Important Message from Admin
+                </h4>
+              </div>
+              <p className="mt-1 text-sm text-orange-900/90 dark:text-orange-300/90 whitespace-pre-wrap">
+                {business.adminRemark}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Incomplete Profile Alert Banner (Red for attention) */}
       {isNotSubmitted && (
         <div className="mb-6 rounded-2xl border border-red-400 bg-red-50/95 dark:border-red-800 dark:bg-red-950/40 p-4 sm:p-5 text-red-950 dark:text-red-100 shadow-xs animate-in fade-in duration-200">

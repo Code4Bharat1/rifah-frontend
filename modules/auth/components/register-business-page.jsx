@@ -184,6 +184,27 @@ function RegisterBusiness({ isAdmin = false }) {
 
   // Admin Specific
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [cashCollectingState, setCashCollectingState] = useState("");
+  const [cashCollectingChapter, setCashCollectingChapter] = useState("");
+
+  useEffect(() => {
+    if (isAdmin) {
+      if (!cashCollectingState && (formData.state || user?.state)) {
+        setCashCollectingState(formData.state || user?.state || "");
+      }
+      if (!cashCollectingChapter && (formData.chapter || user?.chapter)) {
+        setCashCollectingChapter(formData.chapter || user?.chapter || "");
+      }
+    }
+  }, [isAdmin, formData.state, formData.chapter, user?.state, user?.chapter, cashCollectingState, cashCollectingChapter]);
+
+  const collectingChaptersList = React.useMemo(() => {
+    if (!cashCollectingState) return chapters;
+    const filtered = chapters.filter(
+      (c) => (c.state || "").trim().toLowerCase() === cashCollectingState.trim().toLowerCase()
+    );
+    return filtered.length > 0 ? filtered : chapters;
+  }, [chapters, cashCollectingState]);
 
   // Region Selection Modal Popup State
   const [showRegionModal, setShowRegionModal] = useState(true);
@@ -674,45 +695,71 @@ function RegisterBusiness({ isAdmin = false }) {
           : (formData.roleInBusiness || "Founder / Owner")
       ).trim();
 
-      // If Admin and Cash Payment
-      if (isAdmin && paymentMethod === "cash") {
-         await businessApi.createAdmin({
-            businessName: formData.businessName,
-            ownerName: formData.contactPerson || formData.businessName,
-            contactPerson: formData.contactPerson || formData.businessName,
-            roleInBusiness: finalRole,
-            designation: finalRole,
-            businessEmail: (formData.businessEmail || formData.email).toLowerCase().trim(),
-            email: formData.email.toLowerCase().trim(),
-            phone: formData.phone,
-            chapter: formData.chapter,
-            industry: formData.industry,
-            subCategory: formData.subCategory,
-            businessType: formData.businessType,
-            city: formData.city,
-            state: isInternational ? (formData.state || "International") : (formData.state || ""),
-            address: formData.address,
-            pincode: formData.pincode,
-            founded: formData.founded,
-            employees: formData.employees,
-            taxId: isInternational ? (certDocNumber || "") : (formData.taxId || "").trim().toUpperCase(),
-            region: formData.region || "national",
-            membershipTier: tier,
-            about: formData.about,
-            website: (formData.website || "").trim(),
-            instagram: (formData.instagram || "").trim(),
-            linkedin: (formData.linkedin || "").trim(),
-            logo: finalLogoUrl,
-            avatar: finalAvatarUrl,
-            amountCollected: planAmount
-         });
-         
-         // Notify admin and redirect
-         setLoading(false);
-         alert("Business registered successfully! An email with login credentials has been sent to the owner.");
-         const basePath = user?.role === "chapter_admin" ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
-         router.push(`${basePath}/businesses`);
-         return;
+      // If Admin Registration (Direct Cash, Online Gateway, or Free Plan)
+      if (isAdmin) {
+        const finalCollectingState = (cashCollectingState || formData.state || user?.state || "").trim();
+        const finalCollectingChapter = (cashCollectingChapter || formData.chapter || user?.chapter || "").trim();
+
+        if (paymentMethod === "cash") {
+          if (!finalCollectingState || !finalCollectingChapter || finalCollectingChapter.toLowerCase() === "unassigned") {
+            setError("If direct cash is selected, then respective state and chapter is required who is collecting cash.");
+            setLoading(false);
+            return;
+          }
+        }
+
+        const activePlanObj = plans.find((p) => p.id === tier) || plans[0];
+        const planDisplayName = activePlanObj?.name || tier || "Standard";
+
+        await businessApi.createAdmin({
+          businessName: formData.businessName,
+          ownerName: formData.contactPerson || formData.businessName,
+          contactPerson: formData.contactPerson || formData.businessName,
+          roleInBusiness: finalRole,
+          designation: finalRole,
+          businessEmail: (formData.businessEmail || formData.email).toLowerCase().trim(),
+          email: formData.email.toLowerCase().trim(),
+          phone: formData.phone,
+          chapter: formData.chapter || finalCollectingChapter,
+          industry: formData.industry,
+          subCategory: formData.subCategory,
+          businessType: formData.businessType,
+          city: formData.city,
+          state: isInternational ? (formData.state || "International") : (formData.state || finalCollectingState),
+          address: formData.address,
+          pincode: formData.pincode,
+          founded: formData.founded,
+          employees: formData.employees,
+          taxId: isInternational ? (certDocNumber || "") : (formData.taxId || "").trim().toUpperCase(),
+          region: formData.region || "national",
+          membershipTier: tier,
+          planName: planDisplayName,
+          collectingState: finalCollectingState,
+          collectingChapter: finalCollectingChapter,
+          paymentMethod: paymentMethod || "cash",
+          about: formData.about,
+          website: (formData.website || "").trim(),
+          instagram: (formData.instagram || "").trim(),
+          linkedin: (formData.linkedin || "").trim(),
+          logo: finalLogoUrl,
+          avatar: finalAvatarUrl,
+          amountCollected: planAmount
+        });
+        
+        // Notify admin and redirect
+        setLoading(false);
+        alert("Business registered successfully! An email with login credentials has been sent to the owner.");
+        const basePath = user?.role === "chapter_admin" ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
+        router.push(`${basePath}/businesses`);
+        return;
+      }
+
+      // Step 1: Pre-submission validation for public user account password
+      if (!formData.password || formData.password.length < 6) {
+        setError("Password must be at least 6 characters. Please set your account password.");
+        setLoading(false);
+        setStep(2);
+        return;
       }
 
       // Step 1: Register the business & user account
@@ -1102,16 +1149,16 @@ function RegisterBusiness({ isAdmin = false }) {
                   return;
                 }
                 if (!isAdmin) {
+                  if (!formData.password || formData.password.length < 6) {
+                    setError("Please enter an account password with at least 6 characters.");
+                    return;
+                  }
                   if (!emailVerified) {
                     if (!otpSent) {
                       handleSendOtp();
                       return;
                     }
                     setError("Please enter the 6-digit verification code sent to your email.");
-                    return;
-                  }
-                  if (!formData.password || formData.password.length < 6) {
-                    setError("Please enter an account password with at least 6 characters.");
                     return;
                   }
                 }
@@ -2142,15 +2189,16 @@ function RegisterBusiness({ isAdmin = false }) {
                     </div>
                   )}
 
-                  {/* Password Field - Revealed after email verification */}
-                  {!isAdmin && emailVerified && (
-                    <div className="space-y-2 animate-in fade-in duration-300 pt-1">
-                      <Label htmlFor="reg-pass">Account Password *</Label>
+                  {/* Password Field - Rendered for non-admin users so user always has access to set password */}
+                  {!isAdmin && (
+                    <div className="space-y-2 pt-1 animate-in fade-in duration-200">
+                      <Label htmlFor="reg-pass" className="font-bold text-sm text-slate-900 dark:text-white">
+                        Account Password *
+                      </Label>
                       <FastInput
                         id="reg-pass"
                         type="password"
                         required
-                        autoFocus
                         value={formData.password}
                         onValueChange={(val) => {
                           setFormData({ ...formData, password: val });
@@ -2304,7 +2352,7 @@ function RegisterBusiness({ isAdmin = false }) {
                         </div>
 
                         {isAdmin && (
-                          <div className="mt-3 flex flex-col space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
+                          <div className="mt-3 flex flex-col space-y-2.5 border-t border-slate-200 dark:border-slate-800 pt-3">
                             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Payment Method (Admin Override)</span>
                             <div className="flex items-center gap-3">
                               <button
@@ -2312,7 +2360,7 @@ function RegisterBusiness({ isAdmin = false }) {
                                 onClick={() => setPaymentMethod("cash")}
                                 className={cn(
                                   "flex-1 rounded-lg border py-2 px-3 text-sm font-semibold transition-all text-center",
-                                  paymentMethod === "cash" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                  paymentMethod === "cash" ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-bold shadow-xs" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
                                 )}
                               >
                                 Direct Cash
@@ -2322,12 +2370,84 @@ function RegisterBusiness({ isAdmin = false }) {
                                 onClick={() => setPaymentMethod("online")}
                                 className={cn(
                                   "flex-1 rounded-lg border py-2 px-3 text-sm font-semibold transition-all text-center",
-                                  paymentMethod === "online" ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                  paymentMethod === "online" ? "border-blue-500 bg-blue-50 text-blue-700 font-bold shadow-xs" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
                                 )}
                               >
                                 Online Gateway
                               </button>
                             </div>
+
+                            {paymentMethod === "cash" && (
+                              <div className="mt-1 p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70 dark:bg-emerald-950/20 dark:border-emerald-900/40 space-y-2.5 animate-in fade-in-50 duration-200">
+                                <div className="flex items-start gap-2">
+                                  <Building2 className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
+                                  <div>
+                                    <p className="text-xs font-bold text-emerald-950 dark:text-emerald-200">
+                                      Cash Collecting Chapter & State <span className="text-red-500">*</span>
+                                    </p>
+                                    <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400">
+                                      Respective state and chapter is required who is collecting cash.
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                  <div className="space-y-1">
+                                    <Label htmlFor="cashCollectingState" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                      Collecting State <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Select
+                                      value={cashCollectingState}
+                                      onValueChange={(val) => {
+                                        setCashCollectingState(val);
+                                        const stillValid = chapters.some(
+                                          (c) => c.name === cashCollectingChapter && (c.state || "").trim().toLowerCase() === val.trim().toLowerCase()
+                                        );
+                                        if (!stillValid) {
+                                          setCashCollectingChapter("");
+                                        }
+                                        setError("");
+                                      }}
+                                    >
+                                      <SelectTrigger id="cashCollectingState" className="h-9 text-xs bg-white dark:bg-slate-900">
+                                        <SelectValue placeholder="Select collecting state" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {states.map((st) => (
+                                          <SelectItem key={st} value={st} className="text-xs">
+                                            {st}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <Label htmlFor="cashCollectingChapter" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                      Collecting Chapter <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Select
+                                      value={cashCollectingChapter}
+                                      onValueChange={(val) => {
+                                        setCashCollectingChapter(val);
+                                        setError("");
+                                      }}
+                                    >
+                                      <SelectTrigger id="cashCollectingChapter" className="h-9 text-xs bg-white dark:bg-slate-900">
+                                        <SelectValue placeholder={cashCollectingState ? "Select collecting chapter" : "Select state first"} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {collectingChaptersList.map((ch) => (
+                                          <SelectItem key={ch._id || ch.name} value={ch.name} className="text-xs">
+                                            {ch.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                         <p className="text-[11px] text-muted-foreground mt-2">

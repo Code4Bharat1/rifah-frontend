@@ -15,7 +15,20 @@ import {
   Sparkles,
   AlertTriangle,
   ChevronDown,
+  Loader2
 } from "lucide-react";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@shared/components/ui/alert-dialog";
+import { businessApi } from "@shared/lib/api-services";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { MembershipBadge, Pill, StatusBadge, VerificationBadge } from "@shared/components/rifah/badges";
@@ -56,6 +69,21 @@ function BusinessHome() {
   const { data: convData } = useConversations();
   const { data: notifData } = useNotifications();
   const { data: reviewsData } = useBusinessReviews(business?._id);
+
+  const [dismissingUpdate, setDismissingUpdate] = useState(false);
+  const [localAck, setLocalAck] = useState(false);
+
+  const handleAcknowledgeAdminUpdate = async () => {
+    try {
+      setDismissingUpdate(true);
+      await businessApi.update(business._id, { adminUpdateAcknowledged: true });
+      setLocalAck(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDismissingUpdate(false);
+    }
+  };
 
   const rawLeads = Array.isArray(leadsData) ? leadsData : leadsData?.leads || [];
   const rawEnquiries = Array.isArray(enquiriesData) ? enquiriesData : enquiriesData?.enquiries || [];
@@ -215,6 +243,42 @@ function BusinessHome() {
         ) : null
       }
     >
+      {/* Admin Update Acknowledge Popup */}
+      <AlertDialog open={business?.adminUpdateAcknowledged === false && !localAck}>
+        <AlertDialogContent className="sm:max-w-[440px]">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <AlertDialogTitle className="text-lg font-bold">
+                Admin Updated Your Profile
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+              An administrator has recently updated your business details:
+              <br /><br />
+              <strong className="text-foreground">{business?.adminUpdateChanges}</strong>
+              <br /><br />
+              You can review the changes on this dashboard. This alert will remain in your notifications.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 gap-2">
+            <AlertDialogAction
+              disabled={dismissingUpdate}
+              onClick={(e) => {
+                e.preventDefault();
+                handleAcknowledgeAdminUpdate();
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {dismissingUpdate && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Acknowledge & Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="space-y-4">
         {/* Dynamic Verification Status Banners */}
         {(() => {
