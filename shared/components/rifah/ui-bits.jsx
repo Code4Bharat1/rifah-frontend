@@ -143,7 +143,13 @@ export function Panel({
       {(title || action) && (
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-slate-100 dark:border-slate-800 px-5 py-4">
           <div className="min-w-0">
-            {title && <h3 className="truncate text-sm font-bold text-slate-900 dark:text-white md:text-base">{title}</h3>}
+            {title && (
+              typeof title === "string" ? (
+                <h3 className="truncate text-sm font-bold text-slate-900 dark:text-white md:text-base">{title}</h3>
+              ) : (
+                <div className="text-sm font-bold text-slate-900 dark:text-white md:text-base">{title}</div>
+              )
+            )}
             {description && <p className="mt-0.5 truncate text-xs text-muted-foreground">{description}</p>}
           </div>
           {action}

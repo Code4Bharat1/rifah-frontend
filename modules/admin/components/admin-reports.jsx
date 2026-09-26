@@ -3,11 +3,12 @@ import { useState } from "react";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
+import { cn } from "@shared/lib/utils";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { reportApi, eventApi } from "@shared/lib/api-services";
 import { toast } from "sonner";
-import { FileDown, Receipt, Users, Megaphone, Eye, Loader2, UserCircle, MapPin, Calendar, Clock, Building2 } from "lucide-react";
+import { FileDown, Receipt, Users, Megaphone, Eye, Loader2, UserCircle, MapPin, Calendar, Clock, Building2, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
@@ -501,7 +502,9 @@ export function AdminReports() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("exports");
   const [revenueDates, setRevenueDates] = useState({ start: "", end: "" });
+  const [revenueFilter, setRevenueFilter] = useState("All");
   const [memberDates, setMemberDates] = useState({ start: "", end: "" });
+  const [memberFilter, setMemberFilter] = useState("All");
   const [leadDates, setLeadDates] = useState({ start: "", end: "" });
   const [businessDates, setBusinessDates] = useState({ start: "", end: "" });
   
@@ -521,6 +524,12 @@ export function AdminReports() {
       const params = {};
       if (dates.start) params.startDate = dates.start;
       if (dates.end) params.endDate = dates.end;
+      if (type === 'memberships' && memberFilter) {
+        params.filter = memberFilter;
+      }
+      if (type === 'revenue' && revenueFilter) {
+        params.filter = revenueFilter;
+      }
 
       const isPdf = format === "pdf";
       if (type === 'revenue') {
@@ -553,6 +562,12 @@ export function AdminReports() {
       const params = {};
       if (dates.start) params.startDate = dates.start;
       if (dates.end) params.endDate = dates.end;
+      if (type === 'memberships' && memberFilter) {
+        params.filter = memberFilter;
+      }
+      if (type === 'revenue' && revenueFilter) {
+        params.filter = revenueFilter;
+      }
 
       let res;
       if (type === 'revenue') {
@@ -565,11 +580,19 @@ export function AdminReports() {
         res = await reportApi.getBusinesses(params);
       }
       
+      const filterLabel = (type === 'memberships' && memberFilter && memberFilter !== 'All')
+        ? ` (${memberFilter})`
+        : (type === 'revenue' && revenueFilter && revenueFilter !== 'All')
+        ? ` (${revenueFilter})`
+        : '';
+
       setViewData({
-        title: `${type.charAt(0).toUpperCase() + type.slice(1)} Report`,
+        title: `${type.charAt(0).toUpperCase() + type.slice(1)} Report${filterLabel}`,
+        reportType: type,
+        filter: type === 'memberships' ? memberFilter : type === 'revenue' ? revenueFilter : null,
         headers: res?.data?.headers || [],
         rows: res?.data?.rows || [],
-        rawBusinesses: res?.data?.rawBusinesses || null
+        rawBusinesses: (type === 'memberships' && memberFilter === 'Event Registrations') ? null : (res?.data?.rawBusinesses || null)
       });
     } catch (err) {
       toast.error(err.message || "Failed to fetch report data.");
@@ -607,18 +630,65 @@ export function AdminReports() {
           {/* Revenue Report - Hidden for chapter admins */}
           {user?.role !== "chapter_admin" && (
             <Panel 
-              title="Revenue & Payments" 
-              icon={<Receipt className="h-5 w-5 text-primary" />}
+              title={
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <span className="font-bold text-slate-900 dark:text-white shrink-0">Revenue & Payments</span>
+                  <select
+                    value={revenueFilter}
+                    onChange={(e) => setRevenueFilter(e.target.value)}
+                    className="h-7 shrink-0 rounded-lg border border-input bg-background/90 px-2 py-0.5 text-xs font-semibold shadow-2xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer text-foreground hover:bg-muted/50"
+                  >
+                    <option value="All">All</option>
+                    <option value="States">States</option>
+                    <option value="Chapters">Chapters</option>
+                    <option value="Cash">Cash</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Gateway">Gateway</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Refund">Refund</option>
+                  </select>
+                </div>
+              }
+              action={
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRevenueDates({ start: "", end: "" });
+                    setRevenueFilter("All");
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs border",
+                    revenueDates.start || revenueDates.end || revenueFilter !== "All"
+                      ? "bg-red-500/10 text-red-600 border-red-500/30 hover:bg-red-500/20 active:scale-95 ring-1 ring-red-500/20"
+                      : "bg-background text-foreground/80 border-border hover:bg-muted hover:text-foreground active:scale-95"
+                  )}
+                  title="Reset date range and filter to default"
+                >
+                  <RotateCcw className={cn("h-3.5 w-3.5 shrink-0", revenueDates.start || revenueDates.end || revenueFilter !== "All" ? "text-red-500" : "text-primary")} />
+                  <span>Reset</span>
+                </button>
+              }
             >
               <div className="space-y-4 pt-2">
-                <p className="text-sm text-muted-foreground">Export all paid transactions, invoices, and payment details.</p>
+                <p className="text-sm text-muted-foreground">
+                  {revenueFilter === "All"
+                    ? "Export all transactions, invoices, and payment details."
+                    : revenueFilter === "States"
+                    ? "Export revenue breakdown and transactions grouped by state."
+                    : revenueFilter === "Chapters"
+                    ? "Export revenue breakdown and transactions grouped by chapter."
+                    : revenueFilter === "Cash" || revenueFilter === "UPI" || revenueFilter === "Gateway"
+                    ? `Export all ${revenueFilter} payment transactions and invoices.`
+                    : `Export all ${revenueFilter.toLowerCase()} status transactions and receipts.`}
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Start Date (Optional)</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                     <Input type="date" max="9999-12-31" value={revenueDates.start} onChange={e => setRevenueDates({...revenueDates, start: e.target.value})} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">End Date (Optional)</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">End Date (Optional)</Label>
                     <Input type="date" max="9999-12-31" value={revenueDates.end} onChange={e => setRevenueDates({...revenueDates, end: e.target.value})} />
                   </div>
                 </div>
@@ -653,18 +723,58 @@ export function AdminReports() {
 
         {/* Memberships Report */}
         <Panel 
-          title="Memberships" 
-          icon={<Users className="h-5 w-5 text-blue-500" />}
+          title={
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="font-bold text-slate-900 dark:text-white shrink-0">Memberships</span>
+              <select
+                value={memberFilter}
+                onChange={(e) => setMemberFilter(e.target.value)}
+                className="h-7 shrink-0 rounded-lg border border-input bg-background/90 px-2 py-0.5 text-xs font-semibold shadow-2xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer text-foreground hover:bg-muted/50"
+              >
+                <option value="All">All</option>
+                <option value="Event Registrations">Event Registrations</option>
+                <option value="Silver">Silver</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+                <option value="Diamond">Diamond</option>
+              </select>
+            </div>
+          }
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                setMemberDates({ start: "", end: "" });
+                setMemberFilter("All");
+              }}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs border",
+                memberDates.start || memberDates.end || memberFilter !== "All"
+                  ? "bg-red-500/10 text-red-600 border-red-500/30 hover:bg-red-500/20 active:scale-95 ring-1 ring-red-500/20"
+                  : "bg-background text-foreground/80 border-border hover:bg-muted hover:text-foreground active:scale-95"
+              )}
+              title="Reset date range and filter to default"
+            >
+              <RotateCcw className={cn("h-3.5 w-3.5 shrink-0", memberDates.start || memberDates.end || memberFilter !== "All" ? "text-red-500" : "text-primary")} />
+              <span>Reset</span>
+            </button>
+          }
         >
           <div className="space-y-4 pt-2">
-            <p className="text-sm text-muted-foreground">Export all registered active users, their roles, and chapters.</p>
+            <p className="text-sm text-muted-foreground">
+              {memberFilter === "Event Registrations"
+                ? "Export all attendee registrations, chapters, attendance, and ticket statuses."
+                : memberFilter === "All"
+                ? "Export all registered active users, their roles, and chapters."
+                : `Export registered ${memberFilter} tier members, their roles, and chapters.`}
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Start Date (Optional)</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                 <Input type="date" max="9999-12-31" value={memberDates.start} onChange={e => setMemberDates({...memberDates, start: e.target.value})} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">End Date (Optional)</Label>
+                <Label className="text-xs font-medium text-muted-foreground">End Date (Optional)</Label>
                 <Input type="date" max="9999-12-31" value={memberDates.end} onChange={e => setMemberDates({...memberDates, end: e.target.value})} />
               </div>
             </div>
@@ -699,7 +809,22 @@ export function AdminReports() {
         {/* Leads & Enquiries Report */}
         <Panel 
           title={user?.role === "chapter_admin" ? "Enquiries" : "Leads & Enquiries"} 
-          icon={<Megaphone className="h-5 w-5 text-orange-500" />}
+          action={
+            <button
+              type="button"
+              onClick={() => setLeadDates({ start: "", end: "" })}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs border",
+                leadDates.start || leadDates.end
+                  ? "bg-red-500/10 text-red-600 border-red-500/30 hover:bg-red-500/20 active:scale-95 ring-1 ring-red-500/20"
+                  : "bg-background text-foreground/80 border-border hover:bg-muted hover:text-foreground active:scale-95"
+              )}
+              title="Reset date range to all-time"
+            >
+              <RotateCcw className={cn("h-3.5 w-3.5 shrink-0", leadDates.start || leadDates.end ? "text-red-500" : "text-primary")} />
+              <span>Reset</span>
+            </button>
+          }
         >
           <div className="space-y-4 pt-2">
             <p className="text-sm text-muted-foreground">
@@ -709,11 +834,11 @@ export function AdminReports() {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Start Date (Optional)</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                 <Input type="date" max="9999-12-31" value={leadDates.start} onChange={e => setLeadDates({...leadDates, start: e.target.value})} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">End Date (Optional)</Label>
+                <Label className="text-xs font-medium text-muted-foreground">End Date (Optional)</Label>
                 <Input type="date" max="9999-12-31" value={leadDates.end} onChange={e => setLeadDates({...leadDates, end: e.target.value})} />
               </div>
             </div>
@@ -749,17 +874,32 @@ export function AdminReports() {
         {user?.role === "chapter_admin" && (
           <Panel 
             title="Businesses" 
-            icon={<Building2 className="h-5 w-5 text-emerald-500" />}
+            action={
+              <button
+                type="button"
+                onClick={() => setBusinessDates({ start: "", end: "" })}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs border",
+                  businessDates.start || businessDates.end
+                    ? "bg-red-500/10 text-red-600 border-red-500/30 hover:bg-red-500/20 active:scale-95 ring-1 ring-red-500/20"
+                    : "bg-background text-foreground/80 border-border hover:bg-muted hover:text-foreground active:scale-95"
+                )}
+                title="Reset date range to all-time"
+              >
+                <RotateCcw className={cn("h-3.5 w-3.5 shrink-0", businessDates.start || businessDates.end ? "text-red-500" : "text-primary")} />
+                <span>Reset</span>
+              </button>
+            }
           >
             <div className="space-y-4 pt-2">
               <p className="text-sm text-muted-foreground">Export all registered businesses and their verification status.</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Start Date (Optional)</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                   <Input type="date" max="9999-12-31" value={businessDates.start} onChange={e => setBusinessDates({...businessDates, start: e.target.value})} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">End Date (Optional)</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">End Date (Optional)</Label>
                   <Input type="date" max="9999-12-31" value={businessDates.end} onChange={e => setBusinessDates({...businessDates, end: e.target.value})} />
                 </div>
               </div>
@@ -799,10 +939,10 @@ export function AdminReports() {
             <DialogTitle>{viewData?.title}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-auto border rounded-md">
-            {viewData?.title === "Memberships Report" && user?.role === "chapter_admin" && viewData?.rawBusinesses ? (
+            {viewData?.reportType === "memberships" && viewData?.filter !== "Event Registrations" && user?.role === "chapter_admin" && viewData?.rawBusinesses ? (
               <div className="p-4 bg-background">
                 {viewData.rawBusinesses.length === 0 ? (
-                  <div className="text-center py-16 text-muted-foreground">No data found for the selected dates.</div>
+                  <div className="text-center py-16 text-muted-foreground">No data found for the selected filters.</div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2">
                     {viewData.rawBusinesses.map((b, idx) => {
