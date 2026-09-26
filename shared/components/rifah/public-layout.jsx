@@ -546,23 +546,23 @@ export function PublicMobileTabs() {
   const path = usePathname();
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden max-w-full overflow-hidden"
       aria-label="Primary"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-5 w-full">
         {mobileTabs.map((t) => {
           const active = path === t.to;
           return (
-            <li key={t.label}>
+            <li key={t.label} className="min-w-0">
               <Link
                 href={t.to}
                 className={cn(
-                  "flex min-h-[56px] flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground",
-                  active && "text-primary",
+                  "flex min-h-[54px] flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] sm:text-[11px] font-medium text-muted-foreground leading-tight",
+                  active && "text-primary font-semibold",
                 )}
               >
-                <t.icon className="h-5 w-5" />
-                <span className="truncate">{t.label}</span>
+                <t.icon className="h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0" />
+                <span className="truncate max-w-full text-center">{t.label}</span>
               </Link>
             </li>
           );
@@ -575,9 +575,9 @@ export function PublicMobileTabs() {
 export function PublicLayout({ children, bare = false, className, mainClassName }) {
   const { user } = useAuth();
   return (
-    <div className={cn("flex min-h-screen flex-col bg-background", className)}>
+    <div className={cn("flex min-h-screen flex-col bg-background w-full max-w-full overflow-x-hidden", className)}>
       <PublicHeader />
-      <main className={cn("flex-1", mainClassName)}>{children}</main>
+      <main className={cn("flex-1 w-full min-w-0 max-w-full overflow-x-hidden", mainClassName)}>{children}</main>
       {!bare && <PublicFooter />}
       <RifahCopilotWidget role={user?.role || "business_owner"} user={user} />
     </div>

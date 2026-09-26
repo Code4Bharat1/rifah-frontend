@@ -34,17 +34,17 @@ export function StatCard({
   const cardContent = (
     <div
       className={cn(
-        "group relative flex h-full flex-col rounded-2xl border transition-all duration-200 p-4 select-none cursor-pointer hover:shadow-md hover:-translate-y-0.5",
+        "group relative flex h-full flex-col rounded-xl sm:rounded-2xl border transition-all duration-200 p-3 sm:p-4 select-none cursor-pointer hover:shadow-md hover:-translate-y-0.5 min-w-0 w-full",
         active
           ? "border-primary/20 bg-primary/[0.04] dark:bg-primary/10 shadow-xs"
           : "border-border/70 bg-surface hover:bg-muted/30 hover:border-border",
         className
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-1.5 sm:gap-2">
         <p
           className={cn(
-            "min-w-0 text-xs font-medium transition-colors",
+            "min-w-0 text-[11px] sm:text-xs font-medium transition-colors line-clamp-1",
             active ? "font-semibold text-primary" : "text-muted-foreground"
           )}
         >
@@ -53,29 +53,29 @@ export function StatCard({
         {Icon && (
           <span
             className={cn(
-              "grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-all duration-200 group-hover:scale-105",
+              "grid h-7 w-7 sm:h-8 sm:w-8 shrink-0 place-items-center rounded-lg transition-all duration-200 group-hover:scale-105",
               active ? "bg-primary text-primary-foreground shadow-xs" : tones[tone]
             )}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </span>
         )}
       </div>
       <p
         className={cn(
-          "mt-2 text-2xl font-bold tracking-tight tabular-nums transition-colors",
+          "mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold tracking-tight tabular-nums transition-colors truncate min-w-0",
           active ? "text-primary" : "text-foreground"
         )}
       >
         {value}
       </p>
-      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="mt-1 text-[10px] sm:text-[11px] text-muted-foreground truncate">{hint}</p>}
     </div>
   );
 
   if (destination) {
     return (
-      <Link href={destination} className="block h-full transition-transform focus:outline-none">
+      <Link href={destination} className="block h-full transition-transform focus:outline-none min-w-0">
         {cardContent}
       </Link>
     );
@@ -86,7 +86,7 @@ export function StatCard({
       <button
         type="button"
         onClick={onClick}
-        className="w-full h-full text-left transition-transform focus:outline-none"
+        className="w-full h-full text-left transition-transform focus:outline-none min-w-0"
       >
         {cardContent}
       </button>
@@ -101,24 +101,19 @@ export function SectionHeader({
   description,
   action,
   className,
-}
-
-
-
-
-) {
+}) {
   return (
     <div
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:justify-between",
+        "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 w-full min-w-0",
         className,
       )}
     >
-      <div className="min-w-0">
-        <h2 className="truncate text-lg font-semibold tracking-tight md:text-xl">{title}</h2>
-        {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
+      <div className="min-w-0 flex-1">
+        <h2 className="truncate text-base sm:text-lg font-semibold tracking-tight md:text-xl">{title}</h2>
+        {description && <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground line-clamp-2">{description}</p>}
       </div>
-      {action}
+      {action && <div className="shrink-0 flex items-center gap-2">{action}</div>}
     </div>
   );
 }
@@ -134,21 +129,21 @@ export function Panel({
   return (
     <section className={cn("rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden w-full min-w-0", className)}>
       {(title || action) && (
-        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 border-b border-slate-100 dark:border-slate-800 px-3.5 sm:px-5 py-3 sm:py-4">
-          <div className="min-w-0">
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 border-b border-slate-100 dark:border-slate-800 px-3.5 sm:px-5 py-3 sm:py-4">
+          <div className="min-w-0 flex-1">
             {title && (
               typeof title === "string" ? (
                 <h3 className="truncate text-sm font-bold text-slate-900 dark:text-white md:text-base">{title}</h3>
               ) : (
-                <div className="text-sm font-bold text-slate-900 dark:text-white md:text-base">{title}</div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white md:text-base min-w-0">{title}</div>
               )
             )}
             {description && <p className="mt-0.5 truncate text-xs text-muted-foreground">{description}</p>}
           </div>
-          {action}
+          {action && <div className="shrink-0 flex items-center gap-2">{action}</div>}
         </header>
       )}
-      <div className={cn("p-3.5 sm:p-5", bodyClassName)}>{children}</div>
+      <div className={cn("p-3.5 sm:p-5 min-w-0 overflow-hidden", bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -164,12 +159,12 @@ export function MoreLink({ to, href, children, label, className, onClick }) {
       href={destination}
       onClick={onClick}
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:text-primary/80 hover:underline cursor-pointer transition-colors select-none",
+        "inline-flex shrink-0 items-center gap-1 text-xs sm:text-sm font-semibold text-primary hover:text-primary/80 hover:underline cursor-pointer transition-colors select-none",
         className
       )}
     >
       <span>{content || "View all"}</span>
-      <ArrowRight className="h-4 w-4 shrink-0" />
+      <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
     </Link>
   );
 }
@@ -195,14 +190,14 @@ export function ResponsiveTable({
 
   const renderMobileItem = typeof mobile === "function" ? mobile : (r) => (
     <div 
-      className={cn("rounded-xl border border-border bg-card p-3.5 space-y-2 text-xs", onRowClick && "cursor-pointer hover:border-primary/50 transition-colors")}
+      className={cn("rounded-xl border border-border bg-card p-3.5 space-y-2 text-xs min-w-0 w-full overflow-hidden", onRowClick && "cursor-pointer hover:border-primary/50 transition-colors")}
       onClick={() => onRowClick && onRowClick(r)}
     >
       {columns.map((c) => (
         c.header ? (
-          <div key={c.key} className="flex justify-between items-center">
-            <span className="text-muted-foreground font-medium">{c.header}</span>
-            <div>{c.cell(r)}</div>
+          <div key={c.key} className="flex justify-between items-center gap-2 min-w-0">
+            <span className="text-muted-foreground font-medium shrink-0">{c.header}</span>
+            <div className="min-w-0 text-right overflow-hidden">{c.cell(r)}</div>
           </div>
         ) : (
           <div key={c.key} className="pt-1 flex justify-end">{c.cell(r)}</div>

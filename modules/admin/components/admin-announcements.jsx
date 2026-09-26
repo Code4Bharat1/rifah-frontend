@@ -1,5 +1,5 @@
 "use client";
-import { Megaphone, Plus, Trash2, Send, Edit, Loader2 } from "lucide-react";
+import { Megaphone, Plus, Trash2, Send, Edit, Loader2, CheckCircle2, Clock, FileText, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -14,7 +14,6 @@ import { useAnnouncements } from "@shared/hooks/use-rifah-api";
 import { announcementApi } from "@shared/lib/api-services";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@shared/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
-import { MoreHorizontal } from "lucide-react";
 
 function AdminAnnouncements() {
   const [isCreating, setIsCreating] = useState(false);
@@ -122,9 +121,9 @@ function AdminAnnouncements() {
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Total Announcements" value={String(announcements.length)} icon={Megaphone} tone="primary" />
-          <StatCard label="Published" value={String(announcements.filter(a => a.status === 'Published').length)} tone="success" />
-          <StatCard label="Scheduled" value={String(announcements.filter(a => a.status === 'Scheduled').length)} tone="primary" />
-          <StatCard label="Drafts" value={String(announcements.filter(a => a.status === 'Draft').length)} tone="warning" />
+          <StatCard label="Published" value={String(announcements.filter(a => a.status === 'Published').length)} icon={CheckCircle2} tone="success" />
+          <StatCard label="Scheduled" value={String(announcements.filter(a => a.status === 'Scheduled').length)} icon={Clock} tone="primary" />
+          <StatCard label="Drafts" value={String(announcements.filter(a => a.status === 'Draft').length)} icon={FileText} tone="warning" />
         </div>
 
         <Panel 
