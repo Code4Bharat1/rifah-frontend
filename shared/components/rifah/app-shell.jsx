@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState, useEffect, useRef, useMemo } from "react";
+import {BirthdayBanner} from "@shared/components/rifah/birthday-banner";
 import { resolveMediaUrl } from "@shared/lib/media";
 import {
   Bell,
@@ -65,7 +66,6 @@ import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
 import { useNotifications, useConversations, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { VerificationBadge } from "@shared/components/rifah/badges";
-import { BirthdayBanner } from "@shared/components/rifah/birthday-banner";
 import { RifahCopilotWidget } from "@shared/components/rifah/rifah-copilot-widget";
 import { UserAvatar } from "@shared/components/rifah/ui-bits";
 
@@ -798,34 +798,6 @@ export function AppShell({
               {finalSubtitle && <p className="truncate text-[11px] sm:text-xs text-muted-foreground md:text-sm">{finalSubtitle}</p>}
             </div>
             <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(new CustomEvent("open-rifah-copilot"));
-                  }
-                }}
-                className="hidden sm:inline-flex items-center gap-1.5 rounded-full border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-bold text-xs h-8 px-3 shadow-2xs transition-all cursor-pointer"
-                title="Open RIFAH AI Copilot"
-              >
-                <Bot className="h-4 w-4 text-cyan-500 shrink-0" />
-                <span>AI Copilot</span>
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(new CustomEvent("open-rifah-copilot"));
-                  }
-                }}
-                className="sm:hidden text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10"
-                title="Open RIFAH AI Copilot"
-              >
-                <Bot className="h-5 w-5" />
-              </Button>
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
                 <Link href={"/discover"} aria-label="Search">
                   <Search className="h-5 w-5" />

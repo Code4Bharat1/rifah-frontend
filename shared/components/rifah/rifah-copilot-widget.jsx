@@ -15,10 +15,12 @@ import {
   ExternalLink,
   ShieldCheck,
   RefreshCw,
+  GripHorizontal,
 } from "lucide-react";
 import { Button } from "@shared/components/ui/button";
 import { cn } from "@shared/lib/utils";
 import { copilotApi } from "@shared/lib/api-services";
+import { AiBotAvatar, YellowSparkleIcon } from "./ai-bot-avatar";
 
 const ROLE_PRESETS = {
   central_admin: {
@@ -199,6 +201,256 @@ export function RifahCopilotWidget({ role, user }) {
   const sendingRef = useRef(false);
   const requestIdRef = useRef(0);
 
+  // Draggable bot mascot position state & refs
+  const BOT_SIZE = 66;
+  const MARGIN = 12;
+  const [position, setPosition] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef({
+    isPointerDown: false,
+    startX: 0,
+    startY: 0,
+    initialX: 0,
+    initialY: 0,
+    hasMoved: false,
+  });
+
+  const clampBotPosition = (x, y) => {
+    if (typeof window === "undefined") return { x: 0, y: 0 };
+    const maxX = Math.max(MARGIN, window.innerWidth - BOT_SIZE - MARGIN);
+    const maxY = Math.max(MARGIN, window.innerHeight - BOT_SIZE - MARGIN);
+    return {
+      x: Math.min(Math.max(MARGIN, x), maxX),
+      y: Math.min(Math.max(MARGIN, y), maxY),
+    };
+  };
+
+  const getDefaultBotPosition = () => {
+    if (typeof window === "undefined") return { x: 0, y: 0 };
+    const rightOffset = window.innerWidth < 640 ? 16 : 80;
+    const bottomOffset = window.innerWidth < 1024 ? 88 : 88;
+    return {
+      x: Math.max(MARGIN, window.innerWidth - BOT_SIZE - rightOffset),
+      y: Math.max(MARGIN, window.innerHeight - BOT_SIZE - bottomOffset),
+    };
+  };
+
+  // Initialize bot position from localStorage or default on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("rifah_copilot_bot_pos");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed?.x === "number" && typeof parsed?.y === "number") {
+          setPosition(clampBotPosition(parsed.x, parsed.y));
+          return;
+        }
+      }
+    } catch (e) {}
+    setPosition(getDefaultBotPosition());
+  }, []);
+
+  // Window resize bounds recalculation
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition((prev) => (prev ? clampBotPosition(prev.x, prev.y) : getDefaultBotPosition()));
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Pointer drag event handler for mouse and touch
+  const handlePointerDown = (e) => {
+    if (e.button !== 0) return; // Only primary mouse button / touch
+    e.preventDefault();
+
+    const currentPos = position || getDefaultBotPosition();
+    dragRef.current = {
+      isPointerDown: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: currentPos.x,
+      initialY: currentPos.y,
+      hasMoved: false,
+    };
+
+    const onPointerMove = (moveEvt) => {
+      if (!dragRef.current.isPointerDown) return;
+      const dx = moveEvt.clientX - dragRef.current.startX;
+      const dy = moveEvt.clientY - dragRef.current.startY;
+
+      if (!dragRef.current.hasMoved && Math.hypot(dx, dy) > 4) {
+        dragRef.current.hasMoved = true;
+        setIsDragging(true);
+      }
+
+      if (dragRef.current.hasMoved) {
+        const newPos = clampBotPosition(
+          dragRef.current.initialX + dx,
+          dragRef.current.initialY + dy
+        );
+        setPosition(newPos);
+      }
+    };
+
+    const onPointerUp = () => {
+      if (dragRef.current.isPointerDown) {
+        dragRef.current.isPointerDown = false;
+        if (dragRef.current.hasMoved) {
+          setIsDragging(false);
+          setPosition((finalPos) => {
+            if (finalPos) {
+              try {
+                localStorage.setItem("rifah_copilot_bot_pos", JSON.stringify(finalPos));
+              } catch (err) {}
+            }
+            return finalPos;
+          });
+        } else {
+          // Clean click without dragging
+          setIsDragging(false);
+          setIsOpen(true);
+        }
+      }
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+  };
+
+  // Modal dragging state & refs
+  const [modalPos, setModalPos] = useState(null);
+  const [isDraggingModal, setIsDraggingModal] = useState(false);
+  const modalDragRef = useRef({
+    isPointerDown: false,
+    startX: 0,
+    startY: 0,
+    initialX: 0,
+    initialY: 0,
+  });
+
+  const clampModalPosition = (x, y) => {
+    if (typeof window === "undefined") return { x: 0, y: 0 };
+    const modalWidth = Math.min(420, window.innerWidth - 24);
+    const modalHeight = Math.min(580, window.innerHeight - 32);
+    const maxX = Math.max(MARGIN, window.innerWidth - modalWidth - MARGIN);
+    const maxY = Math.max(MARGIN, window.innerHeight - modalHeight - MARGIN);
+    return {
+      x: Math.min(Math.max(MARGIN, x), maxX),
+      y: Math.min(Math.max(MARGIN, y), maxY),
+    };
+  };
+
+  const getComputedDefaultModalPos = () => {
+    if (modalPos) return modalPos;
+    if (!position || typeof window === "undefined") return { x: 20, y: 80 };
+    const modalWidth = Math.min(420, window.innerWidth - 24);
+    const modalHeight = Math.min(580, window.innerHeight - 32);
+
+    let left = position.x + BOT_SIZE / 2 - modalWidth / 2;
+    if (left < MARGIN) left = MARGIN;
+    if (left + modalWidth > window.innerWidth - MARGIN) {
+      left = window.innerWidth - modalWidth - MARGIN;
+    }
+
+    let top = position.y - modalHeight - 12;
+    if (top < MARGIN) {
+      top = position.y + BOT_SIZE + 12;
+    }
+    if (top + modalHeight > window.innerHeight - MARGIN) {
+      top = window.innerHeight - modalHeight - MARGIN;
+    }
+    if (top < MARGIN) top = MARGIN;
+
+    return { x: left, y: top };
+  };
+
+  const handleModalHeaderPointerDown = (e) => {
+    if (isFullscreen || e.button !== 0) return;
+    if (e.target.closest("button") || e.target.closest("a") || e.target.closest("input")) return;
+    e.preventDefault();
+
+    const currentPos = getComputedDefaultModalPos();
+    modalDragRef.current = {
+      isPointerDown: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: currentPos.x,
+      initialY: currentPos.y,
+    };
+    setIsDraggingModal(true);
+
+    const onModalMove = (moveEvt) => {
+      if (!modalDragRef.current.isPointerDown) return;
+      const dx = moveEvt.clientX - modalDragRef.current.startX;
+      const dy = moveEvt.clientY - modalDragRef.current.startY;
+      const newPos = clampModalPosition(
+        modalDragRef.current.initialX + dx,
+        modalDragRef.current.initialY + dy
+      );
+      setModalPos(newPos);
+    };
+
+    const onModalUp = () => {
+      modalDragRef.current.isPointerDown = false;
+      setIsDraggingModal(false);
+      window.removeEventListener("pointermove", onModalMove);
+      window.removeEventListener("pointerup", onModalUp);
+      window.removeEventListener("pointercancel", onModalUp);
+    };
+
+    window.addEventListener("pointermove", onModalMove);
+    window.addEventListener("pointerup", onModalUp);
+    window.addEventListener("pointercancel", onModalUp);
+  };
+
+  // Compute smart modal placement relative to bot location or custom dragged pos
+  const getModalStyle = () => {
+    if (isFullscreen || typeof window === "undefined") {
+      return {};
+    }
+    const modalWidth = Math.min(420, window.innerWidth - 24);
+    const modalHeight = Math.min(580, window.innerHeight - 32);
+
+    if (modalPos) {
+      return {
+        left: `${modalPos.x}px`,
+        top: `${modalPos.y}px`,
+        width: `${modalWidth}px`,
+        height: `${modalHeight}px`,
+      };
+    }
+
+    if (!position) return {};
+
+    let left = position.x + BOT_SIZE / 2 - modalWidth / 2;
+    if (left < MARGIN) left = MARGIN;
+    if (left + modalWidth > window.innerWidth - MARGIN) {
+      left = window.innerWidth - modalWidth - MARGIN;
+    }
+
+    let top = position.y - modalHeight - 12;
+    if (top < MARGIN) {
+      // If not enough room on top, open below
+      top = position.y + BOT_SIZE + 12;
+    }
+    if (top + modalHeight > window.innerHeight - MARGIN) {
+      top = window.innerHeight - modalHeight - MARGIN;
+    }
+    if (top < MARGIN) top = MARGIN;
+
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${modalWidth}px`,
+      height: `${modalHeight}px`,
+    };
+  };
+
   const effectiveRole =
     role === "central_admin" || user?.role === "central_admin"
       ? "central_admin"
@@ -324,54 +576,90 @@ export function RifahCopilotWidget({ role, user }) {
 
   return (
     <>
-      {/* Floating Trigger Button - positioned safely above mobile BottomNav */}
-      <div className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-50 print:hidden">
-        {!isOpen && (
-          <Button
-            onClick={() => setIsOpen(true)}
-            size="lg"
-            className="h-12 px-4 gap-2.5 rounded-full bg-gradient-to-r from-primary via-cyan-600 to-blue-600 text-white font-bold shadow-xl shadow-cyan-900/30 hover:shadow-cyan-500/35 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/25 group cursor-pointer ring-2 ring-cyan-400/20"
-            aria-label="Open RIFAH AI Copilot"
+      {/* Floating Draggable Mascot Trigger Button */}
+      {!isOpen && (
+        <div
+          style={
+            position
+              ? {
+                  left: `${position.x}px`,
+                  top: `${position.y}px`,
+                  touchAction: "none",
+                }
+              : undefined
+          }
+          className={cn(
+            "fixed z-50 print:hidden select-none",
+            !position && "bottom-6 lg:bottom-20 right-4 sm:right-20",
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          )}
+        >
+          <div
+            onPointerDown={handlePointerDown}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setIsOpen(true);
+              }
+            }}
+            tabIndex={0}
+            role="button"
+            className={cn(
+              "group relative flex items-center justify-center h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-transparent select-none transition-shadow duration-200 outline-none",
+              isDragging
+                ? "cursor-grabbing scale-105 drop-shadow-[0_14px_32px_rgba(0,140,255,0.85)]"
+                : "cursor-grab drop-shadow-[0_8px_20px_rgba(0,100,255,0.45)] hover:drop-shadow-[0_12px_28px_rgba(0,140,255,0.7)]"
+            )}
+            aria-label="RIFAH AI Copilot (Drag anywhere or click to open)"
+            title="Drag to move anywhere • Click to chat"
           >
-            <div className="relative">
-              <Sparkles className="h-5 w-5 animate-pulse text-amber-300" />
+            {/* Bot Mascot Image */}
+            <AiBotAvatar className="h-full w-full object-contain pointer-events-none" glow={true} />
+
+            {/* Vibrant Green Status Indicator dot on top-right */}
+            <div className="absolute top-0 right-0 flex h-3.5 w-3.5 items-center justify-center pointer-events-none">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#00E676] opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-[#00E676] border-2 border-white shadow-[0_0_8px_#00E676]" />
             </div>
-            <span className="text-xs sm:text-sm tracking-wide font-extrabold">AI Copilot</span>
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping absolute -top-0.5 -right-0.5" />
-            <span className="h-2 w-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5" />
-          </Button>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Copilot Modal Window */}
       {isOpen && (
         <div
+          style={getModalStyle()}
           className={cn(
             "fixed z-50 flex flex-col bg-card border border-border/80 shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-200",
             isFullscreen
-              ? "inset-2 sm:inset-6 rounded-2xl"
-              : "bottom-20 lg:bottom-6 right-4 sm:right-6 w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-7rem)] rounded-2xl"
+              ? "inset-2 sm:inset-6 rounded-2xl !w-auto !h-auto !left-2 sm:!left-6 !top-2 sm:!top-6"
+              : !position && "bottom-20 lg:bottom-6 right-4 sm:right-6 w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-7rem)] rounded-2xl"
           )}
           role="dialog"
           aria-label="RIFAH AI Copilot Assistant"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40 shrink-0">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-primary to-cyan-500 text-white shadow-xs">
-                <Bot className="h-5 w-5" />
-              </div>
+          <div
+            onPointerDown={handleModalHeaderPointerDown}
+            className={cn(
+              "flex items-center justify-between px-3.5 py-3 border-b border-border bg-muted/40 shrink-0 select-none",
+              !isFullscreen && (isDraggingModal ? "cursor-grabbing" : "cursor-grab")
+            )}
+            title={!isFullscreen ? "Drag header to move chat window" : undefined}
+          >
+            <div className="flex items-center gap-2.5 min-w-0 pointer-events-none">
+              <AiBotAvatar className="h-9 w-9 shrink-0" withBadge={true} glow={true} />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold text-sm truncate">RIFAH Copilot</span>
-                  <span className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] text-[#00E676] font-semibold flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#00E676] animate-pulse" />
                     Online
                   </span>
                 </div>
                 <span
                   className={cn(
-                    "inline-block px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border truncate max-w-[200px]",
+                    "inline-block px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border truncate max-w-[170px]",
                     preset.badgeColor
                   )}
                 >
@@ -380,10 +668,15 @@ export function RifahCopilotWidget({ role, user }) {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              {!isFullscreen && (
+                <div className="hidden sm:flex items-center text-muted-foreground/45 mr-1 pointer-events-none" title="Drag to move">
+                  <GripHorizontal className="h-4 w-4" />
+                </div>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
                 onClick={() => setIsFullscreen((v) => !v)}
                 aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
                 title={isFullscreen ? "Exit full screen" : "Full screen"}
@@ -393,8 +686,11 @@ export function RifahCopilotWidget({ role, user }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
-                onClick={() => setIsOpen(false)}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+                onClick={() => {
+                  setIsOpen(false);
+                  setModalPos(null);
+                }}
                 aria-label="Close Copilot"
               >
                 <X className="h-4 w-4" />
@@ -411,16 +707,11 @@ export function RifahCopilotWidget({ role, user }) {
                   key={m.id}
                   className={cn("flex gap-2.5 max-w-[90%]", isUser ? "ml-auto flex-row-reverse" : "mr-auto")}
                 >
-                  <div
-                    className={cn(
-                      "grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold",
-                      isUser
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30"
-                    )}
-                  >
-                    {isUser ? <UserIcon className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
-                  </div>
+                  {isUser ? (
+                    <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold bg-primary text-primary-foreground">
+                      <UserIcon className="h-3.5 w-3.5" />
+                    </div>
+                  ) : null}
                   <div
                     className={cn(
                       "rounded-2xl px-3.5 py-2.5 shadow-xs",
@@ -446,9 +737,7 @@ export function RifahCopilotWidget({ role, user }) {
             {/* Loading Indicator */}
             {isLoading && (
               <div className="flex gap-2.5 mr-auto">
-                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
-                  <Bot className="h-3.5 w-3.5" />
-                </div>
+                <AiBotAvatar className="h-7 w-7 shrink-0" withBadge={true} />
                 <div className="rounded-2xl rounded-tl-xs px-4 py-3 bg-muted/70 border border-border/70 text-xs text-muted-foreground flex items-center gap-2">
                   <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-400" />
                   <span>Searching authorized features...</span>

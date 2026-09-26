@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Bot, Sparkles, Send, ArrowRight, Shield, MapPin, Building2, Search } from "lucide-react";
 import { Button } from "@shared/components/ui/button";
 import { cn } from "@shared/lib/utils";
+import { AiBotAvatar, YellowSparkleIcon } from "./ai-bot-avatar";
 
 const DASHBOARD_SUGGESTIONS = {
   central_admin: [
@@ -88,9 +89,7 @@ export function DashboardCopilotCard({ role, user, className = "" }) {
         {/* Top Header Row */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20">
-              <Bot className="h-5 w-5" />
-            </div>
+            <AiBotAvatar className="h-11 w-11 shrink-0" withBadge={true} glow={true} />
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm sm:text-base font-bold text-white tracking-wide">
