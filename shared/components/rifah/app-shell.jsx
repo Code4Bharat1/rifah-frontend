@@ -746,18 +746,22 @@ export function AppShell({
           {user?.previousRole && (
             <button
               onClick={async () => {
-                const targetRole = user.previousRole;
-                await switchRole(targetRole);
-                if (targetRole === "central_admin") {
-                  router.push("/admin");
-                } else if (targetRole === "state_admin") {
-                  router.push("/state-admin");
-                } else if (targetRole === "chapter_admin") {
-                  router.push("/chapter-admin");
-                } else if (targetRole === "business_owner") {
-                  router.push("/biz");
-                } else {
-                  router.push("/biz");
+                try {
+                  const targetRole = user.previousRole;
+                  await switchRole(targetRole);
+                  if (targetRole === "central_admin") {
+                    router.push("/admin");
+                  } else if (targetRole === "state_admin") {
+                    router.push("/state-admin");
+                  } else if (targetRole === "chapter_admin") {
+                    router.push("/chapter-admin");
+                  } else if (targetRole === "business_owner") {
+                    router.push("/biz");
+                  } else {
+                    router.push("/biz");
+                  }
+                } catch (err) {
+                  toast.error(err.message || "Failed to switch role");
                 }
               }}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
@@ -778,8 +782,12 @@ export function AppShell({
           {!user?.previousRole && ["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (user?.businessId || user?.businessSlug) && (
             <button
               onClick={async () => {
-                await switchRole("business_owner");
-                router.push("/biz");
+                try {
+                  await switchRole("business_owner");
+                  router.push("/biz");
+                } catch (err) {
+                  toast.error(err.message || "Failed to switch role");
+                }
               }}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-amber-500/10 hover:text-amber-500 mb-1"
             >
