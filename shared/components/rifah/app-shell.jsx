@@ -163,6 +163,7 @@ const roleNavs = {
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
+      { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
       { label: "Events", to: "/state-admin/events", icon: CalendarDays },

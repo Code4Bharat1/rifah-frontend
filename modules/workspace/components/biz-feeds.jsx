@@ -1130,7 +1130,13 @@ export function BizFeeds() {
 
   return (
     <AppShell
-      role={userRole === "central_admin" ? "admin" : "business"}
+      role={
+        ["central_admin", "admin"].includes(userRole)
+          ? "admin"
+          : ["state_admin", "chapter_admin"].includes(userRole)
+            ? userRole
+            : "business"
+      }
       title="Feeds"
       subtitle="Connect, share business milestones, and explore updates from fellow members"
       actions={
