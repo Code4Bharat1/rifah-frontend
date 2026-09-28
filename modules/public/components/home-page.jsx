@@ -599,7 +599,7 @@ function HomePage() {
 
       {/* Home Page RFQ Modal */}
       <Dialog open={rfqOpen} onOpenChange={handleRfqClose}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg overflow-x-hidden">
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
@@ -769,7 +769,7 @@ function HomePage() {
                     placeholder="Describe material grade, sizes, standards, certification required, or delivery urgency..."
                     value={rfqForm.description}
                     onChange={(e) => setRfqForm((prev) => ({ ...prev, description: e.target.value }))}
-                    className="w-full rounded-lg border border-border bg-surface p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full rounded-lg border border-border bg-surface p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   />
                 </div>
               </div>

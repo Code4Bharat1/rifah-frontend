@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { ChevronDown, Search, Check } from "lucide-react";
 import { COUNTRIES, DEFAULT_COUNTRY, parsePhoneNumber, formatPhoneNumber } from "@shared/lib/countries";
+import { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from "@shared/components/ui/popover";
 import { cn } from "@shared/lib/utils";
 
 export const PhoneInput = React.forwardRef(function PhoneInput(
@@ -19,6 +20,7 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
     inputClassName = "",
     defaultCountry = "IN",
     autoFocus = false,
+    align: alignProp,
     ...props
   },
   forwardedRef
@@ -33,6 +35,39 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
   const containerRef = useRef(null);
   const searchInputRef = useRef(null);
   const numberInputRef = useRef(null);
+  const [popoverAlign, setPopoverAlign] = useState(alignProp || "start");
+
+  // Dynamically calculate alignment (start or end) to keep dropdown within dialog/screen boundaries
+  useEffect(() => {
+    if (alignProp) {
+      setPopoverAlign(alignProp);
+      return;
+    }
+    const checkAlignment = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const dialogEl = containerRef.current.closest('[role="dialog"]');
+      const boundaryRight = dialogEl
+        ? dialogEl.getBoundingClientRect().right
+        : window.innerWidth;
+      const boundaryLeft = dialogEl
+        ? dialogEl.getBoundingClientRect().left
+        : 0;
+      const boundaryWidth = boundaryRight - boundaryLeft;
+      const containerCenter = rect.left + rect.width / 2;
+
+      // If opening from the left with ~288px width would overflow the boundary, or if center is in the right 45%
+      if (rect.left + 288 > boundaryRight - 16 || containerCenter > boundaryLeft + boundaryWidth * 0.55) {
+        setPopoverAlign("end");
+      } else {
+        setPopoverAlign("start");
+      }
+    };
+
+    if (isOpen) {
+      checkAlignment();
+    }
+  }, [isOpen, alignProp]);
 
   // Synchronize when value changes externally (avoid resetting state if digits already match)
   useEffect(() => {
@@ -63,32 +98,11 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
     return () => form.removeEventListener("reset", handleFormReset);
   }, [value, defaultCountry]);
 
-  // Focus search input when dropdown opens
+  // Reset search query when dropdown closes
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 50);
-    } else {
+    if (!isOpen) {
       setSearchQuery("");
     }
-  }, [isOpen]);
-
-  // Click outside to close dropdown
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("touchstart", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-    };
   }, [isOpen]);
 
   // Filter countries by search query
@@ -178,126 +192,136 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
   };
 
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        "relative flex items-center rounded-lg border border-input bg-background shadow-xs transition-colors",
-        "focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20",
-        disabled && "opacity-50 cursor-not-allowed bg-muted",
-        className
-      )}
-    >
-      {/* Country Code Selector Trigger */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-label="Select Country Code"
-        aria-expanded={isOpen}
-        className={cn(
-          "inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-foreground",
-          "hover:bg-accent/60 transition-colors shrink-0 rounded-l-lg outline-none select-none",
-          disabled && "pointer-events-none"
-        )}
-      >
-        <span className="text-base leading-none" role="img" aria-label={selectedCountry.name}>
-          {selectedCountry.flag}
-        </span>
-        <span className="text-muted-foreground font-mono text-xs">{selectedCountry.dialCode}</span>
-        <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
-      </button>
-
-      {/* Subtle divider */}
-      <div className="h-5 w-px bg-border shrink-0" />
-
-      {/* Hidden input for native FormData compatibility */}
-      {name && (
-        <input
-          type="hidden"
-          name={name}
-          value={formatPhoneNumber(selectedCountry, nationalNumber)}
-        />
-      )}
-
-      {/* National Number Input */}
-      <input
-        ref={handleInputRef}
-        id={id}
-        name={name ? `${name}_national` : undefined}
-        type="tel"
-        inputMode="tel"
-        autoComplete="tel-national"
-        required={required}
-        disabled={disabled}
-        autoFocus={autoFocus}
-        placeholder={placeholder}
-        value={nationalNumber}
-        onChange={handleNumberChange}
-        className={cn(
-          "w-full bg-transparent px-3 py-2 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground",
-          "outline-none focus:outline-none border-0 ring-0 focus:ring-0 rounded-r-lg disabled:cursor-not-allowed",
-          inputClassName
-        )}
-        {...props}
-      />
-
-      {/* Country Dropdown / Popover with Search */}
-      {isOpen && (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverAnchor asChild>
         <div
+          ref={containerRef}
           className={cn(
-            "absolute left-0 top-full mt-1.5 z-50 w-72 sm:w-80 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95"
+            "relative flex items-center rounded-lg border border-input bg-background shadow-xs transition-colors",
+            "focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20",
+            disabled && "opacity-50 cursor-not-allowed bg-muted",
+            className
           )}
         >
-          {/* Search Box */}
-          <div className="relative mb-2">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search country or code..."
-              className="w-full rounded-lg border border-border bg-background py-1.5 pl-8 pr-3 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
-            />
-          </div>
+          {/* Country Code Selector Trigger */}
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              disabled={disabled}
+              aria-label="Select Country Code"
+              aria-expanded={isOpen}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium text-foreground",
+                "hover:bg-accent/60 transition-colors shrink-0 rounded-l-lg outline-none select-none cursor-pointer",
+                disabled && "pointer-events-none"
+              )}
+            >
+              <span className="text-base leading-none" role="img" aria-label={selectedCountry.name}>
+                {selectedCountry.flag}
+              </span>
+              <span className="text-muted-foreground font-mono text-xs">{selectedCountry.dialCode}</span>
+              <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
+            </button>
+          </PopoverTrigger>
 
-          {/* Countries List */}
-          <div className="max-h-60 overflow-y-auto space-y-0.5 overscroll-contain pr-1 custom-scrollbar">
-            {filteredCountries.length === 0 ? (
-              <div className="py-6 text-center text-xs text-muted-foreground">
-                No matching countries found
-              </div>
-            ) : (
-              filteredCountries.map((c) => {
-                const isSelected = c.code === selectedCountry.code;
-                return (
-                  <button
-                    key={c.code}
-                    type="button"
-                    onClick={() => handleCountrySelect(c)}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-accent hover:text-accent-foreground",
-                      isSelected && "bg-primary/10 text-primary font-medium"
-                    )}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="text-base shrink-0" role="img" aria-label={c.name}>
-                        {c.flag}
-                      </span>
-                      <span className="truncate">{c.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="font-mono text-[11px] text-muted-foreground">{c.dialCode}</span>
-                      {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
-                    </div>
-                  </button>
-                );
-              })
+          {/* Subtle divider */}
+          <div className="h-5 w-px bg-border shrink-0" />
+
+          {/* Hidden input for native FormData compatibility */}
+          {name && (
+            <input
+              type="hidden"
+              name={name}
+              value={formatPhoneNumber(selectedCountry, nationalNumber)}
+            />
+          )}
+
+          {/* National Number Input */}
+          <input
+            ref={handleInputRef}
+            id={id}
+            name={name ? `${name}_national` : undefined}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            required={required}
+            disabled={disabled}
+            autoFocus={autoFocus}
+            placeholder={placeholder}
+            value={nationalNumber}
+            onChange={handleNumberChange}
+            className={cn(
+              "w-full bg-transparent px-3 py-2 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground",
+              "outline-none focus:outline-none border-0 ring-0 focus:ring-0 rounded-r-lg disabled:cursor-not-allowed",
+              inputClassName
             )}
-          </div>
+            {...props}
+          />
         </div>
-      )}
-    </div>
+      </PopoverAnchor>
+
+      <PopoverContent
+        align={popoverAlign}
+        side="bottom"
+        sideOffset={6}
+        collisionPadding={12}
+        className="z-[9999] w-72 max-w-[calc(100vw-32px)] p-2.5 rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl animate-in fade-in-0 zoom-in-95"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          setTimeout(() => {
+            searchInputRef.current?.focus();
+          }, 60);
+        }}
+      >
+        {/* Search Box */}
+        <div className="relative mb-2">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search country or code..."
+            className="w-full rounded-xl border border-border bg-background py-1.5 pl-8 pr-3 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground transition-all"
+          />
+        </div>
+
+        {/* Countries List */}
+        <div className="max-h-60 overflow-y-auto space-y-0.5 overscroll-contain pr-1 custom-scrollbar">
+          {filteredCountries.length === 0 ? (
+            <div className="py-6 text-center text-xs text-muted-foreground">
+              No matching countries found
+            </div>
+          ) : (
+            filteredCountries.map((c) => {
+              const isSelected = c.code === selectedCountry.code;
+              return (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => handleCountrySelect(c)}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                    isSelected && "bg-primary/10 text-primary font-semibold"
+                  )}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="text-base shrink-0" role="img" aria-label={c.name}>
+                      {c.flag}
+                    </span>
+                    <span className="truncate">{c.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="font-mono text-[11px] text-muted-foreground">{c.dialCode}</span>
+                    {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 });
 
