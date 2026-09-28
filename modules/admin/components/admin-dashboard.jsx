@@ -42,8 +42,7 @@ function AdminHome() {
   const mix = overviewData?.membershipMix || { Basic: 0, Premium: 0, Enterprise: 0 };
   const totalMembers = Object.values(mix).reduce((a, b) => a + b, 0) || 1;
 
-
-
+  const basePath = user?.role === "chapter_admin" ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
   return (
     <AppShell
       role="admin"
@@ -72,7 +71,7 @@ function AdminHome() {
             hint={`+${membershipGrowth[membershipGrowth.length - 1]?.new || 0} this month`}
             icon={Building2}
             tone="primary"
-            href="/admin/businesses"
+            href={`${basePath}/businesses`}
           />
           <StatCard
             label="Verification queue"
@@ -80,22 +79,24 @@ function AdminHome() {
             hint={`${kpi.pendingVerifications || 0} pending`}
             icon={ShieldCheck}
             tone="warning"
-            href="/admin/verification"
+            href={`${basePath}/verification`}
           />
           <StatCard
             label="Registered users"
             value={String(kpi.totalUsers || 0)}
             icon={Users}
-            href="/admin/users"
+            href={`${basePath}/users`}
           />
-          <StatCard
-            label="Payments this month"
-            value={String(kpi.paidTransactions || 0)}
-            hint={`₹ ${kpi.totalRevenue || 0} collected`}
-            icon={Wallet}
-            tone="success"
-            href="/admin/payments"
-          />
+          {user?.role !== "chapter_admin" && (
+            <StatCard
+              label="Payments this month"
+              value={String(kpi.paidTransactions || 0)}
+              hint={`₹ ${kpi.totalRevenue || 0} collected`}
+              icon={Wallet}
+              tone="success"
+              href="/admin/payments"
+            />
+          )}
         </div>
 
         {/* Charts & Progress Panels Row */}
@@ -143,7 +144,7 @@ function AdminHome() {
           </div>
           
           <div className="space-y-6">
-            <Panel title="Chapters Distribution" action={<MoreLink href="/admin/chapters" />}>
+            <Panel title="Chapters Distribution" action={<MoreLink href={`${basePath}/chapters`} />}>
               <div className="space-y-5 mt-2">
                 {chaptersDist.length === 0 ? (
                    <p className="text-xs text-muted-foreground">No chapters data available.</p>
@@ -163,7 +164,7 @@ function AdminHome() {
                 )}
               </div>
             </Panel>
-            <Panel title="Membership mix" action={<MoreLink href="/admin/memberships" />}>
+            <Panel title="Membership mix" action={<MoreLink href={`${basePath}/memberships`} />}>
                <div className="space-y-3 mt-2">
                   <div className="flex items-center justify-between bg-primary text-primary-foreground p-3 rounded-lg">
                      <div className="flex items-center gap-2">
@@ -197,7 +198,7 @@ function AdminHome() {
               <Panel
                 title="Verification queue"
                 description="Businesses awaiting chapter document verification"
-                action={<MoreLink href="/admin/verification" />}
+                action={<MoreLink href={`${basePath}/verification`} />}
               >
                 {queue.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted-foreground">
@@ -222,7 +223,7 @@ function AdminHome() {
                               {item.documents?.length || 0} document{(item.documents?.length || 0) === 1 ? "" : "s"} submitted
                             </span>
                             <Button asChild size="sm" variant="outline" className="h-8 gap-1 text-xs font-semibold text-primary hover:bg-primary/10">
-                              <Link href="/admin/verification">
+                              <Link href={`${basePath}/verification`}>
                                 Inspect & Review <ArrowRight className="h-3 w-3" />
                               </Link>
                             </Button>
@@ -235,7 +236,7 @@ function AdminHome() {
               </Panel>
             )}
 
-            <Panel title="Recent enquiries" description="Lead flow across the chamber" action={<MoreLink href="/admin/enquiries" />}>
+            <Panel title="Recent enquiries" description="Lead flow across the chamber" action={<MoreLink href={`${basePath}/enquiries`} />}>
               {enquiries.length === 0 ? (
                 <p className="py-4 text-xs text-muted-foreground">No recent enquiries.</p>
               ) : (
