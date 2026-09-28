@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -72,9 +72,30 @@ export function PublicHeader() {
           ? "/chapter-admin"
           : "/biz";
 
+  const [isScrolled, setIsScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
-      <div className="rifah-container flex h-14 items-center gap-3 md:h-[68px]">
+    <header
+      className={cn(
+        "sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur will-change-transform animate-nav-enter transition-all duration-300 ease-out",
+        isScrolled ? "shadow-md backdrop-blur-md bg-surface/90" : ""
+      )}
+    >
+      <div
+        className={cn(
+          "rifah-container flex items-center gap-3 transition-all duration-300 ease-out",
+          isScrolled ? "h-12 md:h-[60px]" : "h-14 md:h-[68px]"
+        )}
+      >
         <RifahLogo />
 
         <nav className="ml-4 xl:ml-6 hidden items-center gap-0.5 xl:gap-1 lg:flex flex-nowrap shrink-0" aria-label="Main">
@@ -85,13 +106,19 @@ export function PublicHeader() {
                 key={item.to}
                 href={item.to}
                 className={cn(
-                  "rounded-lg px-2.5 xl:px-3 py-1.5 xl:py-2 text-xs xl:text-sm font-medium transition-colors whitespace-nowrap shrink-0",
+                  "relative group rounded-lg px-2.5 xl:px-3 py-1.5 xl:py-2 text-xs xl:text-sm font-medium transition-colors whitespace-nowrap shrink-0",
                   isActive
                     ? "bg-muted text-foreground font-semibold"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                 )}
               >
                 {item.tKey ? t(`nav.${item.tKey}`) : item.label}
+                <span
+                  className={cn(
+                    "absolute bottom-0.5 left-1/2 -translate-x-1/2 h-[2px] w-[calc(100%-1.25rem)] rounded-full bg-primary transition-transform duration-300 ease-out origin-center pointer-events-none",
+                    isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  )}
+                />
               </Link>
             );
           })}
@@ -287,7 +314,7 @@ export function PublicFooter() {
   };
 
   return (
-    <footer className="mt-6 sm:mt-8 border-t border-navy-foreground/10 bg-navy text-navy-foreground">
+    <footer id="site-footer" className="mt-6 sm:mt-8 border-t border-navy-foreground/10 bg-navy text-navy-foreground will-change-transform will-change-opacity">
       {/* Tier 1: Action CTAs & Connect App Download Badges (Exact Original Position) */}
       <div className="border-b border-navy-foreground/10 bg-navy/95 backdrop-blur">
         <div className="rifah-container flex flex-col gap-2.5 py-2 sm:py-2.5 lg:flex-row lg:items-center lg:justify-between">
@@ -513,7 +540,7 @@ export function PublicFooter() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.name}
-                  className="grid h-7 w-7 place-items-center rounded-lg border border-navy-foreground/15 bg-black/25 text-navy-foreground transition hover:border-primary/50 hover:bg-black/50 hover:scale-105"
+                  className="grid h-7 w-7 place-items-center rounded-lg border border-navy-foreground/15 bg-black/25 text-navy-foreground transition-all duration-200 hover:border-primary/50 hover:bg-black/50 hover:scale-110 hover:-rotate-6"
                   title={s.name}
                 >
                   {s.icon}
@@ -575,9 +602,9 @@ export function PublicMobileTabs() {
 export function PublicLayout({ children, bare = false, className, mainClassName }) {
   const { user } = useAuth();
   return (
-    <div className={cn("flex min-h-screen flex-col bg-background w-full max-w-full overflow-x-hidden", className)}>
+    <div className={cn("flex min-h-screen flex-col bg-background w-full max-w-full animate-page-enter", className)}>
       <PublicHeader />
-      <main className={cn("flex-1 w-full min-w-0 max-w-full overflow-x-hidden", mainClassName)}>{children}</main>
+      <main className={cn("flex-1 w-full min-w-0 max-w-full", mainClassName)}>{children}</main>
       {!bare && <PublicFooter />}
       <RifahCopilotWidget role={user?.role || "business_owner"} user={user} />
     </div>

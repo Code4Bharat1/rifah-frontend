@@ -27,7 +27,7 @@ import {
   MapPin,
   Share2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 import { Pill } from "@shared/components/rifah/badges";
@@ -35,6 +35,8 @@ import { PremiumBusinessCard } from "@shared/components/rifah/business-card";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { MoreLink, SectionHeader } from "@shared/components/rifah/ui-bits";
 import { ChamberMembershipTiers } from "@shared/components/rifah/chamber-membership-tiers";
+import { StatCountUp } from "@shared/components/rifah/stat-count-up";
+import { useLandingAnimations } from "@shared/hooks/use-landing-animations";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { PhoneInput } from "@shared/components/ui/phone-input";
@@ -189,6 +191,14 @@ function HomePage() {
     description: "",
   });
 
+  const [isHeroMounted, setIsHeroMounted] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsHeroMounted(true), 60);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useLandingAnimations();
+
   const handleRfqSubmit = async (e) => {
     e.preventDefault();
     setRfqError("");
@@ -237,60 +247,125 @@ function HomePage() {
 
   return (
     <PublicLayout>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-navy py-12 md:py-16 lg:py-20 text-navy-foreground border-b border-navy-foreground/10">
-        {/* Subtle executive background grid */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px]" />
+      {/* ── SECTION 2: HERO ────────────────────────────────────────── */}
+      <section id="hero-section" className="relative overflow-hidden bg-navy py-12 md:py-16 lg:py-20 text-navy-foreground border-b border-navy-foreground/10">
+        {/* Subtle executive background grid with damped parallax */}
+        <div className="hero-bg-grid pointer-events-none absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] will-change-transform" />
 
         <div className="rifah-container relative z-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div className="max-w-2xl">
-
-            <h1 className="mt-4 text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-5xl">
-              Connect. Discover. Grow.
+            {/* Headline with Linear-style staggered word entrance */}
+            <h1 className="mt-4 text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-5xl flex flex-wrap gap-x-2.5">
+              {["Connect.", "Discover.", "Grow."].map((word, i) => (
+                <span
+                  key={word}
+                  className={cn(
+                    "inline-block transition-all duration-700 will-change-transform will-change-opacity",
+                    isHeroMounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                  )}
+                  style={{
+                    transitionDelay: `${i * 120 + 80}ms`,
+                    transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+                  }}
+                >
+                  {word}
+                </span>
+              ))}
             </h1>
             
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-300 md:text-base">
+            {/* Subtext with smooth fade-up */}
+            <p
+              className={cn(
+                "mt-4 max-w-xl text-sm leading-relaxed text-slate-300 md:text-base transition-all duration-700 will-change-transform will-change-opacity",
+                isHeroMounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
+              )}
+              style={{
+                transitionDelay: "450ms",
+                transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+            >
               RIFAH Connect is the chamber's digital business network — discover verified suppliers and service
               providers, publish your catalogue, and connect through structured trade enquiries.
             </p>
             
-            <div className="mt-6">
+            {/* Search Bar with focus glow */}
+            <div
+              className={cn(
+                "mt-6 hero-search-bar transition-all duration-700 will-change-transform will-change-opacity",
+                isHeroMounted ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-[0.98]"
+              )}
+              style={{
+                transitionDelay: "580ms",
+                transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+            >
               <HeroSearch />
             </div>
             
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs">
+            {/* CTA Buttons with Magnetic Radius Effect */}
+            <div
+              className={cn(
+                "mt-5 flex flex-wrap items-center gap-3 transition-all duration-700 will-change-transform will-change-opacity",
+                isHeroMounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              )}
+              style={{
+                transitionDelay: "700ms",
+                transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+            >
+              <Button asChild size="lg" className="magnetic-btn bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs transition-all duration-200 active:scale-95">
                 <Link href="/discover" className="gap-2">
                   Discover Businesses <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="border-slate-700 bg-slate-900/60 text-white hover:bg-slate-800 hover:text-white font-semibold">
+              <Button asChild size="lg" variant="outline" className="magnetic-btn border-slate-700 bg-slate-900/60 text-white hover:bg-slate-800 hover:text-white font-semibold transition-all duration-200 active:scale-95">
                 <Link href="/register-business">Join RIFAH</Link>
               </Button>
               <Button
                 size="lg"
-                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold gap-2 shadow-xs transition-all cursor-pointer"
+                className="magnetic-btn bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold gap-2 shadow-xs transition-all cursor-pointer active:scale-95"
                 onClick={() => setRfqOpen(true)}
               >
                 <FileText className="h-4 w-4" /> Post RFQ
               </Button>
             </div>
             
+            {/* Trust Badges */}
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-300">
-              <li className="inline-flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-400" /> Chamber-Verified Businesses
-              </li>
-              <li className="inline-flex items-center gap-2">
-                <Target className="h-4 w-4 text-sky-400" /> Routed Trade Enquiries
-              </li>
-              <li className="inline-flex items-center gap-2">
-                <Handshake className="h-4 w-4 text-amber-400" /> Pan-India Regional Chapters
-              </li>
+              {[
+                { icon: ShieldCheck, text: "Chamber-Verified Businesses", color: "text-emerald-400" },
+                { icon: Target, text: "Routed Trade Enquiries", color: "text-sky-400" },
+                { icon: Handshake, text: "Pan-India Regional Chapters", color: "text-amber-400" },
+              ].map((badge, i) => (
+                <li
+                  key={badge.text}
+                  className={cn(
+                    "inline-flex items-center gap-2 transition-all duration-600 will-change-transform will-change-opacity",
+                    isHeroMounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+                  )}
+                  style={{
+                    transitionDelay: `${820 + i * 90}ms`,
+                    transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+                  }}
+                >
+                  <badge.icon className={`h-4 w-4 ${badge.color}`} /> {badge.text}
+                </li>
+              ))}
             </ul>
           </div>
 
-          <div className="hidden lg:block">
-            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900/60 shadow-xl flex items-center justify-center">
+          {/* Right-side dashboard video (stable and stationary) */}
+          <div
+            className={cn(
+              "hidden lg:block transition-all duration-800 will-change-transform will-change-opacity",
+              isHeroMounted ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-6 scale-[0.98]"
+            )}
+            style={{
+              transitionDelay: "320ms",
+              transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+          >
+            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900/60 shadow-2xl flex items-center justify-center">
               <video
                 src={withAssetPrefix("/hero-video.mp4")}
                 autoPlay 
@@ -304,32 +379,32 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="rifah-container py-10 md:py-14">
+      {/* ── SECTION 3: BROWSE BY INDUSTRY CATEGORY ─────────────────── */}
+      <section id="category-section" className="rifah-container py-10 md:py-14">
         <SectionHeader
           title="Browse by Industry Category"
           description="Key sectors represented across RIFAH Chamber members."
           action={<MoreLink href="/discover">View all categories</MoreLink>}
         />
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 overflow-visible">
           {topCategories.map((c) => (
             <Link
               key={c.label}
               href={`/discover?industry=${encodeURIComponent(c.label)}`}
-              className="group flex min-h-[104px] flex-col justify-between rounded-2xl border border-border bg-surface p-4 transition-all hover:border-primary/40 hover:shadow-sm"
+              className="category-card group relative flex min-h-[104px] flex-col justify-between rounded-2xl border border-border bg-surface p-4 transition-all duration-300 ease-out hover:z-20 hover:scale-[1.07] hover:-translate-y-1.5 hover:border-primary hover:ring-2 hover:ring-primary/20 hover:shadow-xl hover:shadow-primary/10 active:scale-[0.98] will-change-transform will-change-opacity"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-foreground transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-md group-hover:shadow-primary/20">
                 <c.icon className="h-4.5 w-4.5" />
               </span>
-              <span className="mt-3 text-xs font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">{c.label}</span>
+              <span className="mt-3 text-xs font-semibold leading-snug text-foreground transition-colors duration-300 group-hover:text-primary">{c.label}</span>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* State-wise business generated (builds trust & encourages new members to join) */}
+      {/* ── SECTION 4: BUSINESS GENERATED ACROSS STATES ────────────── */}
       {stateRevenue.length > 0 && (
-        <section className="border-t border-border bg-muted/20 py-10 md:py-14">
+        <section id="state-revenue-section" className="border-t border-border bg-muted/20 py-10 md:py-14">
           <div className="rifah-container">
             <SectionHeader
               title="Business Generated Across States"
@@ -337,10 +412,10 @@ function HomePage() {
             />
             <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {stateRevenue.slice(0, 6).map((s) => (
-                <div key={s.state} className="rounded-2xl border border-border bg-surface p-4.5">
+                <div key={s.state} className="stat-card rounded-2xl border border-border bg-surface p-4.5 transition-all duration-300 hover:shadow-md hover:border-primary/40 will-change-transform will-change-opacity">
                   <p className="text-sm font-semibold text-foreground">{s.state}</p>
                   <p className="mt-1 text-2xl font-bold tracking-tight text-primary">
-                    {currencyFormatter.format(s.totalBusinessGenerated)}
+                    <StatCountUp value={s.totalBusinessGenerated} isCurrency={true} />
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {s.transactionCount} {s.transactionCount === 1 ? "deal" : "deals"} closed among members
@@ -352,9 +427,9 @@ function HomePage() {
         </section>
       )}
 
-      {/* Featured businesses (only shown when verified businesses exist) */}
+      {/* ── SECTION 5: FEATURED MEMBER ENTERPRISES ─────────────────── */}
       {featured.length > 0 && (
-        <section className="border-t border-border bg-muted/20 py-10 md:py-14">
+        <section id="featured-enterprises-section" className="border-t border-border bg-muted/20 py-10 md:py-14">
           <div className="rifah-container">
             <SectionHeader
               title="Featured Member Enterprises"
@@ -363,7 +438,7 @@ function HomePage() {
             />
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {featured.slice(0, 4).map((b) => (
-                <div key={b._id || b.slug} className="flex h-full flex-col">
+                <div key={b._id || b.slug} className="featured-biz-card cursor-glow-card flex h-full flex-col will-change-transform will-change-opacity">
                   <PremiumBusinessCard business={b} />
                 </div>
               ))}
@@ -372,9 +447,9 @@ function HomePage() {
         </section>
       )}
 
-      {/* Products & services (only shown when catalogue items exist) */}
+      {/* ── SECTION 6: FEATURED PRODUCTS & SERVICES ────────────────── */}
       {catalogueList.length > 0 && (
-        <section className="rifah-container py-10 md:py-14">
+        <section id="featured-products-section" className="rifah-container py-10 md:py-14">
           <SectionHeader
             title="Featured Products & Services"
             description="Verified offerings published directly by member businesses."
@@ -387,7 +462,7 @@ function HomePage() {
               return (
                 <article
                   key={item._id || item.slug}
-                  className="group flex flex-col justify-between rounded-2xl border border-border bg-surface p-4.5 transition-all hover:border-primary/40 hover:shadow-sm"
+                  className="featured-product-card cursor-glow-card group flex flex-col justify-between rounded-2xl border border-border bg-surface p-4.5 transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:-translate-y-1.5 will-change-transform will-change-opacity"
                 >
                   <div>
                     {itemImg ? (
@@ -399,7 +474,7 @@ function HomePage() {
                           onError={(ev) => {
                             ev.currentTarget.parentElement.style.display = "none";
                           }}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          className="product-image-reveal h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </div>
                     ) : (
@@ -416,7 +491,7 @@ function HomePage() {
                       {biz?.name} {item.city ? `· ${item.city}` : ""}
                     </p>
                   </div>
-                  <Button asChild size="sm" variant="outline" className="mt-4 w-full">
+                  <Button asChild size="sm" variant="outline" className="mt-4 w-full transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:border-primary">
                     <Link href={`/enquiry/new?category=${encodeURIComponent(item.category || "")}`}>
                       Send Enquiry
                     </Link>
@@ -428,9 +503,9 @@ function HomePage() {
         </section>
       )}
 
-      {/* Events (only shown when upcoming events exist) */}
+      {/* ── SECTION 7: UPCOMING EVENTS ─────────────────────────────── */}
       {upcoming.length > 0 && (
-        <section className="border-t border-border bg-muted/20 py-10 md:py-14">
+        <section id="upcoming-events-section" className="border-t border-border bg-muted/20 py-10 md:py-14">
           <div className="rifah-container">
             <SectionHeader
               title="Upcoming Events and Activities"
@@ -441,7 +516,7 @@ function HomePage() {
               {upcoming.map((e) => (
                 <article
                   key={e._id || e.slug}
-                  className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:border-primary/40 hover:shadow-sm"
+                  className="upcoming-event-card group flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:-translate-y-1.5 will-change-transform will-change-opacity"
                 >
                   <div>
                     <div className="relative h-36 overflow-hidden bg-muted">
@@ -461,13 +536,13 @@ function HomePage() {
                           const status = getEventStatus(e);
                           const cfg = getEventStatusConfig(status);
                           return (
-                            <Pill tone={cfg.tone} className={cfg.className}>
+                            <Pill tone={cfg.tone} className={cn(cfg.className, "animate-tag-pulse")}>
                               {cfg.dot && <span className="w-1.5 h-1.5 rounded-full bg-white inline-block mr-1" />}
                               {cfg.label}
                             </Pill>
                           );
                         })()}
-                        <Pill tone="navy" className="bg-navy text-white text-[10px] font-semibold">
+                        <Pill tone="navy" className="bg-navy text-white text-[10px] font-semibold animate-tag-pulse">
                           {e.mode}
                         </Pill>
                       </div>
@@ -483,7 +558,7 @@ function HomePage() {
                     </div>
                   </div>
                   <div className="p-4.5 pt-0 flex items-center gap-2">
-                    <Button asChild size="sm" variant="outline" className="flex-1 rounded-xl">
+                    <Button asChild size="sm" variant="outline" className="flex-1 rounded-xl transition-colors hover:bg-primary hover:text-primary-foreground">
                       <Link href={`/events/${e._id || e.slug}`}>
                         View Event Details
                       </Link>
@@ -493,7 +568,7 @@ function HomePage() {
                       size="sm"
                       variant="outline"
                       onClick={() => setSharingEvent(e)}
-                      className="rounded-xl h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:border-primary/50 shrink-0"
+                      className="rounded-xl h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:border-primary/50 shrink-0 transition-transform active:scale-95"
                       title="Share Event"
                       aria-label={`Share ${e.title}`}
                     >
@@ -507,8 +582,8 @@ function HomePage() {
         </section>
       )}
 
-      {/* Membership preview */}
-      <section className="rifah-container py-10 md:py-16">
+      {/* ── SECTION 8: MEMBERSHIP PLANS ────────────────────────────── */}
+      <section id="membership-plans-section" className="rifah-container py-10 md:py-16">
         <SectionHeader
           title="RIFAH Membership Plans"
           description="Select the membership tier tailored to your enterprise's growth stage."

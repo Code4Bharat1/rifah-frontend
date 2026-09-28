@@ -361,12 +361,13 @@ export function ChamberMembershipTiers({
             <div
               key={plan.id}
               className={cn(
-                "relative flex flex-col items-center justify-between rounded-2xl sm:rounded-3xl p-4 sm:p-6 pt-8 sm:pt-9 pb-6 sm:pb-7 text-center transition-all duration-300 w-full min-w-0",
+                "membership-tier-card relative flex flex-col items-center justify-between rounded-2xl sm:rounded-3xl p-4 sm:p-6 pt-8 sm:pt-9 pb-6 sm:pb-7 text-center transition-all duration-300 w-full min-w-0 will-change-transform will-change-opacity",
                 hasTheory ? "min-h-[400px] sm:min-h-[440px]" : "min-h-[270px] sm:min-h-[290px]",
                 style.cardBg || "bg-white dark:bg-slate-900",
                 style.cardBorder,
                 isCurrent && "ring-2 ring-emerald-500 border-emerald-500 shadow-xl",
-                isRecommended && !isCurrent && "shadow-xl shadow-blue-500/10"
+                isRecommended && !isCurrent && "shadow-xl shadow-blue-500/10 animate-platinum-glow hover:-translate-y-2.5 hover:scale-[1.02]",
+                !isRecommended && "hover:-translate-y-1.5 hover:shadow-lg"
               )}
             >
               {/* Floating Badge for Most Popular or Selected */}
@@ -474,7 +475,7 @@ export function ChamberMembershipTiers({
                     type="button"
                     onClick={() => onSelectPlan(plan)}
                     className={cn(
-                      "w-full rounded-full h-11 px-4 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none group",
+                      "membership-proceed-btn magnetic-btn w-full rounded-full h-11 px-4 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none group",
                       isCurrent
                         ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/25"
                         : style.buttonClass
@@ -484,7 +485,7 @@ export function ChamberMembershipTiers({
                     {isCurrent ? (
                       <Check className="h-4 w-4 shrink-0 stroke-[2.5]" />
                     ) : (
-                      <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.2] transition-transform duration-200 group-hover:translate-x-0.5" />
+                      <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.2] transition-transform duration-200 group-hover:translate-x-1" />
                     )}
                   </button>
                 ) : (
@@ -493,12 +494,12 @@ export function ChamberMembershipTiers({
                       isIntl ? "&currency=USD" : ""
                     }`}
                     className={cn(
-                      "w-full rounded-full h-11 px-4 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none group",
+                      "membership-proceed-btn magnetic-btn w-full rounded-full h-11 px-4 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none group",
                       style.buttonClass
                     )}
                   >
                     <span className="whitespace-nowrap tracking-wide">{ctaLabel}</span>
-                    <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.2] transition-transform duration-200 group-hover:translate-x-0.5" />
+                    <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.2] transition-transform duration-200 group-hover:translate-x-1" />
                   </Link>
                 )}
               </div>

@@ -285,11 +285,16 @@ aside nav::-webkit-scrollbar {
 /* ========================================================================= */
 /* UNIVERSAL MOBILE RESPONSIVENESS & OVERFLOW SAFEGUARDS                     */
 /* ========================================================================= */
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
+html {
+  max-width: 100%;
+  overflow-x: clip;
   -webkit-text-size-adjust: 100%;
+}
+
+body {
+  max-width: 100%;
+  overflow-x: clip;
+  min-height: 100vh;
 }
 
 img,
@@ -310,4 +315,176 @@ svg {
   min-width: 0;
 }
 
+/* ========================================================================= */
+/* HIGH-END GPU-ACCELERATED ANIMATION SYSTEM (Linear / Stripe / Vercel Grade) */
+/* ========================================================================= */
+
+/* Hardware acceleration defaults */
+.will-change-transform {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* 1) Navbar entrance */
+@keyframes nav-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+.animate-nav-enter {
+  animation: nav-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 2) Hero Section */
+@keyframes hero-word-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(-8px) translateZ(0);
+  }
+  50% {
+    transform: translateY(8px) translateZ(0);
+  }
+}
+
+.animate-gentle-float {
+  animation: gentle-float 4s ease-in-out infinite;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Hero Search Focus Glow */
+.hero-search-bar {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+}
+
+.hero-search-bar:focus-within {
+  border-color: rgba(0, 136, 209, 0.85) !important;
+  box-shadow: 0 0 0 4px rgba(0, 136, 209, 0.2), 0 12px 28px rgba(0, 136, 209, 0.16) !important;
+}
+
+/* 7) Upcoming Events: Soft Pulse for Tags */
+@keyframes tag-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(0.97);
+  }
+}
+
+.animate-tag-pulse {
+  animation: tag-pulse 2.2s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+/* 8) Membership Platinum: Subtle breathing border glow */
+@keyframes breathing-glow {
+  0%, 100% {
+    box-shadow: 0 10px 25px -5px rgba(0, 136, 209, 0.15), 0 0 0 1px rgba(0, 136, 209, 0.35);
+  }
+  50% {
+    box-shadow: 0 20px 40px -5px rgba(0, 136, 209, 0.32), 0 0 0 2px rgba(0, 136, 209, 0.75);
+  }
+}
+
+.animate-platinum-glow {
+  animation: breathing-glow 3.2s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
+/* 10) Page Load Soft Entrance */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-page-enter {
+  animation: page-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 5 & 6) Cursor Glow & Tilt Container */
+.cursor-glow-card {
+  position: relative;
+}
+
+.cursor-glow-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(350px circle at var(--mx, -500px) var(--my, -500px), rgba(0, 136, 209, 0.12), transparent 80%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.cursor-glow-card:hover::after {
+  opacity: 1;
+}
+
+/* 6) Product Image Left-to-Right Reveal */
+.product-image-reveal {
+  clip-path: inset(0 100% 0 0);
+  will-change: clip-path;
+  transition: clip-path 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-image-reveal.is-revealed {
+  clip-path: inset(0 0% 0 0);
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Accessible reduced motion override: disable heavy looping effects only */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-gentle-float,
+  .animate-platinum-glow,
+  .animate-tag-pulse {
+    animation: none !important;
+  }
+}
 

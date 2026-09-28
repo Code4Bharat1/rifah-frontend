@@ -412,7 +412,7 @@ export function PremiumBusinessCard({ business }) {
   const locationText = [business.industry, business.city].filter(Boolean).join(" · ") || business.category || "Verified Business";
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xs transition-all duration-200 hover:border-primary/40 hover:shadow-md">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xs transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:-translate-y-2 will-change-transform">
       {/* Official Chamber Navy Cover Header */}
       <div className="relative h-20 overflow-hidden sm:h-24 bg-navy">
         {coverUrl ? (
@@ -458,7 +458,7 @@ export function PremiumBusinessCard({ business }) {
 
         {/* Rating Display */}
         <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 transition-transform duration-300 group-hover:scale-115" />
           <span className="font-semibold text-foreground">{currentRating.toFixed(1)}</span> ({currentReviewsCount})
         </div>
 
@@ -475,7 +475,7 @@ export function PremiumBusinessCard({ business }) {
 
         {/* Action Buttons: View Profile + Write Review */}
         <div className="mt-auto pt-4 space-y-2">
-          <Button asChild size="sm" className="w-full font-semibold">
+          <Button asChild size="sm" className="w-full font-semibold transition-colors duration-250 hover:bg-primary/90">
             <Link href={`/business/${bizId}`}>
               View Profile
             </Link>
