@@ -939,7 +939,7 @@ export function AdminReports() {
             <DialogTitle>{viewData?.title}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-auto border rounded-md">
-            {viewData?.reportType === "memberships" && viewData?.filter !== "Event Registrations" && user?.role === "chapter_admin" && viewData?.rawBusinesses ? (
+            {(viewData?.reportType === "memberships" || viewData?.reportType === "businesses") && viewData?.filter !== "Event Registrations" && user?.role === "chapter_admin" && viewData?.rawBusinesses ? (
               <div className="p-4 bg-background">
                 {viewData.rawBusinesses.length === 0 ? (
                   <div className="text-center py-16 text-muted-foreground">No data found for the selected filters.</div>
@@ -962,7 +962,22 @@ export function AdminReports() {
                           <div className="p-4 pl-10 flex gap-4 border-b border-border bg-muted/5">
                             <div className="h-20 w-20 rounded-md bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border">
                               {b.logo || owner.avatar ? (
-                                <img src={b.logo || owner.avatar} alt="Profile" className="h-full w-full object-cover" />
+                                <>
+                                  <img 
+                                    src={b.logo || owner.avatar} 
+                                    alt="Profile" 
+                                    className="h-full w-full object-cover" 
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      if (e.currentTarget.nextElementSibling) {
+                                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                                      }
+                                    }}
+                                  />
+                                  <div className="h-full w-full bg-primary/10 text-primary items-center justify-center font-bold text-2xl" style={{ display: 'none' }}>
+                                    {name.charAt(0)}
+                                  </div>
+                                </>
                               ) : (
                                 <div className="h-full w-full bg-primary/10 text-primary flex items-center justify-center font-bold text-2xl">
                                   {name.charAt(0)}

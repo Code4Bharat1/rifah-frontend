@@ -411,7 +411,7 @@ function AdminBusinesses() {
             <Download className="h-4 w-4" />
             Export directory
           </Button>
-          {(user?.role === "central_admin" || user?.role === "super_admin") && (
+          {(user?.role === "central_admin" || user?.role === "super_admin" || user?.role === "chapter_admin") && (
             <Button asChild className="rounded-full bg-blue-600 hover:bg-blue-700">
               <Link href={`${basePath}/businesses/new`}>Add Business</Link>
             </Button>
@@ -433,34 +433,46 @@ function AdminBusinesses() {
           </div>
 
           {/* State Filter */}
-          <Select value={stateFilter} onValueChange={setStateFilter}>
-            <SelectTrigger className="h-11">
-              <SelectValue placeholder="All States" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All States</SelectItem>
-              {availableStates.map((st) => (
-                <SelectItem key={st} value={st}>
-                  {st}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {user?.role === "chapter_admin" ? (
+            <div className="h-11 px-3 py-2 border rounded-md bg-muted/50 text-muted-foreground flex items-center text-sm cursor-not-allowed">
+              {user?.state || "State Assigned"}
+            </div>
+          ) : (
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder="All States" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All States</SelectItem>
+                {availableStates.map((st) => (
+                  <SelectItem key={st} value={st}>
+                    {st}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           {/* Chapter Filter */}
-          <Select value={chapterFilter} onValueChange={setChapterFilter}>
-            <SelectTrigger className="h-11">
-              <SelectValue placeholder="All Chapters" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Chapters</SelectItem>
-              {availableChapters.map((ch) => (
-                <SelectItem key={ch} value={ch}>
-                  {ch}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {user?.role === "chapter_admin" ? (
+            <div className="h-11 px-3 py-2 border rounded-md bg-muted/50 text-muted-foreground flex items-center text-sm cursor-not-allowed">
+              {user?.chapter || "Chapter Assigned"}
+            </div>
+          ) : (
+            <Select value={chapterFilter} onValueChange={setChapterFilter}>
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder="All Chapters" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Chapters</SelectItem>
+                {availableChapters.map((ch) => (
+                  <SelectItem key={ch} value={ch}>
+                    {ch}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           {/* Verification Status Filter */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
