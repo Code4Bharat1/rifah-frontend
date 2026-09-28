@@ -11,6 +11,7 @@ import { Input } from "@shared/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@shared/components/ui/select";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@shared/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
+import { SearchableFilterSelect } from "@shared/components/rifah/searchable-filter-select";
 import { useCategories } from "@shared/hooks/use-rifah-api";
 import { categoryApi } from "@shared/lib/api-services";
 
@@ -101,17 +102,16 @@ function AdminCategories() {
               className="h-11"
               required
             />
-            <Select value={parentName} onValueChange={setParentName}>
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Parent (Optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Parent (Main Category)</SelectItem>
-                {mainCategories.map((mc) => (
-                  <SelectItem key={mc._id || mc.slug} value={mc.name}>{mc.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableFilterSelect
+              value={parentName}
+              onValueChange={setParentName}
+              placeholder="Parent (Optional)"
+              searchPlaceholder="Search parent category..."
+              allLabel="No Parent (Main Category)"
+              allValue="none"
+              options={mainCategories.map((mc) => ({ value: mc.name, label: mc.name }))}
+              className="h-11"
+            />
             <Button type="submit" className="h-11" disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
             </Button>
@@ -215,19 +215,18 @@ function AdminCategories() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Parent Category</label>
-                <Select value={editParent} onValueChange={setEditParent}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Parent (Optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Parent (Make this a Main Category)</SelectItem>
-                    {mainCategories
-                      .filter(mc => mc._id !== (editingCategory?._id || editingCategory?.id))
-                      .map((mc) => (
-                      <SelectItem key={mc._id || mc.slug} value={mc.name}>{mc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableFilterSelect
+                  value={editParent}
+                  onValueChange={setEditParent}
+                  placeholder="Parent (Optional)"
+                  searchPlaceholder="Search parent category..."
+                  allLabel="No Parent (Make this a Main Category)"
+                  allValue="none"
+                  options={mainCategories
+                    .filter(mc => mc._id !== (editingCategory?._id || editingCategory?.id))
+                    .map((mc) => ({ value: mc.name, label: mc.name }))}
+                  className="h-10 text-xs"
+                />
               </div>
             </div>
             <DialogFooter>

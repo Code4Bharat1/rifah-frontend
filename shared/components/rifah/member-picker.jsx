@@ -172,11 +172,22 @@ export function MemberPicker({
     return chaptersForState.filter((c) => (c.name || "").toLowerCase().includes(q));
   }, [chaptersForState, chapterSearch]);
 
+  const selectedChapterObj = useMemo(() => {
+    if (!selectedChapterName) return null;
+    return chapters.find((c) => (c.name || "").toLowerCase() === selectedChapterName.toLowerCase());
+  }, [chapters, selectedChapterName]);
+
   // Fetch members for the selected chapter
   const { data: chapterMembersData, isLoading: chapterMembersLoading } = useQuery({
-    queryKey: ["networking-chapter-members", selectedChapterName],
+    queryKey: ["networking-chapter-members", selectedChapterName, selectedState],
     queryFn: async () => {
-      const res = await businessApi.list({ chapter: selectedChapterName, limit: 200 });
+      const res = await businessApi.list({
+        chapter: selectedChapterName,
+        chapterId: selectedChapterObj?._id,
+        state: selectedState,
+        forNetworking: "true",
+        limit: 200,
+      });
       return res?.data || res || [];
     },
     enabled: Boolean(selectedChapterName),
@@ -187,7 +198,11 @@ export function MemberPicker({
   const { data: globalMembersData, isLoading: globalMembersLoading } = useQuery({
     queryKey: ["networking-global-members", memberSearch.trim()],
     queryFn: async () => {
-      const res = await businessApi.list({ search: memberSearch.trim(), limit: 30 });
+      const res = await businessApi.list({
+        search: memberSearch.trim(),
+        forNetworking: "true",
+        limit: 50,
+      });
       return res?.data || res || [];
     },
     enabled: isGlobalSearchActive,

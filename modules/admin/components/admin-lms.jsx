@@ -31,6 +31,7 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { Textarea } from "@shared/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { SearchableFilterSelect } from "@shared/components/rifah/searchable-filter-select";
 import { useCourses, useCategories } from "@shared/hooks/use-rifah-api";
 import { courseApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
@@ -546,37 +547,29 @@ function AdminLms({ role = "admin" }) {
               <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                 {mainCategories.length > 0 && (
                   <>
-                    <Select value={adminCategoryFilter} onValueChange={(val) => {
-                      setAdminCategoryFilter(val);
-                      setAdminSubcategoryFilter("all");
-                    }}>
-                      <SelectTrigger className="h-9 text-xs w-[170px]">
-                        <SelectValue placeholder="All Categories" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">🌐 All Categories</SelectItem>
-                        {mainCategories.map((c) => (
-                          <SelectItem key={c._id || c.name} value={c.name}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableFilterSelect
+                      value={adminCategoryFilter}
+                      onValueChange={(val) => {
+                        setAdminCategoryFilter(val);
+                        setAdminSubcategoryFilter("all");
+                      }}
+                      placeholder="All Categories"
+                      searchPlaceholder="Search category..."
+                      allLabel="🌐 All Categories"
+                      options={mainCategories.map((c) => ({ value: c.name, label: c.name }))}
+                      className="h-9 text-xs w-[180px]"
+                    />
 
                     {adminCategoryFilter !== "all" && availableSubcategoriesForFilter.length > 0 && (
-                      <Select value={adminSubcategoryFilter} onValueChange={setAdminSubcategoryFilter}>
-                        <SelectTrigger className="h-9 text-xs w-[170px]">
-                          <SelectValue placeholder="All Subcategories" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Subcategories</SelectItem>
-                          {availableSubcategoriesForFilter.map((sc) => (
-                            <SelectItem key={sc._id || sc.name} value={sc.name}>
-                              {sc.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableFilterSelect
+                        value={adminSubcategoryFilter}
+                        onValueChange={setAdminSubcategoryFilter}
+                        placeholder="All Subcategories"
+                        searchPlaceholder="Search subcategory..."
+                        allLabel="All Subcategories"
+                        options={availableSubcategoriesForFilter.map((sc) => ({ value: sc.name, label: sc.name }))}
+                        className="h-9 text-xs w-[180px]"
+                      />
                     )}
                   </>
                 )}

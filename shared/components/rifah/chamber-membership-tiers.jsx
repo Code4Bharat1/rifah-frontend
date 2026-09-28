@@ -335,7 +335,7 @@ export function ChamberMembershipTiers({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 pt-6">
         {plans.map((plan, index) => {
           const style = getPlanStyle(plan, index);
-          const isRecommended = Boolean(plan.isRecommended);
+          const isRecommended = Boolean(plan.isRecommended ?? style.highlight);
           const isCurrent =
             String(currentTier || "").toLowerCase() === plan.id.toLowerCase();
           const IconComponent = style.icon || Crown;

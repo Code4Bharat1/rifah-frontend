@@ -9,8 +9,10 @@ import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { useConversations, useMessages } from "@shared/hooks/use-rifah-api";
+import { useQueryClient } from "@tanstack/react-query";
 import { messageApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
+import { toast } from "sonner";
 import { cn } from "@shared/lib/utils";
 import { getSocket } from "@shared/lib/socket";
 import { resolveMediaUrl } from "@shared/lib/api-client";
@@ -397,6 +399,7 @@ function BizMessages() {
   const { data: convData, refetch: refetchConversations } = useConversations();
   const conversations = useMemo(() => convData || [], [convData]);
 
+  const queryClient = useQueryClient();
   const [activeOtherUser, setActiveOtherUser] = useState(null);
   const [contactDetails, setContactDetails] = useState(null);
   const [openOnMobile, setOpenOnMobile] = useState(false);
@@ -406,6 +409,7 @@ function BizMessages() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Auto-select or draft conversation when targetUserId is provided via URL
   useEffect(() => {
@@ -432,6 +436,16 @@ function BizMessages() {
   }, [targetUserId, targetName, conversations, activeOtherUser]);
 
   const selectedUserId = activeOtherUser?._id;
+
+  // Auto-focus input text box whenever conversation is selected
+  useEffect(() => {
+    if (selectedUserId) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedUserId]);
 
   // Fetch recipient contact info (Email, Phone, WhatsApp from business profile)
   useEffect(() => {
@@ -521,30 +535,55 @@ function BizMessages() {
   const handleSend = async (e) => {
     e.preventDefault();
     if ((!inputText.trim() && !selectedFile) || !selectedUserId) return;
-    setSending(true);
-
-    let attachmentUrl = null;
-    if (selectedFile) {
-      try {
-        setUploadingFile(true);
-        const res = await messageApi.uploadAttachment(selectedFile);
-        attachmentUrl = res.data?.fileUrl || res.fileUrl;
-      } catch (err) {
-        alert(err.message || "Failed to upload attachment.");
-        setSending(false);
-        setUploadingFile(false);
-        return;
-      } finally {
-        setUploadingFile(false);
-      }
-    }
 
     const msgText = inputText.trim();
+    const fileToSend = selectedFile;
+
+    // Instantly reset input and keep focus on cursor
     setInputText("");
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    inputRef.current?.focus();
+
+    // Instant optimistic message in message list
+    const optimisticId = `temp_${Date.now()}`;
+    const optimisticMsg = {
+      _id: optimisticId,
+      conversationId: `conv_${[String(user?._id), String(selectedUserId)].sort().join("_")}`,
+      sender: {
+        _id: user?._id,
+        name: user?.name || "You",
+        avatar: user?.avatar,
+        role: user?.role,
+      },
+      recipient: activeOtherUser,
+      text: msgText,
+      body: msgText,
+      attachments: fileToSend ? [URL.createObjectURL(fileToSend)] : [],
+      createdAt: new Date().toISOString(),
+      isOptimistic: true,
+    };
+
+    queryClient.setQueryData(["messages", selectedUserId], (old = []) => [
+      ...(Array.isArray(old) ? old : []),
+      optimisticMsg,
+    ]);
+
+    setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      inputRef.current?.focus();
+    }, 10);
 
     try {
+      setSending(true);
+      let attachmentUrl = null;
+      if (fileToSend) {
+        setUploadingFile(true);
+        const res = await messageApi.uploadAttachment(fileToSend);
+        attachmentUrl = res.data?.fileUrl || res.fileUrl;
+        setUploadingFile(false);
+      }
+
       const payload = {
         recipientId: selectedUserId,
         text: msgText,
@@ -552,7 +591,14 @@ function BizMessages() {
         attachments: attachmentUrl ? [attachmentUrl] : [],
       };
 
-      await messageApi.sendMessage(payload);
+      const sendRes = await messageApi.sendMessage(payload);
+      const savedMsg = sendRes?.data || sendRes;
+
+      // Replace optimistic message with actual saved message from database
+      queryClient.setQueryData(["messages", selectedUserId], (old = []) => {
+        if (!Array.isArray(old)) return [savedMsg];
+        return old.map((m) => (m._id === optimisticId ? (savedMsg || m) : m));
+      });
 
       const socket = getSocket();
       if (socket) {
@@ -564,12 +610,20 @@ function BizMessages() {
         });
       }
 
-      refetchMessages();
-      await refetchConversations();
+      // Background refresh conversation list
+      refetchConversations();
     } catch (err) {
-      alert(err.message || "Failed to send message.");
+      console.error("Failed to send message:", err);
+      // Remove optimistic message and restore text on error
+      queryClient.setQueryData(["messages", selectedUserId], (old = []) => {
+        return Array.isArray(old) ? old.filter((m) => m._id !== optimisticId) : [];
+      });
+      setInputText(msgText);
+      toast.error(err.message || "Failed to send message.");
     } finally {
       setSending(false);
+      setUploadingFile(false);
+      setTimeout(() => inputRef.current?.focus(), 0);
     }
   };
 
@@ -841,19 +895,21 @@ function BizMessages() {
 
             <div className="flex items-center gap-2">
               <Input
+                ref={inputRef}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder={selectedUserId ? "Write a response..." : "Select a conversation to reply..."}
-                disabled={!selectedUserId || sending}
+                disabled={!selectedUserId}
                 className="h-10 flex-1"
+                autoFocus
               />
 
               <Button
                 type="submit"
                 size="sm"
-                disabled={sending || uploadingFile || (!inputText.trim() && !selectedFile) || !selectedUserId}
+                disabled={uploadingFile || (!inputText.trim() && !selectedFile) || !selectedUserId}
               >
-                {sending || uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </form>

@@ -34,6 +34,7 @@ import {
 } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
 import { enquiryApi } from "@shared/lib/api-services";
+import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 
 const B2B_CATEGORIES = [
   "Industrial Machinery & Tools",
@@ -492,21 +493,15 @@ export function BizNewEnquiry() {
                 <Label htmlFor="category" className="text-sm font-semibold">
                   Business Category *
                 </Label>
-                <Select
+                <CreatableCombobox
+                  id="category"
                   value={formData.category}
                   onValueChange={(val) => handleInputChange("category", val)}
-                >
-                  <SelectTrigger id="category" className="mt-1 w-full">
-                    <SelectValue placeholder="Select relevant category" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {categories.map((cat) => (
-                      <SelectItem key={cat._id || cat.name} value={cat.name}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={categories.map((cat) => (typeof cat === "string" ? cat : cat.name))}
+                  placeholder="Select or search category"
+                  emptyText="No category found. Type to add custom."
+                  className="mt-1"
+                />
               </div>
 
               <div>

@@ -11,16 +11,11 @@ import {
   DialogTitle,
 } from "@shared/components/ui/dialog";
 import { Button } from "@shared/components/ui/button";
+import { usePathname } from "next/navigation";
 import {
   PrototypeActionContext,
 
 } from "@shared/lib/prototype-action";
-
-
-
-
-
-
 
 function blueprintFor(label) {
   const l = label.toLowerCase();
@@ -176,6 +171,11 @@ function blueprintFor(label) {
 
 export function PrototypeActionProvider({ children }) {
   const [payload, setPayload] = React.useState(null);
+  const pathname = usePathname();
+
+  React.useEffect(() => {
+    setPayload(null);
+  }, [pathname]);
 
   const ctx = React.useMemo(
     () => ({ open: (p) => setPayload(p) }),

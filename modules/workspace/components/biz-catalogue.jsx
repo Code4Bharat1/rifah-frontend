@@ -1,6 +1,6 @@
 "use client";
 import { Package, Pencil, Plus, Trash2, Loader2, UploadCloud, X, Image as ImageIcon, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -24,14 +24,24 @@ import {
   DialogTitle,
 } from "@shared/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMyBusiness, useBusinessCatalogue } from "@shared/hooks/use-rifah-api";
+import { useMyBusiness, useBusinessCatalogue, useCategories } from "@shared/hooks/use-rifah-api";
 import { catalogueApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
+import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 
 export function BizCatalogueManager({ embedded = false }) {
   const queryClient = useQueryClient();
   const { data: business } = useMyBusiness();
   const { data: catalogueItems, refetch } = useBusinessCatalogue(business?._id);
+  const { data: categoriesData } = useCategories();
+
+  const categoryOptions = useMemo(() => {
+    const raw = Array.isArray(categoriesData) ? categoriesData : categoriesData?.categories || [];
+    const fromApi = raw.map((c) => (typeof c === "string" ? c : c?.name)).filter(Boolean);
+    const fromBiz = [business?.industry, business?.subCategory, ...(business?.categories || [])].filter(Boolean);
+    return Array.from(new Set([...fromBiz, ...fromApi]));
+  }, [categoriesData, business]);
+
   const allItems = catalogueItems || [];
   const activeItems = allItems.filter(item => item.status === "Active");
   const hiddenItems = allItems.filter(item => item.status === "Draft" || item.status === "Archived");
@@ -333,11 +343,13 @@ export function BizCatalogueManager({ embedded = false }) {
                   </div>
                   <div className="grid gap-1.5">
                     <Label htmlFor="item-cat" className="text-xs font-bold text-slate-700">Category</Label>
-                    <Input
+                    <CreatableCombobox
                       id="item-cat"
                       value={newItem.category}
-                      onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                      placeholder="Manufacturing / Precision Engineering"
+                      onValueChange={(val) => setNewItem({ ...newItem, category: val })}
+                      options={categoryOptions}
+                      placeholder="Select or search category"
+                      emptyText="No category found. Type to add custom."
                       className="h-11 rounded-xl"
                     />
                   </div>
@@ -647,10 +659,13 @@ export function BizCatalogueManager({ embedded = false }) {
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="edit-cat" className="text-xs font-bold text-slate-700">Category</Label>
-                <Input
+                <CreatableCombobox
                   id="edit-cat"
                   value={editFormData.category}
-                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                  onValueChange={(val) => setEditFormData({ ...editFormData, category: val })}
+                  options={categoryOptions}
+                  placeholder="Select or search category"
+                  emptyText="No category found. Type to add custom."
                   className="h-11 rounded-xl"
                 />
               </div>

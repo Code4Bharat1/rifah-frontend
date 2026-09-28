@@ -55,6 +55,7 @@ const Button = React.forwardRef(
         onClick?.(event);
         if (onClick || asChild || props.type === "submit" || props.type === "reset" || props.disabled) return;
         if (event.defaultPrevented) return;
+        if (event.currentTarget?.closest?.("a") || event.target?.closest?.("a")) return;
         const label =
           extractLabel(children).trim() ||
           (props["aria-label"] ) ||

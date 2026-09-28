@@ -78,7 +78,7 @@ const B2B_INDUSTRIES = [
 
 function BizProfile() {
   const queryClient = useQueryClient();
-  const { data: business, refetch } = useMyBusiness();
+  const { data: business, refetch, isLoading: loadingBiz } = useMyBusiness();
   const { user } = useAuth();
   const { data: categoriesData } = useCategories();
   const { data: catalogueItems } = useBusinessCatalogue(business?._id);
@@ -437,6 +437,7 @@ function BizProfile() {
   const bizSlugOrId = business?.slug || business?._id || "";
 
   const missingProfileFields = React.useMemo(() => {
+    if (loadingBiz || !business) return [];
     const list = [];
     if (!formData.name?.trim()) list.push("Business Name");
     if (!formData.industry?.trim()) list.push("Industry Category");
@@ -448,11 +449,42 @@ function BizProfile() {
       list.push("About / Description");
     }
     return list;
-  }, [formData]);
+  }, [formData, loadingBiz, business]);
 
   const vStatus = (business?.verification || business?.verificationStatus || "").toLowerCase();
+  const isVerified = business?.isVerified === true || vStatus === "verified" || vStatus === "approved" || business?.status === "Approved" || business?.status === "Live";
+  const isUnderReview = vStatus === "under_review" || vStatus === "pending" || vStatus === "in_review" || business?.status === "Pending Verification";
+  const isChangesReq = vStatus === "changes_required" || vStatus === "correction" || vStatus === "correction_requested";
+  const isRejected = vStatus === "rejected";
+
   const isProfileIncomplete = missingProfileFields.length > 0;
-  const isNotSubmitted = isProfileIncomplete || vStatus === "unverified" || vStatus === "draft" || vStatus === "not_submitted" || vStatus === "";
+  const isNotSubmitted = Boolean(
+    !loadingBiz &&
+    business &&
+    !isVerified &&
+    !isUnderReview &&
+    !isChangesReq &&
+    !isRejected &&
+    (isProfileIncomplete || vStatus === "unverified" || vStatus === "draft" || vStatus === "not_submitted")
+  );
+
+  if (loadingBiz && !business) {
+    return (
+      <AppShell
+        role="business"
+        title="My Profile"
+        subtitle="Manage your enterprise profile, credentials & catalogue"
+      >
+        <div className="space-y-6 animate-pulse p-4">
+          <div className="h-28 rounded-2xl bg-muted/60" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 h-96 rounded-2xl bg-muted/40" />
+            <div className="h-96 rounded-2xl bg-muted/40" />
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell

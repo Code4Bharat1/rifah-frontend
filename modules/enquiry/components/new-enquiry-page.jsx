@@ -26,6 +26,7 @@ import { useCategories } from "@shared/hooks/use-rifah-api";
 import { enquiryApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { isValidName } from "@shared/lib/validators";
+import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 
 const steps = ["Requirement", "Details", "Contact", "Review"];
 
@@ -40,6 +41,13 @@ function NewEnquiry() {
 
   const mainCategories = categories.filter(c => !c.parent);
   const subCategories = categories.filter(c => c.parent);
+
+  const categoryOptions = React.useMemo(() => {
+    if (categories.length > 0) {
+      return categories.map((c) => c.name).filter(Boolean);
+    }
+    return industries || [];
+  }, [categories]);
 
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -175,38 +183,14 @@ function NewEnquiry() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="category">Category</Label>
-                    <Select
+                    <CreatableCombobox
+                      id="category"
                       value={formData.category}
                       onValueChange={(v) => setFormData({ ...formData, category: v })}
-                    >
-                      <SelectTrigger id="category">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mainCategories.length > 0 ? (
-                          <>
-                            {mainCategories.map(mc => {
-                              const subs = subCategories.filter(sc => sc.parent === mc.name);
-                              return (
-                                <SelectGroup key={mc.name}>
-                                  <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
-                                  <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
-                                  {subs.map(sc => (
-                                    <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
-                                  ))}
-                                </SelectGroup>
-                              );
-                            })}
-                          </>
-                        ) : (
-                          industries.map((i) => (
-                            <SelectItem key={i} value={i}>
-                              {i}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                      options={categoryOptions}
+                      placeholder="Select or search category"
+                      emptyText="No category found. Type to add custom."
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="description">Requirement description (Optional)</Label>

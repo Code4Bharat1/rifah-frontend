@@ -5,24 +5,27 @@ import { createMagneticButton, createTiltCard } from "@shared/lib/motion-utils";
 
 /**
  * RIFAH CONNECT — ENTERPRISE ANIMATION SYSTEM
- * Inspired by Stripe, Linear, Vercel, and Apple motion engineering.
- * 
- * - Dual-layer architecture: Immediate native IntersectionObserver GPU reveals + GSAP desktop pinning
- * - Never fails on network/CDN latency or React Strict Mode remounts
- * - rAF + lerp damping for magnetic & tilt effects
- * - Zero CLS, hardware-accelerated (transform/opacity only)
+ * High-performance GPU-accelerated motion engine:
+ * - Fluid native IntersectionObserver reveals with staggered GPU hardware acceleration
+ * - Dynamic mutation observation for asynchronously loaded sections
+ * - Complete style cleanup after entrance so CSS hover states (:hover, :active) remain 100% responsive
+ * - Zero CLS, transforms/opacity only
  * - Full accessibility compliance (prefers-reduced-motion)
  */
 export function useLandingAnimations() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Accessibility check
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const cleanupFns = [];
 
     // ==========================================
     // 1. DESKTOP INTERACTIVE HELPERS (MAGNETIC & TILT)
     // ==========================================
     const setupInteractions = () => {
+      if (prefersReducedMotion) return;
+
       // Magnetic Buttons
       const magneticButtons = document.querySelectorAll(".magnetic-btn");
       magneticButtons.forEach((btn) => {
@@ -38,27 +41,75 @@ export function useLandingAnimations() {
       });
     };
 
-    // Run interactive setup on next frame
+    // Run interactive setup on initial mount frame
     const rafInteractive = requestAnimationFrame(setupInteractions);
     cleanupFns.push(() => cancelAnimationFrame(rafInteractive));
 
     // ==========================================
-    // 2. NATIVE INTERSECTION OBSERVER REVEAL ENGINE
+    // 2. NATIVE GPU REVEAL ENGINE
     // ==========================================
-    // Stagger reveal helper
-    const animateElementsIn = (elements, { transformFrom = "translateY(24px)", duration = 650, stagger = 80 } = {}) => {
+    const animateElementsIn = (
+      elements,
+      { transformFrom = "translateY(24px)", duration = 550, stagger = 75 } = {}
+    ) => {
+      if (!elements || elements.length === 0) return;
+
       elements.forEach((el, index) => {
+        if (prefersReducedMotion) {
+          el.style.opacity = "1";
+          el.style.transform = "none";
+          return;
+        }
+
+        const delay = index * stagger;
         el.style.opacity = "0";
         el.style.transform = transformFrom;
         el.style.willChange = "transform, opacity";
         el.style.transition = `opacity ${duration}ms cubic-bezier(0.16, 1, 0.3, 1), transform ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`;
-        el.style.transitionDelay = `${index * stagger}ms`;
+        el.style.transitionDelay = `${delay}ms`;
+
+        // Force browser layout flush
+        void el.offsetHeight;
 
         requestAnimationFrame(() => {
           el.style.opacity = "1";
           el.style.transform = "translate(0, 0)";
         });
+
+        // Clean up inline styles once entrance transition completes
+        // so CSS hover transforms and active states work with zero delay
+        const totalDuration = duration + delay + 80;
+        const timer = setTimeout(() => {
+          el.style.opacity = "";
+          el.style.transform = "";
+          el.style.transition = "";
+          el.style.transitionDelay = "";
+          el.style.willChange = "";
+        }, totalDuration);
+        cleanupFns.push(() => clearTimeout(timer));
       });
+    };
+
+    // Helper to reveal elements immediately or wait for async mount via MutationObserver
+    const observeOrWait = (section, cardSelector, animationOptions, onRevealed) => {
+      const run = () => {
+        const items = section.querySelectorAll(cardSelector);
+        if (items.length > 0) {
+          animateElementsIn(items, animationOptions);
+          if (onRevealed) onRevealed(items);
+          setupInteractions();
+          return true;
+        }
+        return false;
+      };
+
+      if (!run()) {
+        const mo = new MutationObserver(() => {
+          if (run()) mo.disconnect();
+        });
+        mo.observe(section, { childList: true, subtree: true });
+        cleanupFns.push(() => mo.disconnect());
+      }
     };
 
     const sectionConfigs = [
@@ -66,46 +117,51 @@ export function useLandingAnimations() {
         selector: "#category-section",
         onEnter: (section) => {
           const cards = section.querySelectorAll(".category-card");
-          animateElementsIn(cards, { transformFrom: "translateY(24px)", stagger: 70 });
+          animateElementsIn(cards, { transformFrom: "translateY(24px)", duration: 500, stagger: 60 });
         },
       },
       {
         selector: "#state-revenue-section",
         onEnter: (section) => {
           const cards = section.querySelectorAll(".stat-card");
-          animateElementsIn(cards, { transformFrom: "scale(0.95) translateY(18px)", stagger: 90 });
+          animateElementsIn(cards, { transformFrom: "scale(0.95) translateY(18px)", duration: 500, stagger: 70 });
         },
       },
       {
         selector: "#featured-enterprises-section",
         onEnter: (section) => {
-          const cards = section.querySelectorAll(".featured-biz-card");
-          animateElementsIn(cards, { transformFrom: "translateY(24px)", stagger: 80 });
+          observeOrWait(section, ".featured-biz-card", { transformFrom: "translateY(24px)", duration: 550, stagger: 80 });
         },
       },
       {
         selector: "#featured-products-section",
         onEnter: (section) => {
-          const cards = section.querySelectorAll(".featured-product-card");
-          animateElementsIn(cards, { transformFrom: "translateY(24px)", stagger: 80 });
-          // Reveal clip-path curtains
-          section.querySelectorAll(".product-image-reveal").forEach((img) => {
-            img.classList.add("is-revealed");
-          });
+          observeOrWait(
+            section,
+            ".featured-product-card",
+            { transformFrom: "translateY(24px)", duration: 550, stagger: 80 },
+            () => {
+              section.querySelectorAll(".product-image-reveal").forEach((img) => {
+                img.classList.add("is-revealed");
+              });
+            }
+          );
         },
       },
       {
         selector: "#upcoming-events-section",
         onEnter: (section) => {
-          const cards = section.querySelectorAll(".upcoming-event-card");
-          animateElementsIn(cards, { transformFrom: "translateX(-28px)", stagger: 100 });
+          observeOrWait(section, ".upcoming-event-card", { transformFrom: "translateX(-24px)", duration: 550, stagger: 90 });
         },
       },
       {
         selector: "#membership-plans-section",
         onEnter: (section) => {
-          const cards = section.querySelectorAll(".membership-tier-card");
-          animateElementsIn(cards, { transformFrom: "translateY(28px) scale(0.97)", stagger: 120 });
+          observeOrWait(
+            section,
+            ".membership-tier-card",
+            { transformFrom: "translateY(28px) scale(0.97)", duration: 600, stagger: 90 }
+          );
         },
       },
       {
@@ -113,11 +169,18 @@ export function useLandingAnimations() {
         onEnter: (footer) => {
           footer.style.opacity = "0";
           footer.style.transform = "translateY(20px)";
-          footer.style.transition = "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)";
+          footer.style.transition = "opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1)";
+          void footer.offsetHeight;
           requestAnimationFrame(() => {
             footer.style.opacity = "1";
             footer.style.transform = "translate(0, 0)";
           });
+          const timer = setTimeout(() => {
+            footer.style.opacity = "";
+            footer.style.transform = "";
+            footer.style.transition = "";
+          }, 700);
+          cleanupFns.push(() => clearTimeout(timer));
         },
       },
     ];
@@ -145,81 +208,12 @@ export function useLandingAnimations() {
 
     cleanupFns.push(() => observer.disconnect());
 
-    // ==========================================
-    // 3. GSAP ENHANCEMENT (DESKTOP PINNED SECTION 7)
-    // ==========================================
-    let gsapContext = null;
-    const initGsapIfAvailable = (gsap, ScrollTrigger) => {
-      if (!gsap || !ScrollTrigger) return;
-      gsap.registerPlugin(ScrollTrigger);
-
-      gsapContext = gsap.context(() => {
-        // Desktop pinned sequence for Membership Plans
-        ScrollTrigger.matchMedia({
-          "(min-width: 1024px)": () => {
-            const tierCards = gsap.utils.toArray(".membership-tier-card");
-            if (tierCards.length >= 3) {
-              const tl = gsap.timeline({
-                scrollTrigger: {
-                  trigger: "#membership-plans-section",
-                  start: "top 12%",
-                  end: "+=750",
-                  pin: true,
-                  scrub: 0.6,
-                  anticipatePin: 1,
-                },
-              });
-
-              tl.fromTo(
-                tierCards[0],
-                { opacity: 0, y: 35, scale: 0.96 },
-                { opacity: 1, y: 0, scale: 1, duration: 1, ease: "power2.out" }
-              )
-                .fromTo(
-                  tierCards[1],
-                  { opacity: 0, y: 35, scale: 0.96 },
-                  { opacity: 1, y: 0, scale: 1, duration: 1, ease: "power2.out" },
-                  "+=0.25"
-                )
-                .fromTo(
-                  tierCards[2],
-                  { opacity: 0, y: 35, scale: 0.96 },
-                  { opacity: 1, y: 0, scale: 1, duration: 1, ease: "power2.out" },
-                  "+=0.25"
-                );
-            }
-          },
-        });
-      });
-    };
-
-    if (window.gsap && window.ScrollTrigger) {
-      initGsapIfAvailable(window.gsap, window.ScrollTrigger);
-    } else {
-      const script1 = document.createElement("script");
-      script1.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js";
-      script1.async = true;
-      script1.onload = () => {
-        const script2 = document.createElement("script");
-        script2.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js";
-        script2.async = true;
-        script2.onload = () => {
-          initGsapIfAvailable(window.gsap, window.ScrollTrigger);
-        };
-        document.head.appendChild(script2);
-      };
-      document.head.appendChild(script1);
-    }
-
     return () => {
       cleanupFns.forEach((fn) => {
         try {
           fn();
         } catch (_) {}
       });
-      if (gsapContext) {
-        gsapContext.revert();
-      }
     };
   }, []);
 }

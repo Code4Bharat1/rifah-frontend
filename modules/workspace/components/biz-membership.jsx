@@ -1281,6 +1281,11 @@ function BizMembership() {
 
   const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || []);
 
+  const totalInvoiced = useMemo(() => {
+    if (!Array.isArray(payments) || payments.length === 0) return 0;
+    return payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [payments]);
+
   // Calculate Started and Renews dates dynamically
   const startDateRaw =
     membershipData?.startDate ||
@@ -2887,17 +2892,27 @@ function BizMembership() {
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <Wallet className="h-3 w-3 text-emerald-500" /> Total Invoiced
               </span>
-              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">₹ 12,999</p>
-              <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
-                <Check className="h-3 w-3" /> Fully settled
-              </span>
+              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">
+                {totalInvoiced > 0 ? `₹ ${totalInvoiced.toLocaleString("en-IN")}` : "₹ 0"}
+              </p>
+              {payments.length === 0 ? (
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  No billing records
+                </span>
+              ) : (
+                <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
+                  <Check className="h-3 w-3" /> Fully settled
+                </span>
+              )}
             </div>
 
             <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/60">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <Receipt className="h-3 w-3 text-sky-500" /> Active Receipts
               </span>
-              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">{payments.length} Tax Invoice</p>
+              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">
+                {payments.length} {payments.length === 1 ? "Tax Invoice" : "Tax Invoices"}
+              </p>
               <span className="text-[10px] text-muted-foreground">GST compliance valid</span>
             </div>
 
@@ -2905,16 +2920,24 @@ function BizMembership() {
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <Clock className="h-3 w-3 text-amber-500" /> Next Due Date
               </span>
-              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">{formattedRenews}</p>
-              <span className="text-[10px] text-muted-foreground">Annual renewal</span>
+              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">
+                {isFreeTier && payments.length === 0 ? "Free Plan" : formattedRenews}
+              </p>
+              <span className="text-[10px] text-muted-foreground">
+                {isFreeTier && payments.length === 0 ? "Lifetime validity" : "Annual renewal"}
+              </span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/60">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <ShieldCheck className="h-3 w-3 text-primary" /> Payment Method
               </span>
-              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">UPI / Net Banking</p>
-              <span className="text-[10px] text-emerald-600 font-semibold">100% Secure SSL</span>
+              <p className="text-base sm:text-lg font-extrabold text-foreground mt-1 truncate">
+                {payments.length > 0 ? (payments[0]?.method || "UPI / Net Banking") : "None"}
+              </p>
+              <span className={`text-[10px] ${payments.length > 0 ? "text-emerald-600 font-semibold" : "text-muted-foreground"}`}>
+                {payments.length > 0 ? "100% Secure SSL" : "No payment gateway used"}
+              </span>
             </div>
           </div>
 
@@ -2930,14 +2953,14 @@ function BizMembership() {
                 {
                   key: "invoiceNumber",
                   header: "INVOICE NO.",
-                  cell: (r) => <span className="font-bold text-xs text-foreground">{r.invoiceNumber || "INV-9763"}</span>,
+                  cell: (r) => <span className="font-bold text-xs text-foreground">{r.invoiceNumber || (r._id ? `INV-${String(r._id).slice(-6).toUpperCase()}` : "INV—")}</span>,
                 },
                 {
                   key: "purpose",
                   header: "PURPOSE",
                   cell: (r) => (
                     <span className="text-xs font-medium text-foreground">
-                      {r.description || r.purpose || r.itemType || "Premium Membership Subscription (INR)"}
+                      {r.description || r.purpose || r.itemType || "Chamber Membership Subscription"}
                     </span>
                   ),
                 },

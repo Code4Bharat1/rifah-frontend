@@ -31,6 +31,7 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Badge } from "@shared/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@shared/components/ui/tabs";
+import { toast } from "sonner";
 import {
   Popover,
   PopoverContent,
@@ -311,37 +312,45 @@ export function BizPowerNetworking() {
   const handleAcceptRequest = async (requestId) => {
     try {
       await respondMutation.mutateAsync({ id: requestId, action: "accept" });
+      toast.success("Connection request accepted! Business added to your Power Network.");
       refetchRequests();
       refetchNetwork();
     } catch (e) {
       console.error(e);
+      toast.error(e.message || "Failed to accept connection request.");
     }
   };
 
   const handleDeclineRequest = async (requestId) => {
     try {
       await respondMutation.mutateAsync({ id: requestId, action: "decline" });
+      toast.info("Connection request declined.");
       refetchRequests();
     } catch (e) {
       console.error(e);
+      toast.error(e.message || "Failed to decline connection request.");
     }
   };
 
   const handleCancelRequest = async (requestId) => {
     try {
       await cancelMutation.mutateAsync(requestId);
+      toast.success("Connection request cancelled.");
       refetchRequests();
     } catch (e) {
       console.error(e);
+      toast.error(e.message || "Failed to cancel connection request.");
     }
   };
 
   const handleRemoveFromNetwork = async (connectionId) => {
     try {
       await removeMutation.mutateAsync(connectionId);
+      toast.success("Removed from Power Network.");
       refetchNetwork();
     } catch (e) {
       console.error(e);
+      toast.error(e.message || "Failed to remove business.");
     }
   };
 
@@ -905,6 +914,7 @@ export function BizPowerNetworking() {
                   <RequestItemCard
                     key={req._id}
                     request={req}
+                    type={requestSubTab}
                     isIncoming={requestSubTab === "incoming"}
                     onAccept={handleAcceptRequest}
                     onDecline={handleDeclineRequest}

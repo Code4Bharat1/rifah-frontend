@@ -20,12 +20,13 @@ import { resolveMediaUrl } from "@shared/lib/media";
 export function RequestItemCard({
   request,
   type = "incoming", // "incoming" | "outgoing"
+  isIncoming: isIncomingProp,
   onAccept,
   onDecline,
   onCancel,
   isProcessing = false,
 }) {
-  const isIncoming = type === "incoming";
+  const isIncoming = isIncomingProp !== undefined ? Boolean(isIncomingProp) : type === "incoming";
   const displayBiz = isIncoming ? request.requesterBusiness : request.receiverBusiness;
   const displayUser = isIncoming ? request.requesterUser : request.receiverUser;
   const req = request.requirement;

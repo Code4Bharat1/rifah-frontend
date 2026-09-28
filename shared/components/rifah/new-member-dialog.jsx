@@ -47,7 +47,7 @@ function formatJoinedTime(dateStr) {
   }
 }
 
-export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
+export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberWelcomed }) {
   const { user } = useAuth();
   const [sendingMap, setSendingMap] = useState({});
   const [sentMap, setSentMap] = useState({});
@@ -68,6 +68,19 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
       });
       setSentMap((prev) => ({ ...prev, [item.userId]: true }));
       toast.success(`Welcome message sent to ${item.businessName}!`);
+      
+      // Notify parent to remove from dashboard banner and persist
+      onMemberWelcomed?.(item);
+
+      // Auto-close dialog if all members have been welcomed
+      const stillUnwelcomed = newMembers.filter(
+        (m) => String(m.userId) !== String(item.userId) && !sentMap[m.userId]
+      );
+      if (stillUnwelcomed.length === 0) {
+        setTimeout(() => {
+          onOpenChange?.(false);
+        }, 1000);
+      }
     } catch (err) {
       toast.error(err.message || "Failed to send welcome message");
     } finally {
@@ -186,7 +199,12 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [] }) {
                             variant="outline"
                             className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs"
                           >
-                            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                            <a
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => onMemberWelcomed?.(item)}
+                            >
                               <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" />
                               <span>WhatsApp</span>
                             </a>

@@ -39,6 +39,7 @@ import {
 import { cities, industries } from "@shared/lib/mock-data";
 import { useAuth } from "@shared/providers/auth-provider";
 import { useChapters, useMembershipPlans, useCategories } from "@shared/hooks/use-rifah-api";
+import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 import { cn } from "@shared/lib/utils";
 
 const businessSteps = ["Business", "Contact", "Account", "Tax & Verification", "Membership"];
@@ -73,6 +74,13 @@ export function OnboardingPage() {
   const categories = Array.isArray(categoriesData) ? categoriesData : [];
   const mainCategories = categories.filter(c => !c.parent);
   const subCategories = categories.filter(c => c.parent);
+
+  const categoryOptions = React.useMemo(() => {
+    if (categories.length > 0) {
+      return categories.map((c) => c.name).filter(Boolean);
+    }
+    return industries || [];
+  }, [categories]);
 
   // Account Type Choice: "choice", "customer", or "business_owner"
   const [role, setRole] = useState("business_owner");
@@ -394,38 +402,14 @@ export function OnboardingPage() {
 
                         <div className="space-y-1.5">
                           <Label htmlFor="b-ind">Industry Sector</Label>
-                          <Select
+                          <CreatableCombobox
+                            id="b-ind"
                             value={bizData.industry}
                             onValueChange={(v) => setBizData({ ...bizData, industry: v })}
-                          >
-                            <SelectTrigger id="b-ind">
-                              <SelectValue placeholder="Select industry" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {mainCategories.length > 0 ? (
-                                <>
-                                  {mainCategories.map(mc => {
-                                    const subs = subCategories.filter(sc => sc.parent === mc.name);
-                                    return (
-                                      <SelectGroup key={mc.name}>
-                                        <SelectLabel className="font-semibold text-primary">{mc.name}</SelectLabel>
-                                        <SelectItem value={mc.name} className="italic text-muted-foreground ml-2">General {mc.name}</SelectItem>
-                                        {subs.map(sc => (
-                                          <SelectItem key={sc.name} value={sc.name} className="ml-4">{sc.name}</SelectItem>
-                                        ))}
-                                      </SelectGroup>
-                                    );
-                                  })}
-                                </>
-                              ) : (
-                                industries.map((ind) => (
-                                  <SelectItem key={ind} value={ind}>
-                                    {ind}
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
+                            options={categoryOptions}
+                            placeholder="Select or search industry sector"
+                            emptyText="No category found. Type to add custom."
+                          />
                         </div>
                       </div>
 

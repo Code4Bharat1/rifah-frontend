@@ -23,6 +23,7 @@ import { BusinessCard, CompactBusinessCard } from "@shared/components/rifah/busi
 import { EmptyState, SkeletonCard } from "@shared/components/rifah/empty-state";
 import { Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
+import { SearchableFilterSelect } from "@shared/components/rifah/searchable-filter-select";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Checkbox } from "@shared/components/ui/checkbox";
@@ -328,22 +329,16 @@ function DiscoverPage() {
         <Label htmlFor="f-industry" className="font-semibold text-xs text-foreground uppercase tracking-wider">
           {t("industry")}
         </Label>
-        <Select
+        <SearchableFilterSelect
+          id="f-industry"
           value={search.industry || "all"}
           onValueChange={(v) => setParam({ industry: v === "all" ? undefined : v, subCategory: undefined })}
-        >
-          <SelectTrigger id="f-industry" className="mt-1.5 h-10 rounded-xl bg-background">
-            <SelectValue placeholder={t("allIndustries")} />
-          </SelectTrigger>
-          <SelectContent className="max-h-72">
-            <SelectItem value="all">{t("allIndustries")}</SelectItem>
-            {allMainCategories.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder={t("allIndustries")}
+          searchPlaceholder="Search industry category..."
+          allLabel={t("allIndustries")}
+          options={allMainCategories}
+          className="mt-1.5 h-10 rounded-xl bg-background"
+        />
       </div>
 
       {/* 5. Sub-Category */}
@@ -351,23 +346,17 @@ function DiscoverPage() {
         <Label htmlFor="f-subcategory" className="font-semibold text-xs text-foreground uppercase tracking-wider">
           Sub Category
         </Label>
-        <Select
+        <SearchableFilterSelect
+          id="f-subcategory"
           value={search.subCategory || "all"}
           onValueChange={(v) => setParam({ subCategory: v === "all" ? undefined : v })}
+          placeholder={search.industry ? "All sub-categories" : "Select industry first"}
+          searchPlaceholder="Search sub category..."
+          allLabel="All Sub-categories"
+          options={filteredSubCategories}
           disabled={!search.industry || search.industry === "all"}
-        >
-          <SelectTrigger id="f-subcategory" className="mt-1.5 h-10 rounded-xl bg-background">
-            <SelectValue placeholder={search.industry ? "All sub-categories" : "Select industry first"} />
-          </SelectTrigger>
-          <SelectContent className="max-h-72">
-            <SelectItem value="all">All sub-categories</SelectItem>
-            {filteredSubCategories.map((sub) => (
-              <SelectItem key={sub} value={sub}>
-                {sub}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          className="mt-1.5 h-10 rounded-xl bg-background"
+        />
         {search.industry && search.industry !== "all" && (
           <p className="mt-1 text-[10px] text-muted-foreground">
             {filteredSubCategories.length} sub-categories for {search.industry}

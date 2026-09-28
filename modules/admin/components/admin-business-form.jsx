@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 
 import { useChapters, useCategories, useMembershipPlans } from "@shared/hooks/use-rifah-api";
 import { CityCombobox } from "@shared/components/rifah/city-combobox";
+import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 import { isValidPhone, isValidPincode, isValidName } from "@shared/lib/validators";
 
 export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
@@ -182,19 +183,15 @@ export function AdminBusinessFormModal({ open, onOpenChange, onSuccess }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="industry">Industry *</Label>
-              <Select value={formData.industry} onValueChange={(val) => handleSelectChange("industry", val)} required>
-                <SelectTrigger id="industry">
-                  <SelectValue placeholder="Select Industry" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mainCategories.map(mc => (
-                    <SelectItem key={mc._id || mc.name} value={mc.name}>{mc.name}</SelectItem>
-                  ))}
-                  {mainCategories.length === 0 && (
-                    <SelectItem value="General">General</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <CreatableCombobox
+                id="industry"
+                value={formData.industry}
+                onValueChange={(val) => handleSelectChange("industry", val)}
+                options={mainCategories.map((mc) => mc.name)}
+                placeholder="Select or search Industry"
+                emptyText="No category found. Type to add custom."
+                className="h-10 text-xs"
+              />
             </div>
           </div>
 

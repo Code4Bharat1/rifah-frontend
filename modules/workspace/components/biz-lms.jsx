@@ -10,6 +10,7 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { Button } from "@shared/components/ui/button";
 import { Progress } from "@shared/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { SearchableFilterSelect } from "@shared/components/rifah/searchable-filter-select";
 import { useCourses, useCategories } from "@shared/hooks/use-rifah-api";
 import { courseApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/media";
@@ -536,43 +537,32 @@ export function BizLms() {
 
                 {/* Category Dropdown */}
                 <div className="w-full sm:w-[200px] shrink-0">
-                  <Select value={categoryFilter} onValueChange={(val) => {
-                    setCategoryFilter(val);
-                    setSubcategoryFilter("all");
-                  }}>
-                    <SelectTrigger className="h-10 text-xs rounded-xl bg-background border">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">🌐 All Categories</SelectItem>
-                      {mainCategories.map((c) => (
-                        <SelectItem key={c._id || c.name} value={c.name}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableFilterSelect
+                    value={categoryFilter}
+                    onValueChange={(val) => {
+                      setCategoryFilter(val);
+                      setSubcategoryFilter("all");
+                    }}
+                    placeholder="All Categories"
+                    searchPlaceholder="Search category..."
+                    allLabel="🌐 All Categories"
+                    options={mainCategories.map((c) => ({ value: c.name, label: c.name }))}
+                    className="h-10 text-xs rounded-xl bg-background border"
+                  />
                 </div>
 
                 {/* Subcategory Dropdown */}
                 <div className="w-full sm:w-[190px] shrink-0">
-                  <Select 
-                    value={subcategoryFilter} 
+                  <SearchableFilterSelect
+                    value={subcategoryFilter}
                     onValueChange={setSubcategoryFilter}
+                    placeholder={categoryFilter === "all" ? "Select Category First" : "All Subcategories"}
+                    searchPlaceholder="Search subcategory..."
+                    allLabel="All Subcategories"
+                    options={availableSubcategories.map((sc) => ({ value: sc.name, label: sc.name }))}
                     disabled={categoryFilter === "all" || availableSubcategories.length === 0}
-                  >
-                    <SelectTrigger className="h-10 text-xs rounded-xl bg-background border">
-                      <SelectValue placeholder={categoryFilter === "all" ? "Select Category First" : "All Subcategories"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Subcategories</SelectItem>
-                      {availableSubcategories.map((sc) => (
-                        <SelectItem key={sc._id || sc.name} value={sc.name}>
-                          {sc.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    className="h-10 text-xs rounded-xl bg-background border"
+                  />
                 </div>
               </div>
 

@@ -28,6 +28,7 @@ export function BirthdayBanner() {
   const [isBirthdayDismissed, setIsBirthdayDismissed] = useState(false);
   const [isAnniversaryDismissed, setIsAnniversaryDismissed] = useState(false);
   const [isNewMembersDismissed, setIsNewMembersDismissed] = useState(false);
+  const [welcomedMemberIds, setWelcomedMemberIds] = useState([]);
 
   const [isBirthdayDialogOpen, setIsBirthdayDialogOpen] = useState(false);
   const [isAnniversaryDialogOpen, setIsAnniversaryDialogOpen] = useState(false);
@@ -35,16 +36,54 @@ export function BirthdayBanner() {
 
   useEffect(() => {
     const todayStr = new Date().toISOString().split("T")[0];
-    if (sessionStorage.getItem("rifah_birthday_banner_dismissed") === todayStr) {
+    if (
+      sessionStorage.getItem("rifah_birthday_banner_dismissed") === todayStr ||
+      localStorage.getItem("rifah_birthday_banner_dismissed") === todayStr
+    ) {
       setIsBirthdayDismissed(true);
     }
-    if (sessionStorage.getItem("rifah_anniversary_banner_dismissed") === todayStr) {
+    if (
+      sessionStorage.getItem("rifah_anniversary_banner_dismissed") === todayStr ||
+      localStorage.getItem("rifah_anniversary_banner_dismissed") === todayStr
+    ) {
       setIsAnniversaryDismissed(true);
     }
-    if (sessionStorage.getItem("rifah_new_members_banner_dismissed") === todayStr) {
+    if (
+      sessionStorage.getItem("rifah_new_members_banner_dismissed") === todayStr ||
+      localStorage.getItem("rifah_new_members_banner_dismissed") === todayStr
+    ) {
       setIsNewMembersDismissed(true);
     }
-  }, []);
+
+    try {
+      const myId = user?._id || user?.id || "guest";
+      const key = `rifah_welcomed_members_${myId}`;
+      const localStored = JSON.parse(localStorage.getItem(key) || "[]");
+      const sessionStored = JSON.parse(sessionStorage.getItem(key) || "[]");
+      const combined = Array.from(new Set([...(Array.isArray(localStored) ? localStored : []), ...(Array.isArray(sessionStored) ? sessionStored : [])]));
+      setWelcomedMemberIds(combined);
+    } catch {}
+  }, [user]);
+
+  const markMemberAsWelcomed = (itemOrId) => {
+    try {
+      const myId = user?._id || user?.id || "guest";
+      const key = `rifah_welcomed_members_${myId}`;
+      const current = JSON.parse(localStorage.getItem(key) || "[]");
+      const idsToAdd = [];
+      if (typeof itemOrId === "string" || typeof itemOrId === "number") {
+        idsToAdd.push(String(itemOrId));
+      } else if (itemOrId && typeof itemOrId === "object") {
+        if (itemOrId.userId) idsToAdd.push(String(itemOrId.userId));
+        if (itemOrId.businessId) idsToAdd.push(String(itemOrId.businessId));
+        if (itemOrId._id) idsToAdd.push(String(itemOrId._id));
+      }
+      const updated = Array.from(new Set([...current, ...idsToAdd]));
+      localStorage.setItem(key, JSON.stringify(updated));
+      sessionStorage.setItem(key, JSON.stringify(updated));
+      setWelcomedMemberIds(updated);
+    } catch {}
+  };
 
   // Restrict to dashboard main pages only
   const cleanPath = (pathname || "").replace(/\/$/, "");
@@ -76,10 +115,18 @@ export function BirthdayBanner() {
   const selfYearsCompleted = anniversaryData?.selfYearsCompleted || 1;
   const otherAnniversaries = !isAnniversaryDismissed ? (anniversaryData?.todayAnniversaries || []).filter((a) => !a.isSelf) : [];
 
-  // 3. New Chapter Members Data (exclude current user)
+  // 3. New Chapter Members Data (exclude current user and already welcomed members)
   const rawNewMembers = newMembersData?.newMembers || [];
   const otherNewMembers = !isNewMembersDismissed
-    ? rawNewMembers.filter((m) => String(m.userId) !== String(user?._id || user?.id))
+    ? rawNewMembers.filter((m) => {
+        const uid = String(m.userId || "");
+        const bid = String(m.businessId || "");
+        const myId = String(user?._id || user?.id || "");
+        if (uid && uid === myId) return false;
+        if (uid && welcomedMemberIds.includes(uid)) return false;
+        if (bid && welcomedMemberIds.includes(bid)) return false;
+        return true;
+      })
     : [];
 
   const hasAnyBirthday = isSelfBirthday || otherBirthdays.length > 0;
@@ -90,18 +137,21 @@ export function BirthdayBanner() {
 
   const handleDismissBirthday = () => {
     const todayStr = new Date().toISOString().split("T")[0];
+    localStorage.setItem("rifah_birthday_banner_dismissed", todayStr);
     sessionStorage.setItem("rifah_birthday_banner_dismissed", todayStr);
     setIsBirthdayDismissed(true);
   };
 
   const handleDismissAnniversary = () => {
     const todayStr = new Date().toISOString().split("T")[0];
+    localStorage.setItem("rifah_anniversary_banner_dismissed", todayStr);
     sessionStorage.setItem("rifah_anniversary_banner_dismissed", todayStr);
     setIsAnniversaryDismissed(true);
   };
 
   const handleDismissNewMembers = () => {
     const todayStr = new Date().toISOString().split("T")[0];
+    localStorage.setItem("rifah_new_members_banner_dismissed", todayStr);
     sessionStorage.setItem("rifah_new_members_banner_dismissed", todayStr);
     setIsNewMembersDismissed(true);
   };
@@ -381,6 +431,7 @@ export function BirthdayBanner() {
                     href={`https://wa.me/${(otherNewMembers[0].whatsapp || otherNewMembers[0].phone).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hi ${otherNewMembers[0].userName}, welcome to the RIFAH Chamber! 🎉 We are excited to connect with ${otherNewMembers[0].businessName}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => markMemberAsWelcomed(otherNewMembers[0])}
                     className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
                   >
                     <WhatsAppIcon className="h-3.5 w-3.5" />
@@ -433,6 +484,7 @@ export function BirthdayBanner() {
         open={isNewMembersDialogOpen}
         onOpenChange={setIsNewMembersDialogOpen}
         newMembers={otherNewMembers}
+        onMemberWelcomed={markMemberAsWelcomed}
       />
     </>
   );

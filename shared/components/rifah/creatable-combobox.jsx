@@ -33,7 +33,11 @@ export function CreatableCombobox({
   const [search, setSearch] = useState("");
 
   const normalizedOptions = Array.from(
-    new Set(options.map((o) => (typeof o === "string" ? o : o?.name)).filter(Boolean))
+    new Set(
+      options
+        .map((o) => (typeof o === "string" ? o : o?.name || o?.label || o?.title || o?.value))
+        .filter(Boolean)
+    )
   );
 
   const searchTrimmed = search.trim();
@@ -45,6 +49,7 @@ export function CreatableCombobox({
     <Popover
       open={open}
       onOpenChange={(nextOpen) => {
+        if (disabled) return;
         setOpen(nextOpen);
         if (!nextOpen) setSearch("");
       }}
@@ -67,15 +72,19 @@ export function CreatableCombobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
-        <Command shouldFilter={false}>
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0 shadow-lg border border-border z-50 bg-popover"
+        align="start"
+      >
+        <Command shouldFilter={false} className="rounded-lg">
           <CommandInput
-            placeholder="Search or type new..."
+            placeholder="Search or type to add..."
             value={search}
             onValueChange={setSearch}
+            className="text-xs h-9"
           />
-          <CommandList>
-            <CommandEmpty className="px-3 py-2 text-left text-sm">
+          <CommandList className="max-h-60 overflow-y-auto p-1">
+            <CommandEmpty className="px-3 py-2 text-left text-xs text-muted-foreground">
               {emptyText}
             </CommandEmpty>
             <CommandGroup>
@@ -90,14 +99,17 @@ export function CreatableCombobox({
                       setSearch("");
                       setOpen(false);
                     }}
+                    className="cursor-pointer text-xs rounded-md py-1.5"
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4",
-                        value === option ? "opacity-100" : "opacity-0"
+                        "mr-2 h-3.5 w-3.5",
+                        value === option ? "opacity-100 text-primary" : "opacity-0"
                       )}
                     />
-                    {option}
+                    <span className={cn("truncate", value === option ? "font-semibold text-primary" : "")}>
+                      {option}
+                    </span>
                   </CommandItem>
                 ))}
               {searchTrimmed && !exactMatch && (
@@ -108,8 +120,9 @@ export function CreatableCombobox({
                     setSearch("");
                     setOpen(false);
                   }}
+                  className="cursor-pointer text-xs rounded-md py-1.5 text-primary font-medium"
                 >
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="mr-2 h-3.5 w-3.5" />
                   Add "{searchTrimmed}"
                 </CommandItem>
               )}

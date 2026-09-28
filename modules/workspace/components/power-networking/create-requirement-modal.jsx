@@ -25,6 +25,7 @@ import {
 } from "@shared/components/ui/select";
 import { Zap, Sparkles, AlertCircle, ArrowRight } from "lucide-react";
 import { useCreatePowerRequirement, useCategories } from "@shared/hooks/use-rifah-api";
+import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 
 const requirementSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(120),
@@ -166,21 +167,15 @@ export function CreateRequirementModal({
                 <Label htmlFor="req-category" className="text-xs font-medium">
                   Industry Category <span className="text-destructive">*</span>
                 </Label>
-                <Select
+                <CreatableCombobox
+                  id="req-category"
                   value={selectedCategory}
                   onValueChange={(val) => setValue("category", val, { shouldValidate: true })}
-                >
-                  <SelectTrigger id="req-category" className="text-xs">
-                    <SelectValue placeholder="Select Category" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-56">
-                    {categoryOptions.map((cat) => (
-                      <SelectItem key={cat} value={cat} className="text-xs">
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={categoryOptions}
+                  placeholder="Select or search category"
+                  emptyText="No category found. Type to add custom."
+                  className="h-9 text-xs"
+                />
                 {errors.category && (
                   <p className="text-xs text-destructive">{errors.category.message}</p>
                 )}

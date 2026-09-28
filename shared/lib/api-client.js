@@ -5,6 +5,12 @@ function getApiBaseUrl() {
       if (isLiveDomain && process.env.NEXT_PUBLIC_API_URL.includes("localhost")) {
         return `${window.location.origin}/api/v1`;
       }
+      if (window.location.hostname === "127.0.0.1" && process.env.NEXT_PUBLIC_API_URL.includes("localhost")) {
+        return process.env.NEXT_PUBLIC_API_URL.replace("localhost", "127.0.0.1");
+      }
+      if (window.location.hostname === "localhost" && process.env.NEXT_PUBLIC_API_URL.includes("127.0.0.1")) {
+        return process.env.NEXT_PUBLIC_API_URL.replace("127.0.0.1", "localhost");
+      }
       return process.env.NEXT_PUBLIC_API_URL;
     }
     if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
@@ -128,8 +134,20 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
       headers,
     });
   } catch (netErr) {
-    // If it's a transient connection failure (e.g. dev server reloading), retry after a short delay
+    // If it's a transient connection failure or IPv4/IPv6 resolution mismatch, retry
     if (!isRetry) {
+      const altUrl = url.includes("localhost")
+        ? url.replace("localhost", "127.0.0.1")
+        : url.includes("127.0.0.1")
+        ? url.replace("127.0.0.1", "localhost")
+        : null;
+
+      if (altUrl) {
+        try {
+          return await apiClient(altUrl, options, true);
+        } catch (_) {}
+      }
+
       await new Promise((r) => setTimeout(r, 1200));
       try {
         return await apiClient(endpoint, options, true);

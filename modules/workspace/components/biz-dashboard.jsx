@@ -61,7 +61,7 @@ function safeText(val, fallback = "") {
 }
 
 function BusinessHome() {
-  const { data: business } = useMyBusiness();
+  const { data: business, isLoading: loadingBusiness } = useMyBusiness();
   const { data: leadsData } = useMyLeads();
   const { data: enquiriesData } = useBusinessEnquiries();
   const { data: catalogueItems } = useBusinessCatalogue(business?._id);
@@ -136,11 +136,28 @@ function BusinessHome() {
   const bizSlugOrId = business?.slug || business?._id || "";
   const bizChapter = typeof business?.chapter === "object" ? business?.chapter?.name : safeText(business?.chapter, "General Chapter");
 
-  // Dynamic Performance Stats
-  const totalLeadsCount = rawLeads.length;
-  const totalEnquiriesCount = rawEnquiries.length || stats.enquiries || 0;
-  const wonCount = rawLeads.filter((l) => ["Won", "Responded"].includes(l.status)).length;
-  const conversionRate = totalLeadsCount > 0 ? `${Math.round((wonCount / totalLeadsCount) * 100)}%` : "0%";
+  // Dynamic Performance Stats & Conversion Calculation
+  const totalLeadsCount = rawLeads.length || Number(stats.totalLeadsReceived) || 0;
+  const directEnquiriesCount = rawEnquiries.length || Number(stats.enquiries) || 0;
+  const messageConversationsCount = conversations.length;
+  // Total enquiries received (formal enquiries or direct buyer chat conversations)
+  const totalEnquiriesCount = directEnquiriesCount > 0 ? directEnquiriesCount : messageConversationsCount;
+
+  // Won / converted counts
+  const wonLeads = rawLeads.filter((l) => ["Won", "Responded", "Closed"].includes(l.status)).length || Number(stats.wonLeads) || 0;
+  const respondedEnquiries = rawEnquiries.filter((e) => ["Responded", "Quoted", "Accepted", "Completed"].includes(e.status)).length;
+  // Converted / engaged conversations in messages (replied or active chat)
+  const convertedConversations = conversations.filter((c) => c.unreadCount === 0 || c.isRead || !c.isNewDraft).length;
+
+  let computedConversion = 0;
+  if (totalLeadsCount > 0) {
+    computedConversion = Math.round((wonLeads / totalLeadsCount) * 100);
+  } else if (totalEnquiriesCount > 0 || messageConversationsCount > 0) {
+    const totalInteractions = Math.max(totalEnquiriesCount, messageConversationsCount);
+    const convertedInteractions = Math.max(respondedEnquiries, convertedConversations);
+    computedConversion = totalInteractions > 0 ? Math.round((convertedInteractions / totalInteractions) * 100) : 0;
+  }
+  const conversionRate = `${computedConversion}%`;
 
   // Performance Overview Chart States & Data (matching reference design)
   const [timeRange, setTimeRange] = useState("Last 6 months");
@@ -158,16 +175,6 @@ function BusinessHome() {
     });
   }
 
-  // Realistic baseline benchmark aligned with Image 1
-  const benchmarkMonthly = [
-    { enquiries: 16, leads: 22, views: 38 },
-    { enquiries: 16, leads: 22, views: 38 },
-    { enquiries: 17, leads: 26, views: 63 },
-    { enquiries: 16, leads: 22, views: 38 },
-    { enquiries: 18, leads: 12, views: 62 }, // Aug matches Image 1 tooltip: Leads 12, Enquiries 18, Profile Views 62
-    { enquiries: 28, leads: 40, views: 72 },
-  ];
-
   const countMonths = timeRange === "Last 3 months" ? 3 : 6;
   const chartMonths = [];
 
@@ -175,43 +182,41 @@ function BusinessHome() {
     const d = new Date(currentYear, currentDate.getMonth() - i, 1);
     const mName = monthNames[d.getMonth()];
     const yr = d.getFullYear();
-    const benchmarkIndex = (6 - countMonths) + (countMonths - 1 - i);
-    const benchmark = benchmarkMonthly[benchmarkIndex] || { enquiries: 16, leads: 22, views: 40 };
 
     // Real DB data
     const dbItem = analyticsData?.monthlyLeadsVsEnquiries?.find((item) => item.month === mName);
-    const realLeads = dbItem?.leads ?? rawLeads.filter((l) => {
+    const realLeads = Number(dbItem?.leads ?? rawLeads.filter((l) => {
       const ld = new Date(l.createdAt || l.date);
       return ld.getMonth() === d.getMonth() && ld.getFullYear() === yr;
-    }).length;
+    }).length) || 0;
 
-    const realEnquiries = dbItem?.enquiries ?? rawEnquiries.filter((e) => {
+    let realEnquiries = Number(dbItem?.enquiries ?? rawEnquiries.filter((e) => {
       const ed = new Date(e.createdAt || e.date);
       return ed.getMonth() === d.getMonth() && ed.getFullYear() === yr;
-    }).length;
+    }).length) || 0;
 
-    const realViews = monthlyViewsMap[mName] || 0;
+    // If direct formal enquiry records are 0, check active buyer conversation threads for this month
+    if (realEnquiries === 0 && conversations.length > 0) {
+      realEnquiries = conversations.filter((c) => {
+        if (!c.lastMessageAt) return false;
+        const cd = new Date(c.lastMessageAt);
+        return cd.getMonth() === d.getMonth() && cd.getFullYear() === yr;
+      }).length;
+    }
 
-    // Dynamic database calculation:
-    // When business has recorded leads or enquiries in database, strictly use live DB counts!
-    // If brand-new business with 0 recorded activities, provide reference benchmark so chart is not empty.
-    const hasDbRecords = (totalLeadsCount > 0) || (totalEnquiriesCount > 0);
-
-    const leadsVal = hasDbRecords ? realLeads : benchmark.leads;
-    const enquiriesVal = hasDbRecords ? realEnquiries : benchmark.enquiries;
-    const viewsVal = realViews > 0
-      ? realViews
-      : (i === 0 && stats.profileViews ? stats.profileViews : (hasDbRecords ? (realLeads * 3 + realEnquiries * 2) : benchmark.views));
+    const realViews = Number(monthlyViewsMap[mName] ?? (i === 0 && stats.profileViews ? stats.profileViews : 0)) || 0;
 
     chartMonths.push({
       month: mName,
       year: yr,
       fullLabel: `${mName} ${yr}`,
-      leads: leadsVal,
-      enquiries: enquiriesVal,
-      views: viewsVal,
+      leads: realLeads,
+      enquiries: realEnquiries,
+      views: realViews,
     });
   }
+
+  const hasAnyChartData = chartMonths.some((m) => m.leads > 0 || m.enquiries > 0 || m.views > 0);
 
   // Dynamic Y-Scale with clean divisible steps for any value (100, 200, 500, 1000+)
   const maxSeriesVal = Math.max(...chartMonths.flatMap((m) => [m.leads, m.enquiries, m.views]), 1);
@@ -282,10 +287,12 @@ function BusinessHome() {
       <div className="space-y-4">
         {/* Dynamic Verification Status Banners */}
         {(() => {
+          if (loadingBusiness || !business) return null;
+
           const hasUploadedDocs = Array.isArray(business?.documents) && business.documents.length > 0;
           const vStatus = (business?.verification || business?.verificationStatus || "unverified").toLowerCase();
-          const isVer = (business?.isVerified === true || vStatus === "verified" || vStatus === "approved") && hasUploadedDocs;
-          const isReview = !isVer && hasUploadedDocs && (vStatus === "under_review" || vStatus === "pending" || business?.status === "Pending Verification");
+          const isVer = business?.isVerified === true || vStatus === "verified" || vStatus === "approved" || business?.status === "Approved" || business?.status === "Live";
+          const isReview = !isVer && (vStatus === "under_review" || vStatus === "pending" || vStatus === "in_review" || business?.status === "Pending Verification" || (hasUploadedDocs && vStatus === "unverified"));
           const isChanges = !isVer && (vStatus === "changes_required" || vStatus === "correction" || vStatus === "correction_requested");
           const isRej = !isVer && vStatus === "rejected";
 
@@ -381,17 +388,17 @@ function BusinessHome() {
             );
           }
 
-          // Only show banner if profile is incomplete
+          // Only show banner if core essential details are missing and business is unverified
           const isProfileIncomplete = Boolean(
-            !business?.name ||
-            !business?.city ||
-            !business?.state ||
-            !business?.address ||
-            !business?.phone ||
-            completeness < 100
+            !business?.name?.trim() ||
+            !business?.city?.trim() ||
+            !business?.state?.trim() ||
+            !business?.address?.trim() ||
+            !business?.phone?.trim() ||
+            !(business?.industry || business?.category || (Array.isArray(business?.categories) && business.categories.length > 0))
           );
 
-          if (isProfileIncomplete && !hasUploadedDocs && !isVer && !isChanges && !isRej) {
+          if (isProfileIncomplete && !isVer && !isReview && !isChanges && !isRej) {
             return (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-red-400 bg-red-50/95 dark:border-red-800 dark:bg-red-950/40 p-4 text-red-950 dark:text-red-100 shadow-2xs animate-in fade-in duration-200">
                 <div className="flex items-start gap-3">
@@ -651,6 +658,17 @@ function BusinessHome() {
                       <div className="w-full border-b border-slate-200 dark:border-slate-700" />
                     </div>
 
+                    {/* Empty State Overlay when no activity in selected range */}
+                    {!hasAnyChartData && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div className="rounded-xl bg-slate-50/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 px-4 py-1.5 shadow-2xs backdrop-blur-xs text-center">
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                            No activity recorded for this period yet
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Month Columns */}
                     <div
                       className="relative h-full flex items-end justify-between px-1 sm:px-3"
@@ -725,24 +743,30 @@ function BusinessHome() {
                               <div
                                 style={{ height: `${enquiriesHeight}%` }}
                                 className={cn(
-                                  "w-2.5 sm:w-3.5 bg-[#60a5fa] rounded-t-[4px] transition-all duration-300 shadow-2xs",
-                                  isHovered ? "brightness-105 shadow-sm" : "opacity-90"
+                                  "w-2.5 sm:w-3.5 bg-[#60a5fa] rounded-t-[4px] transition-all duration-300",
+                                  enquiriesHeight > 0
+                                    ? (isHovered ? "brightness-105 shadow-sm opacity-100" : "opacity-90 shadow-2xs")
+                                    : "h-0 opacity-0 pointer-events-none"
                                 )}
                               />
                               {/* 2: Leads (Royal blue) */}
                               <div
                                 style={{ height: `${leadsHeight}%` }}
                                 className={cn(
-                                  "w-2.5 sm:w-3.5 bg-[#0060df] rounded-t-[4px] transition-all duration-300 shadow-2xs",
-                                  isHovered ? "brightness-105 shadow-sm" : "opacity-90"
+                                  "w-2.5 sm:w-3.5 bg-[#0060df] rounded-t-[4px] transition-all duration-300",
+                                  leadsHeight > 0
+                                    ? (isHovered ? "brightness-105 shadow-sm opacity-100" : "opacity-90 shadow-2xs")
+                                    : "h-0 opacity-0 pointer-events-none"
                                 )}
                               />
                               {/* 3: Profile Views (Dark Navy) */}
                               <div
                                 style={{ height: `${viewsHeight}%` }}
                                 className={cn(
-                                  "w-2.5 sm:w-3.5 bg-[#0f172a] dark:bg-slate-200 rounded-t-[4px] transition-all duration-300 shadow-2xs",
-                                  isHovered ? "brightness-125 shadow-sm" : "opacity-90"
+                                  "w-2.5 sm:w-3.5 bg-[#0f172a] dark:bg-slate-200 rounded-t-[4px] transition-all duration-300",
+                                  viewsHeight > 0
+                                    ? (isHovered ? "brightness-125 shadow-sm opacity-100" : "opacity-90 shadow-2xs")
+                                    : "h-0 opacity-0 pointer-events-none"
                                 )}
                               />
                             </div>

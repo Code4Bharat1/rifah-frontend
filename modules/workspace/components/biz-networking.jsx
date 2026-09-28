@@ -365,19 +365,9 @@ function BizNetworking() {
       title="Networking"
       subtitle="Log 1-2-1 meetings with fellow members and track the business you've generated for each other"
       actions={
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/biz/power-networking">
-            <Button
-              variant="outline"
-              className="border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-semibold shadow-xs"
-            >
-              <Zap className="mr-1.5 h-4 w-4 fill-primary text-primary" /> Power Networking
-            </Button>
-          </Link>
-          <Button variant="outline" onClick={() => setIsThankYouDialogOpen(true)}>
-            <Handshake className="mr-2 h-4 w-4" /> Give Thank You Note
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => setIsThankYouDialogOpen(true)}>
+          <Handshake className="mr-2 h-4 w-4" /> Give Thank You Note
+        </Button>
       }
     >
       <div className="space-y-4">
@@ -391,11 +381,11 @@ function BizNetworking() {
               <p className="text-xs text-muted-foreground">Discover verified suppliers, post business requirements & create permanent collaboration circles.</p>
             </div>
           </div>
-          <Link href="/biz/power-networking">
-            <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
+          <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
+            <Link href="/biz/power-networking">
               Open Power Network <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

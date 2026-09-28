@@ -25,7 +25,8 @@ const isDesktopPointer = () => {
  * @returns {Function} cleanup - Teardown callback
  */
 export function createMagneticButton(element, { maxMove = 7, damping = 0.16, radius = 80 } = {}) {
-  if (!element || !isDesktopPointer()) return () => {};
+  if (!element || !isDesktopPointer() || element.__rifahMagnetic) return () => {};
+  element.__rifahMagnetic = true;
 
   let targetX = 0;
   let targetY = 0;
@@ -93,6 +94,7 @@ export function createMagneticButton(element, { maxMove = 7, damping = 0.16, rad
   element.addEventListener("pointerleave", handlePointerLeave, { passive: true });
 
   return () => {
+    delete element.__rifahMagnetic;
     element.removeEventListener("pointermove", handlePointerMove);
     element.removeEventListener("pointerleave", handlePointerLeave);
     if (rafId) {
@@ -110,7 +112,8 @@ export function createMagneticButton(element, { maxMove = 7, damping = 0.16, rad
  * @returns {Function} cleanup - Teardown callback
  */
 export function createTiltCard(element, { maxTilt = 7, damping = 0.14 } = {}) {
-  if (!element || !isDesktopPointer()) return () => {};
+  if (!element || !isDesktopPointer() || element.__rifahTilt) return () => {};
+  element.__rifahTilt = true;
 
   let targetRotateX = 0;
   let targetRotateY = 0;
@@ -173,6 +176,7 @@ export function createTiltCard(element, { maxTilt = 7, damping = 0.14 } = {}) {
   element.addEventListener("pointerleave", handlePointerLeave, { passive: true });
 
   return () => {
+    delete element.__rifahTilt;
     element.removeEventListener("pointermove", handlePointerMove);
     element.removeEventListener("pointerleave", handlePointerLeave);
     if (rafId) {
