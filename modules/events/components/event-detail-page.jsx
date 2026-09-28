@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users, Video } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -462,6 +462,22 @@ const loadRazorpayScript = () => {
                           {marking ? "Marking..." : "Mark Attendance Now"}
                         </Button>
                       )}
+                    </div>
+                  )}
+
+                  {event.meetingLink && (
+                    <div className="mt-4 pt-4 border-t border-emerald-500/20 text-center">
+                      <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2">
+                        {formatEventDate(event.date)} at {event.time}
+                      </p>
+                      <Button 
+                        asChild
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all hover:shadow-lg gap-2" 
+                      >
+                        <a href={event.meetingLink} target="_blank" rel="noopener noreferrer">
+                          <Video className="h-4 w-4" /> Join Meeting
+                        </a>
+                      </Button>
                     </div>
                   )}
 

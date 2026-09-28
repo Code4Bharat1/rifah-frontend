@@ -150,6 +150,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     startTime: "10:00",
     endTime: "13:00",
     mode: "In-person",
+    meetingLink: "",
     eventCategory: "Meet",
     sportName: "",
     sportVenue: "",
@@ -484,6 +485,17 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   </SelectContent>
                 </Select>
               </div>
+              {(formData.mode === "Online" || formData.mode === "Hybrid") && (
+                <div className="space-y-2">
+                  <Label htmlFor="meetingLink">Meeting Link (Google Meet, Zoom, etc.)</Label>
+                  <Input
+                    id="meetingLink"
+                    placeholder="https://meet.google.com/..."
+                    value={formData.meetingLink}
+                    onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
                 <Input
