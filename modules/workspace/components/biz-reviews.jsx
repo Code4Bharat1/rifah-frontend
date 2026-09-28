@@ -41,6 +41,8 @@ import {
 } from "@shared/components/ui/dialog";
 import { Textarea } from "@shared/components/ui/textarea";
 import { useBusinessReviews, useMyBusiness } from "@shared/hooks/use-rifah-api";
+import { useQueryClient } from "@tanstack/react-query";
+import { reviewApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -135,28 +137,15 @@ export function BizReviews({ embedded = false }) {
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [repliedMap, setRepliedMap] = useState({});
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
+  const queryClient = useQueryClient();
   const { data: business } = useMyBusiness();
   const { data: reviewsData, isLoading } = useBusinessReviews(business?._id);
 
+  // Pure dynamic reviews without fake mock fallback
   const rawReviews = useMemo(() => {
-    const list = Array.isArray(reviewsData) ? reviewsData : reviewsData?.reviews ?? [];
-    if (list.length > 0) return list;
-    // Mock fallback matching screenshot if user has no reviews yet
-    return [
-      {
-        _id: "demo-review-sep",
-        title: "Buyer Review",
-        reviewerName: "ABC",
-        name: "ABC",
-        reviewerType: "Guest Reviewer",
-        createdAt: "2026-09-20T12:00:00.000Z",
-        date: "2026-09-20T12:00:00.000Z",
-        rating: 3,
-        comment: "Great",
-        status: "pending",
-      },
-    ];
+    return Array.isArray(reviewsData) ? reviewsData : reviewsData?.reviews ?? [];
   }, [reviewsData]);
 
   const allReviews = rawReviews;
@@ -205,7 +194,7 @@ export function BizReviews({ embedded = false }) {
     return list;
   }, [allReviews, activeTab, sortBy]);
 
-  // Last 6 months activity generator
+  // Last 6 months dynamic activity generator
   const activityData = useMemo(() => {
     const months = [];
     const now = new Date();
@@ -221,10 +210,6 @@ export function BizReviews({ embedded = false }) {
       }).length;
 
       months.push({ label, count, month, year });
-    }
-    // If all counts 0 but reviews exist, attach to current month (Sep)
-    if (allReviews.length > 0 && months.every((m) => m.count === 0)) {
-      months[months.length - 1].count = allReviews.length;
     }
     return months;
   }, [allReviews]);
@@ -265,16 +250,30 @@ export function BizReviews({ embedded = false }) {
       });
       return;
     }
+    const existingReply =
+      (typeof review.reply === "object" ? review.reply?.text : review.reply) ||
+      review.businessReply ||
+      repliedMap[review._id] ||
+      "";
     setSelectedReview(review);
-    setReplyText(repliedMap[review._id] || "");
+    setReplyText(existingReply);
     setReplyDialogOpen(true);
   };
 
-  const handleSendReply = () => {
-    if (!replyText.trim()) return;
-    setRepliedMap((prev) => ({ ...prev, [selectedReview._id]: replyText.trim() }));
-    toast.success("Reply saved successfully!");
-    setReplyDialogOpen(false);
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedReview?._id) return;
+    try {
+      setIsSubmittingReply(true);
+      await reviewApi.reply(selectedReview._id, { text: replyText.trim() });
+      setRepliedMap((prev) => ({ ...prev, [selectedReview._id]: replyText.trim() }));
+      queryClient.invalidateQueries({ queryKey: ["reviews", business?._id] });
+      toast.success("Official reply published successfully!");
+      setReplyDialogOpen(false);
+    } catch (err) {
+      toast.error(err.message || "Failed to submit reply.");
+    } finally {
+      setIsSubmittingReply(false);
+    }
   };
 
   const content = (
@@ -322,10 +321,16 @@ export function BizReviews({ embedded = false }) {
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">All time</p>
           </div>
           <div className="mt-3.5 flex items-center">
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 rounded-full px-2.5 py-0.5">
-              <Plus className="h-3 w-3" />
-              {allReviews.length === 1 ? "1 new review" : `${allReviews.length} new reviews`}
-            </span>
+            {allReviews.length > 0 ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 rounded-full px-2.5 py-0.5">
+                <Plus className="h-3 w-3" />
+                {allReviews.length === 1 ? "1 review" : `${allReviews.length} reviews`}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 bg-slate-100/80 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-full px-2.5 py-0.5">
+                0 reviews
+              </span>
+            )}
           </div>
         </div>
 
@@ -341,13 +346,29 @@ export function BizReviews({ embedded = false }) {
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
               {pendingReviews.length}
             </h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Awaiting review</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {pendingReviews.length > 0 ? "Awaiting review" : "All cleared"}
+            </p>
           </div>
-          <div className="mt-3.5 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/40">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-800 dark:text-amber-300">
-              <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-              <span>Needs your attention</span>
-            </div>
+          <div
+            className={cn(
+              "mt-3.5 p-2 rounded-xl border text-[11px] font-medium flex items-center gap-1.5",
+              pendingReviews.length > 0
+                ? "bg-amber-50 dark:bg-amber-950/40 border-amber-100 dark:border-amber-900/40 text-amber-800 dark:text-amber-300"
+                : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+            )}
+          >
+            {pendingReviews.length > 0 ? (
+              <>
+                <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                <span>Needs your attention</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                <span>No pending reviews</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -381,13 +402,27 @@ export function BizReviews({ embedded = false }) {
             </div>
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Response Status</p>
             <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1 leading-snug truncate">
-              {approvedReviews.length > 0 ? "Active response" : "Awaiting review"}
+              {allReviews.length === 0
+                ? "No reviews yet"
+                : approvedReviews.length > 0
+                ? "Active response"
+                : "Awaiting approval"}
             </h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Respond after approval</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {allReviews.length === 0
+                ? "Awaiting buyer feedback"
+                : approvedReviews.length > 0
+                ? "Respond to reviews"
+                : "Respond after approval"}
+            </p>
           </div>
           <div className="mt-3.5 flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
             <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <span className="truncate">You can reply once the review is published.</span>
+            <span className="truncate">
+              {approvedReviews.length > 0
+                ? "You can reply to published reviews."
+                : "You can reply once a review is published."}
+            </span>
           </div>
         </div>
       </div>
@@ -751,7 +786,8 @@ export function BizReviews({ embedded = false }) {
             </div>
           ) : (
             displayedReviews.map((review, idx) => {
-              const reviewerName = review.reviewerName || review.name || review.buyerName || "Guest Reviewer";
+              const reviewerName = review.authorName || review.reviewerName || review.name || review.buyerName || "Customer";
+              const reviewerRole = review.authorRole || review.reviewerType || (review.author ? "Chamber Member" : "Verified Buyer");
               const isPending = !review.status || review.status === "pending";
               const reviewDate = review.createdAt || review.date
                 ? new Date(review.createdAt || review.date).toLocaleDateString("en-GB", {
@@ -760,7 +796,11 @@ export function BizReviews({ embedded = false }) {
                     year: "numeric",
                   })
                 : "Recent";
-              const myReply = repliedMap[review._id] || review.reply || review.businessReply;
+              const reviewBody = review.body || review.comment || review.text || review.message || "";
+              const myReply =
+                repliedMap[review._id] ||
+                (typeof review.reply === "object" ? review.reply?.text : review.reply) ||
+                review.businessReply;
 
               return (
                 <div
@@ -780,7 +820,7 @@ export function BizReviews({ embedded = false }) {
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                           <span className="font-semibold text-slate-700 dark:text-slate-300">{reviewerName}</span>
                           {" · "}
-                          <span>{review.reviewerType || "Guest Reviewer"}</span>
+                          <span>{reviewerRole}</span>
                           {" · "}
                           <span>{reviewDate}</span>
                         </p>
@@ -794,9 +834,11 @@ export function BizReviews({ embedded = false }) {
                   </div>
 
                   {/* Comment Text */}
-                  <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 mt-3 leading-relaxed">
-                    {review.comment || review.text || review.message || "Great business partner and professional service."}
-                  </p>
+                  {reviewBody && (
+                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 mt-3 leading-relaxed">
+                      {reviewBody}
+                    </p>
+                  )}
 
                   {/* Pending Review Notice Banner */}
                   {isPending && (
@@ -872,14 +914,14 @@ export function BizReviews({ embedded = false }) {
             <div className="space-y-4 py-2 text-xs">
               <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                 <div className="h-10 w-10 rounded-full bg-sky-100 text-sky-700 font-bold flex items-center justify-center text-sm">
-                  {getInitials(selectedReview.reviewerName || selectedReview.name)}
+                  {getInitials(selectedReview.authorName || selectedReview.reviewerName || selectedReview.name)}
                 </div>
                 <div>
                   <p className="font-bold text-slate-900 dark:text-white text-sm">
-                    {selectedReview.reviewerName || selectedReview.name || "Guest Customer"}
+                    {selectedReview.authorName || selectedReview.reviewerName || selectedReview.name || "Customer"}
                   </p>
                   <p className="text-slate-500 text-xs">
-                    {selectedReview.reviewerType || "Verified Buyer"} · {selectedReview.createdAt ? new Date(selectedReview.createdAt).toLocaleDateString("en-GB") : "Recent"}
+                    {selectedReview.authorRole || selectedReview.reviewerType || "Verified Customer"} · {selectedReview.createdAt ? new Date(selectedReview.createdAt).toLocaleDateString("en-GB") : "Recent"}
                   </p>
                 </div>
               </div>
@@ -897,9 +939,21 @@ export function BizReviews({ embedded = false }) {
               <div>
                 <Label className="text-xs font-semibold text-slate-500">Review Message</Label>
                 <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs sm:text-sm mt-1 leading-relaxed">
-                  {selectedReview.comment || selectedReview.text || "Great business relationship and reliable quality."}
+                  {selectedReview.body || selectedReview.comment || selectedReview.text || "No review message provided."}
                 </div>
               </div>
+
+              {/* Show official reply in View dialog if exists */}
+              {(selectedReview.reply?.text || selectedReview.reply || repliedMap[selectedReview._id]) && (
+                <div className="p-3 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200/70 dark:border-sky-900/40 text-xs">
+                  <p className="font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5 mb-1 text-[11px]">
+                    <Reply className="h-3.5 w-3.5 text-sky-600" /> Your Official Response
+                  </p>
+                  <p className="text-slate-700 dark:text-slate-300">
+                    {selectedReview.reply?.text || selectedReview.reply || repliedMap[selectedReview._id]}
+                  </p>
+                </div>
+              )}
 
               {(!selectedReview.status || selectedReview.status === "pending") && (
                 <div className="p-3 rounded-xl bg-amber-50 text-amber-800 text-xs flex items-start gap-2 border border-amber-200">
@@ -948,10 +1002,10 @@ export function BizReviews({ embedded = false }) {
           <div className="space-y-3 py-2">
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 text-xs">
               <p className="font-semibold text-slate-800 dark:text-slate-200">
-                {selectedReview?.reviewerName || selectedReview?.name || "Customer"}'s review:
+                {selectedReview?.authorName || selectedReview?.reviewerName || selectedReview?.name || "Customer"}'s review:
               </p>
               <p className="text-slate-500 italic mt-0.5 line-clamp-2">
-                "{selectedReview?.comment || selectedReview?.text || "Great service"}"
+                "{selectedReview?.body || selectedReview?.comment || selectedReview?.text || "Customer review"}"
               </p>
             </div>
             <div>
@@ -971,10 +1025,10 @@ export function BizReviews({ embedded = false }) {
             </Button>
             <Button
               onClick={handleSendReply}
-              disabled={!replyText.trim()}
+              disabled={isSubmittingReply || !replyText.trim()}
               className="rounded-xl text-xs bg-[#0284c7] hover:bg-[#0369a1] text-white"
             >
-              Save & Publish Reply
+              {isSubmittingReply ? "Saving..." : "Save & Publish Reply"}
             </Button>
           </DialogFooter>
         </DialogContent>

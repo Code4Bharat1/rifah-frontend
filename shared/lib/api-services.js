@@ -341,6 +341,7 @@ export const followupApi = {
 export const reviewApi = {
   getByBusiness: (businessId) => apiClient(`/reviews/business/${businessId}`),
   submit: (data) => apiClient("/reviews", { method: "POST", body: JSON.stringify(data) }),
+  reply: (id, data) => apiClient(`/reviews/${id}/reply`, { method: "POST", body: JSON.stringify(data) }),
   getAdminReviews: (params = {}) => apiClient(`/reviews/admin/all${toQueryString(params)}`),
   moderate: (id, data) => apiClient(`/reviews/${id}/moderate`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/reviews/${id}`, { method: "DELETE" }),

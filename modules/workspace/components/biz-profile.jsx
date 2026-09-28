@@ -85,7 +85,7 @@ function BizProfile() {
   const totalCatalogueCount = (catalogueItems || []).length;
   const { data: reviewsData } = useBusinessReviews(business?._id);
   const allReviews = Array.isArray(reviewsData) ? reviewsData : reviewsData?.reviews ?? [];
-  const totalReviewsCount = allReviews.length > 0 ? allReviews.length : 1;
+  const totalReviewsCount = allReviews.length;
 
   const searchParams = useSearchParams();
   const tabParam = searchParams?.get("tab");

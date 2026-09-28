@@ -1134,6 +1134,14 @@ function BusinessProfile() {
                         </div>
                         {r.title && <h3 className="mt-3 text-sm font-semibold text-foreground">{r.title}</h3>}
                         <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{r.body}</p>
+                        {(r.reply?.text || (typeof r.reply === "string" && r.reply)) && (
+                          <div className="mt-3 rounded-xl bg-muted/60 p-3 border border-border text-xs">
+                            <p className="font-semibold text-primary flex items-center gap-1.5 mb-1 text-[11px]">
+                              Response from {business.name}
+                            </p>
+                            <p className="text-foreground/90">{typeof r.reply === "object" ? r.reply.text : r.reply}</p>
+                          </div>
+                        )}
                       </article>
                     ))}
                   </div>
