@@ -20,10 +20,67 @@ import {
   DialogFooter,
 } from "@shared/components/ui/dialog";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useNotifications, useChapters } from "@shared/hooks/use-rifah-api";
+import { useNotifications, useChapters, useStates } from "@shared/hooks/use-rifah-api";
 import { notificationApi } from "@shared/lib/api-services";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@shared/components/ui/dropdown-menu";
-import { MoreHorizontal, Trash2, Undo2, Eye, Trash, Calendar, MapPin, Clock, Building2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@shared/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@shared/components/ui/command";
+import { cn } from "@shared/lib/utils";
+import { MoreHorizontal, Trash2, Undo2, Eye, Trash, Calendar, MapPin, Clock, Building2, Check, ChevronsUpDown } from "lucide-react";
+
+function MultiSelectDropdown({ options, selected, toggleOption, placeholder = "Select..." }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between h-auto min-h-[40px] px-3 py-2 font-normal"
+        >
+          <div className="flex flex-wrap gap-1 text-left">
+            {(!selected || selected.length === 0) ? (
+              <span className="text-muted-foreground">{placeholder}</span>
+            ) : (
+              selected.map(item => (
+                <div key={item} className="bg-primary/10 text-primary text-xs rounded-full px-2.5 py-0.5 font-medium border border-primary/20">
+                  {item}
+                </div>
+              ))
+            )}
+          </div>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] sm:w-[400px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={`Search...`} />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option, index) => (
+                <CommandItem
+                  key={`${option}-${index}`}
+                  value={option}
+                  onSelect={() => toggleOption(option)}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      (selected || []).includes(option) ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {option}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function formatEventDate(val) {
   if (!val) return "";
@@ -36,25 +93,60 @@ function AdminNotifications() {
   const { user } = useAuth();
   const role = user?.role === "chapter_admin" ? "chapter_admin" : user?.role === "state_admin" ? "state_admin" : "admin";
 
-  const [audience, setAudience] = useState(user?.role === "chapter_admin" ? "chapter" : "all");
-  const [selectedChapter, setSelectedChapter] = useState(user?.chapter || "");
+  const isCentralAdmin = role === "admin";
+  const isStateAdmin = role === "state_admin";
+  const isChapterAdmin = role === "chapter_admin";
+
+  const [audience, setAudience] = useState("all");
+  const [targetStates, setTargetStates] = useState(isStateAdmin && user?.state ? [user.state] : []);
+  const [targetChapters, setTargetChapters] = useState(isChapterAdmin && user?.chapter ? [user.chapter] : []);
+
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => {
-    if (user?.role === "chapter_admin" && user?.chapter) {
-      setSelectedChapter(user.chapter);
-      setAudience("chapter");
-    }
-  }, [user]);
-
   const { data: notifData, refetch } = useNotifications();
   const { data: chaptersData } = useChapters();
+  const { data: statesData } = useStates();
 
   const notifications = Array.isArray(notifData?.notifications) ? notifData.notifications : (Array.isArray(notifData) ? notifData : []);
-  const chapters = chaptersData || [];
+  const chaptersList = chaptersData || [];
+  const statesList = statesData || [];
+
+  const stateOptions = ["All", ...statesList.map(s => (typeof s === 'string' ? s : (s.state || s.name || "Unknown")))];
+  
+  // Filter chapters based on selected states
+  const filteredChapters = chaptersList.filter(ch => {
+    if (isChapterAdmin) return ch.name === user?.chapter;
+    if (isStateAdmin) return ch.state === user?.state;
+    if (!targetStates.length || targetStates.includes("All")) return true;
+    return targetStates.includes(ch.state);
+  });
+
+  const chapterOptions = ["All", ...filteredChapters.map(c => c.name)];
+
+  const toggleState = (val) => {
+    if (val === "All") {
+      setTargetStates(targetStates.includes("All") ? [] : ["All"]);
+      setTargetChapters([]);
+    } else {
+      let next = targetStates.includes(val) ? targetStates.filter(s => s !== val) : [...targetStates, val];
+      next = next.filter(s => s !== "All");
+      setTargetStates(next);
+      setTargetChapters([]);
+    }
+  };
+
+  const toggleChapter = (val) => {
+    if (val === "All") {
+      setTargetChapters(targetChapters.includes("All") ? [] : ["All"]);
+    } else {
+      let next = targetChapters.includes(val) ? targetChapters.filter(c => c !== val) : [...targetChapters, val];
+      next = next.filter(c => c !== "All");
+      setTargetChapters(next);
+    }
+  };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const broadcastCount = notifications.filter(n => n.type === "Broadcast" || n.broadcastId).length;
@@ -71,27 +163,24 @@ function AdminNotifications() {
 
   const handleBroadcast = async (e) => {
     e.preventDefault();
-    const effectiveChapter =
-      role === "chapter_admin"
-        ? (user?.chapter || selectedChapter)
-        : (audience === "chapter" ? selectedChapter : undefined);
-
-    if (audience === "chapter" && !effectiveChapter) {
-      toast.error("Please select a chapter to broadcast to.");
-      return;
-    }
-    
     setSending(true);
     try {
       await notificationApi.broadcast({
         title: title.trim(),
         body: message.trim(),
-        targetRole: ["all", "chapter"].includes(audience) ? undefined : audience,
-        chapter: effectiveChapter || undefined,
+        targetRole: audience === "all" ? undefined : audience,
+        state: isCentralAdmin ? (targetStates.includes("All") ? "all" : targetStates) : (user?.state || undefined),
+        chapter: (isStateAdmin || isCentralAdmin) ? (targetChapters.includes("All") ? "all" : targetChapters) : (user?.chapter || undefined),
       });
       toast.success("Broadcast announcement sent successfully!");
       setTitle("");
       setMessage("");
+      if (isCentralAdmin) {
+        setTargetStates([]);
+        setTargetChapters([]);
+      } else if (isStateAdmin) {
+        setTargetChapters([]);
+      }
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to send announcement.");
@@ -178,9 +267,9 @@ function AdminNotifications() {
         <div id="compose-panel">
           <Panel title="Compose announcement">
             <form onSubmit={handleBroadcast} className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5">
-                  <Label>Audience</Label>
+                  <Label>Audience / Role</Label>
                   <Select value={audience} onValueChange={setAudience}>
                     <SelectTrigger className="h-11">
                       <SelectValue />
@@ -188,26 +277,29 @@ function AdminNotifications() {
                     <SelectContent>
                       <SelectItem value="all">All Registered Users</SelectItem>
                       <SelectItem value="business_owner">Member Businesses</SelectItem>
-                      <SelectItem value="customer">Buyers</SelectItem>
-                      <SelectItem value="chapter">Specific Chapter Users</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                {audience === "chapter" && (
+                {isCentralAdmin && (
                   <div className="space-y-1.5">
-                    <Label>Select Chapter</Label>
-                    <Select value={selectedChapter} onValueChange={setSelectedChapter}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Choose a chapter..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {chapters.map((ch) => (
-                          <SelectItem key={ch._id || ch.name} value={ch.name}>
-                            {ch.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Target States</Label>
+                    <MultiSelectDropdown 
+                      options={stateOptions}
+                      selected={targetStates}
+                      toggleOption={toggleState}
+                      placeholder="Select states..."
+                    />
+                  </div>
+                )}
+                {(isCentralAdmin || isStateAdmin) && (
+                  <div className="space-y-1.5">
+                    <Label>Target Chapters</Label>
+                    <MultiSelectDropdown 
+                      options={chapterOptions}
+                      selected={targetChapters}
+                      toggleOption={toggleChapter}
+                      placeholder="Select chapters..."
+                    />
                   </div>
                 )}
               </div>

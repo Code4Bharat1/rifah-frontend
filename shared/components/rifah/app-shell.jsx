@@ -117,7 +117,7 @@ const navs = {
       { label: "Units", to: "/admin/units", icon: Users },
       { label: "Events", to: "/admin/events", icon: Ticket },
       { label: "Payments", to: "/admin/payments", icon: CreditCard },
-      { label: "Announcements", to: "/admin/announcements", icon: Megaphone },
+
       { label: "Notifications", to: "/admin/notifications", icon: Bell },
       { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
@@ -144,7 +144,7 @@ const roleNavs = {
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
-      { label: "Announcements", to: "/chapter-admin/announcements", icon: Megaphone },
+
       { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
       { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
@@ -166,7 +166,7 @@ const roleNavs = {
       { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
       { label: "Events", to: "/state-admin/events", icon: CalendarDays },
-      { label: "Announcements", to: "/state-admin/announcements", icon: Megaphone },
+      { label: "Notifications", to: "/state-admin/notifications", icon: Bell },
       { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/state-admin/settings", icon: Settings },

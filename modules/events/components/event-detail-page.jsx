@@ -352,12 +352,11 @@ const loadRazorpayScript = () => {
           <div className="space-y-8">
             {/* Metadata Grid */}
             <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-              <dl className="grid grid-cols-2 gap-y-6 gap-x-4 sm:grid-cols-4">
+              <dl className="grid grid-cols-2 gap-y-6 gap-x-4 sm:grid-cols-3">
                   {[
                     { icon: CalendarDays, label: "Date", value: formatEventDate(event.date) || "TBA" },
                     { icon: Clock, label: "Time", value: event.time },
                     { icon: MapPin, label: "Venue", value: event.venue },
-                    { icon: Users, label: "Capacity", value: `${event.seats} seats` },
                   ].map((s) => (
                     <div key={s.label} className="min-w-0">
                       <dt className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -496,12 +495,6 @@ const loadRazorpayScript = () => {
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Pass Price</p>
                       <p className="text-3xl font-extrabold tracking-tight text-foreground">
                         {Boolean(event.isPaid && Number(event.ticketPrice) > 0) ? `₹${event.ticketPrice}` : (event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Availability</p>
-                      <p className="text-sm font-bold text-primary">
-                        {Math.max(0, (event.seats || 100) - (event.registeredCount || 0))} seats left
                       </p>
                     </div>
                   </div>

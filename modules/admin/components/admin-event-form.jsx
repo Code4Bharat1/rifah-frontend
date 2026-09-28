@@ -99,6 +99,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const { data: statesData } = useStates();
   const { data: chaptersData } = useChapters();
@@ -274,73 +275,58 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   };
 
   const handleSave = async (targetStatus) => {
-    if (!formData.title && !formData.date) {
-      toast.error("Title and Date are required");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    if (!formData.title) {
-      toast.error("Event Title is required");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    if (!formData.date) {
-      toast.error("Event Date is required");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
+    let newErrors = {};
+
+    if (!formData.title) newErrors.title = "Event Title is required";
+    if (!formData.date) newErrors.date = "Event Date is required";
+    if (!formData.startTime) newErrors.startTime = "Start Time is required";
+    if (!formData.endTime) newErrors.endTime = "End Time is required";
     
     if (!isEditMode && formData.date) {
       const selectedDate = new Date(formData.date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (selectedDate < today) {
-        toast.error("You cannot create an event in the past. Please select today's date or a future date.");
-        return;
+        newErrors.date = "You cannot create an event in the past. Please select today's date or a future date.";
       }
     }
 
     if (targetStatus === "Scheduled") {
-      if (!formData.scheduledDate && !formData.scheduledTime) {
-        toast.error("Scheduled Date and Time are required");
-        return;
-      }
-      if (!formData.scheduledDate) {
-        toast.error("Scheduled Date is required");
-        return;
-      }
-      if (!formData.scheduledTime) {
-        toast.error("Scheduled Time is required");
-        return;
-      }
+      if (!formData.scheduledDate) newErrors.scheduledDate = "Scheduled Date is required";
+      if (!formData.scheduledTime) newErrors.scheduledTime = "Scheduled Time is required";
 
-      const scheduleDateTime = new Date(`${formData.scheduledDate}T${formData.scheduledTime}:00`);
-      if (scheduleDateTime < new Date()) {
-        toast.error("Cannot schedule in the past. Please select a future time.");
-        return;
+      if (formData.scheduledDate && formData.scheduledTime) {
+        const scheduleDateTime = new Date(`${formData.scheduledDate}T${formData.scheduledTime}:00`);
+        if (scheduleDateTime < new Date()) {
+          newErrors.scheduledTime = "Cannot schedule in the past. Please select a future time.";
+        }
       }
       if (formData.date && formData.scheduledDate > formData.date) {
-        toast.error("Scheduled (publication) date cannot be after the event date.");
-        return;
+        newErrors.scheduledDate = "Scheduled (publication) date cannot be after the event date.";
       }
     }
 
     if (formData.isPaid) {
       const priceNum = Number(formData.ticketPrice);
       if (!formData.ticketPrice || isNaN(priceNum) || priceNum <= 0) {
-        toast.error("Please enter a valid base ticket price greater than 0 for paid events");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
+        newErrors.ticketPrice = "Please enter a valid base ticket price greater than 0 for paid events";
       }
       if (formData.memberPrice !== "") {
         const memPriceNum = Number(formData.memberPrice);
-        if (isNaN(memPriceNum) || memPriceNum < 0 || memPriceNum >= priceNum) {
-          toast.error("Please enter a valid Member Price (must be 0 or greater, and less than Non-Member base price)");
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          return;
+        if (isNaN(memPriceNum) || memPriceNum < 0) {
+          newErrors.memberPrice = "Please enter a valid Member Price (must be 0 or greater)";
         }
       }
     }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error("Please fix the highlighted errors before saving.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    
+    setErrors({});
 
     if (targetStatus === "Upcoming") setLoading(true);
     else setSavingDraft(true);
@@ -438,8 +424,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g. Annual Export Growth Conclave 2026"
-                className="text-lg font-medium"
+                className={`text-lg font-medium ${errors.title ? 'border-destructive' : ''}`}
               />
+              {errors.title && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.title}</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -453,7 +440,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   min={!isEditMode ? new Date().toISOString().split("T")[0] : undefined}
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className={errors.date ? 'border-destructive' : ''}
                 />
+                {errors.date && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.date}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="startTime">Start Time <span className="text-destructive">*</span></Label>
@@ -463,7 +452,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   required
                   value={formData.startTime}
                   onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  className={errors.startTime ? 'border-destructive' : ''}
                 />
+                {errors.startTime && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.startTime}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="endTime">End Time <span className="text-destructive">*</span></Label>
@@ -473,7 +464,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   required
                   value={formData.endTime}
                   onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  className={errors.endTime ? 'border-destructive' : ''}
                 />
+                {errors.endTime && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.endTime}</p>}
               </div>
             </div>
 
@@ -576,7 +569,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                       value={formData.ticketPrice}
                       onChange={(e) => setFormData({ ...formData, ticketPrice: e.target.value ? Number(e.target.value) : "" })}
                       placeholder="e.g. 500"
+                      className={errors.ticketPrice ? 'border-destructive' : ''}
                     />
+                    {errors.ticketPrice && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.ticketPrice}</p>}
                     <p className="text-[10px] text-muted-foreground mt-1 font-medium">Standard price for Guests.</p>
                   </div>
                   <div className="space-y-2">
@@ -588,7 +583,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                       value={formData.memberPrice}
                       onChange={(e) => setFormData({ ...formData, memberPrice: e.target.value ? Number(e.target.value) : "" })}
                       placeholder="e.g. 200"
+                      className={errors.memberPrice ? 'border-destructive' : ''}
                     />
+                    {errors.memberPrice && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.memberPrice}</p>}
                     <p className="text-[10px] text-muted-foreground mt-1 font-medium">Special price for verified Members.</p>
                   </div>
                 </div>
@@ -789,8 +786,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     max="9999-12-31"
                     value={formData.scheduledDate}
                     onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
-                    className="w-40"
+                    className={`w-40 ${errors.scheduledDate ? 'border-destructive' : ''}`}
                   />
+                  {errors.scheduledDate && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.scheduledDate}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="scheduledTime">Scheduled Time</Label>
@@ -799,8 +797,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     type="time"
                     value={formData.scheduledTime}
                     onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                    className="w-32"
+                    className={`w-32 ${errors.scheduledTime ? 'border-destructive' : ''}`}
                   />
+                  {errors.scheduledTime && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.scheduledTime}</p>}
                 </div>
                 <Button 
                   variant="outline" 
