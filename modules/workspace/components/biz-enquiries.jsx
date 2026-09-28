@@ -91,8 +91,8 @@ function getB2bSubScope(r) {
   if (targetType === "business" || r.targetBusiness || r.enquiry?.targetBusiness) {
     return "direct";
   }
-  if (targetType === "chamber" || (r.chapter && r.chapter !== "All Chapters")) {
-    return "chamber";
+  if (targetType === "state") {
+    return "state";
   }
   return "pan-chamber";
 }
@@ -222,7 +222,7 @@ function handleExportList(enquiries) {
 export function BizEnquiries() {
   const [tab, setTab] = useState("All");
   const [typeFilter, setTypeFilter] = useState("all"); // "all", "b2b", "guest", "general"
-  const [b2bSubFilter, setB2bSubFilter] = useState("all"); // "all", "pan-chamber", "chamber", "direct"
+  const [b2bSubFilter, setB2bSubFilter] = useState("pan-chamber"); // "pan-chamber", "state", "direct"
   const [searchQuery, setSearchQuery] = useState("");
 
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
@@ -382,7 +382,7 @@ export function BizEnquiries() {
   const b2bRows = useMemo(() => allRows.filter((r) => getEnquiryType(r) === "b2b"), [allRows]);
   const b2bCount = b2bRows.length;
   const b2bPanChamberCount = useMemo(() => b2bRows.filter((r) => getB2bSubScope(r) === "pan-chamber").length, [b2bRows]);
-  const b2bChamberCount = useMemo(() => b2bRows.filter((r) => getB2bSubScope(r) === "chamber").length, [b2bRows]);
+  const b2bStateCount = useMemo(() => b2bRows.filter((r) => getB2bSubScope(r) === "state").length, [b2bRows]);
   const b2bDirectCount = useMemo(() => b2bRows.filter((r) => getB2bSubScope(r) === "direct").length, [b2bRows]);
   const guestCount = useMemo(() => allRows.filter((r) => getEnquiryType(r) === "guest").length, [allRows]);
   const generalCount = useMemo(
@@ -644,9 +644,8 @@ export function BizEnquiries() {
           <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl border border-border bg-surface w-fit shadow-2xs">
             <span className="text-xs font-semibold text-muted-foreground px-2">B2B Scope:</span>
             {[
-              { id: "all", label: "All B2B", count: b2bCount },
               { id: "pan-chamber", label: "All Businesses (Pan-Chamber)", count: b2bPanChamberCount },
-              { id: "chamber", label: "Chamber Specific", count: b2bChamberCount },
+              { id: "state", label: "State Specific", count: b2bStateCount },
               { id: "direct", label: "Specific Business", count: b2bDirectCount },
             ].map((sub) => (
               <button
@@ -715,7 +714,7 @@ export function BizEnquiries() {
                         )}
                         {type === "b2b" && (
                           <span className="rounded px-1.5 py-0.2 text-[10px] font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/20">
-                            {getB2bSubScope(r) === "direct" ? "Direct Lead" : getB2bSubScope(r) === "chamber" ? "Chamber Lead" : "Pan-Chamber"}
+                            {getB2bSubScope(r) === "direct" ? "Direct Lead" : getB2bSubScope(r) === "state" ? "State Lead" : "Pan-Chamber"}
                           </span>
                         )}
                       </div>
@@ -726,8 +725,8 @@ export function BizEnquiries() {
                             ? "Open Chamber Broadcast"
                             : getB2bSubScope(r) === "pan-chamber"
                               ? "Pan-Chamber Network"
-                              : getB2bSubScope(r) === "chamber"
-                                ? (r.chapter || "Chamber Specific")
+                              : getB2bSubScope(r) === "state"
+                                ? (r.targetState || "State-Wide")
                                 : "Direct Business"}
                       </span>
                     </div>
@@ -1092,7 +1091,7 @@ export function BizEnquiries() {
                     </div>
 
                     {/* Specifications Grid */}
-                    <div className="grid grid-cols-2 gap-3 rounded-xl border border-border p-3.5 text-xs sm:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 rounded-xl border border-border p-3.5 text-xs sm:grid-cols-5">
                       <div>
                         <span className="text-muted-foreground">Quantity</span>
                         <p className="font-semibold text-foreground">{selectedEnquiry?.quantity || selectedEnquiry?.enquiry?.quantity || "On request"}</p>
@@ -1108,6 +1107,16 @@ export function BizEnquiries() {
                       <div>
                         <span className="text-muted-foreground">Delivery Location</span>
                         <p className="font-semibold text-foreground">{selectedEnquiry?.location || selectedEnquiry?.enquiry?.location || selectedEnquiry?.city || "To be confirmed"}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Routing Scope</span>
+                        <p className="font-semibold text-foreground">
+                          {selectedEnquiry?.targetType === "business" || selectedEnquiry?.targetBusiness
+                            ? "Direct Business"
+                            : selectedEnquiry?.targetType === "state" || selectedEnquiry?.targetState
+                              ? (selectedEnquiry?.targetState || "State-Wide")
+                              : "Pan-Chamber"}
+                        </p>
                       </div>
                     </div>
 

@@ -103,10 +103,10 @@ export function BizMyEnquiries() {
                         </span>
                       );
                     }
-                    if (r.targetType === "chamber" || (r.chapter && r.chapter !== "All Chapters")) {
+                    if (r.targetType === "state" || r.targetState) {
                       return (
                         <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400">
-                          {r.chapter || "Chamber"}
+                          {r.targetState || "State-Wide"}
                         </span>
                       );
                     }
@@ -161,10 +161,10 @@ export function BizMyEnquiries() {
                       {r.responsesCount || r.responses?.length || 0} quotes
                     </Pill>
                     {(r.targetType === "business" || r.targetBusiness) && <Pill tone="warning">Direct</Pill>}
-                    {(r.targetType === "chamber" || (r.chapter && r.chapter !== "All Chapters")) && (
-                      <Pill tone="info">{r.chapter}</Pill>
+                    {(r.targetType === "state" || r.targetState) && (
+                      <Pill tone="info">{r.targetState || "State-Wide"}</Pill>
                     )}
-                    {(r.targetType === "all" || (!r.targetType && !r.targetBusiness && r.chapter === "All Chapters")) && (
+                    {(r.targetType === "all" || (!r.targetType && !r.targetBusiness && !r.targetState)) && (
                       <Pill tone="success">Pan-Chamber</Pill>
                     )}
                   </div>
@@ -220,8 +220,8 @@ export function BizMyEnquiries() {
                 <p className="font-semibold text-foreground">
                   {selectedEnquiry?.targetType === "business"
                     ? "Direct Vendor"
-                    : selectedEnquiry?.targetType === "chamber"
-                      ? selectedEnquiry?.chapter
+                    : selectedEnquiry?.targetType === "state"
+                      ? (selectedEnquiry?.targetState || "State-Wide")
                       : "Pan-Chamber"}
                 </p>
               </div>

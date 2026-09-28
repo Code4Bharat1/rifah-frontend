@@ -62,7 +62,8 @@ export function BizNewEnquiry() {
   const router = useRouter();
 
   // Targeting options
-  const [targetType, setTargetType] = useState("all"); // 'all' | 'chamber' | 'business'
+  const [targetType, setTargetType] = useState("all"); // 'all' | 'state' | 'business'
+  const [selectedState, setSelectedState] = useState("");
   const [selectedChapter, setSelectedChapter] = useState("");
   const [selectedBusiness, setSelectedBusiness] = useState("");
 
@@ -89,6 +90,7 @@ export function BizNewEnquiry() {
   const { data: businessesData, isLoading: loadingBusinesses } = useBusinesses({
     status: "Live",
     limit: 150,
+    ...(selectedChapter ? { chapter: selectedChapter } : {}),
   });
 
   const chapters = Array.isArray(chaptersData)
@@ -101,11 +103,48 @@ export function BizNewEnquiry() {
     ? rawCategories
     : B2B_CATEGORIES.map((c) => ({ name: c, _id: c }));
 
+  // Resolve current business's registered state
+  const myChapter = chapters.find(
+    (ch) =>
+      (myBiz?.chapterId && String(ch._id) === String(myBiz.chapterId)) ||
+      (myBiz?.chapter && ch.name?.toLowerCase() === myBiz.chapter?.toLowerCase())
+  );
+  const rawOwnState = (myBiz?.state || myChapter?.state || user?.state || "").trim();
+  const ownState = rawOwnState
+    ? rawOwnState.charAt(0).toUpperCase() + rawOwnState.slice(1)
+    : "";
+
+  // Derive unique states from chapters list with proper title case
+  const allStates = [
+    ...new Set(
+      chapters
+        .map((ch) => ch.state?.trim())
+        .filter(Boolean)
+        .map((st) => st.charAt(0).toUpperCase() + st.slice(1).toLowerCase())
+    ),
+  ].sort();
+
+  // Chapters filtered by selected state (for business cascading picker)
+  const chaptersInState = selectedState
+    ? chapters.filter((ch) => (ch.state || "").trim().toLowerCase() === selectedState.trim().toLowerCase())
+    : [];
+
   // Filter out current business so user doesn't target themselves
   const allBusinesses = Array.isArray(businessesData)
     ? businessesData
     : businessesData?.businesses || [];
-  const businesses = allBusinesses.filter((b) => b._id !== myBiz?._id);
+  const businesses = allBusinesses.filter((b) => {
+    if (String(b._id) === String(myBiz?._id)) return false;
+    // If a chapter is selected in the cascading picker, filter by chapter name
+    if (targetType === "business" && selectedChapter) {
+      const bCh = (b.chapter || b.chapterName || "").trim().toLowerCase();
+      const sCh = selectedChapter.trim().toLowerCase();
+      const bNorm = bCh.replace(/\s+chapter$/i, "");
+      const sNorm = sCh.replace(/\s+chapter$/i, "");
+      return bCh === sCh || bNorm === sNorm;
+    }
+    return true;
+  });
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -142,8 +181,8 @@ export function BizNewEnquiry() {
       return;
     }
 
-    if (targetType === "chamber" && !selectedChapter) {
-      setError("Please select a target chamber / chapter.");
+    if (targetType === "state" && !ownState) {
+      setError("Unable to determine your registered state. Please ensure your business profile has a state or chapter assigned.");
       return;
     }
 
@@ -172,7 +211,7 @@ export function BizNewEnquiry() {
         guestName: senderName,
         guestEmail: senderEmail,
         guestPhone: senderPhone,
-        ...(targetType === "chamber" ? { chapter: selectedChapter } : {}),
+        ...(targetType === "state" ? { targetState: ownState } : {}),
         ...(targetType === "business" ? { targetBusiness: selectedBusiness } : {}),
       };
 
@@ -202,7 +241,7 @@ export function BizNewEnquiry() {
           <p className="mt-2 text-sm text-muted-foreground">
             Your sourcing requirement <span className="font-semibold text-foreground">{createdRef}</span> has been delivered directly
             {targetType === "all" && " to verified member businesses across the RIFAH Chamber network without admin delay."}
-            {targetType === "chamber" && ` to verified member businesses in ${selectedChapter} without admin delay.`}
+            {targetType === "state" && ` to verified member businesses across ${ownState || "your state"} without admin delay.`}
             {targetType === "business" && " to the selected vendor business directly."}
           </p>
 
@@ -223,6 +262,8 @@ export function BizNewEnquiry() {
                   location: "",
                   description: "",
                 });
+                setSelectedState("");
+                setSelectedChapter("");
                 setSelectedBusiness("");
               }}
             >
@@ -285,11 +326,11 @@ export function BizNewEnquiry() {
                 </p>
               </button>
 
-              {/* Option 2: Chamber Specific */}
+              {/* Option 2: Own State */}
               <button
                 type="button"
-                onClick={() => setTargetType("chamber")}
-                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "chamber"
+                onClick={() => { setTargetType("state"); setSelectedState(""); setSelectedChapter(""); setSelectedBusiness(""); }}
+                className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "state"
                   ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                   : "border-border hover:border-muted-foreground/30"
                   }`}
@@ -299,19 +340,21 @@ export function BizNewEnquiry() {
                     <MapPin className="h-5 w-5" />
                   </div>
                   <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
-                    Chapter Admin
+                    State-Wide
                   </span>
                 </div>
-                <h4 className="mt-3 text-sm font-semibold text-foreground">Chamber Specific</h4>
+                <h4 className="mt-3 text-sm font-semibold text-foreground">
+                  {ownState ? `${ownState} (Own State)` : "Own State"}
+                </h4>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Direct broadcast to member businesses in a specific chapter.
+                  Broadcast exclusively to all member businesses registered in {ownState || "your state"}.
                 </p>
               </button>
 
               {/* Option 3: Specific Business */}
               <button
                 type="button"
-                onClick={() => setTargetType("business")}
+                onClick={() => { setTargetType("business"); setSelectedState(""); setSelectedChapter(""); setSelectedBusiness(""); }}
                 className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "business"
                   ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                   : "border-border hover:border-muted-foreground/30"
@@ -332,59 +375,93 @@ export function BizNewEnquiry() {
               </button>
             </div>
 
-            {/* Conditional Dropdown: Chamber Specific */}
-            {targetType === "chamber" && (
-              <div className="rounded-xl border border-border bg-surface-raised p-4">
-                <Label htmlFor="chamber-select" className="text-sm font-semibold">
-                  Select Target Chapter / Chamber *
-                </Label>
-                <p className="mb-2 text-xs text-muted-foreground">
-                  All businesses registered under this chapter will receive your requirement directly.
+            {/* Conditional: Own State Information */}
+            {targetType === "state" && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-semibold text-foreground">
+                    Target State: <span className="font-bold text-blue-600 dark:text-blue-400">{ownState || "Your Registered State"}</span>
+                  </span>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  This enquiry is automatically restricted to your own state ({ownState || "registered state"}). Only active member businesses belonging to {ownState || "your state"} will receive this requirement.
                 </p>
-                <Select
-                  value={selectedChapter}
-                  onValueChange={setSelectedChapter}
-                  disabled={loadingChapters}
-                >
-                  <SelectTrigger id="chamber-select" className="w-full">
-                    <SelectValue placeholder={loadingChapters ? "Loading chapters..." : "Choose chapter (e.g. Mumbai, Delhi...)"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {chapters.map((ch) => (
-                      <SelectItem key={ch._id || ch.name} value={ch.name}>
-                        {ch.name} {ch.city ? `(${ch.city})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             )}
 
-            {/* Conditional Dropdown: Specific Business */}
+            {/* Conditional: Specific Business — cascading State → Chapter → Business */}
             {targetType === "business" && (
-              <div className="rounded-xl border border-border bg-surface-raised p-4">
-                <Label htmlFor="business-select" className="text-sm font-semibold">
-                  Select Target Vendor Business *
-                </Label>
-                <p className="mb-2 text-xs text-muted-foreground">
-                  Choose the chamber member business to send this requirement directly to.
-                </p>
-                <Select
-                  value={selectedBusiness}
-                  onValueChange={setSelectedBusiness}
-                  disabled={loadingBusinesses}
-                >
-                  <SelectTrigger id="business-select" className="w-full">
-                    <SelectValue placeholder={loadingBusinesses ? "Loading businesses..." : "Search and select a business..."} />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {businesses.map((biz) => (
-                      <SelectItem key={biz._id} value={biz._id}>
-                        {biz.name} {biz.chapter ? `· ${biz.chapter}` : ""} {biz.category ? `(${biz.category})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3 rounded-xl border border-border bg-surface-raised p-4">
+                <div>
+                  <Label htmlFor="biz-state-select" className="text-sm font-semibold">
+                    Step 1 — Select State *
+                  </Label>
+                  <p className="mb-2 text-xs text-muted-foreground">Narrow down by state first.</p>
+                  <Select
+                    value={selectedState}
+                    onValueChange={(val) => { setSelectedState(val); setSelectedChapter(""); setSelectedBusiness(""); }}
+                    disabled={loadingChapters}
+                  >
+                    <SelectTrigger id="biz-state-select" className="w-full">
+                      <SelectValue placeholder={loadingChapters ? "Loading..." : "Choose a state"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allStates.map((st) => (
+                        <SelectItem key={st} value={st}>{st}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedState && (
+                  <div>
+                    <Label htmlFor="biz-chapter-select" className="text-sm font-semibold">
+                      Step 2 — Select Chapter *
+                    </Label>
+                    <p className="mb-2 text-xs text-muted-foreground">Choose the chapter within {selectedState}.</p>
+                    <Select
+                      value={selectedChapter}
+                      onValueChange={(val) => { setSelectedChapter(val); setSelectedBusiness(""); }}
+                    >
+                      <SelectTrigger id="biz-chapter-select" className="w-full">
+                        <SelectValue placeholder="Choose a chapter" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {chaptersInState.map((ch) => (
+                          <SelectItem key={ch._id || ch.name} value={ch.name}>
+                            {ch.name} {ch.city ? `(${ch.city})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {selectedChapter && (
+                  <div>
+                    <Label htmlFor="business-select" className="text-sm font-semibold">
+                      Step 3 — Select Target Business *
+                    </Label>
+                    <p className="mb-2 text-xs text-muted-foreground">Choose the member business to send this requirement directly to.</p>
+                    <Select
+                      value={selectedBusiness}
+                      onValueChange={setSelectedBusiness}
+                      disabled={loadingBusinesses}
+                    >
+                      <SelectTrigger id="business-select" className="w-full">
+                        <SelectValue placeholder={loadingBusinesses ? "Loading businesses..." : "Select a business"} />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {businesses.map((biz) => (
+                          <SelectItem key={biz._id} value={biz._id}>
+                            {biz.name} {biz.city ? `· ${biz.city}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
           </div>
