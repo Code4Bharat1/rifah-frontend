@@ -743,7 +743,7 @@ export function AppShell({
               </div>
             </div>
           )}
-          {user?.previousRole && (
+          {user?.previousRole && user.previousRole !== user?.role && (
             <button
               onClick={async () => {
                 try {
@@ -779,7 +779,7 @@ export function AppShell({
             </button>
           )}
           {/* Show switch-to-business for admins who have a business but haven't switched yet */}
-          {!user?.previousRole && ["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (user?.businessId || user?.businessSlug) && (
+          {(!user?.previousRole || user.previousRole === user?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (user?.businessId || user?.businessSlug) && (
             <button
               onClick={async () => {
                 try {
@@ -1302,7 +1302,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
             );
           })}
           <div className="mt-4 border-t border-border pt-3">
-            {user?.previousRole && (
+            {user?.previousRole && user.previousRole !== user?.role && (
               <button
                 type="button"
                 onClick={handleSwitchBack}
@@ -1313,7 +1313,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
               </button>
             )}
             {/* Show switch-to-business for admins who have a business but haven't switched yet */}
-            {!user?.previousRole && ["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (user?.businessId || user?.businessSlug) && (
+            {(!user?.previousRole || user.previousRole === user?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (user?.businessId || user?.businessSlug) && (
               <button
                 type="button"
                 onClick={async () => {

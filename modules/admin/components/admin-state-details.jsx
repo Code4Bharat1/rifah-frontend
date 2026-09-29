@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useAuth } from "@shared/providers/auth-provider";
 import { 
   ArrowLeft, Building2, MapPin, Users, UserCog, Mail, Briefcase, Phone,
   Loader2, ShieldAlert, KeyRound, CheckCircle2, Image as ImageIcon, Camera, Pencil, Check, ChevronsUpDown, X
