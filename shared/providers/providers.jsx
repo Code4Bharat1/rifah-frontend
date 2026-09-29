@@ -33,6 +33,7 @@ export function Providers({ children }) {
           queries: {
             staleTime: 1000 * 60 * 2, // 2 minutes
             retry: 1,
+            refetchOnWindowFocus: false,
           },
         },
       })

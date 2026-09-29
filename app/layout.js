@@ -31,7 +31,7 @@ export default async function RootLayout({ children }) {
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} data-scroll-behavior="smooth">
       <head>
         <link rel="icon" href={withAssetPrefix("/favicon.png?v=4")} type="image/png" />
         <link rel="shortcut icon" href={withAssetPrefix("/favicon.ico?v=4")} />

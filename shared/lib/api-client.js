@@ -5,11 +5,9 @@ function getApiBaseUrl() {
       if (isLiveDomain && process.env.NEXT_PUBLIC_API_URL.includes("localhost")) {
         return `${window.location.origin}/api/v1`;
       }
-      if (window.location.hostname === "127.0.0.1" && process.env.NEXT_PUBLIC_API_URL.includes("localhost")) {
+      // On local machine, always use 127.0.0.1 to avoid Windows IPv6 (::1) connection drop
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
         return process.env.NEXT_PUBLIC_API_URL.replace("localhost", "127.0.0.1");
-      }
-      if (window.location.hostname === "localhost" && process.env.NEXT_PUBLIC_API_URL.includes("127.0.0.1")) {
-        return process.env.NEXT_PUBLIC_API_URL.replace("127.0.0.1", "localhost");
       }
       return process.env.NEXT_PUBLIC_API_URL;
     }
@@ -17,7 +15,7 @@ function getApiBaseUrl() {
       return `${window.location.origin}/api/v1`;
     }
   }
-  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api/v1";
+  return (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api/v1").replace("localhost", "127.0.0.1");
 }
 
 const API_BASE_URL = getApiBaseUrl();
@@ -110,7 +108,15 @@ export async function downloadFile(endpoint, filename) {
 }
 
 export async function apiClient(endpoint, options = {}, isRetry = false) {
-  const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
+  // Never send stale Authorization tokens to unauthenticated auth endpoints
+  const isAuthEndpoint =
+    endpoint.includes("/auth/login") ||
+    endpoint.includes("/auth/register") ||
+    endpoint.includes("/auth/forgot-password") ||
+    endpoint.includes("/auth/reset-password") ||
+    endpoint.includes("/auth/verify-reset-code");
+
+  const token = typeof window !== "undefined" && !isAuthEndpoint ? localStorage.getItem("rifah_access_token") : null;
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
   // Clean custom headers so stale Authorization headers in options don't override the new token
