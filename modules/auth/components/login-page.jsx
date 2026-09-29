@@ -45,7 +45,7 @@ import { GoogleAuthButton } from "@shared/components/rifah/google-button";
 const quickDemoLogins = [
   { 
     role: "RIFAH Admin",
-    email: "[EMAIL_ADDRESS]",
+    email: "admin@gmail.com",
     pass: "12345678",
     target: "/admin",
     icon: ShieldCheck,
@@ -53,8 +53,8 @@ const quickDemoLogins = [
   },
   {
     role: "Business Owner",
-    email: "aslam@bakkabags.example",
-    pass: "Password@123",
+    email: "business@gmail.com",
+    pass: "12345678",
     target: "/biz",
     icon: Building2,
     note: "Leads, catalogue & verification",

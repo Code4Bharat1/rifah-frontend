@@ -280,7 +280,7 @@ export function PublicFooter() {
     },
     {
       name: "Instagram",
-      href: "https://www.instagram.com/rifahchamberofcommerce/",
+      href: "https://www.instagram.com/rifahmumbai?stkn=Mndwb3l1ZTY0enVu",
       icon: (
         <svg className="h-4 w-4 fill-current text-pink-400" viewBox="0 0 24 24">
           <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
@@ -358,11 +358,15 @@ export function PublicFooter() {
               className="flex items-center gap-2 rounded-lg border border-white/20 bg-black px-2.5 py-1 transition-all hover:border-white/40 hover:bg-neutral-900 shadow-sm"
               title="Download RIFAH Connect on Google Play"
             >
-              <svg className="h-4.5 w-4.5 shrink-0" viewBox="0 0 24 24">
-                <path fill="#00D3FF" d="M3.609 1.814L13.792 12 3.61 22.186a2.372 2.372 0 0 1-.61-1.637V3.451c0-.624.226-1.2.609-1.637z" />
-                <path fill="#FF3A44" d="M14.845 13.053l2.484 2.484-11.83 6.72c-.17.098-.349.16-.531.189l9.877-9.393z" />
-                <path fill="#00E676" d="M14.845 10.947L4.968 1.554c.182.029.361.091.531.189l11.83 6.72-2.484 2.484z" />
-                <path fill="#FFC400" d="M16.33 12l4.085 2.32c.983.559.983 1.469 0 2.028l-4.085 2.32-2.12-2.12 2.12-2.548z" />
+              <svg className="h-4.5 w-4.5 shrink-0" viewBox="0 0 512 512">
+                {/* Cyan/Blue – left body (painted first, base layer) */}
+                <path fill="#32BBFF" d="M47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l249.1-255.9L47 0z"/>
+                {/* Green – upper-right triangle */}
+                <path fill="#29CC5E" d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1z"/>
+                {/* Red – lower-right triangle */}
+                <path fill="#FF3D00" d="M104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/>
+                {/* Yellow – rightmost tip */}
+                <path fill="#FFD740" d="M425.2 225.6l-58.9-34.1-65.7 67.5 65.7 67.5 60.1-34.1c17.2-10.3 17.2-36.8-.2-46.8z"/>
               </svg>
               <div className="text-left leading-none">
                 <div className="text-[7.5px] font-semibold uppercase tracking-wider text-white/70">GET IT ON</div>
@@ -452,12 +456,6 @@ export function PublicFooter() {
                   <span className="text-[9px] uppercase font-bold text-navy-foreground/50 block">Secondary:</span>
                   <a href="mailto:info@rifah.org" className="hover:text-primary transition-colors block">
                     info@rifah.org
-                  </a>
-                </div>
-                <div className="pt-0.5 flex items-center gap-1 text-primary">
-                  <Globe className="h-3 w-3 shrink-0" />
-                  <a href="https://www.rifah.org" target="_blank" rel="noopener noreferrer" className="hover:underline font-semibold text-[11px]">
-                    www.rifah.org
                   </a>
                 </div>
               </div>

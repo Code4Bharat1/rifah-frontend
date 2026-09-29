@@ -283,7 +283,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
         name: newAdmin.name,
         email: newAdmin.email,
       });
-      toast.success(`Chapter Admin appointed for ${adminModalChapter.name}! Temporary login password sent to ${newAdmin.email}.`);
+      toast.success(`Chapter Admin appointed for ${adminModalChapter.name}! Notification sent to ${newAdmin.email}.`);
       setAdminModalChapter(null);
       setSelectedBusinessId("");
       setNewAdmin({ name: "", email: "" });
