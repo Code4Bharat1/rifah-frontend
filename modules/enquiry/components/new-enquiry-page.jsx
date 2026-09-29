@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Send, Loader2, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";

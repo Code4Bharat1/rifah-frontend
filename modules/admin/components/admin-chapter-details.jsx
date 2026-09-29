@@ -33,6 +33,8 @@ import {
 } from "@shared/components/ui/select";
 import { useChapterDetails, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
+import { isBusinessPendingVerification, isBusinessVerified } from "@shared/lib/validators";
+import { VerificationGuardAlert } from "@shared/components/rifah/verification-guard-alert";
 import { useAuth } from "@shared/providers/auth-provider";
 
 export default function AdminChapterDetails({ chapterId }) {
@@ -89,7 +91,14 @@ export default function AdminChapterDetails({ chapterId }) {
     b.isPaid === true &&
     b.membership &&
     b.membership !== "Free" &&
-    ["verified", "Verified", "approved", "Approved"].includes(b.verification);
+    isBusinessVerified(b);
+
+  const selectedBusiness = selectedBusinessId
+    ? rawBusinesses.find((b) => String(b._id) === String(selectedBusinessId))
+    : null;
+  const isSelectedBizPending = Boolean(
+    selectedBusiness && (isBusinessPendingVerification(selectedBusiness) || !isBusinessVerified(selectedBusiness))
+  );
 
   const eligibleBusinesses = rawBusinesses.filter(isEligibleBusiness);
 
@@ -126,6 +135,10 @@ export default function AdminChapterDetails({ chapterId }) {
 
   const handleChangeAdmin = async (e) => {
     e.preventDefault();
+    if (selectedBusinessId && isSelectedBizPending) {
+      toast.error("This business is pending verification and cannot be allocated until it is verified.");
+      return;
+    }
     if (!newAdmin.name?.trim() || !newAdmin.email?.trim()) {
       toast.error("Please provide both admin name and email");
       return;
@@ -143,7 +156,8 @@ export default function AdminChapterDetails({ chapterId }) {
       setSelectedBusinessId("");
       refetch();
     } catch (error) {
-      toast.error(error.message || "Failed to change admin.");
+      const msg = error.data?.error?.message || error.message || "Failed to change admin.";
+      toast.error(msg);
     } finally {
       setAdminLoading(false);
     }
@@ -411,6 +425,16 @@ export default function AdminChapterDetails({ chapterId }) {
               </div>
             )}
 
+            {isSelectedBizPending && (
+              <VerificationGuardAlert
+                className="mt-2"
+                onClose={() => {
+                  setSelectedBusinessId("");
+                  setNewAdmin({ name: "", email: "" });
+                }}
+              />
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="admin-name">Admin Name *</Label>
               <Input
@@ -440,8 +464,14 @@ export default function AdminChapterDetails({ chapterId }) {
               />
             </div>
 
-            <Button type="submit" className="w-full mt-2" disabled={adminLoading}>
-              {adminLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (admin ? "Reallocate Admin" : "Confirm Allocation")}
+            <Button 
+              type="submit" 
+              className="w-full mt-2" 
+              disabled={adminLoading || isSelectedBizPending}
+              title={isSelectedBizPending ? "This business is pending verification and cannot be allocated." : undefined}
+            >
+              {adminLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {admin ? "Reallocate Admin" : "Confirm Allocation"}
             </Button>
           </form>
         </DialogContent>

@@ -29,6 +29,8 @@ export function BirthdayBanner() {
   const [isAnniversaryDismissed, setIsAnniversaryDismissed] = useState(false);
   const [isNewMembersDismissed, setIsNewMembersDismissed] = useState(false);
   const [welcomedMemberIds, setWelcomedMemberIds] = useState([]);
+  const [wishedAnniversaryIds, setWishedAnniversaryIds] = useState([]);
+  const [wishedBirthdayIds, setWishedBirthdayIds] = useState([]);
 
   const [isBirthdayDialogOpen, setIsBirthdayDialogOpen] = useState(false);
   const [isAnniversaryDialogOpen, setIsAnniversaryDialogOpen] = useState(false);
@@ -57,13 +59,66 @@ export function BirthdayBanner() {
 
     try {
       const myId = user?._id || user?.id || "guest";
-      const key = `rifah_welcomed_members_${myId}`;
-      const localStored = JSON.parse(localStorage.getItem(key) || "[]");
-      const sessionStored = JSON.parse(sessionStorage.getItem(key) || "[]");
+
+      const annivKey = `rifah_wished_anniversaries_${todayStr}_${myId}`;
+      const localAnniv = JSON.parse(localStorage.getItem(annivKey) || "[]");
+      const sessionAnniv = JSON.parse(sessionStorage.getItem(annivKey) || "[]");
+      setWishedAnniversaryIds(Array.from(new Set([...(Array.isArray(localAnniv) ? localAnniv : []), ...(Array.isArray(sessionAnniv) ? sessionAnniv : [])])));
+
+      const bdayKey = `rifah_wished_birthdays_${todayStr}_${myId}`;
+      const localBday = JSON.parse(localStorage.getItem(bdayKey) || "[]");
+      const sessionBday = JSON.parse(sessionStorage.getItem(bdayKey) || "[]");
+      setWishedBirthdayIds(Array.from(new Set([...(Array.isArray(localBday) ? localBday : []), ...(Array.isArray(sessionBday) ? sessionBday : [])])));
+
+      const memberKey = `rifah_welcomed_members_${myId}`;
+      const localStored = JSON.parse(localStorage.getItem(memberKey) || "[]");
+      const sessionStored = JSON.parse(sessionStorage.getItem(memberKey) || "[]");
       const combined = Array.from(new Set([...(Array.isArray(localStored) ? localStored : []), ...(Array.isArray(sessionStored) ? sessionStored : [])]));
       setWelcomedMemberIds(combined);
     } catch {}
   }, [user]);
+
+  const markAnniversaryAsWished = (itemOrId) => {
+    try {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const myId = user?._id || user?.id || "guest";
+      const key = `rifah_wished_anniversaries_${todayStr}_${myId}`;
+      const current = JSON.parse(localStorage.getItem(key) || "[]");
+      const idsToAdd = [];
+      if (typeof itemOrId === "string" || typeof itemOrId === "number") {
+        idsToAdd.push(String(itemOrId));
+      } else if (itemOrId && typeof itemOrId === "object") {
+        if (itemOrId.userId) idsToAdd.push(String(itemOrId.userId));
+        if (itemOrId.businessId) idsToAdd.push(String(itemOrId.businessId));
+        if (itemOrId._id) idsToAdd.push(String(itemOrId._id));
+      }
+      const updated = Array.from(new Set([...current, ...idsToAdd]));
+      localStorage.setItem(key, JSON.stringify(updated));
+      sessionStorage.setItem(key, JSON.stringify(updated));
+      setWishedAnniversaryIds(updated);
+    } catch {}
+  };
+
+  const markBirthdayAsWished = (itemOrId) => {
+    try {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const myId = user?._id || user?.id || "guest";
+      const key = `rifah_wished_birthdays_${todayStr}_${myId}`;
+      const current = JSON.parse(localStorage.getItem(key) || "[]");
+      const idsToAdd = [];
+      if (typeof itemOrId === "string" || typeof itemOrId === "number") {
+        idsToAdd.push(String(itemOrId));
+      } else if (itemOrId && typeof itemOrId === "object") {
+        if (itemOrId.userId) idsToAdd.push(String(itemOrId.userId));
+        if (itemOrId.businessId) idsToAdd.push(String(itemOrId.businessId));
+        if (itemOrId._id) idsToAdd.push(String(itemOrId._id));
+      }
+      const updated = Array.from(new Set([...current, ...idsToAdd]));
+      localStorage.setItem(key, JSON.stringify(updated));
+      sessionStorage.setItem(key, JSON.stringify(updated));
+      setWishedBirthdayIds(updated);
+    } catch {}
+  };
 
   const markMemberAsWelcomed = (itemOrId) => {
     try {
@@ -107,13 +162,35 @@ export function BirthdayBanner() {
   // 1. Birthday Data
   const isSelfBirthday = !isBirthdayDismissed && !!birthdayData?.isSelfBirthday;
   const selfBirthdayName = birthdayData?.selfName || user?.name || "Member";
-  const otherBirthdays = !isBirthdayDismissed ? (birthdayData?.todayBirthdays || []).filter((b) => !b.isSelf) : [];
+  const rawBirthdays = birthdayData?.todayBirthdays || [];
+  const otherBirthdays = !isBirthdayDismissed
+    ? rawBirthdays.filter((b) => {
+        if (b.isSelf) return false;
+        if (b.isWished) return false;
+        const uid = String(b.userId || "");
+        const bid = String(b.businessId || "");
+        if (uid && wishedBirthdayIds.includes(uid)) return false;
+        if (bid && wishedBirthdayIds.includes(bid)) return false;
+        return true;
+      })
+    : [];
 
   // 2. Anniversary Data
   const isSelfAnniversary = !isAnniversaryDismissed && !!anniversaryData?.isSelfAnniversary;
   const selfAnnivBizName = anniversaryData?.selfBusinessName || user?.organization || user?.name || "Your Business";
   const selfYearsCompleted = anniversaryData?.selfYearsCompleted || 1;
-  const otherAnniversaries = !isAnniversaryDismissed ? (anniversaryData?.todayAnniversaries || []).filter((a) => !a.isSelf) : [];
+  const rawAnniversaries = anniversaryData?.todayAnniversaries || [];
+  const otherAnniversaries = !isAnniversaryDismissed
+    ? rawAnniversaries.filter((a) => {
+        if (a.isSelf) return false;
+        if (a.isWished) return false;
+        const uid = String(a.userId || "");
+        const bid = String(a.businessId || "");
+        if (uid && wishedAnniversaryIds.includes(uid)) return false;
+        if (bid && wishedAnniversaryIds.includes(bid)) return false;
+        return true;
+      })
+    : [];
 
   // 3. New Chapter Members Data (exclude current user and already welcomed members)
   const rawNewMembers = newMembersData?.newMembers || [];
@@ -290,6 +367,7 @@ export function BirthdayBanner() {
                     href={`https://wa.me/${(otherBirthdays[0].whatsapp || otherBirthdays[0].phone).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Wishing you a very Happy Birthday! 🎉 May this year bring immense success to you and ${otherBirthdays[0].businessName || "your business"}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => markBirthdayAsWished(otherBirthdays[0])}
                     className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
                   >
                     <WhatsAppIcon className="h-3.5 w-3.5" />
@@ -360,6 +438,7 @@ export function BirthdayBanner() {
                     href={`https://wa.me/${(otherAnniversaries[0].whatsapp || otherAnniversaries[0].phone).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Congratulations on your ${getOrdinal(otherAnniversaries[0].yearsCompleted)} Anniversary with RIFAH Chamber! 🎊 Wishing continued growth to ${otherAnniversaries[0].businessName}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => markAnniversaryAsWished(otherAnniversaries[0])}
                     className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
                   >
                     <WhatsAppIcon className="h-3.5 w-3.5" />
@@ -469,14 +548,18 @@ export function BirthdayBanner() {
       <BirthdayDialog
         open={isBirthdayDialogOpen}
         onOpenChange={setIsBirthdayDialogOpen}
-        birthdays={otherBirthdays}
+        birthdays={rawBirthdays.filter((b) => !b.isSelf)}
+        wishedIds={wishedBirthdayIds}
+        onBirthdayWished={markBirthdayAsWished}
       />
 
       {/* Anniversary Dialog */}
       <AnniversaryDialog
         open={isAnniversaryDialogOpen}
         onOpenChange={setIsAnniversaryDialogOpen}
-        anniversaries={otherAnniversaries}
+        anniversaries={rawAnniversaries.filter((a) => !a.isSelf)}
+        wishedIds={wishedAnniversaryIds}
+        onAnniversaryWished={markAnniversaryAsWished}
       />
 
       {/* New Member Dialog */}

@@ -536,6 +536,17 @@ function RegisterBusiness({ isAdmin = false }) {
     }, 50);
   };
 
+  const isFieldSpecificError = (msg) => {
+    if (!msg) return false;
+    const lower = String(msg).toLowerCase();
+    return (
+      lower.includes("email") ||
+      lower.includes("duplicity") ||
+      lower.includes("already registered") ||
+      lower.includes("account with this email")
+    );
+  };
+
   const verifyEmailAvailability = async (emailToTest) => {
     const clean = (emailToTest || formData.email || "").trim().toLowerCase();
     if (!clean || !clean.includes("@") || !clean.includes(".")) {
@@ -555,13 +566,9 @@ function RegisterBusiness({ isAdmin = false }) {
       if (data && data.available === false) {
         const msg = data.message || "Email validation failed: This email is already registered with an existing business. Email duplicity is not allowed.";
         setEmailCheckResult({ available: false, message: msg, email: clean });
-        setError(msg);
         return { available: false, message: msg };
       }
       setEmailCheckResult({ available: true, message: "Email is available for registration.", email: clean });
-      if (error && (error.toLowerCase().includes("email") || error.toLowerCase().includes("duplicity"))) {
-        setError("");
-      }
       return { available: true };
     } catch (err) {
       const errMsg = err?.message || "";
@@ -574,7 +581,6 @@ function RegisterBusiness({ isAdmin = false }) {
       if (isConflict) {
         const fullMsg = errMsg || "Email validation failed: This email is already registered with an existing business. Email duplicity is not allowed.";
         setEmailCheckResult({ available: false, message: fullMsg, email: clean });
-        setError(fullMsg);
         return { available: false, message: fullMsg };
       }
       console.warn("[CheckEmail] Warning:", err);
@@ -589,7 +595,7 @@ function RegisterBusiness({ isAdmin = false }) {
     const clean = (newVal || "").trim().toLowerCase();
     setFormData((prev) => ({ ...prev, email: rawVal }));
     setEmailCheckResult(null);
-    if (error && (error.toLowerCase().includes("email") || error.toLowerCase().includes("duplicity"))) {
+    if (error && isFieldSpecificError(error)) {
       setError("");
     }
 
@@ -632,13 +638,9 @@ function RegisterBusiness({ isAdmin = false }) {
       if (data && data.available === false) {
         const msg = data.message || "Email validation failed: This business email is already registered with an existing business. Email duplicity is not allowed.";
         setBusinessEmailCheckResult({ available: false, message: msg, email: clean });
-        setError(msg);
         return { available: false, message: msg };
       }
       setBusinessEmailCheckResult({ available: true, message: "Business email is available.", email: clean });
-      if (error && error.toLowerCase().includes("business email")) {
-        setError("");
-      }
       return { available: true };
     } catch (err) {
       const errMsg = err?.message || "";
@@ -651,7 +653,6 @@ function RegisterBusiness({ isAdmin = false }) {
       if (isConflict) {
         const fullMsg = errMsg || "Email validation failed: This business email is already registered with an existing business. Email duplicity is not allowed.";
         setBusinessEmailCheckResult({ available: false, message: fullMsg, email: clean });
-        setError(fullMsg);
         return { available: false, message: fullMsg };
       }
       return { available: true };
@@ -665,7 +666,7 @@ function RegisterBusiness({ isAdmin = false }) {
     const clean = (newVal || "").trim().toLowerCase();
     setFormData((prev) => ({ ...prev, businessEmail: rawVal }));
     setBusinessEmailCheckResult(null);
-    if (error && error.toLowerCase().includes("business email")) {
+    if (error && isFieldSpecificError(error)) {
       setError("");
     }
 
@@ -1146,7 +1147,32 @@ function RegisterBusiness({ isAdmin = false }) {
       const razorpayInstance = new window.Razorpay(options);
       razorpayInstance.open();
     } catch (err) {
-      setError(err.message || "Failed to complete registration. Please check fields.");
+      const errMsg = err?.message || "Failed to complete registration. Please check fields.";
+      if (isFieldSpecificError(errMsg)) {
+        if (errMsg.toLowerCase().includes("business email")) {
+          setStep(1);
+          setBusinessEmailCheckResult({ available: false, message: errMsg, email: formData.businessEmail });
+          setTimeout(() => {
+            const el = document.getElementById("bemail");
+            if (el) {
+              el.focus();
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 150);
+        } else {
+          setStep(2);
+          setEmailCheckResult({ available: false, message: errMsg, email: formData.email });
+          setTimeout(() => {
+            const el = document.getElementById("reg-email");
+            if (el) {
+              el.focus();
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 150);
+        }
+      } else {
+        setError(errMsg);
+      }
       setLoading(false);
     }
   };
@@ -1320,7 +1346,7 @@ function RegisterBusiness({ isAdmin = false }) {
             <Steps steps={steps} current={step} />
           </div>
 
-          {error && (
+          {error && !isFieldSpecificError(error) && (
             <div className="mt-4 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
@@ -1389,13 +1415,31 @@ function RegisterBusiness({ isAdmin = false }) {
                   return;
                 }
                 if (formData.businessEmail && (!formData.businessEmail.includes("@") || !formData.businessEmail.includes("."))) {
-                  setError("Please provide a valid official business email or leave it empty.");
+                  setBusinessEmailCheckResult({
+                    available: false,
+                    message: "Please provide a valid official business email or leave it empty.",
+                    email: formData.businessEmail,
+                  });
+                  const el = document.getElementById("bemail");
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
                   return;
                 }
                 if (formData.businessEmail && formData.businessEmail.trim()) {
                   const beCheck = await verifyBusinessEmailAvailability(formData.businessEmail.trim());
                   if (beCheck && beCheck.available === false) {
-                    setError(beCheck.message || "Email validation failed: This business email is already registered with an existing business. Email duplicity is not allowed.");
+                    setBusinessEmailCheckResult({
+                      available: false,
+                      message: beCheck.message || "Email validation failed: This business email is already registered with an existing business. Email duplicity is not allowed.",
+                      email: formData.businessEmail.trim(),
+                    });
+                    const el = document.getElementById("bemail");
+                    if (el) {
+                      el.focus();
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
                     return;
                   }
                 }
@@ -1415,18 +1459,32 @@ function RegisterBusiness({ isAdmin = false }) {
               if (step === 2) {
                 const targetEmail = (formData.email || "").trim().toLowerCase();
                 if (!targetEmail || !targetEmail.includes("@") || !targetEmail.includes(".")) {
-                  setError("Please provide a valid account email address.");
+                  setEmailCheckResult({
+                    available: false,
+                    message: "Please provide a valid account email address.",
+                    email: targetEmail,
+                  });
                   const el = document.getElementById("reg-email");
-                  if (el) el.focus();
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
                   return;
                 }
 
                 // Verify email availability against duplicity
                 const emailCheck = await verifyEmailAvailability(targetEmail);
                 if (emailCheck && emailCheck.available === false) {
-                  setError(emailCheck.message || "Email validation failed: This email is already registered with an existing business. Email duplicity is not allowed.");
+                  setEmailCheckResult({
+                    available: false,
+                    message: emailCheck.message || "Email validation failed: This email is already registered with an existing business. Email duplicity is not allowed.",
+                    email: targetEmail,
+                  });
                   const el = document.getElementById("reg-email");
-                  if (el) el.focus();
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
                   return; // CRITICAL: Stop here, DO NOT proceed to Step 3 (Membership)
                 }
 

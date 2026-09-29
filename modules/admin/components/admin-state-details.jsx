@@ -41,8 +41,8 @@ import { cn } from "@shared/lib/utils";
 import { useStateDetails, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { stateApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
-import { useAuth } from "@shared/providers/auth-provider";
-import { isValidName, isValidEmail, isValidPhone } from "@shared/lib/validators";
+import { isValidName, isValidEmail, isValidPhone, isBusinessPendingVerification, isBusinessVerified } from "@shared/lib/validators";
+import { VerificationGuardAlert } from "@shared/components/rifah/verification-guard-alert";
 
 export default function AdminStateDetails({ stateName }) {
   const router = useRouter();
@@ -65,6 +65,13 @@ export default function AdminStateDetails({ stateName }) {
 
   const [openCombobox, setOpenCombobox] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState("");
+
+  const selectedBusiness = selectedBusinessId
+    ? rawBusinesses.find((b) => String(b._id) === String(selectedBusinessId))
+    : null;
+  const isSelectedBizPending = Boolean(
+    selectedBusiness && (isBusinessPendingVerification(selectedBusiness) || !isBusinessVerified(selectedBusiness))
+  );
 
   const handleSelectBusinessOwner = (bizId) => {
     setSelectedBusinessId(bizId);
@@ -128,6 +135,11 @@ export default function AdminStateDetails({ stateName }) {
       return;
     }
 
+    if (selectedBusinessId && isSelectedBizPending) {
+      toast.error("This business is pending verification and cannot be allocated until it is verified.");
+      return;
+    }
+
     setAdminLoading(true);
     try {
       await stateApi.assignAdmin({
@@ -141,7 +153,8 @@ export default function AdminStateDetails({ stateName }) {
       setSelectedBusinessId("");
       refetch();
     } catch (error) {
-      toast.error(error.message || "Failed to change admin.");
+      const msg = error.data?.error?.message || error.message || "Failed to change admin.";
+      toast.error(msg);
     } finally {
       setAdminLoading(false);
     }
@@ -476,6 +489,7 @@ export default function AdminStateDetails({ stateName }) {
                         {eligibleBusinesses.map((b) => {
                           const oName = b.owner?.name || b.contactPerson || b.name;
                           const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                          const isPending = isBusinessPendingVerification(b) || !isBusinessVerified(b);
                           return (
                             <CommandItem
                               key={b._id}
@@ -492,7 +506,14 @@ export default function AdminStateDetails({ stateName }) {
                                 )}
                               />
                               <div className="flex flex-col text-left py-0.5">
-                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                  {isPending && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                                      Pending Verification
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-[11px] text-muted-foreground">{oEmail}</span>
                               </div>
                             </CommandItem>
@@ -503,6 +524,16 @@ export default function AdminStateDetails({ stateName }) {
                   </Command>
                 </PopoverContent>
               </Popover>
+
+              {isSelectedBizPending && (
+                <VerificationGuardAlert
+                  className="mt-2"
+                  onClose={() => {
+                    setSelectedBusinessId("");
+                    setNewAdmin((prev) => ({ ...prev, name: "", email: "", phone: "" }));
+                  }}
+                />
+              )}
             </div>
 
             <div className="space-y-2">
@@ -543,7 +574,11 @@ export default function AdminStateDetails({ stateName }) {
               <Button type="button" variant="outline" onClick={() => setOpenAdminModal(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={adminLoading}>
+              <Button 
+                type="submit" 
+                disabled={adminLoading || isSelectedBizPending}
+                title={isSelectedBizPending ? "This business is pending verification and cannot be allocated." : undefined}
+              >
                 {adminLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {admin ? "Reallocate Admin" : "Allocate Admin"}
               </Button>

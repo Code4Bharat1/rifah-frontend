@@ -190,6 +190,7 @@ function BizNetworking() {
       setIsMeetingDialogOpen(false);
       resetMeetingDialog();
       queryClient.invalidateQueries({ queryKey: ["one-to-ones"] });
+      queryClient.invalidateQueries({ queryKey: ["my-business"] });
     } catch (error) {
       toast.error(error.message || "Failed to record the meeting");
     } finally {
@@ -219,6 +220,7 @@ function BizNetworking() {
       setIsThankYouDialogOpen(false);
       resetThankYouDialog();
       queryClient.invalidateQueries({ queryKey: ["thank-you-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["my-business"] });
     } catch (error) {
       toast.error(error.message || "Failed to record the thank you note");
     } finally {
@@ -253,6 +255,7 @@ function BizNetworking() {
       setIsReferralDialogOpen(false);
       resetReferralDialog();
       queryClient.invalidateQueries({ queryKey: ["referrals"] });
+      queryClient.invalidateQueries({ queryKey: ["my-business"] });
     } catch (error) {
       toast.error(error.message || "Failed to record the referral");
     } finally {

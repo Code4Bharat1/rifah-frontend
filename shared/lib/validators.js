@@ -23,3 +23,33 @@ export const sanitizePincodeDigits = (value) => String(value ?? "").replace(/\D/
 
 // Strips non-digits and caps to 4 digits, for use in a year input's onChange.
 export const sanitizeYearDigits = (value) => String(value ?? "").replace(/\D/g, "").slice(0, 4);
+
+/**
+ * Checks if a business is currently pending verification, under review, or unverified.
+ */
+export const isBusinessPendingVerification = (business) => {
+  if (!business) return false;
+  const v = String(business.verification || business.verificationStatus || "").toLowerCase().trim();
+  const s = String(business.status || "").toLowerCase().trim();
+  return (
+    v === "pending" ||
+    v === "under_review" ||
+    v === "unverified" ||
+    v === "correction_requested" ||
+    s === "pending verification" ||
+    s === "pending_verification" ||
+    s === "pending" ||
+    s === "draft"
+  );
+};
+
+/**
+ * Checks if a business has verified status and is eligible for administrative allocation.
+ */
+export const isBusinessVerified = (business) => {
+  if (!business) return false;
+  if (isBusinessPendingVerification(business)) return false;
+  const v = String(business.verification || business.verificationStatus || "").toLowerCase().trim();
+  return v === "verified" || v === "approved" || business.isVerified === true;
+};
+

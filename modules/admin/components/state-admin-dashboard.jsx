@@ -56,6 +56,8 @@ import {
   useBusinesses,
 } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
+import { isBusinessPendingVerification, isBusinessVerified } from "@shared/lib/validators";
+import { VerificationGuardAlert } from "@shared/components/rifah/verification-guard-alert";
 import { useAuth } from "@shared/providers/auth-provider";
 
 export function StateAdminDashboard({ isChaptersOnly = false }) {
@@ -143,6 +145,20 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const selectedBusiness = selectedBusinessId && selectedBusinessId !== "custom"
+    ? rawBusinesses.find((b) => String(b._id) === String(selectedBusinessId))
+    : null;
+  const isSelectedBizPending = Boolean(
+    selectedBusiness && (isBusinessPendingVerification(selectedBusiness) || !isBusinessVerified(selectedBusiness))
+  );
+
+  const newChapterBusiness = newChapter.businessId && newChapter.businessId !== "custom"
+    ? rawBusinesses.find((b) => String(b._id) === String(newChapter.businessId))
+    : null;
+  const isNewChapterBizPending = Boolean(
+    newChapterBusiness && (isBusinessPendingVerification(newChapterBusiness) || !isBusinessVerified(newChapterBusiness))
+  );
+
   const chapterBizList = rawBusinesses.filter((b) => {
     if (!adminModalChapter) return false;
     const bChapter = String(b.chapter || "").toLowerCase().trim();
@@ -209,6 +225,10 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
       toast.error("Chapter Name and City are required");
       return;
     }
+    if (newChapter.businessId && newChapter.businessId !== "custom" && isNewChapterBizPending) {
+      toast.error("This business is pending verification and cannot be allocated until it is verified.");
+      return;
+    }
     setCreatingChapter(true);
     try {
       await chapterApi.create({
@@ -237,7 +257,8 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
       });
       refetchChapters();
     } catch (err) {
-      toast.error(err.message || "Failed to create chapter.");
+      const msg = err.data?.error?.message || err.message || "Failed to create chapter.";
+      toast.error(msg);
     } finally {
       setCreatingChapter(false);
     }
@@ -245,6 +266,10 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
 
   const handleAssignChapterAdmin = async (e) => {
     e.preventDefault();
+    if (selectedBusinessId && selectedBusinessId !== "custom" && isSelectedBizPending) {
+      toast.error("This business is pending verification and cannot be allocated until it is verified.");
+      return;
+    }
     if (!selectedBusinessId && (!newAdmin.name || !newAdmin.email)) {
       toast.error("Please select a business owner or provide admin name and email");
       return;
@@ -264,7 +289,8 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
       setNewAdmin({ name: "", email: "" });
       refetchChapters();
     } catch (err) {
-      toast.error(err.message || "Failed to assign Chapter Admin.");
+      const msg = err.data?.error?.message || err.message || "Failed to assign Chapter Admin.";
+      toast.error(msg);
     } finally {
       setAssigningAdmin(false);
     }
@@ -834,10 +860,18 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                         {stateBusinesses.map((b) => {
                           const oName = b.owner?.name || b.contactPerson || b.name;
                           const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                          const isPending = isBusinessPendingVerification(b) || !isBusinessVerified(b);
                           return (
                             <SelectItem key={b._id} value={b._id}>
                               <div className="flex flex-col text-left py-0.5">
-                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                  {isPending && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                                      Pending Verification
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-[11px] text-muted-foreground">{oEmail}</span>
                               </div>
                             </SelectItem>
@@ -853,10 +887,18 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                         {otherStateBusinesses.map((b) => {
                           const oName = b.owner?.name || b.contactPerson || b.name;
                           const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                          const isPending = isBusinessPendingVerification(b) || !isBusinessVerified(b);
                           return (
                             <SelectItem key={b._id} value={b._id}>
                               <div className="flex flex-col text-left py-0.5">
-                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                  {isPending && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                                      Pending Verification
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-[11px] text-muted-foreground">
                                   {b.state ? `${b.state} · ` : ""}{oEmail}
                                 </span>
@@ -873,7 +915,21 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                 </p>
               </div>
 
-              {newChapter.businessId ? (
+              {isNewChapterBizPending && (
+                <VerificationGuardAlert
+                  className="mt-2"
+                  onClose={() => {
+                    setNewChapter((prev) => ({
+                      ...prev,
+                      businessId: "",
+                      adminName: "",
+                      adminEmail: "",
+                    }));
+                  }}
+                />
+              )}
+
+              {newChapter.businessId && !isNewChapterBizPending ? (
                 <div className="rounded-lg border border-blue-200 bg-blue-50/70 dark:border-blue-900 dark:bg-blue-950/40 p-2.5 text-xs space-y-1">
                   <p className="font-semibold text-blue-950 dark:text-blue-200">
                     Appointee: {newChapter.adminName}
@@ -886,7 +942,12 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
               ) : null}
             </div>
 
-            <Button type="submit" className="w-full" disabled={creatingChapter}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={creatingChapter || isNewChapterBizPending}
+              title={isNewChapterBizPending ? "This business is pending verification and cannot be allocated." : undefined}
+            >
               {creatingChapter ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {creatingChapter ? "Establishing..." : "Establish Chapter"}
             </Button>
@@ -942,10 +1003,18 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                       {chapterBizList.map((b) => {
                         const oName = b.owner?.name || b.contactPerson || b.name;
                         const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                        const isPending = isBusinessPendingVerification(b) || !isBusinessVerified(b);
                         return (
                           <SelectItem key={b._id} value={b._id}>
                             <div className="flex flex-col text-left py-0.5">
-                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                {isPending && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                                    Pending Verification
+                                  </span>
+                                )}
+                              </div>
                               <span className="text-[11px] text-muted-foreground">{oEmail}</span>
                             </div>
                           </SelectItem>
@@ -961,10 +1030,18 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                       {otherBizList.map((b) => {
                         const oName = b.owner?.name || b.contactPerson || b.name;
                         const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                        const isPending = isBusinessPendingVerification(b) || !isBusinessVerified(b);
                         return (
                           <SelectItem key={b._id} value={b._id}>
                             <div className="flex flex-col text-left py-0.5">
-                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                {isPending && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                                    Pending Verification
+                                  </span>
+                                )}
+                              </div>
                               <span className="text-[11px] text-muted-foreground">
                                 {b.chapter ? `${b.chapter} · ` : ""}{oEmail}
                               </span>
@@ -979,6 +1056,16 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
               <p className="text-[11px] text-muted-foreground">
                 Selecting a business owner automatically fetches and populates their full name and email.
               </p>
+
+              {isSelectedBizPending && (
+                <VerificationGuardAlert
+                  className="mt-2"
+                  onClose={() => {
+                    setSelectedBusinessId("");
+                    setNewAdmin({ name: "", email: "" });
+                  }}
+                />
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -1006,7 +1093,12 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                 onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={assigningAdmin}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={assigningAdmin || isSelectedBizPending}
+              title={isSelectedBizPending ? "This business is pending verification and cannot be allocated." : undefined}
+            >
               {assigningAdmin ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {assigningAdmin ? "Appointing..." : "Confirm & Appoint Chapter Admin"}
             </Button>

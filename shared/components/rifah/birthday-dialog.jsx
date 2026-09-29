@@ -33,7 +33,7 @@ function getInitials(name) {
   return name.slice(0, 2).toUpperCase();
 }
 
-export function BirthdayDialog({ open, onOpenChange, birthdays = [] }) {
+export function BirthdayDialog({ open, onOpenChange, birthdays = [], wishedIds = [], onBirthdayWished }) {
   const { user } = useAuth();
   const [sendingMap, setSendingMap] = useState({});
   const [sentMap, setSentMap] = useState({});
@@ -52,8 +52,27 @@ export function BirthdayDialog({ open, onOpenChange, birthdays = [] }) {
         recipientId: item.userId,
         text: messageContent,
       });
-      setSentMap((prev) => ({ ...prev, [item.userId]: true }));
+      setSentMap((prev) => ({ ...prev, [item.userId]: true, [item.businessId]: true }));
+      onBirthdayWished?.(item);
       toast.success(`Birthday wishes sent to ${item.userName}!`);
+
+      // Auto-close dialog if all members have been wished
+      const stillUnwished = birthdays.filter(
+        (m) =>
+          !m.isSelf &&
+          String(m.userId) !== String(item.userId) &&
+          String(m.businessId) !== String(item.businessId) &&
+          !m.isWished &&
+          !wishedIds.includes(String(m.userId)) &&
+          !wishedIds.includes(String(m.businessId)) &&
+          !sentMap[m.userId] &&
+          !sentMap[m.businessId]
+      );
+      if (stillUnwished.length === 0) {
+        setTimeout(() => {
+          onOpenChange?.(false);
+        }, 1200);
+      }
     } catch (err) {
       toast.error(err.message || "Failed to send birthday wish");
     } finally {
@@ -92,7 +111,7 @@ export function BirthdayDialog({ open, onOpenChange, birthdays = [] }) {
         <div className="p-4 sm:p-5 overflow-y-auto max-h-[58vh] space-y-3.5 bg-slate-50/40 dark:bg-slate-950/40">
           {birthdays.map((item, idx) => {
             const isSending = sendingMap[item.userId];
-            const isSent = sentMap[item.userId];
+            const isSent = !!item.isWished || wishedIds.includes(String(item.userId)) || wishedIds.includes(String(item.businessId)) || !!sentMap[item.userId] || !!sentMap[item.businessId];
             const defaultMsg = `Wishing you a very Happy Birthday! 🎉 May this year bring immense success and prosperous growth to you and ${item.businessName || "your business"}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`;
             const cleanWhatsapp = (item.whatsapp || item.phone || "").replace(/[^0-9]/g, "");
             const whatsappUrl = cleanWhatsapp
@@ -171,7 +190,15 @@ export function BirthdayDialog({ open, onOpenChange, birthdays = [] }) {
                             variant="outline"
                             className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs"
                           >
-                            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                            <a
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => {
+                                setSentMap((prev) => ({ ...prev, [item.userId]: true, [item.businessId]: true }));
+                                onBirthdayWished?.(item);
+                              }}
+                            >
                               <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" />
                               <span>WhatsApp</span>
                             </a>

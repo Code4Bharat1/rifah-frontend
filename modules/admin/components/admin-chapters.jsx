@@ -23,6 +23,8 @@ import {
 } from "@shared/components/ui/select";
 import { useChapters, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
+import { isBusinessPendingVerification, isBusinessVerified } from "@shared/lib/validators";
+import { VerificationGuardAlert } from "@shared/components/rifah/verification-guard-alert";
 import { useAuth } from "@shared/providers/auth-provider";
 import { isValidName } from "@shared/lib/validators";
 
@@ -47,7 +49,14 @@ function AdminChapters() {
     b.isPaid === true &&
     b.membership &&
     b.membership !== "Free" &&
-    ["verified", "Verified", "approved", "Approved"].includes(b.verification);
+    isBusinessVerified(b);
+
+  const selectedBusiness = selectedBusinessId
+    ? rawBusinesses.find((b) => String(b._id) === String(selectedBusinessId))
+    : null;
+  const isSelectedBizPending = Boolean(
+    selectedBusiness && (isBusinessPendingVerification(selectedBusiness) || !isBusinessVerified(selectedBusiness))
+  );
 
   const eligibleBusinesses = rawBusinesses.filter(isEligibleBusiness);
 
@@ -125,6 +134,10 @@ function AdminChapters() {
   const handleAssignAdmin = async (e) => {
     e.preventDefault();
     if (!selectedBusinessId || !adminModalChapter) return;
+    if (isSelectedBizPending) {
+      toast.error("This business is pending verification and cannot be allocated until it is verified.");
+      return;
+    }
     setLoading(true);
     try {
       const chapterId = adminModalChapter._id || adminModalChapter.id;
@@ -135,7 +148,8 @@ function AdminChapters() {
       toast.success("Admin assigned successfully. Email invitation sent!");
       refetch();
     } catch (err) {
-      toast.error(err.message || "Failed to assign admin.");
+      const msg = err.data?.error?.message || err.message || "Failed to assign admin.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -358,14 +372,28 @@ function AdminChapters() {
               </p>
             </div>
 
-            {selectedBusinessId && (
+            {isSelectedBizPending && (
+              <VerificationGuardAlert
+                className="mt-2"
+                onClose={() => {
+                  setSelectedBusinessId("");
+                  setNewAdmin({ name: "", email: "" });
+                }}
+              />
+            )}
+
+            {selectedBusinessId && !isSelectedBizPending && (
               <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
                 <p className="font-medium text-foreground">{newAdmin.name}</p>
                 <p className="text-xs text-muted-foreground">{newAdmin.email}</p>
               </div>
             )}
             <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={loading || !selectedBusinessId}>
+              <Button 
+                type="submit" 
+                disabled={loading || !selectedBusinessId || isSelectedBizPending}
+                title={isSelectedBizPending ? "This business is pending verification and cannot be allocated." : undefined}
+              >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Send Invitation
               </Button>

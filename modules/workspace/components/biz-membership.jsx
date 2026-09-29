@@ -301,8 +301,8 @@ function handleDownloadCertificate(business, membershipData) {
 
   const businessName = business?.name || "Business Enterprise";
   const tierName = (membershipData?.planName || business?.membership || "Enterprise").toUpperCase();
-  const chapterName = typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || "Mumbai");
-  const memberId = business?._id ? `RIFAH-MEM-${business._id.slice(-6).toUpperCase()}` : "RIFAH-MEM-BF403C";
+  const chapterName = typeof business?.chapter === "object" ? business?.chapter?.name : (business?.chapter || (business?.city ? `${business.city} Chapter` : "Chamber Central Desk"));
+  const memberId = business?.membershipId || (business?._id ? `RIFAH-MEM-${business._id.slice(-6).toUpperCase()}` : "RIFAH-MEM-UNREGISTERED");
 
   const startDate = membershipData?.startDate || membershipData?.createdAt || business?.createdAt || new Date();
   const endDate = membershipData?.endDate || membershipData?.renewalDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
@@ -1286,6 +1286,8 @@ function BizMembership() {
     return payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   }, [payments]);
 
+  const isPaidMembership = Boolean(business?.isPaid || payments.length > 0 || (membershipData?.isPaid && membershipData?.status === "Active"));
+
   // Calculate Started and Renews dates dynamically
   const startDateRaw =
     membershipData?.startDate ||
@@ -1301,13 +1303,11 @@ function BizMembership() {
     membershipData?.expiresAt ||
     membershipData?.renewalDate;
 
-  let renewDate;
-  if (renewDateRaw) {
-    renewDate = new Date(renewDateRaw);
-  } else {
-    renewDate = new Date(startDate);
-    renewDate.setFullYear(renewDate.getFullYear() + 1);
-  }
+  const renewDate = useMemo(() => {
+    if (isFreeTier || !isPaidMembership) return null;
+    if (renewDateRaw) return new Date(renewDateRaw);
+    return null;
+  }, [isFreeTier, isPaidMembership, renewDateRaw]);
 
   const formattedStarted = startDate.toLocaleDateString("en-GB", {
     day: "numeric",
@@ -1315,19 +1315,41 @@ function BizMembership() {
     year: "numeric",
   });
 
-  const formattedRenews = renewDate.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  const formattedRenews = useMemo(() => {
+    if (!renewDate) return "—";
+    return renewDate.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }, [renewDate]);
+
+  const renewalCycleLabel = useMemo(() => {
+    if (isFreeTier) return "Lifetime validity";
+    if (membershipData?.billingCycle && membershipData.billingCycle.toLowerCase() !== "free") {
+      return `${membershipData.billingCycle} renewal`;
+    }
+    const years = Number(currentPlan?.durationYears) || 1;
+    return years === 1 ? "Annual renewal" : `${years}-Year renewal`;
+  }, [isFreeTier, membershipData, currentPlan]);
 
   const now = new Date();
-  const isExpired = membershipData?.isExpired || membershipData?.status === "Expired" || (renewDate && renewDate < now && currentTier !== "free");
-  const daysRemaining = typeof membershipData?.daysRemaining === "number"
-    ? membershipData.daysRemaining
-    : Math.max(0, Math.ceil((renewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-  const daysProgress = Math.max(10, Math.min(100, Math.round(((365 - Math.min(365, daysRemaining)) / 365) * 100)));
-  const isExpiringSoon = !isExpired && currentTier !== "free" && (membershipData?.isExpiringSoon || (daysRemaining <= 15 && daysRemaining > 0));
+  const isExpired = Boolean(membershipData?.isExpired || membershipData?.status === "Expired" || (renewDate && renewDate < now && currentTier !== "free"));
+  const daysRemaining = useMemo(() => {
+    if (isFreeTier || !isPaidMembership || !renewDate) return 0;
+    if (typeof membershipData?.daysRemaining === "number") {
+      return membershipData.daysRemaining;
+    }
+    return Math.max(0, Math.ceil((renewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  }, [isFreeTier, isPaidMembership, renewDate, membershipData, now]);
+
+  const totalDaysInCycle = (Number(currentPlan?.durationYears) || 1) * 365;
+  const daysProgress = useMemo(() => {
+    if (isFreeTier || !isPaidMembership || !renewDate) return 0;
+    return Math.max(5, Math.min(100, Math.round(((totalDaysInCycle - Math.min(totalDaysInCycle, daysRemaining)) / totalDaysInCycle) * 100)));
+  }, [isFreeTier, isPaidMembership, renewDate, totalDaysInCycle, daysRemaining]);
+
+  const isExpiringSoon = !isExpired && currentTier !== "free" && isPaidMembership && (membershipData?.isExpiringSoon || (daysRemaining <= 15 && daysRemaining > 0));
 
   // Verification status logic & uploaded documents
   const uploadedDocs = useMemo(() => {
@@ -1434,7 +1456,7 @@ function BizMembership() {
       return `${business.city} Chapter`;
     }
 
-    return "Hyderabad Chapter";
+    return "Chamber Central Desk";
   }, [rawChapter, isChapterInvalid, business, chaptersList]);
 
   // Auto-sync resolved chapter to backend if business had unassigned/missing chapter
@@ -1848,7 +1870,7 @@ function BizMembership() {
                         className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-foreground hover:text-primary transition-colors cursor-pointer group"
                         title="Click to toggle auto-renewal"
                       >
-                        <span>Annual</span>
+                        <span>{membershipData?.billingCycle || (currentPlan?.durationYears ? `${currentPlan.durationYears} Years` : "Annual")}</span>
                         <span
                           className={cn(
                             "inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold border transition-all shadow-2xs",
@@ -2879,7 +2901,9 @@ function BizMembership() {
               variant="outline"
               size="sm"
               onClick={() => handleDownloadAllInvoices(payments)}
-              className="gap-2 text-xs font-semibold h-9 rounded-xl border-border hover:bg-muted cursor-pointer shadow-2xs"
+              disabled={payments.length === 0}
+              title={payments.length === 0 ? "No invoices available to download" : "Download all tax invoices as CSV"}
+              className="gap-2 text-xs font-semibold h-9 rounded-xl border-border hover:bg-muted cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="h-3.5 w-3.5" />
               <span>Download All Invoices</span>
@@ -2913,7 +2937,9 @@ function BizMembership() {
               <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">
                 {payments.length} {payments.length === 1 ? "Tax Invoice" : "Tax Invoices"}
               </p>
-              <span className="text-[10px] text-muted-foreground">GST compliance valid</span>
+              <span className="text-[10px] text-muted-foreground">
+                {payments.length > 0 ? "GST compliance valid" : "No tax invoices generated"}
+              </span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/60">
@@ -2921,10 +2947,18 @@ function BizMembership() {
                 <Clock className="h-3 w-3 text-amber-500" /> Next Due Date
               </span>
               <p className="text-base sm:text-lg font-extrabold text-foreground mt-1">
-                {isFreeTier && payments.length === 0 ? "Free Plan" : formattedRenews}
+                {isFreeTier
+                  ? "Free Tier"
+                  : !isPaidMembership
+                  ? "Pending Payment"
+                  : formattedRenews}
               </p>
               <span className="text-[10px] text-muted-foreground">
-                {isFreeTier && payments.length === 0 ? "Lifetime validity" : "Annual renewal"}
+                {isFreeTier
+                  ? "Lifetime validity"
+                  : !isPaidMembership
+                  ? "Due upon plan activation"
+                  : renewalCycleLabel}
               </span>
             </div>
 
@@ -3026,7 +3060,7 @@ function BizMembership() {
                 return (
                   <div className="rounded-xl border border-border p-3.5 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-foreground">{r.invoiceNumber || "INV-9763"}</span>
+                      <span className="text-xs font-bold text-foreground">{r.invoiceNumber || (r._id ? `INV-${String(r._id).slice(-6).toUpperCase()}` : "INV—")}</span>
                       <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5">
                         {r.status || "Paid"}
                       </span>

@@ -33,7 +33,7 @@ function getInitials(name) {
   return name.slice(0, 2).toUpperCase();
 }
 
-export function AnniversaryDialog({ open, onOpenChange, anniversaries = [] }) {
+export function AnniversaryDialog({ open, onOpenChange, anniversaries = [], wishedIds = [], onAnniversaryWished }) {
   const { user } = useAuth();
   const [sendingMap, setSendingMap] = useState({});
   const [sentMap, setSentMap] = useState({});
@@ -55,8 +55,27 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [] }) {
         recipientId: item.userId,
         text: messageContent,
       });
-      setSentMap((prev) => ({ ...prev, [item.userId]: true }));
+      setSentMap((prev) => ({ ...prev, [item.userId]: true, [item.businessId]: true }));
+      onAnniversaryWished?.(item);
       toast.success(`Anniversary congratulations sent to ${item.businessName}!`);
+
+      // Auto-close dialog if all members have been wished
+      const stillUnwished = anniversaries.filter(
+        (m) =>
+          !m.isSelf &&
+          String(m.userId) !== String(item.userId) &&
+          String(m.businessId) !== String(item.businessId) &&
+          !m.isWished &&
+          !wishedIds.includes(String(m.userId)) &&
+          !wishedIds.includes(String(m.businessId)) &&
+          !sentMap[m.userId] &&
+          !sentMap[m.businessId]
+      );
+      if (stillUnwished.length === 0) {
+        setTimeout(() => {
+          onOpenChange?.(false);
+        }, 1200);
+      }
     } catch (err) {
       toast.error(err.message || "Failed to send anniversary congratulations");
     } finally {
@@ -95,7 +114,7 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [] }) {
         <div className="p-4 sm:p-5 overflow-y-auto max-h-[58vh] space-y-3.5 bg-slate-50/40 dark:bg-slate-950/40">
           {anniversaries.map((item, idx) => {
             const isSending = sendingMap[item.userId];
-            const isSent = sentMap[item.userId];
+            const isSent = !!item.isWished || wishedIds.includes(String(item.userId)) || wishedIds.includes(String(item.businessId)) || !!sentMap[item.userId] || !!sentMap[item.businessId];
             const ordinal = getOrdinal(item.yearsCompleted || 1);
             const defaultMsg = `Congratulations on your ${ordinal} Anniversary with RIFAH Chamber of Commerce! 🎊 Wishing continued growth and immense milestones to you and ${item.businessName}. Warm wishes from ${myName}${myChapter}, RIFAH Chamber.`;
             const cleanWhatsapp = (item.whatsapp || item.phone || "").replace(/[^0-9]/g, "");
@@ -127,7 +146,7 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [] }) {
 
                   {/* Right: Business Details & Actions */}
                   <div className="min-w-0 flex-1 flex flex-col justify-between gap-2.5">
-                    
+  
                     {/* Top Row: Business Name in single clean line */}
                     <div className="flex items-center justify-between gap-3 min-w-0">
                       <h4 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight truncate">
@@ -173,7 +192,15 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [] }) {
                             variant="outline"
                             className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs"
                           >
-                            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                            <a
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => {
+                                setSentMap((prev) => ({ ...prev, [item.userId]: true, [item.businessId]: true }));
+                                onAnniversaryWished?.(item);
+                              }}
+                            >
                               <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" />
                               <span>WhatsApp</span>
                             </a>
