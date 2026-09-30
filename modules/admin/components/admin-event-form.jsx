@@ -662,7 +662,13 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        setFormData({ ...formData, cover: e.target.files[0] });
+                        const file = e.target.files[0];
+                        if (file.size > 5 * 1024 * 1024) {
+                          toast.error("File size is greater than 5MB. Please upload a smaller image.");
+                          e.target.value = "";
+                          return;
+                        }
+                        setFormData({ ...formData, cover: file });
                       }
                     }}
                     className="max-w-xs"
@@ -710,7 +716,13 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        setFormData({ ...formData, poster: e.target.files[0] });
+                        const file = e.target.files[0];
+                        if (file.size > 5 * 1024 * 1024) {
+                          toast.error("File size is greater than 5MB. Please upload a smaller image.");
+                          e.target.value = "";
+                          return;
+                        }
+                        setFormData({ ...formData, poster: file });
                       }
                     }}
                     className="max-w-xs"
