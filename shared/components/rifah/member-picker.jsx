@@ -289,8 +289,8 @@ export function MemberPicker({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2">
+    <div className="space-y-2.5">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         {/* 1. STATE SELECTOR (SEARCHABLE) */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">

@@ -658,24 +658,22 @@ function BusinessProfile() {
         )}
       </div>
 
-      <div className="rifah-container relative -mt-16 sm:-mt-20 z-10">
+      <div className="rifah-container relative -mt-16 sm:-mt-20 z-10 w-full max-w-full">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div>
+          <div className="min-w-0 max-w-full">
             {/* Main Business Profile Card */}
-            <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-7 shadow-xl shadow-slate-900/5">
+            <div className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-7 shadow-xl shadow-slate-900/5 relative">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 min-w-0">
                   {/* Logo or Initial Monogram */}
-                  <div className="relative -mt-12 sm:-mt-16 shrink-0">
+                  <div className="relative -mt-12 sm:-mt-16 shrink-0 z-20">
                     {hasLogo && logoUrl ? (
                       <img
                         src={logoUrl}
                         alt={`${business.name} logo`}
                         loading="lazy"
-                        width={1024}
-                        height={640}
                         onError={() => setLogoError(true)}
-                        className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl sm:rounded-3xl border-4 border-white dark:border-slate-900 object-cover bg-white shadow-xl"
+                        className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl sm:rounded-3xl border-4 border-white dark:border-slate-900 object-contain bg-white shadow-xl"
                       />
                     ) : (
                       <div className="flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-2xl sm:rounded-3xl border-4 border-white dark:border-slate-900 bg-gradient-to-br from-primary via-primary/90 to-blue-700 text-white font-black text-3xl sm:text-4xl shadow-xl select-none">
@@ -686,7 +684,7 @@ function BusinessProfile() {
 
                   {/* Business Name, Tagline & Badges */}
                   <div className="min-w-0 pt-1 sm:pt-0">
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight break-words">
                       {business.name}
                     </h1>
                     {business.tagline && (
@@ -694,7 +692,7 @@ function BusinessProfile() {
                         {business.tagline}
                       </p>
                     )}
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <VerificationBadge status={business.verification} />
                       <MembershipBadge tier={business.membership} />
                       {business.industry && (
@@ -717,13 +715,13 @@ function BusinessProfile() {
                 </div>
 
                 {/* Profile actions (Share + Enquiry + Social Quick Links) */}
-                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 sm:pt-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 sm:pt-0 w-full sm:w-auto">
                   <Button
                     size="sm"
                     onClick={() => setEnquiryOpen(true)}
                     aria-label="Send enquiry to this business"
                     title="Send enquiry to this business"
-                    className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs"
+                    className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs flex-1 sm:flex-initial justify-center"
                   >
                     <MessageSquarePlus className="h-4 w-4" /> Send Enquiry
                   </Button>
@@ -733,7 +731,7 @@ function BusinessProfile() {
                     onClick={() => setShareOpen(true)}
                     aria-label="Share business profile"
                     title="Share business profile"
-                    className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs"
+                    className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs flex-1 sm:flex-initial justify-center"
                   >
                     <Share2 className="h-4 w-4" /> Share
                   </Button>
@@ -777,7 +775,7 @@ function BusinessProfile() {
               </div>
 
               {/* Key Highlights Grid */}
-              <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <dl className="mt-5 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4">
                 {[
                   { icon: Building2, label: "Industry", value: business.industry || "General" },
                   ...(subCategory
@@ -786,9 +784,9 @@ function BusinessProfile() {
                   { icon: MapPin, label: "Location", value: `${business.city || ""}${business.state ? `, ${business.state}` : ""}`.trim() || "Not specified" },
                   { icon: Star, label: "Rating", value: hasAnyRating ? `${avgRating} (${effectiveTotalReviews})` : "No ratings yet" },
                 ].map((s) => (
-                  <div key={s.label} className="min-w-0 bg-slate-50 dark:bg-slate-800/40 p-3 sm:p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">
-                    <dt className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      <s.icon className="h-3.5 w-3.5 text-primary" /> {s.label}
+                  <div key={s.label} className="min-w-0 bg-slate-50 dark:bg-slate-800/40 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <dt className="inline-flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate max-w-full">
+                      <s.icon className="h-3.5 w-3.5 text-primary shrink-0" /> <span className="truncate">{s.label}</span>
                     </dt>
                     <dd className="mt-1 truncate text-xs sm:text-sm font-bold text-slate-900 dark:text-white">{s.value}</dd>
                   </div>

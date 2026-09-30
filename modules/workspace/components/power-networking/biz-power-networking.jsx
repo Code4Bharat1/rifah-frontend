@@ -481,31 +481,45 @@ export function BizPowerNetworking() {
         </div>
 
         {/* 4 Workspace Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl bg-muted/60 p-1">
-            <TabsTrigger value="network" className="text-xs sm:text-sm font-semibold">
-              My Power Network
-              {stats.connectedBusinesses > 0 && (
-                <span className="ml-1.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.2 text-[10px] font-bold">
-                  {stats.connectedBusinesses}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="discover" className="text-xs sm:text-sm font-medium">
-              Discover Businesses
-            </TabsTrigger>
-            <TabsTrigger value="requirements" className="text-xs sm:text-sm font-medium">
-              My Requirements
-            </TabsTrigger>
-            <TabsTrigger value="requests" className="text-xs sm:text-sm font-medium relative">
-              Requests
-              {incomingCount > 0 && (
-                <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.2 text-[10px] font-bold text-primary-foreground">
-                  {incomingCount}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5 sm:space-y-6">
+          <div className="w-full overflow-x-auto no-scrollbar pb-1">
+            <TabsList className="inline-flex h-auto w-max sm:w-full sm:grid sm:grid-cols-4 sm:max-w-3xl bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl gap-1.5 sm:gap-1 border border-slate-200/80 dark:border-slate-700/80">
+              <TabsTrigger
+                value="network"
+                className="shrink-0 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm text-slate-600 dark:text-slate-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>My Power Network</span>
+                {stats.connectedBusinesses > 0 && (
+                  <span className="rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 text-[10px] font-bold">
+                    {stats.connectedBusinesses}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="discover"
+                className="shrink-0 px-3.5 py-2 text-xs sm:text-sm font-medium rounded-xl whitespace-nowrap data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm text-slate-600 dark:text-slate-300 transition-all flex items-center justify-center cursor-pointer"
+              >
+                Discover Businesses
+              </TabsTrigger>
+              <TabsTrigger
+                value="requirements"
+                className="shrink-0 px-3.5 py-2 text-xs sm:text-sm font-medium rounded-xl whitespace-nowrap data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm text-slate-600 dark:text-slate-300 transition-all flex items-center justify-center cursor-pointer"
+              >
+                My Requirements
+              </TabsTrigger>
+              <TabsTrigger
+                value="requests"
+                className="shrink-0 px-3.5 py-2 text-xs sm:text-sm font-medium rounded-xl whitespace-nowrap data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm text-slate-600 dark:text-slate-300 transition-all flex items-center justify-center gap-1.5 relative cursor-pointer"
+              >
+                <span>Requests</span>
+                {incomingCount > 0 && (
+                  <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                    {incomingCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* ==================== TAB 1: MY POWER NETWORK (CORE ECOSYSTEM) ==================== */}
           <TabsContent value="network" className="space-y-5">
@@ -875,13 +889,13 @@ export function BizPowerNetworking() {
                 </p>
               </div>
 
-              <div className="inline-flex rounded-lg bg-muted p-1 text-xs">
+              <div className="flex w-full sm:w-auto rounded-xl bg-muted p-1 text-xs gap-1">
                 <button
                   type="button"
                   onClick={() => setRequestSubTab("incoming")}
-                  className={`rounded-md px-3 py-1 font-medium transition-colors ${
+                  className={`flex-1 sm:flex-initial rounded-lg px-3 py-1.5 font-medium transition-colors text-center cursor-pointer ${
                     requestSubTab === "incoming"
-                      ? "bg-card text-foreground shadow-2xs"
+                      ? "bg-card text-foreground shadow-2xs font-semibold"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -890,9 +904,9 @@ export function BizPowerNetworking() {
                 <button
                   type="button"
                   onClick={() => setRequestSubTab("outgoing")}
-                  className={`rounded-md px-3 py-1 font-medium transition-colors ${
+                  className={`flex-1 sm:flex-initial rounded-lg px-3 py-1.5 font-medium transition-colors text-center cursor-pointer ${
                     requestSubTab === "outgoing"
-                      ? "bg-card text-foreground shadow-2xs"
+                      ? "bg-card text-foreground shadow-2xs font-semibold"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >

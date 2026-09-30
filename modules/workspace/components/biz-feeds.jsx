@@ -587,9 +587,9 @@ function FeedFilterBar({
         </div>
 
         {/* Right Section: Inline Search Bar, Posts Count & Reset */}
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
           {/* Search Bar */}
-          <div className="relative w-40 sm:w-52 md:w-64">
+          <div className="relative flex-1 sm:w-52 md:w-64">
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             <Input
               type="text"

@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users, Video } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users, Video } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
+import { cn } from "@shared/lib/utils";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { Input } from "@shared/components/ui/input";
@@ -300,14 +301,16 @@ const loadRazorpayScript = () => {
           <img
             src={coverUrl}
             alt={`${event.title} — RIFAH event`}
-            className="h-full w-full object-cover opacity-50"
+            className="h-full w-full object-cover opacity-75 sm:opacity-85 transition-opacity"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+          {/* Directional gradients so text is readable while image remains clearly visible */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-slate-950/25" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-transparent" />
         </div>
 
-        <div className="rifah-container relative z-10 pt-16 pb-12 sm:pt-24 sm:pb-16 lg:pt-32 lg:pb-20">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-            <Link href="/events" className="inline-flex items-center text-sm font-medium text-slate-300 hover:text-white transition-colors">
+        <div className="rifah-container relative z-10 pt-6 pb-8 sm:pt-14 sm:pb-14 lg:pt-20 lg:pb-18">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <Link href="/events" className="inline-flex items-center text-xs sm:text-sm font-medium text-slate-300 hover:text-white transition-colors">
               ← Back to all events
             </Link>
             <Button
@@ -315,7 +318,7 @@ const loadRazorpayScript = () => {
               variant="outline"
               size="sm"
               onClick={() => setIsShareModalOpen(true)}
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md gap-2 rounded-full px-4 text-xs font-semibold shadow-xs"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md gap-2 rounded-full px-4 text-xs font-semibold shadow-xs cursor-pointer"
             >
               <Share2 className="h-3.5 w-3.5" />
               <span>Share Event</span>
@@ -327,9 +330,9 @@ const loadRazorpayScript = () => {
             const statusConfig = getEventStatusConfig(computedStatus);
             return (
               <div className="flex flex-wrap gap-2 mb-4 items-center">
-                <Pill tone={event.mode === "Online" ? "primary" : "neutral"} className="bg-white/10 text-white border-white/20 backdrop-blur-md shadow-sm">{event.mode}</Pill>
-                <Pill className="bg-white/10 text-white border-white/20 backdrop-blur-md shadow-sm">{event.chapter}</Pill>
-                <Pill tone={statusConfig.tone} className={`${statusConfig.className} shadow-sm backdrop-blur-md`}>
+                <Pill tone={event.mode === "Online" ? "primary" : "neutral"} className="bg-white/15 text-white border-white/25 backdrop-blur-md shadow-sm text-xs">{event.mode}</Pill>
+                <Pill className="bg-white/15 text-white border-white/25 backdrop-blur-md shadow-sm text-xs">{event.chapter}</Pill>
+                <Pill tone={statusConfig.tone} className={`${statusConfig.className} shadow-sm backdrop-blur-md text-xs`}>
                   {statusConfig.dot && <span className="w-1.5 h-1.5 rounded-full bg-white inline-block mr-1" />}
                   {statusConfig.label}
                 </Pill>
@@ -337,39 +340,39 @@ const loadRazorpayScript = () => {
             );
           })()}
           
-          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl max-w-4xl leading-[1.15]">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white max-w-4xl leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
             {event.title}
           </h1>
-          <p className="mt-4 text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
+          <p className="mt-3 text-xs sm:text-base lg:text-lg text-slate-200 max-w-2xl leading-relaxed drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
             {event.summary || event.description || "Join this chamber event to connect with members and businesses."}
           </p>
         </div>
       </section>
 
-      <div className="rifah-container py-8 sm:py-12">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="rifah-container py-5 sm:py-10">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* Main Details */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Metadata Grid */}
-            <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-              <dl className="grid grid-cols-2 gap-y-6 gap-x-4 sm:grid-cols-3">
-                  {[
-                    { icon: CalendarDays, label: "Date", value: formatEventDate(event.date) || "TBA" },
-                    { icon: Clock, label: "Time", value: event.time },
-                    { icon: MapPin, label: "Venue", value: event.venue },
-                  ].map((s) => (
-                    <div key={s.label} className="min-w-0">
-                      <dt className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <s.icon className="h-4 w-4" />
-                        </span>
-                        {s.label}
-                      </dt>
-                      <dd className="mt-2 text-sm font-semibold text-foreground sm:text-base">{s.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
+            <div className="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+              <dl className="grid grid-cols-2 gap-y-5 gap-x-4 sm:grid-cols-3">
+                {[
+                  { icon: CalendarDays, label: "Date", value: formatEventDate(event.date) || "TBA", colSpan: "col-span-1" },
+                  { icon: Clock, label: "Time", value: event.time || "TBA", colSpan: "col-span-1" },
+                  { icon: MapPin, label: "Venue", value: event.venue || "TBA", colSpan: "col-span-2 sm:col-span-1" },
+                ].map((s) => (
+                  <div key={s.label} className={cn("min-w-0", s.colSpan)}>
+                    <dt className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+                        <s.icon className="h-4 w-4" />
+                      </span>
+                      {s.label}
+                    </dt>
+                    <dd className="mt-2 text-sm font-semibold text-foreground sm:text-base break-words">{s.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
 
             <div className="mt-4 space-y-4">
               {event.agenda && event.agenda.length > 0 && (

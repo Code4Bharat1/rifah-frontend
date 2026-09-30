@@ -368,8 +368,15 @@ function BizNetworking() {
       title="Networking"
       subtitle="Log 1-2-1 meetings with fellow members and track the business you've generated for each other"
       actions={
-        <Button variant="outline" onClick={() => setIsThankYouDialogOpen(true)}>
-          <Handshake className="mr-2 h-4 w-4" /> Give Thank You Note
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsThankYouDialogOpen(true)}
+          className="text-xs h-8 sm:h-9 px-2.5 sm:px-3"
+        >
+          <Handshake className="h-3.5 w-3.5 sm:mr-1.5 shrink-0" />
+          <span className="hidden sm:inline">Give Thank You Note</span>
+          <span className="sm:hidden">Thank You</span>
         </Button>
       }
     >
@@ -391,7 +398,7 @@ function BizNetworking() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
           <StatCard label="One to One meetings" value={String(meetings.length)} icon={Users2} tone="primary" />
           <StatCard
             label="Business given"
@@ -407,6 +414,7 @@ function BizNetworking() {
             icon={ArrowDownLeft}
             tone="brand"
             hint="Business others generated for you"
+            className="col-span-2 sm:col-span-1 lg:col-span-1"
             onClick={() => goToBusinessGenerated("received")}
           />
         </div>
@@ -691,14 +699,14 @@ function BizNetworking() {
           if (!open) resetMeetingDialog();
         }}
       >
-        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
-            <DialogTitle>Log a One to One Meeting</DialogTitle>
+            <DialogTitle>Log a One-to-One Meeting</DialogTitle>
             <DialogDescription>
               Select the state and chapter of the member you met, then pick them from the list.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-3 py-1">
             <MemberPicker
               idPrefix="meeting"
               value={selectedMember}
@@ -706,71 +714,75 @@ function BizNetworking() {
               onChange={setSelectedMember}
               disabled={isSavingMeeting}
             />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="meeting-date">Date *</Label>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="meeting-date" className="text-xs font-medium">Date *</Label>
                 <Input
                   id="meeting-date"
                   type="date"
                   value={meetingForm.meetingDate}
                   onChange={(e) => setMeetingForm((f) => ({ ...f, meetingDate: e.target.value }))}
                   disabled={isSavingMeeting}
+                  className="h-10 text-xs sm:text-sm"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="meeting-time">Time *</Label>
+              <div className="space-y-1">
+                <Label htmlFor="meeting-time" className="text-xs font-medium">Time *</Label>
                 <Input
                   id="meeting-time"
                   type="time"
                   value={meetingForm.meetingTime}
                   onChange={(e) => setMeetingForm((f) => ({ ...f, meetingTime: e.target.value }))}
                   disabled={isSavingMeeting}
+                  className="h-10 text-xs sm:text-sm"
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="meeting-location">Location *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="meeting-location" className="text-xs font-medium">Location *</Label>
               <Input
                 id="meeting-location"
                 placeholder="e.g. Taj Lands End, Bandra"
                 value={meetingForm.location}
                 onChange={(e) => setMeetingForm((f) => ({ ...f, location: e.target.value }))}
                 disabled={isSavingMeeting}
+                className="h-10 text-xs sm:text-sm"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="meeting-description">Description / Purpose *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="meeting-description" className="text-xs font-medium">Description / Purpose *</Label>
               <Textarea
                 id="meeting-description"
-                rows={3}
+                rows={2}
                 placeholder="What did you discuss? Any follow-ups or opportunities identified?"
                 value={meetingForm.description}
                 onChange={(e) => setMeetingForm((f) => ({ ...f, description: e.target.value }))}
                 disabled={isSavingMeeting}
+                className="text-xs sm:text-sm resize-none"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="meeting-initiated-by">Meeting was initiated by *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="meeting-initiated-by" className="text-xs font-medium">Meeting was initiated by *</Label>
               <Select
                 value={meetingForm.initiatedBy}
                 onValueChange={(v) => setMeetingForm((f) => ({ ...f, initiatedBy: v }))}
                 disabled={isSavingMeeting}
               >
-                <SelectTrigger id="meeting-initiated-by" className="h-10">
+                <SelectTrigger id="meeting-initiated-by" className="h-10 text-xs sm:text-sm">
                   <SelectValue placeholder="Select who reached out first" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[80]">
                   <SelectItem value="self">Myself</SelectItem>
                   <SelectItem value="member">The person I met</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsMeetingDialogOpen(false)} disabled={isSavingMeeting}>
+          <DialogFooter className="pt-2 gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setIsMeetingDialogOpen(false)} disabled={isSavingMeeting} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleSaveMeeting} disabled={isSavingMeeting}>
+            <Button onClick={handleSaveMeeting} disabled={isSavingMeeting} className="w-full sm:w-auto">
               {isSavingMeeting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save Meeting
             </Button>
@@ -786,14 +798,14 @@ function BizNetworking() {
           if (!open) resetThankYouDialog();
         }}
       >
-        <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>Give a Thank You Note</DialogTitle>
             <DialogDescription>
               Thank a member who gave you business — select them below. This shows as "Business Received" on your account and "Business Given" on theirs.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-3.5 py-1">
             <MemberPicker
               idPrefix="thank-you"
               value={thankYouMember}
@@ -801,15 +813,15 @@ function BizNetworking() {
               onChange={setThankYouMember}
               disabled={isSavingThankYou}
             />
-            <div className="space-y-1.5">
-              <Label htmlFor="thank-you-amount">Business amount (₹) *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="thank-you-amount" className="text-xs font-medium">Business amount (₹) *</Label>
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="thank-you-amount"
                   type="number"
                   min="1"
-                  className="pl-9"
+                  className="pl-9 h-10 text-xs sm:text-sm"
                   placeholder="e.g. 50000"
                   value={thankYouAmount}
                   onChange={(e) => setThankYouAmount(e.target.value)}
@@ -817,8 +829,8 @@ function BizNetworking() {
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="thank-you-note">Note (optional)</Label>
+            <div className="space-y-1">
+              <Label htmlFor="thank-you-note" className="text-xs font-medium">Note (optional)</Label>
               <Textarea
                 id="thank-you-note"
                 rows={2}
@@ -826,14 +838,15 @@ function BizNetworking() {
                 value={thankYouNote}
                 onChange={(e) => setThankYouNote(e.target.value)}
                 disabled={isSavingThankYou}
+                className="text-xs sm:text-sm resize-none"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsThankYouDialogOpen(false)} disabled={isSavingThankYou}>
+          <DialogFooter className="pt-2 gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setIsThankYouDialogOpen(false)} disabled={isSavingThankYou} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleSaveThankYou} disabled={isSavingThankYou}>
+            <Button onClick={handleSaveThankYou} disabled={isSavingThankYou} className="w-full sm:w-auto">
               {isSavingThankYou ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save Thank You Note
             </Button>
@@ -849,14 +862,14 @@ function BizNetworking() {
           if (!open) resetReferralDialog();
         }}
       >
-        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle>Refer a Business</DialogTitle>
             <DialogDescription>
               Select the fellow member whose business you're referring your contact to.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-3 py-1">
             <MemberPicker
               idPrefix="referral"
               value={referralMember}
@@ -864,27 +877,29 @@ function BizNetworking() {
               onChange={setReferralMember}
               disabled={isSavingReferral}
             />
-            <div className="space-y-1.5">
-              <Label htmlFor="referral-lead-name">Your contact's name *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="referral-lead-name" className="text-xs font-medium">Your contact's name *</Label>
               <Input
                 id="referral-lead-name"
                 placeholder="e.g. Rajesh Kumar"
                 value={referralForm.leadName}
                 onChange={(e) => setReferralForm((f) => ({ ...f, leadName: e.target.value }))}
                 disabled={isSavingReferral}
+                className="h-10 text-xs sm:text-sm"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="referral-lead-contact">Contact's phone / email (optional)</Label>
+            <div className="space-y-1">
+              <Label htmlFor="referral-lead-contact" className="text-xs font-medium">Contact's phone / email (optional)</Label>
               <Input
                 id="referral-lead-contact"
                 placeholder="e.g. 98765 43210"
                 value={referralForm.leadContact}
                 onChange={(e) => setReferralForm((f) => ({ ...f, leadContact: e.target.value }))}
                 disabled={isSavingReferral}
+                className="h-10 text-xs sm:text-sm"
               />
             </div>
-            <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+            <label className="flex items-center gap-2.5 text-xs sm:text-sm cursor-pointer select-none py-0.5">
               <Checkbox
                 checked={referralForm.leadIsMember}
                 onCheckedChange={(c) => setReferralForm((f) => ({ ...f, leadIsMember: Boolean(c) }))}
@@ -892,23 +907,24 @@ function BizNetworking() {
               />
               This contact is a RIFAH member
             </label>
-            <div className="space-y-1.5">
-              <Label htmlFor="referral-description">Requirement / what you're referring *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="referral-description" className="text-xs font-medium">Requirement / what you're referring *</Label>
               <Textarea
                 id="referral-description"
-                rows={3}
+                rows={2}
                 placeholder="e.g. Needs 500kg of copper wire for a new project"
                 value={referralForm.description}
                 onChange={(e) => setReferralForm((f) => ({ ...f, description: e.target.value }))}
                 disabled={isSavingReferral}
+                className="text-xs sm:text-sm resize-none"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReferralDialogOpen(false)} disabled={isSavingReferral}>
+          <DialogFooter className="pt-2 gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setIsReferralDialogOpen(false)} disabled={isSavingReferral} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleSaveReferral} disabled={isSavingReferral}>
+            <Button onClick={handleSaveReferral} disabled={isSavingReferral} className="w-full sm:w-auto">
               {isSavingReferral ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save Referral
             </Button>
@@ -960,11 +976,11 @@ function BizNetworking() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetCloseReferralDialog} disabled={isClosingReferral}>
+          <DialogFooter className="pt-2 gap-2 sm:gap-2">
+            <Button variant="outline" onClick={resetCloseReferralDialog} disabled={isClosingReferral} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleCloseReferral} disabled={isClosingReferral}>
+            <Button onClick={handleCloseReferral} disabled={isClosingReferral} className="w-full sm:w-auto">
               {isClosingReferral ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save Thank You Note
             </Button>

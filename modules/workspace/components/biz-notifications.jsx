@@ -106,7 +106,7 @@ function BizNotifications() {
               return (
                 <li
                   key={n._id || n.id}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3.5 p-4 hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors"
+                  className="flex items-start gap-3 p-3.5 sm:p-4 hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors"
                 >
                   <span
                     className={
@@ -116,10 +116,15 @@ function BizNotifications() {
                     }
                     aria-hidden
                   />
-                  <div className="min-w-0 pr-2">
-                    <p className={`text-sm ${isUnread ? "font-bold text-foreground" : "font-medium text-foreground"}`}>{titleText}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className={`text-sm ${isUnread ? "font-bold text-foreground" : "font-medium text-foreground"}`}>{titleText}</p>
+                      <div className="shrink-0 flex items-center gap-1 sm:hidden">
+                        <Pill>{n.type || "System"}</Pill>
+                      </div>
+                    </div>
                     {Boolean(bodyText) && (
-                      <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-1">{bodyText}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-2">{bodyText}</p>
                     )}
 
                     {/* Event Date and City badges */}
@@ -146,11 +151,29 @@ function BizNotifications() {
                       </div>
                     )}
 
-                    <p className="mt-1.5 text-[11px] text-muted-foreground/80">
-                      {formatRelativeTime(n.createdAt)}
-                    </p>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] text-muted-foreground/80">
+                        {formatRelativeTime(n.createdAt)}
+                      </p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-xs sm:hidden" 
+                        onClick={async () => {
+                          setViewNotif({ ...n, title: titleText, body: bodyText });
+                          if (isUnread) {
+                            try {
+                              await notificationApi.markAsRead(n._id || n.id);
+                              refetch();
+                            } catch (e) {}
+                          }
+                        }}
+                      >
+                        <Eye className="mr-1 h-3 w-3" /> View
+                      </Button>
+                    </div>
                   </div>
-                  <div className="shrink-0 pt-0.5 flex flex-col items-end gap-2">
+                  <div className="shrink-0 pt-0.5 hidden sm:flex flex-col items-end gap-2">
                     <Pill>{n.type || "System"}</Pill>
                     <Button 
                       variant="ghost" 

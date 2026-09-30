@@ -220,13 +220,22 @@ function NewEnquiry() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="budget">Indicative budget</Label>
-                    <Input
-                      id="budget"
-                      value={formData.budget}
-                      onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                      placeholder="e.g. ₹ 2,50,000"
-                    />
+                    <Label htmlFor="budget">Indicative budget (₹)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-semibold">₹</span>
+                      <Input
+                        id="budget"
+                        type="text"
+                        inputMode="numeric"
+                        value={formData.budget}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9,.]/g, "");
+                          setFormData({ ...formData, budget: val });
+                        }}
+                        placeholder="e.g. 250000"
+                        className="pl-7"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="by">Required by date</Label>

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, CreditCard, Landmark, Lock, Smartphone, Loader2, ArrowRight, FileText, Printer, Sparkles, Building2, Globe, LayoutDashboard, ShieldCheck, AlertCircle } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
@@ -52,37 +52,45 @@ function Checkout() {
   const { user: currentUser, refreshProfile } = useAuth();
   const { data: business } = useMyBusiness();
   const { data: plansData } = useMembershipPlans();
-  const plans = plansData 
-    ? (Array.isArray(plansData) ? plansData.map((p) => ({ id: p.id || p.planId, ...p })) : Object.entries(plansData))
-        .map((item) => (Array.isArray(item) ? { id: item[0], ...item[1] } : item))
-        .filter((p) => p.isActive !== false && p.price > 0)
-        .sort((a, b) => {
-          const CANONICAL = { silver: 1, gold: 2, platinum: 3, diamond: 4 };
-          const idA = String(a.id || a.planId || a.name || "").toLowerCase();
-          const idB = String(b.id || b.planId || b.name || "").toLowerCase();
-          const orderA = a.displayOrder !== undefined && a.displayOrder !== null && Number(a.displayOrder) > 0 ? Number(a.displayOrder) : (CANONICAL[idA] ?? null);
-          const orderB = b.displayOrder !== undefined && b.displayOrder !== null && Number(b.displayOrder) > 0 ? Number(b.displayOrder) : (CANONICAL[idB] ?? null);
-          if (orderA !== null && orderB !== null && orderA !== orderB) return orderA - orderB;
-          if (orderA !== null) return -1;
-          if (orderB !== null) return 1;
-          return (Number(a.price) || 0) - (Number(b.price) || 0);
-        })
-    : [];
+  const plans = useMemo(() => {
+    if (!plansData) return [];
+    const list = (Array.isArray(plansData) ? plansData.map((p) => ({ id: p.id || p.planId, ...p })) : Object.entries(plansData))
+      .map((item) => (Array.isArray(item) ? { id: item[0], ...item[1] } : item))
+      .filter((p) => p.isActive !== false && p.price > 0);
+
+    return list.sort((a, b) => {
+      const CANONICAL = { silver: 1, gold: 2, platinum: 3, diamond: 4 };
+      const idA = String(a.id || a.planId || a.name || "").toLowerCase();
+      const idB = String(b.id || b.planId || b.name || "").toLowerCase();
+      const orderA = a.displayOrder !== undefined && a.displayOrder !== null && Number(a.displayOrder) > 0 ? Number(a.displayOrder) : (CANONICAL[idA] ?? null);
+      const orderB = b.displayOrder !== undefined && b.displayOrder !== null && Number(b.displayOrder) > 0 ? Number(b.displayOrder) : (CANONICAL[idB] ?? null);
+      if (orderA !== null && orderB !== null && orderA !== orderB) return orderA - orderB;
+      if (orderA !== null) return -1;
+      if (orderB !== null) return 1;
+      return (Number(a.price) || 0) - (Number(b.price) || 0);
+    });
+  }, [plansData]);
 
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(planParam);
+  const planInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (plans.length > 0) {
-      const match = plans.find(
-        (p) => p.id === (planParam || selected) || p.name?.toLowerCase() === (planParam || selected).toLowerCase()
-      );
-      if (match) {
-        setSelected(match.id);
-      } else if (!plans.some((p) => p.id === selected)) {
-        const fallback = plans.find((p) => p.isRecommended) || plans[0];
-        if (fallback) setSelected(fallback.id);
+    if (!plans || plans.length === 0) return;
+
+    if (!planInitializedRef.current) {
+      planInitializedRef.current = true;
+      if (planParam) {
+        const match = plans.find(
+          (p) => p.id?.toLowerCase() === planParam.toLowerCase() || p.name?.toLowerCase() === planParam.toLowerCase()
+        );
+        if (match) {
+          setSelected(match.id);
+          return;
+        }
       }
+      const fallback = plans.find((p) => p.isRecommended) || plans[0];
+      if (fallback) setSelected(fallback.id);
     }
   }, [plans, planParam]);
   const [method, setMethod] = useState("razorpay");
@@ -107,7 +115,7 @@ function Checkout() {
   const [currency, setCurrency] = useState(initialCurrency);
   const isIntl = currency === "USD";
 
-  const active = plans.find((p) => p.id === selected) || plans[0];
+  const active = plans.find((p) => p.id === selected) || plans[0] || {};
 
   const checkoutAmount = isIntl
     ? (active?.priceUsd ?? (active?.price === 0 ? 0 : Math.round((active?.price || 0) / 80)))
@@ -780,39 +788,63 @@ function Checkout() {
                     </div>
                   </div>
 
-                  <RadioGroup value={selected} onValueChange={setSelected} className="space-y-2.5">
+                  <div className="space-y-2.5" role="radiogroup" aria-label="Select membership tier">
                     {plans.map((p) => {
                       const pAmt = isIntl
                         ? (p.priceUsd ?? (p.price === 0 ? 0 : Math.round(p.price / 80)))
                         : p.price;
+                      const isCardSelected = selected === p.id;
                       return (
-                        <label
+                        <div
                           key={p.id}
+                          role="radio"
+                          aria-checked={isCardSelected}
+                          tabIndex={0}
+                          onClick={() => setSelected(p.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setSelected(p.id);
+                            }
+                          }}
                           className={cn(
-                            "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
-                            selected === p.id ? "border-primary bg-primary-soft" : "border-border hover:bg-muted/60"
+                            "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all select-none",
+                            isCardSelected
+                              ? "border-primary bg-primary-soft shadow-xs ring-1 ring-primary/20"
+                              : "border-border hover:bg-muted/60"
                           )}
                         >
-                          <RadioGroupItem value={p.id} className="mt-0.5" />
-                          <span className="min-w-0 flex-1">
-                            <span className="flex flex-wrap items-baseline justify-between gap-2">
-                              <span className="text-sm font-semibold">{p.name}</span>
+                          <span
+                            className={cn(
+                              "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all",
+                              isCardSelected
+                                ? "border-primary bg-primary"
+                                : "border-slate-400 dark:border-slate-600 bg-background hover:border-primary"
+                            )}
+                          >
+                            {isCardSelected && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                            )}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <span className="text-sm font-semibold text-foreground">{p.name}</span>
                               <span className="text-sm font-bold text-primary">
                                 {isIntl ? `$ ${pAmt.toLocaleString("en-US")} USD` : `₹ ${pAmt.toLocaleString("en-IN")}`}
                                 {p.durationYears && <span className="font-normal text-muted-foreground text-xs ml-1">/ {p.durationYears === 1 ? "1 yr" : `${p.durationYears} yrs`}</span>}
                               </span>
-                            </span>
+                            </div>
                             <span className="mt-0.5 block text-xs text-muted-foreground">{p.summary}</span>
                             {pAmt > 0 && (
                               <span className="mt-0.5 block text-[10px] text-muted-foreground">
                                 + {isIntl ? `$ ${Math.round(pAmt * (p.gstRate || 18) / 100).toLocaleString("en-US")} USD` : `₹ ${Math.round(pAmt * (p.gstRate || 18) / 100).toLocaleString("en-IN")}`} GST ({p.gstRate || 18}%) = {isIntl ? `$ ${(pAmt + Math.round(pAmt * (p.gstRate || 18) / 100)).toLocaleString("en-US")} USD` : `₹ ${(pAmt + Math.round(pAmt * (p.gstRate || 18) / 100)).toLocaleString("en-IN")}`} total payable
                               </span>
                             )}
-                          </span>
-                        </label>
+                          </div>
+                        </div>
                       );
                     })}
-                  </RadioGroup>
+                  </div>
                 </Panel>
               )}
 
@@ -1339,7 +1371,7 @@ function Checkout() {
                   <dl className="space-y-2.5 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">Plan</dt>
-                      <dd className="font-semibold">{active.name}</dd>
+                      <dd className="font-semibold">{active?.name || "Selected Tier"}</dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">Term</dt>

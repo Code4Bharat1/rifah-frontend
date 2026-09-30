@@ -522,15 +522,23 @@ export function BizNewEnquiry() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="budget" className="text-sm font-semibold">
-                  Target Budget (Optional)
+                  Target Budget (Optional, ₹)
                 </Label>
-                <Input
-                  id="budget"
-                  placeholder="e.g., ₹1,50,000 or Market Competitive"
-                  value={formData.budget}
-                  onChange={(e) => handleInputChange("budget", e.target.value)}
-                  className="mt-1"
-                />
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-semibold">₹</span>
+                  <Input
+                    id="budget"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="e.g. 150000"
+                    value={formData.budget}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9,.]/g, "");
+                      handleInputChange("budget", val);
+                    }}
+                    className="pl-7"
+                  />
+                </div>
               </div>
 
               <div>

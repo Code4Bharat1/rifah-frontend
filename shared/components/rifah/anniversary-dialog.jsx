@@ -88,22 +88,22 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [], wish
       <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-[780px] max-h-[88vh] flex flex-col p-0 sm:p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl font-sans">
         
         {/* TOP CELEBRATION HEADER WITH SEAMLESS GRADIENT BANNER */}
-        <div className="relative border-b border-emerald-100/90 dark:border-emerald-900/50 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-emerald-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 px-6 py-5 pr-14 shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-md shadow-emerald-600/20 flex items-center justify-center">
-              <Award className="h-6 w-6" />
+        <div className="relative border-b border-emerald-100/90 dark:border-emerald-900/50 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-emerald-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 px-4 py-3.5 sm:px-6 sm:py-5 pr-12 sm:pr-14 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-md shadow-emerald-600/20 flex items-center justify-center">
+              <Award className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-100/90 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider bg-emerald-100/90 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
                   <Sparkles className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                   Chapter Milestones
                 </span>
               </div>
-              <DialogTitle className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">
+              <DialogTitle className="text-lg sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-0.5 sm:mt-1">
                 Today's Chapter Anniversaries
               </DialogTitle>
-              <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+              <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5 line-clamp-2">
                 Celebrating <strong className="font-bold text-slate-900 dark:text-slate-200">{anniversaries.length} {anniversaries.length === 1 ? "business" : "businesses"}</strong> reaching membership milestones today.
               </DialogDescription>
             </div>
@@ -111,7 +111,7 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [], wish
         </div>
 
         {/* MEMBERS SCROLLABLE LIST */}
-        <div className="p-4 sm:p-5 overflow-y-auto max-h-[58vh] space-y-3.5 bg-slate-50/40 dark:bg-slate-950/40">
+        <div className="p-3 sm:p-5 overflow-y-auto max-h-[58vh] space-y-3 bg-slate-50/40 dark:bg-slate-950/40">
           {anniversaries.map((item, idx) => {
             const isSending = sendingMap[item.userId];
             const isSent = !!item.isWished || wishedIds.includes(String(item.userId)) || wishedIds.includes(String(item.businessId)) || !!sentMap[item.userId] || !!sentMap[item.businessId];
@@ -123,16 +123,21 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [], wish
               : null;
             const themeClass = AVATAR_THEMES[idx % AVATAR_THEMES.length];
             const initials = getInitials(item.businessName || item.userName);
+            const chapterText = item.chapter
+              ? item.chapter.toLowerCase().endsWith("chapter")
+                ? item.chapter
+                : `${item.chapter} Chapter`
+              : "";
 
             return (
               <div
                 key={String(item.businessId || item.userId || idx)}
-                className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-md transition-all duration-200"
+                className="p-3 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-md transition-all duration-200"
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3 sm:gap-4">
                   
                   {/* Left: Avatar Block */}
-                  <div className={`h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-base sm:text-lg shadow-xs ${themeClass}`}>
+                  <div className={`h-11 w-11 sm:h-14 sm:w-14 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-sm sm:text-lg shadow-xs ${themeClass}`}>
                     {item.userAvatar ? (
                       <img
                         src={item.userAvatar}
@@ -145,94 +150,96 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [], wish
                   </div>
 
                   {/* Right: Business Details & Actions */}
-                  <div className="min-w-0 flex-1 flex flex-col justify-between gap-2.5">
+                  <div className="min-w-0 flex-1 flex flex-col justify-between gap-2">
   
                     {/* Top Row: Business Name in single clean line */}
-                    <div className="flex items-center justify-between gap-3 min-w-0">
-                      <h4 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight truncate">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <h4 className="font-bold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-white tracking-tight truncate">
                         {item.businessName}
                       </h4>
                       {item.isSelf && (
-                        <span className="inline-flex items-center text-[11px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 font-bold px-2.5 py-0.5 rounded-full shrink-0">
+                        <span className="inline-flex items-center text-[10px] sm:text-[11px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 font-bold px-2 py-0.5 rounded-full shrink-0">
                           Your Business
                         </span>
                       )}
                     </div>
 
                     {/* Bottom Row: Owner & Chapter on Left, Badge & Buttons on Right */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-1.5 border-t border-slate-100 dark:border-slate-800/60">
                       
                       {/* Left: Owner & Chapter info */}
-                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400">
                         <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
                           <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                          <span>Owner: <strong className="font-semibold text-slate-800 dark:text-slate-200">{item.userName}</strong></span>
+                          <span className="truncate">Owner: <strong className="font-semibold text-slate-800 dark:text-slate-200">{item.userName}</strong></span>
                         </span>
-                        {item.chapter && (
+                        {chapterText && (
                           <span className="flex items-center gap-1 text-slate-500">
                             <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span>{item.chapter} Chapter</span>
+                            <span className="truncate">{chapterText}</span>
                           </span>
                         )}
                       </div>
 
-                      {/* Right (Niche Right Me): Milestone Badge + WhatsApp + Say Congrats */}
-                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      {/* Right: Milestone Badge + WhatsApp + Say Congrats */}
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto sm:shrink-0">
                         {!item.isSelf && (
-                          <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 font-semibold px-3 py-1.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800 shrink-0">
-                            <Sparkles className="h-3.5 w-3.5 text-amber-500 fill-amber-400 shrink-0" />
+                          <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 font-semibold px-2.5 py-1 rounded-xl border border-emerald-200/80 dark:border-emerald-800 shrink-0">
+                            <Sparkles className="h-3 w-3 text-amber-500 fill-amber-400 shrink-0" />
                             <span>{item.yearsCompleted} {item.yearsCompleted > 1 ? "Years" : "Year"} at RIFAH</span>
                           </span>
                         )}
 
-                        {whatsappUrl && (
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                          >
-                            <a
-                              href={whatsappUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => {
-                                setSentMap((prev) => ({ ...prev, [item.userId]: true, [item.businessId]: true }));
-                                onAnniversaryWished?.(item);
-                              }}
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial">
+                          {whatsappUrl && (
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2.5 sm:px-3 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs flex-1 sm:flex-initial justify-center"
                             >
-                              <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" />
-                              <span>WhatsApp</span>
-                            </a>
-                          </Button>
-                        )}
+                              <a
+                                href={whatsappUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => {
+                                  setSentMap((prev) => ({ ...prev, [item.userId]: true, [item.businessId]: true }));
+                                  onAnniversaryWished?.(item);
+                                }}
+                              >
+                                <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" />
+                                <span>WhatsApp</span>
+                              </a>
+                            </Button>
+                          )}
 
-                        {!item.isSelf && (
-                          isSent ? (
-                            <Button
-                              size="sm"
-                              disabled
-                              className="h-8.5 px-3.5 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold rounded-xl gap-1.5 border border-emerald-300 dark:border-emerald-800"
-                            >
-                              <Check className="h-3.5 w-3.5 text-emerald-600" />
-                              <span>Wished</span>
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              disabled={isSending}
-                              onClick={() => handleSendCongratulate(item)}
-                              className="h-8.5 px-3.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl gap-1.5 shadow-2xs transition-all cursor-pointer"
-                            >
-                              {isSending ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Sparkles className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
-                              )}
-                              <span>Say Congrats</span>
-                            </Button>
-                          )
-                        )}
+                          {!item.isSelf && (
+                            isSent ? (
+                              <Button
+                                size="sm"
+                                disabled
+                                className="h-8 px-3 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold rounded-xl gap-1.5 border border-emerald-300 dark:border-emerald-800 flex-1 sm:flex-initial justify-center"
+                              >
+                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                <span>Wished</span>
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                disabled={isSending}
+                                onClick={() => handleSendCongratulate(item)}
+                                className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl gap-1.5 shadow-2xs transition-all cursor-pointer flex-1 sm:flex-initial justify-center whitespace-nowrap"
+                              >
+                                {isSending ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Sparkles className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
+                                )}
+                                <span>Say Congrats</span>
+                              </Button>
+                            )
+                          )}
+                        </div>
                       </div>
 
                     </div>
@@ -246,10 +253,10 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [], wish
         </div>
 
         {/* BOTTOM FOOTER */}
-        <div className="px-6 py-3.5 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
             <Award className="h-4 w-4 text-emerald-600 shrink-0" />
-            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate sm:whitespace-normal">
               Celebrating loyalty, partnership, and entrepreneurial excellence at RIFAH.
             </span>
           </div>
@@ -258,7 +265,7 @@ export function AnniversaryDialog({ open, onOpenChange, anniversaries = [], wish
             asChild
             variant="outline"
             size="sm"
-            className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-2xs gap-1.5 self-end sm:self-center"
+            className="h-8 px-3.5 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-2xs gap-1.5 w-full sm:w-auto justify-center"
           >
             <Link href="/biz/networking">
               <span>Chapter Directory</span>

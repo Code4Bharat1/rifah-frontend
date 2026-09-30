@@ -1862,7 +1862,7 @@ function BizMembership() {
               <div className="flex flex-col sm:flex-row xl:flex-col justify-between items-start xl:items-end gap-4 pt-4 xl:pt-0 border-t xl:border-t-0 border-border/70 shrink-0">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full xl:w-auto">
                   {!isFreeTier && (
-                    <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px]">
+                    <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-0 w-full">
                       <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                         <Calendar className="h-3 w-3 text-primary" /> Valid Until
                       </span>
@@ -1871,7 +1871,7 @@ function BizMembership() {
                   )}
 
                   {!isFreeTier && (
-                    <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px]">
+                    <div className="p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-0 w-full">
                       <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                         <Wallet className="h-3 w-3 text-emerald-500" /> Billing
                       </span>
@@ -1898,8 +1898,8 @@ function BizMembership() {
                   )}
 
                   <div className={cn(
-                    "p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-[130px]",
-                    isFreeTier ? "col-span-2 sm:col-span-3 min-w-[220px]" : "col-span-2 sm:col-span-1"
+                    "p-3 rounded-2xl bg-background/80 dark:bg-card/80 border border-border/70 shadow-2xs min-w-0 w-full",
+                    isFreeTier ? "col-span-2 sm:col-span-3 min-w-0" : "col-span-2 sm:col-span-1"
                   )}>
                     <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
                       <span className="flex items-center gap-1">
@@ -2743,7 +2743,7 @@ function BizMembership() {
                     <div
                       key={template.type}
                       className={cn(
-                        "flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border transition-all",
+                        "flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border transition-all",
                         !hasBusinessProfile && !isUploaded
                           ? "border-border/60 bg-muted/20 opacity-75"
                           : "border-border/70 bg-card hover:bg-muted/30 hover:border-border hover:shadow-2xs"
@@ -2770,7 +2770,7 @@ function BizMembership() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap justify-end">
+                      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap justify-start sm:justify-end pl-12 sm:pl-0 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-border/40">
                         {isDocVerified ? (
                           <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2.5 py-0.5">
                             Verified
