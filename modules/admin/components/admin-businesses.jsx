@@ -14,6 +14,7 @@ import {
   MapPin,
   RotateCcw,
   Check,
+  Plus,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -402,18 +403,25 @@ function AdminBusinesses() {
           : `${rows.length} listed businesses`
       }
       actions={
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <Button
             variant="outline"
-            className="rounded-full flex items-center gap-2 font-medium"
+            size="sm"
+            className="rounded-full flex items-center gap-1 font-medium h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm shrink-0"
             onClick={handleExportDirectory}
+            title="Export directory"
           >
-            <Download className="h-4 w-4" />
-            Export directory
+            <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Export directory</span>
+            <span className="sm:hidden">Export</span>
           </Button>
           {(user?.role === "central_admin" || user?.role === "super_admin" || user?.role === "chapter_admin") && (
-            <Button asChild className="rounded-full bg-blue-600 hover:bg-blue-700">
-              <Link href={`${basePath}/businesses/new`}>Add Business</Link>
+            <Button asChild size="sm" className="rounded-full bg-blue-600 hover:bg-blue-700 h-8 sm:h-9 px-2.5 sm:px-4 text-xs sm:text-sm font-semibold shrink-0 shadow-xs">
+              <Link href={`${basePath}/businesses/new`} className="flex items-center gap-1">
+                <Plus className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Add Business</span>
+                <span className="sm:hidden">Add</span>
+              </Link>
             </Button>
           )}
         </div>

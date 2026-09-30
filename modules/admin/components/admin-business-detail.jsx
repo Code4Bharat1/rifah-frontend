@@ -138,46 +138,46 @@ export function AdminBusinessDetail({ id }) {
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
-          <Panel className="p-6">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold">{business.name}</h2>
-                <p className="text-muted-foreground">{business.tagline || "No tagline provided"}</p>
+          <Panel className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-6">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl sm:text-2xl font-bold truncate">{business.name}</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{business.tagline || "No tagline provided"}</p>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={openEditModal}>
-                  <Edit2 className="mr-2 h-4 w-4" />
+              <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                <Button variant="outline" size="sm" onClick={openEditModal} className="h-8 sm:h-9 text-xs sm:text-sm">
+                  <Edit2 className="mr-1.5 h-3.5 w-3.5" />
                   Edit Details
                 </Button>
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline" size="sm" className="h-8 sm:h-9 text-xs sm:text-sm">
                   <Link href={`/business/${business.slug || business._id}`} target="_blank">
-                    <ExternalLink className="mr-2 h-4 w-4" />
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                     Public Profile
                   </Link>
                 </Button>
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Industry</p>
-                <p className="font-medium">{business.industry}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Industry</p>
+                <p className="font-medium text-sm sm:text-base">{business.industry}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Location</p>
-                <p className="font-medium flex items-center gap-1">
-                  <MapPinned className="h-4 w-4 text-muted-foreground" />
-                  {business.city}, {business.state}
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Location</p>
+                <p className="font-medium text-sm sm:text-base flex items-center gap-1">
+                  <MapPinned className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span>{business.city}, {business.state}</span>
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Chapter</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Chapter</p>
                 <Pill>{business.chapter}</Pill>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Status</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Status</p>
                 <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                     business.status === "active" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
                   }`}>
                     {business.status?.toUpperCase() || "UNKNOWN"}
@@ -187,7 +187,7 @@ export function AdminBusinessDetail({ id }) {
             </div>
           </Panel>
 
-          <Panel className="p-6">
+          <Panel className="p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-4">About Business</h3>
             <p className="text-sm whitespace-pre-wrap">
               {business.about || "No description provided."}
@@ -195,12 +195,12 @@ export function AdminBusinessDetail({ id }) {
           </Panel>
 
           {(business.logo || business.coverImage || (business.gallery && business.gallery.length > 0)) && (
-            <Panel className="p-6">
+            <Panel className="p-4 sm:p-6">
               <h3 className="text-lg font-semibold mb-4">Media & Profile Images</h3>
               
               <div className="space-y-6">
                 {(business.logo || business.coverImage) && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {business.logo && (
                       <div>
                         <p className="text-sm text-muted-foreground mb-2">Logo</p>
@@ -262,7 +262,7 @@ export function AdminBusinessDetail({ id }) {
         </div>
 
         <div className="space-y-6">
-          <Panel className="p-6">
+          <Panel className="p-4 sm:p-6">
             <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Verification & Plan</h3>
             <div className="space-y-4">
               <div>
@@ -277,7 +277,7 @@ export function AdminBusinessDetail({ id }) {
           </Panel>
 
           {verificationRecord && verificationRecord.documents && verificationRecord.documents.length > 0 && (
-            <Panel className="p-6">
+            <Panel className="p-4 sm:p-6">
               <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Submitted Documents</h3>
               <div className="space-y-3">
                 {verificationRecord.documents.map((doc, i) => (
@@ -301,7 +301,7 @@ export function AdminBusinessDetail({ id }) {
             </Panel>
           )}
 
-          <Panel className="p-6">
+          <Panel className="p-4 sm:p-6">
             <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Contact Info</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -315,7 +315,7 @@ export function AdminBusinessDetail({ id }) {
             </div>
           </Panel>
 
-          <Panel className="p-6 bg-muted/30">
+          <Panel className="p-4 sm:p-6 bg-muted/30">
             <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Admin Actions</h3>
             <div className="space-y-3">
               <Button 
@@ -446,13 +446,13 @@ export function AdminBusinessDetail({ id }) {
       </AlertDialog>
       {/* Edit Business Dialog */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Edit Business Details</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleEditSave} className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+          <form onSubmit={handleEditSave} className="space-y-4 py-3 sm:py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label>Chapter</Label>
                 <Input 
                   value={editData.chapter} 
@@ -460,7 +460,7 @@ export function AdminBusinessDetail({ id }) {
                   placeholder="e.g. Pune Chapter"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label>Membership Plan</Label>
                 <Select value={editData.membershipTier} onValueChange={(val) => setEditData({...editData, membershipTier: val})}>
                   <SelectTrigger><SelectValue placeholder="Select Plan" /></SelectTrigger>
@@ -473,7 +473,7 @@ export function AdminBusinessDetail({ id }) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2 col-span-2 md:col-span-1">
+              <div className="space-y-1.5 sm:space-y-2 col-span-1 sm:col-span-2">
                 <Label>Registration Type</Label>
                 <Select value={editData.registrationType} onValueChange={(val) => setEditData({...editData, registrationType: val})}>
                   <SelectTrigger><SelectValue placeholder="Select Type" /></SelectTrigger>
@@ -488,9 +488,9 @@ export function AdminBusinessDetail({ id }) {
 
             <div className="border-t pt-4 mt-4">
               <h4 className="text-sm font-semibold mb-3">Payment Details</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
 
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <Label>Payment Mode</Label>
                   <Select value={editData.paymentMode} onValueChange={(val) => setEditData({...editData, paymentMode: val})}>
                     <SelectTrigger><SelectValue placeholder="Select Mode" /></SelectTrigger>
@@ -502,7 +502,7 @@ export function AdminBusinessDetail({ id }) {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <Label>Transaction ID</Label>
                   <Input 
                     value={editData.transactionId} 
@@ -510,7 +510,7 @@ export function AdminBusinessDetail({ id }) {
                     placeholder="TXN..."
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2 col-span-1 sm:col-span-2">
                   <Label>Amount</Label>
                   <Input 
                     type="number"
