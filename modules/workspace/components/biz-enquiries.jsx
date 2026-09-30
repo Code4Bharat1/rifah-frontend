@@ -605,7 +605,7 @@ export function BizEnquiries() {
           </div>
 
           {/* Search Bar on Right */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full md:w-auto">
             <div className="relative w-full sm:w-64 md:w-80">
               <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <input

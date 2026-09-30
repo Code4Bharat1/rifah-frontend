@@ -1336,7 +1336,7 @@ function RegisterBusiness({ isAdmin = false }) {
         </DialogContent>
       </Dialog>
 
-      <div className="rifah-container py-4 sm:py-10 max-w-full overflow-x-hidden">
+      <div className="rifah-container pt-4 pb-32 sm:pt-10 sm:pb-16 max-w-full overflow-x-hidden">
         <div className={cn("mx-auto w-full min-w-0 transition-all duration-300", step === 3 ? "max-w-6xl" : "max-w-2xl")}>
           <SectionHeader
             title="List your business with RIFAH"

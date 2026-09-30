@@ -113,25 +113,25 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-[780px] max-h-[88vh] flex flex-col p-0 sm:p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl font-sans">
+      <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-3xl md:max-w-[780px] max-h-[88vh] flex flex-col p-0 sm:p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl font-sans">
 
         {/* TOP CELEBRATION HEADER WITH SEAMLESS GRADIENT BANNER */}
-        <div className="relative border-b border-indigo-100/90 dark:border-indigo-900/50 bg-gradient-to-r from-blue-50 via-indigo-50/70 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-purple-950/40 px-6 py-5 pr-14 shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 text-white shadow-md shadow-indigo-500/20 flex items-center justify-center">
-              <Users className="h-6 w-6" />
+        <div className="relative border-b border-indigo-100/90 dark:border-indigo-900/50 bg-gradient-to-r from-blue-50 via-indigo-50/70 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-purple-950/40 px-4 py-3.5 sm:px-6 sm:py-5 pr-12 sm:pr-14 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 text-white shadow-md shadow-indigo-500/20 flex items-center justify-center">
+              <Users className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-indigo-100/90 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider bg-indigo-100/90 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300">
                   <Sparkles className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
                   Chapter Community
                 </span>
               </div>
-              <DialogTitle className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">
+              <DialogTitle className="text-lg sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-0.5 sm:mt-1">
                 New Chapter Members
               </DialogTitle>
-              <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+              <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5 line-clamp-2">
                 Welcoming <strong className="font-bold text-slate-900 dark:text-slate-200">{newMembers.length} {newMembers.length === 1 ? "business" : "businesses"}</strong> who joined your chapter recently.
               </DialogDescription>
             </div>
@@ -139,7 +139,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
         </div>
 
         {/* MEMBERS SCROLLABLE LIST */}
-        <div className="p-4 sm:p-5 overflow-y-auto max-h-[58vh] space-y-3.5 bg-slate-50/40 dark:bg-slate-950/40">
+        <div className="p-3 sm:p-5 overflow-y-auto max-h-[58vh] space-y-3 bg-slate-50/40 dark:bg-slate-950/40">
           {newMembers.map((item, idx) => {
             const isSending = sendingMap[item.userId];
             const isSent = sentMap[item.userId];
@@ -153,48 +153,48 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
             return (
               <div
                 key={String(item.businessId || item.userId || idx)}
-                className="p-4 sm:p-4.5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-sm transition-all duration-200"
+                className="p-3.5 sm:p-4.5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-sm transition-all duration-200"
               >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+                <div className="flex flex-col gap-3">
 
                   {/* Left: Avatar + Details */}
-                  <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                  <div className="flex items-start gap-3 sm:gap-3.5 min-w-0 flex-1">
                     {/* Avatar */}
-                    <div className={`h-12 w-12 sm:h-13 sm:w-13 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-base shadow-xs overflow-hidden ${themeClass}`}>
+                    <div className={`h-11 w-11 sm:h-13 sm:w-13 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-sm sm:text-base shadow-xs overflow-hidden ${themeClass}`}>
                       <MemberAvatar avatarUrl={item.userAvatar} name={item.businessName || item.userName} />
                     </div>
 
                     {/* Text Details */}
-                    <div className="min-w-0 flex-1 space-y-1">
+                    <div className="min-w-0 flex-1 space-y-0.5">
                       {/* Name + New Member Badge */}
-                      <div className="flex items-center gap-2 flex-wrap min-w-0">
-                        <h4 className="font-bold text-base sm:text-[17px] text-slate-900 dark:text-white tracking-tight truncate">
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <h4 className="font-bold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-white tracking-tight truncate">
                           {item.businessName}
                         </h4>
-                        <span className="inline-flex items-center gap-1 text-[11px] bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 font-semibold px-2.5 py-0.5 rounded-full border border-sky-200/80 dark:border-sky-800 shrink-0">
+                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 font-semibold px-2 py-0.5 rounded-full border border-sky-200/80 dark:border-sky-800 shrink-0">
                           <Sparkles className="h-3 w-3 text-sky-500 fill-sky-400 shrink-0" />
                           <span>New Member</span>
                         </span>
                       </div>
 
                       {/* Meta Information Line */}
-                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400 pt-0.5">
                         {item.userName && (
                           <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
                             <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span>Owner: <strong className="font-semibold text-slate-800 dark:text-slate-200">{item.userName}</strong></span>
+                            <span className="truncate">Owner: <strong className="font-semibold text-slate-800 dark:text-slate-200">{item.userName}</strong></span>
                           </span>
                         )}
                         {item.industry && (
                           <span className="flex items-center gap-1">
                             <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span className="truncate max-w-[220px] sm:max-w-[280px]" title={item.industry}>{item.industry}</span>
+                            <span className="truncate max-w-[180px] sm:max-w-[280px]" title={item.industry}>{item.industry}</span>
                           </span>
                         )}
                         {item.chapter && (
                           <span className="flex items-center gap-1 text-slate-500">
                             <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span>{formatChapter(item.chapter)}</span>
+                            <span className="truncate">{formatChapter(item.chapter)}</span>
                           </span>
                         )}
                         <span className="flex items-center gap-1 text-slate-500">
@@ -205,14 +205,14 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
                     </div>
                   </div>
 
-                  {/* Right: Actions */}
-                  <div className="flex items-center gap-2 shrink-0 self-end md:self-center pl-15 sm:pl-0">
+                  {/* Actions Row */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 w-full sm:w-auto sm:self-end">
                     {whatsappUrl && (
                       <Button
                         asChild
                         size="sm"
                         variant="outline"
-                        className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                        className="h-8 px-3 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs flex-1 sm:flex-initial justify-center"
                       >
                         <a
                           href={whatsappUrl}
@@ -230,7 +230,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
                       <Button
                         size="sm"
                         disabled
-                        className="h-8.5 px-3.5 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold rounded-xl gap-1.5 border border-emerald-300 dark:border-emerald-800"
+                        className="h-8 px-3 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold rounded-xl gap-1.5 border border-emerald-300 dark:border-emerald-800 flex-1 sm:flex-initial justify-center"
                       >
                         <Check className="h-3.5 w-3.5 text-emerald-600" />
                         <span>Welcomed</span>
@@ -240,7 +240,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
                         size="sm"
                         disabled={isSending}
                         onClick={() => handleSendWelcome(item)}
-                        className="h-8.5 px-4 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl gap-1.5 shadow-xs hover:shadow-indigo-500/25 transition-all cursor-pointer"
+                        className="h-8 px-3.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl gap-1.5 shadow-xs hover:shadow-indigo-500/25 transition-all cursor-pointer flex-1 sm:flex-initial justify-center whitespace-nowrap"
                       >
                         {isSending ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -259,10 +259,10 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
         </div>
 
         {/* BOTTOM FOOTER */}
-        <div className="px-6 py-3.5 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
             <Users className="h-4 w-4 text-indigo-600 shrink-0" />
-            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate sm:whitespace-normal">
               Build stronger connections. A stronger RIFAH community.
             </span>
           </div>
@@ -271,7 +271,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
             asChild
             variant="outline"
             size="sm"
-            className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-2xs gap-1.5 self-end sm:self-center"
+            className="h-8 px-3.5 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-2xs gap-1.5 w-full sm:w-auto justify-center"
           >
             <Link href="/biz/networking">
               <span>Chapter Directory</span>

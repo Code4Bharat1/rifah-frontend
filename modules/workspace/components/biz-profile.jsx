@@ -567,7 +567,7 @@ function BizProfile() {
       )}
 
       {/* Top Segmented Navigation Switcher */}
-      <div className="flex items-center gap-2 border-b border-border pb-3 mb-6 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-border pb-3 mb-6 overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab("profile")}
@@ -901,7 +901,7 @@ function BizProfile() {
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-                <Button type="submit" disabled={saving}>
+                <Button type="submit" disabled={saving} className="w-full sm:w-auto">
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...

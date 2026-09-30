@@ -471,7 +471,7 @@ function BusinessHome() {
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] w-full min-w-0">
           {/* Main Left Column */}
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0 w-full overflow-hidden">
             {/* Matched Leads Panel */}
             <Panel
               title="Member & buyer enquiries"
@@ -479,10 +479,12 @@ function BusinessHome() {
               action={<MoreLink href="/biz/enquiries" label="View all →" />}
             >
               {rawLeads.length === 0 ? (
-                <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                  <Target className="mx-auto h-8 w-8 text-slate-300 mb-2" />
-                  <p className="text-xs font-bold text-slate-700">No enquiries yet</p>
-                  <p className="text-[11px] text-slate-400 max-w-xs mx-auto mt-0.5">
+                <div className="py-7 px-4 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/60 dark:bg-slate-900/40 flex flex-col items-center justify-center w-full min-w-0">
+                  <div className="h-11 w-11 rounded-2xl bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-900/60 flex items-center justify-center mb-2.5 shadow-2xs">
+                    <Target className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">No enquiries yet</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-1 leading-relaxed text-center">
                     When buyers post matching requirements, they will appear here.
                   </p>
                 </div>
@@ -569,8 +571,8 @@ function BusinessHome() {
             <Panel
               title="Performance Overview"
               description="Leads, enquiries and profile views by month"
-              className="overflow-visible"
-              bodyClassName="pt-2 pb-5 px-4 sm:px-6"
+              className="w-full min-w-0 overflow-hidden"
+              bodyClassName="pt-2 pb-4 px-3 sm:px-6 min-w-0 overflow-hidden"
               action={
                 <div className="flex items-center gap-3">
                   {/* Dropdown Button */}
@@ -578,7 +580,7 @@ function BusinessHome() {
                     <button
                       type="button"
                       onClick={() => setDropdownOpen((prev) => !prev)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
                     >
                       <span>{timeRange}</span>
                       <ChevronDown className={cn("h-3.5 w-3.5 text-slate-400 transition-transform duration-200", dropdownOpen && "rotate-180")} />
@@ -614,7 +616,7 @@ function BusinessHome() {
               }
             >
               {/* Legend matching Image 1 */}
-              <div className="flex items-center gap-5 sm:gap-6 mt-1 mb-5 text-xs font-semibold text-slate-600 dark:text-slate-300 select-none">
+              <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 sm:gap-6 mt-1 mb-4 text-xs font-semibold text-slate-600 dark:text-slate-300 select-none">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#0060df] shrink-0" />
                   <span>Leads</span>
@@ -631,12 +633,12 @@ function BusinessHome() {
 
               {/* Chart Body with Headroom for Floating Tooltip */}
               <div
-                className="relative pt-24 pb-2 select-none"
+                className="relative pt-6 sm:pt-16 pb-2 select-none overflow-x-auto no-scrollbar"
                 onMouseLeave={() => setHoveredMonthIndex(null)}
               >
-                <div className="relative flex items-end">
+                <div className="relative flex items-end w-full min-w-0">
                   {/* Left Y-Axis Ticks */}
-                  <div className="relative h-[180px] w-8 shrink-0 mr-2 flex flex-col justify-between text-right text-[11px] font-medium text-slate-400 dark:text-slate-500 tabular-nums">
+                  <div className="relative h-[160px] sm:h-[180px] w-7 sm:w-8 shrink-0 mr-1.5 sm:mr-2 flex flex-col justify-between text-right text-[10px] sm:text-[11px] font-medium text-slate-400 dark:text-slate-500 tabular-nums">
                     {yTicks.map((tick, idx) => (
                       <span key={idx} className="leading-none">
                         {tick >= 1000 ? `${(tick / 1000).toFixed(tick % 1000 === 0 ? 0 : 1)}k` : tick}
@@ -646,7 +648,7 @@ function BusinessHome() {
 
                   {/* Chart Plot Area with Horizontal Dashed Grid Lines */}
                   <div
-                    className="relative flex-1 h-[180px]"
+                    className="relative flex-1 h-[160px] sm:h-[180px]"
                     onMouseLeave={() => setHoveredMonthIndex(null)}
                   >
                     {/* Dashed Horizontal Grid Lines */}
@@ -806,14 +808,14 @@ function BusinessHome() {
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center justify-between px-1 text-xs">
-                <div className="flex items-center gap-1.5 font-semibold text-emerald-600">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  <span>Performance overview live synced</span>
+              <div className="mt-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-1 text-xs">
+                <div className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400 min-w-0">
+                  <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">Performance overview live synced</span>
                 </div>
                 <Link
                   href="/biz/analytics"
-                  className="font-semibold text-primary hover:underline flex items-center gap-1"
+                  className="font-semibold text-primary hover:underline flex items-center gap-1 shrink-0"
                 >
                   <span>Detailed Analytics</span>
                   <ArrowUpRight className="h-3.5 w-3.5" />
@@ -823,7 +825,7 @@ function BusinessHome() {
           </div>
 
           {/* Right Sidebar Column */}
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0 w-full overflow-hidden">
             {/* Box 1: Profile Completeness */}
             <Panel title="Profile completeness">
               <div className="flex items-baseline justify-between">

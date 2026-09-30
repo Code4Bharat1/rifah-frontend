@@ -478,7 +478,7 @@ export function BizLms() {
         )}
 
         {/* ── Top navigation tabs */}
-        <div className="flex gap-1 border-b">
+        <div className="flex gap-1 border-b overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab("courses")}
             className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 -mb-px ${

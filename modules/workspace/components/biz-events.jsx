@@ -214,7 +214,7 @@ export function BizEvents() {
         <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             {/* Simple View Switcher: All Events vs My Passes */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => setActiveView("all")}

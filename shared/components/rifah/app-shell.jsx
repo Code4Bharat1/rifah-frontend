@@ -298,6 +298,8 @@ function isAccessibleUnverifiedPath(pathname) {
     clean.startsWith("/biz/events/") ||
     clean === "/biz/operations" ||
     clean.startsWith("/biz/operations/") ||
+    clean === "/biz/messages" ||
+    clean.startsWith("/biz/messages/") ||
     clean === "/biz/my-duty" ||
     clean.startsWith("/biz/my-duty/")
   );
@@ -847,7 +849,7 @@ export function AppShell({
               {role === "business" && (
                 <Button asChild variant="ghost" size="icon" className="relative">
                   <Link
-                    href={toRoleAwarePath(isBizVerified ? "/biz/messages" : "/biz/verification", role, user)}
+                    href={toRoleAwarePath("/biz/messages", role, user)}
                     aria-label="Messages"
                   >
                     <Mail className="h-4 w-4 sm:h-5 sm:w-5" />

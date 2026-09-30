@@ -23,25 +23,30 @@ const DialogOverlay = React.forwardRef
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef
-(({ className, children, ...props }, ref) => (
+(({ className, children, onOpenAutoFocus, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      onOpenAutoFocus={(e) => {
+        // Prevent browser/Radix from scrolling down past header to first input on mobile
+        e.preventDefault();
+        onOpenAutoFocus?.(e);
+      }}
       className={cn(
-        "fixed z-50 grid w-full gap-4 border bg-background shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
-        // Mobile: bottom sheet style
-        "inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto overflow-x-hidden rounded-t-2xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        // Desktop: centered modal
-        "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:max-h-[85vh] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:p-6 sm:overflow-x-hidden sm:data-[state=closed]:fade-out-0 sm:data-[state=open]:fade-in-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0",
+        "fixed z-50 grid w-[calc(100vw-1.5rem)] sm:w-full gap-4 border bg-background shadow-2xl duration-200",
+        // Center modal on both mobile and desktop
+        "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
+        "max-h-[88vh] sm:max-h-[85vh] max-w-[calc(100vw-1.5rem)] sm:max-w-lg",
+        "rounded-2xl sm:rounded-3xl p-4 sm:p-6 overflow-y-auto overflow-x-hidden",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
       {...props}
     >
-      {/* Mobile drag handle indicator */}
-      <div className="mx-auto h-1 w-10 shrink-0 rounded-full bg-muted-foreground/20 sm:hidden" />
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background cursor-pointer transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+      <DialogPrimitive.Close className="absolute right-3.5 top-3.5 rounded-full p-1 opacity-70 ring-offset-background cursor-pointer transition-opacity hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-20">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -51,7 +56,7 @@ const DialogContent = React.forwardRef
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }) => (
-  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
+  <div className={cn("flex flex-col space-y-1.5 text-left pr-8 sm:pr-0", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 

@@ -109,23 +109,25 @@ function BizAnalytics() {
         <div className="grid gap-4 lg:grid-cols-2">
           {/* Real Profile views bar chart */}
           <Panel title="Profile views" description="Monthly unique discovery views from database">
-            <div className="flex h-48 items-end justify-between gap-3 pt-6 pb-2 px-2">
-              {profileViewsData.map((item, index) => {
-                const viewsCount = Number(item.views) || 0;
-                const heightPercent = maxViews > 0 ? Math.max(viewsCount > 0 ? 12 : 3, Math.min(100, (viewsCount / maxViews) * 100)) : 3;
-                return (
-                  <div key={index} className="flex flex-1 flex-col items-center gap-1.5 h-full justify-end">
-                    <span className="text-[11px] font-bold text-slate-700">{viewsCount}</span>
-                    <div
-                      className={`w-full max-w-[44px] rounded-t-md transition-all duration-300 ${
-                        viewsCount > 0 ? "bg-[#0088D1] shadow-2xs hover:opacity-90" : "bg-slate-200/80"
-                      }`}
-                      style={{ height: `${heightPercent}%` }}
-                    />
-                    <span className="text-xs font-semibold text-slate-500 mt-1">{item.month}</span>
-                  </div>
-                );
-              })}
+            <div className="overflow-x-auto no-scrollbar">
+              <div className="flex h-48 items-end justify-between gap-2 sm:gap-3 pt-6 pb-2 px-2 min-w-[280px]">
+                {profileViewsData.map((item, index) => {
+                  const viewsCount = Number(item.views) || 0;
+                  const heightPercent = maxViews > 0 ? Math.max(viewsCount > 0 ? 12 : 3, Math.min(100, (viewsCount / maxViews) * 100)) : 3;
+                  return (
+                    <div key={index} className="flex flex-1 flex-col items-center gap-1.5 h-full justify-end">
+                      <span className="text-[11px] font-bold text-slate-700">{viewsCount}</span>
+                      <div
+                        className={`w-full max-w-[44px] rounded-t-md transition-all duration-300 ${
+                          viewsCount > 0 ? "bg-[#0088D1] shadow-2xs hover:opacity-90" : "bg-slate-200/80"
+                        }`}
+                        style={{ height: `${heightPercent}%` }}
+                      />
+                      <span className="text-xs font-semibold text-slate-500 mt-1">{item.month}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-slate-600 border-t border-slate-100 pt-3">
               <TrendingUp className="h-3.5 w-3.5 text-sky-600" />
@@ -207,8 +209,8 @@ function BizAnalytics() {
                   const widthPercent = maxItemViews > 0 ? Math.max(item.views > 0 ? 8 : 2, Math.min(100, (item.views / maxItemViews) * 100)) : 2;
                   return (
                     <div key={item._id || idx} className="space-y-1">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-bold text-slate-800 truncate max-w-[280px]">
+                      <div className="flex justify-between items-center text-xs gap-2">
+                        <span className="font-bold text-slate-800 truncate min-w-0 max-w-[170px] sm:max-w-[280px]">
                           {item.name}
                         </span>
                         <span className="font-bold tabular-nums text-slate-600">
