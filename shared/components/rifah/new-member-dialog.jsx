@@ -24,6 +24,29 @@ const AVATAR_THEMES = [
   "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800",
 ];
 
+function MemberAvatar({ avatarUrl, name }) {
+  const [imgError, setImgError] = useState(false);
+  const initials = getInitials(name);
+
+  if (avatarUrl && !imgError) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name || "Member"}
+        onError={() => setImgError(true)}
+        className="h-full w-full object-cover rounded-2xl"
+      />
+    );
+  }
+  return <span>{initials}</span>;
+}
+
+function formatChapter(ch) {
+  if (!ch) return "";
+  const trimmed = ch.trim();
+  return trimmed.toLowerCase().endsWith("chapter") ? trimmed : `${trimmed} Chapter`;
+}
+
 function getInitials(name) {
   if (!name) return "MB";
   const parts = name.trim().split(/\s+/);
@@ -126,57 +149,52 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
               ? `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(whatsappDefault)}`
               : null;
             const themeClass = AVATAR_THEMES[idx % AVATAR_THEMES.length];
-            const initials = getInitials(item.businessName || item.userName);
 
             return (
               <div
                 key={String(item.businessId || item.userId || idx)}
-                className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-md transition-all duration-200"
+                className="p-4 sm:p-4.5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-sm transition-all duration-200"
               >
-                <div className="flex items-start gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
 
-                  {/* Left: Avatar Block */}
-                  <div className={`h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-base sm:text-lg shadow-xs ${themeClass}`}>
-                    {item.userAvatar ? (
-                      <img
-                        src={item.userAvatar}
-                        alt={item.businessName}
-                        className="h-full w-full object-cover rounded-2xl"
-                      />
-                    ) : (
-                      initials
-                    )}
-                  </div>
-
-                  {/* Right: Business Details & Actions */}
-                  <div className="min-w-0 flex-1 flex flex-col justify-between gap-2.5">
-
-                    {/* Top Row: Business Name in single clean line */}
-                    <div className="flex items-center justify-between gap-3 min-w-0">
-                      <h4 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight truncate">
-                        {item.businessName}
-                      </h4>
+                  {/* Left: Avatar + Details */}
+                  <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                    {/* Avatar */}
+                    <div className={`h-12 w-12 sm:h-13 sm:w-13 shrink-0 rounded-2xl border flex items-center justify-center font-extrabold text-base shadow-xs overflow-hidden ${themeClass}`}>
+                      <MemberAvatar avatarUrl={item.userAvatar} name={item.businessName || item.userName} />
                     </div>
 
-                    {/* Bottom Row: Owner, Category, Chapter, Joined on Left; Pill & Buttons on Right */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1 border-t border-slate-100 dark:border-slate-800/60">
-
-                      {/* Left: Details Row */}
-                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                        <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                          <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                          <span>Owner: <strong className="font-semibold text-slate-800 dark:text-slate-200">{item.userName}</strong></span>
+                    {/* Text Details */}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      {/* Name + New Member Badge */}
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <h4 className="font-bold text-base sm:text-[17px] text-slate-900 dark:text-white tracking-tight truncate">
+                          {item.businessName}
+                        </h4>
+                        <span className="inline-flex items-center gap-1 text-[11px] bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 font-semibold px-2.5 py-0.5 rounded-full border border-sky-200/80 dark:border-sky-800 shrink-0">
+                          <Sparkles className="h-3 w-3 text-sky-500 fill-sky-400 shrink-0" />
+                          <span>New Member</span>
                         </span>
+                      </div>
+
+                      {/* Meta Information Line */}
+                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                        {item.userName && (
+                          <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                            <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span>Owner: <strong className="font-semibold text-slate-800 dark:text-slate-200">{item.userName}</strong></span>
+                          </span>
+                        )}
                         {item.industry && (
                           <span className="flex items-center gap-1">
                             <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span className="truncate">{item.industry}</span>
+                            <span className="truncate max-w-[220px] sm:max-w-[280px]" title={item.industry}>{item.industry}</span>
                           </span>
                         )}
                         {item.chapter && (
                           <span className="flex items-center gap-1 text-slate-500">
                             <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span>{item.chapter} Chapter</span>
+                            <span>{formatChapter(item.chapter)}</span>
                           </span>
                         )}
                         <span className="flex items-center gap-1 text-slate-500">
@@ -184,61 +202,54 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
                           <span>{formatJoinedTime(item.joinedAt)}</span>
                         </span>
                       </div>
-
-                      {/* Right (Niche Right Me): New Member Pill + WhatsApp + Say Welcome */}
-                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                        <span className="inline-flex items-center gap-1.5 text-xs bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 font-semibold px-3 py-1.5 rounded-xl border border-sky-200/80 dark:border-sky-800 shrink-0">
-                          <Sparkles className="h-3.5 w-3.5 text-sky-500 fill-sky-400 shrink-0" />
-                          <span>New Member</span>
-                        </span>
-
-                        {whatsappUrl && (
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                          >
-                            <a
-                              href={whatsappUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => onMemberWelcomed?.(item)}
-                            >
-                              <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" />
-                              <span>WhatsApp</span>
-                            </a>
-                          </Button>
-                        )}
-
-                        {isSent ? (
-                          <Button
-                            size="sm"
-                            disabled
-                            className="h-8.5 px-3.5 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold rounded-xl gap-1.5 border border-emerald-300 dark:border-emerald-800"
-                          >
-                            <Check className="h-3.5 w-3.5 text-emerald-600" />
-                            <span>Welcomed</span>
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            disabled={isSending}
-                            onClick={() => handleSendWelcome(item)}
-                            className="h-8.5 px-3.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl gap-1.5 shadow-2xs transition-all cursor-pointer"
-                          >
-                            {isSending ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Sparkles className="h-3.5 w-3.5 text-sky-200 fill-sky-200" />
-                            )}
-                            <span>Say Welcome</span>
-                          </Button>
-                        )}
-                      </div>
-
                     </div>
+                  </div>
 
+                  {/* Right: Actions */}
+                  <div className="flex items-center gap-2 shrink-0 self-end md:self-center pl-15 sm:pl-0">
+                    {whatsappUrl && (
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="h-8.5 px-3.5 text-xs font-semibold rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                      >
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => onMemberWelcomed?.(item)}
+                        >
+                          <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>WhatsApp</span>
+                        </a>
+                      </Button>
+                    )}
+
+                    {isSent ? (
+                      <Button
+                        size="sm"
+                        disabled
+                        className="h-8.5 px-3.5 text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold rounded-xl gap-1.5 border border-emerald-300 dark:border-emerald-800"
+                      >
+                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>Welcomed</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        disabled={isSending}
+                        onClick={() => handleSendWelcome(item)}
+                        className="h-8.5 px-4 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl gap-1.5 shadow-xs hover:shadow-indigo-500/25 transition-all cursor-pointer"
+                      >
+                        {isSending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5 text-sky-200 fill-sky-200" />
+                        )}
+                        <span>Say Welcome</span>
+                      </Button>
+                    )}
                   </div>
 
                 </div>
