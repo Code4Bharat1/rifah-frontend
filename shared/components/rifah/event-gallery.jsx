@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   CalendarDays,
   Camera,
+  CheckSquare,
   Film,
   Globe2,
   ImageIcon,
@@ -18,6 +19,7 @@ import {
   MapPin,
   MapPinned,
   Search,
+  Square,
   Trash2,
   Upload,
   X,
@@ -63,6 +65,32 @@ export function EventGallery() {
   const [openEventId, setOpenEventId] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  // BUG-061: bulk delete — the gallery only ever supported removing one item at a time
+  // (via the lightbox), no way to clear out a batch of unwanted uploads at once.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const canDeleteItem = (item) =>
+    user?.role === "central_admin" ||
+    user?.role === "state_admin" ||
+    user?.role === "chapter_admin" ||
+    String(item?.uploadedBy?._id || item?.uploadedBy) === String(user?._id || user?.id);
+
+  const toggleSelected = (mediaId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(mediaId)) next.delete(mediaId);
+      else next.add(mediaId);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
 
   // Search controls. `search` is what the user is typing; `filters` is what we query with,
   // so every keystroke does not fire a request.
@@ -121,18 +149,44 @@ export function EventGallery() {
     setFilters({ ...cleared, q: "" });
   };
 
+  // BUG-058: the backend accepts at most 12 files per request (upload.array("media", 12)
+  // — exceeding it throws Multer's LIMIT_UNEXPECTED_FILE, previously surfaced as a raw
+  // 500). Rather than silently failing on a big batch (e.g. someone's whole camera roll),
+  // split it into chunks of 12 and send them as separate sequential requests so any
+  // number of files "just works" from the UI's point of view.
+  const GALLERY_UPLOAD_BATCH_SIZE = 12;
+
   const handleUpload = async (event) => {
     const files = Array.from(event.target.files || []);
     event.target.value = "";
     if (files.length === 0) return;
 
+    const batches = [];
+    for (let i = 0; i < files.length; i += GALLERY_UPLOAD_BATCH_SIZE) {
+      batches.push(files.slice(i, i + GALLERY_UPLOAD_BATCH_SIZE));
+    }
+
+    setUploading(true);
+    let addedCount = 0;
+    let failedCount = 0;
     try {
-      setUploading(true);
-      const res = await galleryApi.addMedia(openEventId, files);
-      toast.success(res?.message || "Added to the gallery");
+      for (const batch of batches) {
+        try {
+          await galleryApi.addMedia(openEventId, batch);
+          addedCount += batch.length;
+        } catch (err) {
+          failedCount += batch.length;
+          toast.error(err?.message || "Upload failed");
+        }
+      }
+      if (addedCount > 0) {
+        toast.success(
+          failedCount > 0
+            ? `Added ${addedCount} of ${files.length} to the gallery`
+            : `Added ${addedCount} item${addedCount === 1 ? "" : "s"} to the gallery`
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["gallery"] });
-    } catch (err) {
-      toast.error(err?.message || "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -149,11 +203,44 @@ export function EventGallery() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const results = await Promise.allSettled(ids.map((id) => galleryApi.removeMedia(id)));
+      const removed = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.length - removed;
+      if (removed > 0) {
+        toast.success(
+          failed > 0
+            ? `Removed ${removed} of ${ids.length} items`
+            : `Removed ${removed} item${removed === 1 ? "" : "s"} from the gallery`
+        );
+      }
+      if (failed > 0) {
+        toast.error(`Could not remove ${failed} item${failed === 1 ? "" : "s"}`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["gallery"] });
+      exitSelectMode();
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   // ─── Inside one event's folder ──────────────────────────────────────────────
   if (openEventId) {
     return (
       <div className="space-y-5">
-        <Button variant="ghost" size="sm" className="gap-2 -ml-2" onClick={() => setOpenEventId(null)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 -ml-2"
+          onClick={() => {
+            setOpenEventId(null);
+            exitSelectMode();
+          }}
+        >
           <ArrowLeft className="h-4 w-4" /> All event folders
         </Button>
 
@@ -185,24 +272,64 @@ export function EventGallery() {
                   </p>
                 </div>
 
-                {folder.canUpload && (
-                  <>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*,video/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleUpload}
-                    />
-                    <Button className="gap-2" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                      {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                      {uploading ? "Uploading..." : "Add photos / videos"}
+                <div className="flex items-center gap-2">
+                  {folder.media.some(canDeleteItem) && !selectMode && (
+                    <Button variant="outline" className="gap-2" onClick={() => setSelectMode(true)}>
+                      <CheckSquare className="h-4 w-4" /> Select
                     </Button>
-                  </>
-                )}
+                  )}
+                  {folder.canUpload && (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,video/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleUpload}
+                      />
+                      <Button className="gap-2" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                        {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                        {uploading ? "Uploading..." : "Add photos / videos"}
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
+
+            {selectMode && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/20 px-4 py-2.5">
+                <div className="flex items-center gap-3 text-xs">
+                  <button
+                    type="button"
+                    className="font-semibold text-primary hover:underline"
+                    onClick={() => {
+                      const deletable = folder.media.filter(canDeleteItem).map((m) => m._id);
+                      setSelectedIds((prev) => (prev.size === deletable.length ? new Set() : new Set(deletable)));
+                    }}
+                  >
+                    {selectedIds.size === folder.media.filter(canDeleteItem).length ? "Deselect all" : "Select all"}
+                  </button>
+                  <span className="text-muted-foreground">{selectedIds.size} selected</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={exitSelectMode} disabled={bulkDeleting}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={selectedIds.size === 0 || bulkDeleting}
+                    onClick={handleBulkDelete}
+                  >
+                    {bulkDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    Delete Selected ({selectedIds.size})
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {folder.media.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-border rounded-2xl bg-muted/20">
@@ -216,35 +343,58 @@ export function EventGallery() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {folder.media.map((item) => (
-                  <button
-                    key={item._id}
-                    type="button"
-                    onClick={() => setLightbox(item)}
-                    className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-muted/30 hover:border-primary/50 transition-colors"
-                  >
-                    {item.type === "video" ? (
-                      <>
-                        <video src={resolveMediaUrl(item.url)} className="h-full w-full object-cover" muted preload="metadata" />
-                        <span className="absolute inset-0 grid place-items-center bg-black/30">
-                          <Film className="h-7 w-7 text-white drop-shadow" />
+                {folder.media.map((item) => {
+                  const deletable = canDeleteItem(item);
+                  const selected = selectedIds.has(item._id);
+                  return (
+                    <button
+                      key={item._id}
+                      type="button"
+                      onClick={() => {
+                        if (selectMode) {
+                          if (deletable) toggleSelected(item._id);
+                          return;
+                        }
+                        setLightbox(item);
+                      }}
+                      className={`group relative aspect-square overflow-hidden rounded-xl border transition-colors ${
+                        selectMode && selected
+                          ? "border-primary ring-2 ring-primary"
+                          : "border-border bg-muted/30 hover:border-primary/50"
+                      } ${selectMode && !deletable ? "opacity-50" : ""}`}
+                    >
+                      {selectMode && deletable && (
+                        <span className="absolute top-2 left-2 z-10 h-6 w-6 rounded-md bg-black/60 grid place-items-center">
+                          {selected ? (
+                            <CheckSquare className="h-4 w-4 text-primary" />
+                          ) : (
+                            <Square className="h-4 w-4 text-white" />
+                          )}
                         </span>
-                      </>
-                    ) : (
-                      <img
-                        src={resolveMediaUrl(item.url)}
-                        alt={item.caption || "Event photo"}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    )}
-                    {item.caption && (
-                      <span className="absolute inset-x-0 bottom-0 truncate bg-linear-to-t from-black/70 to-transparent px-2 py-1.5 text-left text-[11px] text-white">
-                        {item.caption}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                      )}
+                      {item.type === "video" ? (
+                        <>
+                          <video src={resolveMediaUrl(item.url)} className="h-full w-full object-cover" muted preload="metadata" />
+                          <span className="absolute inset-0 grid place-items-center bg-black/30">
+                            <Film className="h-7 w-7 text-white drop-shadow" />
+                          </span>
+                        </>
+                      ) : (
+                        <img
+                          src={resolveMediaUrl(item.url)}
+                          alt={item.caption || "Event photo"}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      )}
+                      {item.caption && (
+                        <span className="absolute inset-x-0 bottom-0 truncate bg-linear-to-t from-black/70 to-transparent px-2 py-1.5 text-left text-[11px] text-white">
+                          {item.caption}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </>

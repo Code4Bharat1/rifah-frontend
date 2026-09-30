@@ -230,6 +230,16 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const [chapterMembers, setChapterMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
+  // BUG-055: per-slot upload/preview state for the Certificate Signatory signature
+  // images. `signatoryPreview` only ever holds a transient local blob: URL while an
+  // upload is in flight — once the upload resolves, the real persisted URL lives on
+  // eventSetupForm.signatory{1,2}Image and the blob preview is cleared/revoked.
+  const [signatoryUploading, setSignatoryUploading] = useState({ 1: false, 2: false });
+  const [signatoryPreview, setSignatoryPreview] = useState({ 1: "", 2: "" });
+
+  // BUG-060: Keynote 1/2 Poster upload state (My Team > Role Assignments).
+  const [keynotePosterUploading, setKeynotePosterUploading] = useState({ 1: false, 2: false });
+
   // Follow-up State
   const [followupMode, setFollowupMode] = useState("event"); // "event" | "membership"
   const [followups, setFollowups] = useState([]);
@@ -672,6 +682,85 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     }
   };
 
+  // BUG-055: actually upload the signature file (instead of faking a preview with
+  // URL.createObjectURL and saving that dead blob: reference as if it were the real
+  // image). Shows an instant local preview while the real upload is in flight, then
+  // swaps to the persisted server URL once it resolves so Save/refresh/reopen all see
+  // the same image. Both "Signatory 1" inputs (Today's Event Page + Certificate
+  // Design cards) share slot 1 — they are the same underlying field.
+  const handleSignatoryImageChange = async (slot, file) => {
+    if (!file) return;
+    if (!file.type || !file.type.startsWith("image/")) {
+      toast.error("Please choose an image file (JPG, PNG or WEBP).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Signature image must be smaller than 5MB.");
+      return;
+    }
+    if (!selectedEventId) {
+      toast.error("Please select an active event first.");
+      return;
+    }
+
+    const localPreview = URL.createObjectURL(file);
+    setSignatoryPreview((prev) => ({ ...prev, [slot]: localPreview }));
+    setSignatoryUploading((prev) => ({ ...prev, [slot]: true }));
+
+    try {
+      const res = await eventApi.uploadSignatoryImage(selectedEventId, slot, file);
+      const field = slot === 2 ? "signatory2Image" : "signatory1Image";
+      const uploadedUrl = res?.data?.[field] || res?.data?.event?.[field];
+      if (!uploadedUrl) throw new Error("Upload did not return an image URL");
+      setEventSetupForm((prev) => ({ ...prev, [field]: uploadedUrl }));
+      toast.success("Signature image uploaded");
+    } catch (err) {
+      toast.error("Failed to upload signature: " + (err.message || "Unknown error"));
+    } finally {
+      setSignatoryUploading((prev) => ({ ...prev, [slot]: false }));
+      setSignatoryPreview((prev) => {
+        if (prev[slot]) URL.revokeObjectURL(prev[slot]);
+        return { ...prev, [slot]: "" };
+      });
+    }
+  };
+
+  // BUG-060: Keynote 1/2 Poster was a disabled "Choose File" button with no handler and
+  // no backend field at all (see event.model.js / event.service.js setKeynotePoster).
+  // Persists immediately on upload — mirrors handleSignatoryImageChange, but writes into
+  // teamRoles (this card's local state for the whole teamAssignments subdocument) instead
+  // of eventSetupForm, since that's what this section's other fields (Keynote Topic, role
+  // dropdowns) already live in.
+  const handleKeynotePosterChange = async (slot, file) => {
+    if (!file) return;
+    if (!file.type || !file.type.startsWith("image/")) {
+      toast.error("Please choose an image file (JPG, PNG or WEBP).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Poster image must be smaller than 5MB.");
+      return;
+    }
+    if (!selectedEventId) {
+      toast.error("Please select an active event first.");
+      return;
+    }
+
+    setKeynotePosterUploading((prev) => ({ ...prev, [slot]: true }));
+    try {
+      const res = await eventApi.uploadKeynotePoster(selectedEventId, slot, file);
+      const field = slot === 2 ? "keynote2Poster" : "keynote1Poster";
+      const uploadedUrl = res?.data?.[field] || res?.data?.event?.teamAssignments?.[field];
+      if (!uploadedUrl) throw new Error("Upload did not return an image URL");
+      setTeamRoles((prev) => ({ ...prev, [field]: uploadedUrl }));
+      toast.success("Keynote poster uploaded");
+    } catch (err) {
+      toast.error("Failed to upload poster: " + (err.message || "Unknown error"));
+    } finally {
+      setKeynotePosterUploading((prev) => ({ ...prev, [slot]: false }));
+    }
+  };
+
   const handleDownloadCertificate = (name, role) => {
     const params = new URLSearchParams({
       name: name,
@@ -708,13 +797,31 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     if (!selectedEventId) { toast.error("Please select an active event first."); return; }
     try {
       setSavingSloganTheme(true);
+      const appearance = eventSetupForm.chapterAppearance === "ivory"
+        ? { primaryColor: "#b45309", darkBg: false }
+        : { primaryColor: "#1e3a5f", darkBg: true };
       await eventApi.updateOperations(selectedEventId, {
         slogan: eventSetupForm.slogan,
         theme: eventSetupForm.theme,
-        appearance: eventSetupForm.chapterAppearance === "ivory"
-          ? { primaryColor: "#b45309", darkBg: false }
-          : { primaryColor: "#1e3a5f", darkBg: true },
+        appearance,
       });
+
+      // BUG-059: "Appearance for this chapter" (Navy/Ivory) saved to the event document
+      // but nothing ever read it back anywhere — the projector/stage display
+      // (app/presentation/page.js) was hardcoded to one dark navy/cyan palette. Broadcast
+      // it over the same projector:control channel every other live control already uses,
+      // so the stage display re-themes immediately; the socket layer's existing
+      // lastProjectorState cache (infrastructure/socket/socket.js) also means a projector
+      // that reconnects or loads fresh picks it up without a resend.
+      const socket = getSocket();
+      if (socket && socket.connected) {
+        socket.emit("projector:control", {
+          target: chapterSlug,
+          action: "appearance",
+          appearance,
+        });
+      }
+
       toast.success("✅ Slogan & theme saved!");
     } catch (err) {
       toast.error("Failed: " + (err.message || "Unknown error"));
@@ -1407,12 +1514,26 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     });
   }, [attendeesList, activeEvent]);
 
-  // My Team role-assignment eligibility: only Members who have been allowed entry
-  // by the Gate Incharge (entryStatus === "Checked In") are assignable to any role.
-  // Non-members and pending/not-yet-checked-in attendees are excluded.
+  // BUG-056: this used to also require entryStatus === "Checked In" — i.e. the member
+  // had to have already been physically checked in at the gate before they could even
+  // appear in a role-assignment dropdown. That's circular for pre-event planning (you
+  // cannot assign someone as Gate/Entrance Incharge if only already-checked-in people
+  // are assignable — nobody can be checked in until an Entrance Incharge exists), and
+  // it means the dropdowns are empty for any event that hasn't started yet, which is
+  // when roles are normally assigned.
+  //
+  // It also required isMember === true. The backend's own (and only) rule for who can
+  // be assigned a role — event.service.js assignRolesBulk's `registeredIds.has(userId)`
+  // check — has no such membership requirement, it only requires the user to be
+  // registered for this event. The frontend's extra isMember filter was stricter than
+  // what the backend actually enforces, so a chapter event whose registrants are not
+  // all flagged isMember (e.g. guests, or members whose membershipStatus wasn't set)
+  // could show an empty dropdown despite having real registrants the backend would
+  // happily accept. Match the backend's rule exactly: registered for this event, full
+  // stop.
   const eligibleTeamMembers = useMemo(() => {
     return attendees
-      .filter((a) => a.isMember === true && a.entryStatus === "Checked In")
+      .filter((a) => a.approvalStatus !== "Rejected")
       .map((a) => ({
         _id: a.userId || a.id,
         name: a.name,
@@ -2614,11 +2735,31 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <div>
                   <Label className="text-xs font-semibold">Signature Image</Label>
                   <Input type="file" accept="image/*" className="mt-1"
+                    disabled={signatoryUploading[1]}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) setEventSetupForm(prev => ({ ...prev, signatory1Image: URL.createObjectURL(file) }));
+                      handleSignatoryImageChange(1, file);
+                      e.target.value = "";
                     }}
                   />
+                  <div className="mt-2 flex items-center gap-3">
+                    {signatoryPreview[1] || eventSetupForm.signatory1Image ? (
+                      <img
+                        src={signatoryPreview[1] || resolveMediaUrl(eventSetupForm.signatory1Image)}
+                        alt="Signatory 1 signature preview"
+                        className="h-14 w-32 rounded-md border border-border bg-white object-contain"
+                      />
+                    ) : (
+                      <div className="h-14 w-32 rounded-md border border-dashed border-border grid place-items-center text-[10px] text-muted-foreground">
+                        No signature yet
+                      </div>
+                    )}
+                    {signatoryUploading[1] && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2689,11 +2830,31 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <div>
                   <Label className="text-xs font-semibold">Signature Image</Label>
                   <Input type="file" accept="image/*" className="mt-1"
+                    disabled={signatoryUploading[1]}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) setEventSetupForm(prev => ({ ...prev, signatory1Image: URL.createObjectURL(file) }));
+                      handleSignatoryImageChange(1, file);
+                      e.target.value = "";
                     }}
                   />
+                  <div className="mt-2 flex items-center gap-3">
+                    {signatoryPreview[1] || eventSetupForm.signatory1Image ? (
+                      <img
+                        src={signatoryPreview[1] || resolveMediaUrl(eventSetupForm.signatory1Image)}
+                        alt="Signatory 1 signature preview"
+                        className="h-14 w-32 rounded-md border border-border bg-white object-contain"
+                      />
+                    ) : (
+                      <div className="h-14 w-32 rounded-md border border-dashed border-border grid place-items-center text-[10px] text-muted-foreground">
+                        No signature yet
+                      </div>
+                    )}
+                    {signatoryUploading[1] && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2719,11 +2880,31 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <div>
                   <Label className="text-xs font-semibold">Signature Image</Label>
                   <Input type="file" accept="image/*" className="mt-1"
+                    disabled={signatoryUploading[2]}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) setEventSetupForm(prev => ({ ...prev, signatory2Image: URL.createObjectURL(file) }));
+                      handleSignatoryImageChange(2, file);
+                      e.target.value = "";
                     }}
                   />
+                  <div className="mt-2 flex items-center gap-3">
+                    {signatoryPreview[2] || eventSetupForm.signatory2Image ? (
+                      <img
+                        src={signatoryPreview[2] || resolveMediaUrl(eventSetupForm.signatory2Image)}
+                        alt="Signatory 2 signature preview"
+                        className="h-14 w-32 rounded-md border border-border bg-white object-contain"
+                      />
+                    ) : (
+                      <div className="h-14 w-32 rounded-md border border-dashed border-border grid place-items-center text-[10px] text-muted-foreground">
+                        No signature yet
+                      </div>
+                    )}
+                    {signatoryUploading[2] && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <p className="text-[11px] text-muted-foreground bg-muted/50 rounded-lg p-2.5">
@@ -3193,6 +3374,8 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
           setTeamRoles={setTeamRoles}
           chapterMembers={eligibleTeamMembers}
           handleSaveTeamRoles={handleSaveTeamRoles}
+          onUploadKeynotePoster={handleKeynotePosterChange}
+          keynotePosterUploading={keynotePosterUploading}
         />
       )}
 
@@ -5178,7 +5361,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </p>
             </div>
 
-            <ScriptsTab eventId={selectedEventId} teamRoles={teamRoles} />
+            <ScriptsTab eventId={selectedEventId} teamRoles={teamRoles} slogan={eventSetupForm.slogan} theme={eventSetupForm.theme} />
           </div>
         </div>
       )}

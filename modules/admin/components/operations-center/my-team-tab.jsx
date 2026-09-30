@@ -1,12 +1,20 @@
 import React from "react";
-import { ShieldCheck, Ticket, MessageSquareText, CreditCard, Mic, Camera, User, FileText, Monitor, LogOut, Award, Mic2, Megaphone, CheckSquare } from "lucide-react";
+import { ShieldCheck, Ticket, MessageSquareText, CreditCard, Mic, Camera, User, FileText, Monitor, LogOut, Award, Mic2, Megaphone, CheckSquare, Loader2 } from "lucide-react";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Checkbox } from "@shared/components/ui/checkbox";
 import { Save } from "lucide-react";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 
-export function MyTeamTab({ teamRoles, setTeamRoles, chapterMembers, handleSaveTeamRoles }) {
+export function MyTeamTab({
+  teamRoles,
+  setTeamRoles,
+  chapterMembers,
+  handleSaveTeamRoles,
+  onUploadKeynotePoster,
+  keynotePosterUploading = { 1: false, 2: false },
+}) {
   
   const handleRoleChange = (roleKey, value) => {
     setTeamRoles((prev) => ({ ...prev, [roleKey]: value }));
@@ -51,6 +59,12 @@ export function MyTeamTab({ teamRoles, setTeamRoles, chapterMembers, handleSaveT
             {teamRoles[roleKey]} (Assigned)
           </SelectItem>
         )}
+        {activeMembers.length === 0 && (
+          <div className="px-2 py-3 text-[11px] text-muted-foreground leading-snug">
+            No one is registered for the selected event yet. Register attendees (or switch to an
+            event that already has registrations) before assigning roles.
+          </div>
+        )}
         {activeMembers.map((mem) => (
           <SelectItem key={mem._id || mem.id} value={mem.name} className="text-xs">
             {mem.name} — {mem.organization || mem.company || mem.role || "Member"} {mem.phone ? `(${mem.phone})` : ""}
@@ -59,6 +73,45 @@ export function MyTeamTab({ teamRoles, setTeamRoles, chapterMembers, handleSaveT
       </SelectContent>
     </Select>
   );
+
+  const renderPosterUpload = (slot) => {
+    const field = slot === 2 ? "keynote2Poster" : "keynote1Poster";
+    const posterUrl = teamRoles[field];
+    const uploading = Boolean(keynotePosterUploading[slot]);
+    return (
+      <div className="flex items-center gap-2 flex-wrap">
+        <label
+          className={`flex items-center gap-2 text-xs border border-border rounded-md px-3 py-1.5 bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors ${uploading ? "opacity-60 pointer-events-none" : ""}`}
+        >
+          <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] pointer-events-none" type="button">
+            Choose File
+          </Button>
+          <span className="text-muted-foreground">
+            {uploading ? "Uploading…" : posterUrl ? "Replace poster" : "No file chosen"}
+          </span>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={uploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              onUploadKeynotePoster?.(slot, file);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {uploading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+        {posterUrl && !uploading && (
+          <img
+            src={resolveMediaUrl(posterUrl)}
+            alt={`Keynote ${slot} poster preview`}
+            className="h-9 w-16 rounded border border-border object-cover"
+          />
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8">
@@ -148,17 +201,11 @@ export function MyTeamTab({ teamRoles, setTeamRoles, chapterMembers, handleSaveT
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-muted-foreground">Keynote 1 Poster</label>
-            <div className="flex items-center gap-2 text-xs border border-border rounded-md px-3 py-1.5 bg-muted/20">
-              <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" disabled>Choose File</Button>
-              <span className="text-muted-foreground">No file chosen</span>
-            </div>
+            {renderPosterUpload(1)}
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-muted-foreground">Keynote 2 Poster</label>
-            <div className="flex items-center gap-2 text-xs border border-border rounded-md px-3 py-1.5 bg-muted/20">
-              <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" disabled>Choose File</Button>
-              <span className="text-muted-foreground">No file chosen</span>
-            </div>
+            {renderPosterUpload(2)}
           </div>
         </div>
 
