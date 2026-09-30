@@ -37,7 +37,6 @@ function AdminUsers() {
   const debouncedQ = useDebounce(q, 300);
   const { data: usersData, refetch, isLoading, error } = useAdminUsers({ search: debouncedQ || undefined });
 
-  console.log("Admin Users Data:", usersData, "Error:", error);
 
   // Try to extract users from various possible response formats
   let rows = [];
