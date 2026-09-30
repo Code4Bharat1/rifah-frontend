@@ -470,17 +470,27 @@ const loadRazorpayScript = () => {
 
                   {event.meetingLink && (
                     <div className="mt-4 pt-4 border-t border-emerald-500/20 text-center">
-                      <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2">
-                        {formatEventDate(event.date)} at {event.time}
-                      </p>
-                      <Button 
-                        asChild
-                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all hover:shadow-lg gap-2" 
-                      >
-                        <a href={event.meetingLink} target="_blank" rel="noopener noreferrer">
-                          <Video className="h-4 w-4" /> Join Meeting
-                        </a>
-                      </Button>
+                      {getEventStatus(event) === "Ended" ? (
+                        <div className="rounded-lg bg-black/5 dark:bg-white/5 p-3 text-center border border-emerald-500/10">
+                          <p className="text-sm font-bold text-emerald-800/60 dark:text-emerald-200/60 flex items-center justify-center gap-2">
+                            <Clock className="h-4 w-4" /> Event Ended
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2">
+                            {formatEventDate(event.date)} at {event.time}
+                          </p>
+                          <Button 
+                            asChild
+                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all hover:shadow-lg gap-2" 
+                          >
+                            <a href={event.meetingLink} target="_blank" rel="noopener noreferrer">
+                              <Video className="h-4 w-4" /> Join Meeting
+                            </a>
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
 

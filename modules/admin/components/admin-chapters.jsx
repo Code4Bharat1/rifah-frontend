@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { MapPin, Plus, Users, Loader2, MoreHorizontal, CheckCircle2, Globe } from "lucide-react";
+import { MapPin, Plus, Users, Loader2, MoreHorizontal, CheckCircle2, Globe, Eye, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -198,7 +198,12 @@ function AdminChapters() {
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem asChild>
                         <Link href={`/admin/chapters/${r._id || r.id}`}>
-                          View Details & Manage Admin
+                          <Eye className="mr-2 h-4 w-4" /> View Details
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/chapters/${r._id || r.id}?allocate=true`}>
+                          <UserPlus className="mr-2 h-4 w-4" /> {r.hasAdmin ? "Reallocate Chapter Admin" : "Allocate Chapter Admin"}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
