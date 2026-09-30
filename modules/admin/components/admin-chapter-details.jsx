@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { 
@@ -39,6 +39,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 export default function AdminChapterDetails({ chapterId }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const isChapterAdmin = user?.role === "chapter_admin";
   const isStateAdmin = user?.role === "state_admin";
@@ -57,6 +58,12 @@ export default function AdminChapterDetails({ chapterId }) {
 
   const [openStatusModal, setOpenStatusModal] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('allocate') === 'true') {
+      setOpenAdminModal(true);
+    }
+  }, [searchParams]);
 
   if (isLoading) {
     return (

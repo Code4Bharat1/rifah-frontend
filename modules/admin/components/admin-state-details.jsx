@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -54,9 +54,16 @@ export default function AdminStateDetails({ stateName }) {
   
   const { data, isLoading, refetch } = useStateDetails(stateName);
 
+  const searchParams = useSearchParams();
   const [openAdminModal, setOpenAdminModal] = useState(false);
   const [adminLoading, setAdminLoading] = useState(false);
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "", phone: "", state: stateName });
+
+  useEffect(() => {
+    if (searchParams.get('allocate') === 'true') {
+      setOpenAdminModal(true);
+    }
+  }, [searchParams]);
 
   const { data: businessesData } = useBusinesses({ limit: 150 });
   const rawBusinesses = Array.isArray(businessesData)

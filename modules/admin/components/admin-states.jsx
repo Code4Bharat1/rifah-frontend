@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, MoreHorizontal, UserCheck, Trash2, Building2, Edit2, Eye, Check, ChevronsUpDown, X } from "lucide-react";
+import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, MoreHorizontal, UserCheck, Trash2, Building2, Edit2, Eye, Check, ChevronsUpDown, X, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -301,8 +301,10 @@ export function AdminStates() {
                             <Eye className="mr-2 h-4 w-4" /> View Details
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleOpenAllocate(r.state)}>
-                          {r.hasAdmin ? "Reallocate State Admin" : "Allocate State Admin"}
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/states/${r.state}?allocate=true`}>
+                            <UserPlus className="mr-2 h-4 w-4" /> {r.hasAdmin ? "Reallocate State Admin" : "Allocate State Admin"}
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
                           setEditForm({ oldState: r.state, newState: r.state });
