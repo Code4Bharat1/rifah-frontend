@@ -90,6 +90,18 @@ function EventDetail() {
   };
 
   const isEligibleToRegister = canRegisterUser();
+  const isEventPaid = Boolean(
+    event?.isPaid === true || 
+    event?.isPaid === "true" || 
+    event?.isPaid === "Paid" || 
+    Number(event?.ticketPrice) > 0 || 
+    Number(event?.memberPrice) > 0 || 
+    (event?.fee && event.fee !== "Free" && event.fee !== "Complimentary for Members")
+  );
+  
+  const guestPrice = Number(event?.ticketPrice) || (event?.fee ? parseInt(event.fee.replace(/\D/g, '')) || 0 : 0);
+  const memberPrice = Number(event?.memberPrice) || 0;
+
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -150,12 +162,11 @@ const loadRazorpayScript = () => {
           return;
         }
       }
-      const isPaidEvent = Boolean(event?.isPaid && Number(event?.ticketPrice) > 0);
-      const finalAmount = (isPaidEvent && regPath === "member" && event?.memberPrice !== undefined) 
-        ? event.memberPrice 
-        : (event?.ticketPrice || 0);
+      const finalAmount = (isEventPaid && regPath === "member" && event?.memberPrice !== undefined) 
+        ? memberPrice 
+        : guestPrice;
 
-      if (isPaidEvent && finalAmount > 0) {
+      if (isEventPaid && finalAmount > 0) {
         const scriptLoaded = await loadRazorpayScript();
         if (!scriptLoaded) throw new Error("Razorpay not loaded");
 
@@ -398,7 +409,14 @@ const loadRazorpayScript = () => {
                   <FieldRow label="Chapter" value={event.chapter} />
                   <FieldRow label="Mode" value={event.mode} />
                   <FieldRow label="Location" value={`${event.venue || ""}${event.city ? `, ${event.city}` : ""}`} />
-                  <FieldRow label="Participation fee" value={Boolean(event.isPaid && Number(event.ticketPrice) > 0) ? `₹${event.ticketPrice}` : (event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")} />
+                  {isEventPaid ? (
+                    <>
+                      <FieldRow label="Member Fee" value={`₹${memberPrice}`} />
+                      <FieldRow label="Non-Member Fee" value={`₹${guestPrice}`} />
+                    </>
+                  ) : (
+                    <FieldRow label="Participation fee" value={(event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")} />
+                  )}
                   <FieldRow label="Who should attend" value="Member businesses, buyers and chapter invitees" />
                 </dl>
               </Panel>
@@ -519,13 +537,30 @@ const loadRazorpayScript = () => {
                 </div>
               ) : isEligibleToRegister ? (
                 <div className="space-y-5">
-                  <div className="flex items-center justify-between border-b border-border pb-4">
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Pass Price</p>
-                      <p className="text-3xl font-extrabold tracking-tight text-foreground">
-                        {Boolean(event.isPaid && Number(event.ticketPrice) > 0) ? `₹${event.ticketPrice}` : (event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")}
-                      </p>
-                    </div>
+                  <div className="flex flex-col border-b border-border pb-4 gap-3">
+                    {isEventPaid ? (
+                      <div className="flex justify-between items-end">
+                        <div>
+                          <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Member Price</p>
+                          <p className="text-2xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">
+                            ₹{memberPrice}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Guest Price</p>
+                          <p className="text-xl font-bold tracking-tight text-muted-foreground">
+                            ₹{guestPrice}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Pass Price</p>
+                        <p className="text-3xl font-extrabold tracking-tight text-foreground">
+                          {event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free"}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <Button
                     className="w-full text-base font-bold shadow-md transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
@@ -638,14 +673,16 @@ const loadRazorpayScript = () => {
                 </div>
               </div>
               
-              <div className="mt-6 p-4 rounded-xl bg-muted/30 border">
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total Amount</span>
-                  <span>₹{event?.ticketPrice || 0}</span>
+              {isEventPaid && (
+                <div className="mt-6 p-4 rounded-xl bg-muted/30 border">
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Total Amount</span>
+                    <span>₹{guestPrice}</span>
+                  </div>
                 </div>
-              </div>
+              )}
               <Button className="w-full mt-4" size="lg" onClick={handleFinalRegister} disabled={registering}>
-                {registering ? "Processing..." : `Pay ₹${event?.ticketPrice || 0} & Register`}
+                {registering ? "Processing..." : (isEventPaid ? `Pay ₹${guestPrice} & Register` : "Register Now")}
               </Button>
             </div>
           )}
@@ -661,32 +698,25 @@ const loadRazorpayScript = () => {
                 <h3 className="font-semibold">Member Checkout</h3>
               </div>
 
-              {Boolean(event?.isPaid && Number(event?.ticketPrice) > 0) ? (
+              {isEventPaid && (
                 <div className="mt-6 p-4 rounded-xl bg-muted/30 border space-y-2">
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Non-Member Price</span>
-                    <span><del>₹{event?.ticketPrice || 0}</del></span>
+                    <span><del>₹{guestPrice}</del></span>
                   </div>
                   <div className="flex justify-between text-sm text-emerald-600 font-medium">
                     <span>Member Price Applied</span>
-                    <span>₹{event?.memberPrice || 0}</span>
+                    <span>₹{memberPrice}</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between font-bold text-lg">
                     <span>Total Payable</span>
-                    <span>₹{event?.memberPrice || 0}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-6 p-4 rounded-xl bg-muted/30 border">
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>Total Payable</span>
-                    <span className="text-emerald-600">Free</span>
+                    <span>₹{memberPrice}</span>
                   </div>
                 </div>
               )}
               
               <Button className="w-full mt-4" size="lg" onClick={handleFinalRegister} disabled={registering}>
-                {registering ? "Processing..." : (Boolean(event?.isPaid && Number(event?.ticketPrice) > 0) ? `Pay ₹${event?.memberPrice || 0} & Register` : "Register for Free")}
+                {registering ? "Processing..." : (isEventPaid ? `Pay ₹${memberPrice} & Register` : "Register for Free")}
               </Button>
             </div>
           )}

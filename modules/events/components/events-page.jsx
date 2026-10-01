@@ -138,9 +138,39 @@ function EventsPage() {
                     <div className="flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{ev.city}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Ticket className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{ev.isPaid ? `₹${ev.ticketPrice}` : (ev.fee && ev.fee !== "Complimentary for Members" ? ev.fee : "Free")}</span>
-                    </div>
+                    {(() => {
+                      const isEventPaid = Boolean(
+                        ev?.isPaid === true || 
+                        ev?.isPaid === "true" || 
+                        ev?.isPaid === "Paid" || 
+                        Number(ev?.ticketPrice) > 0 || 
+                        Number(ev?.memberPrice) > 0 || 
+                        (ev?.fee && ev.fee !== "Free" && ev.fee !== "Complimentary for Members")
+                      );
+                      const guestPrice = Number(ev?.ticketPrice) || (ev?.fee ? parseInt(ev.fee.replace(/\D/g, '')) || 0 : 0);
+                      const memberPrice = Number(ev?.memberPrice) || 0;
+                      
+                      return isEventPaid ? (
+                        <div className="col-span-2 flex items-center gap-2 mt-1 p-1.5 px-2 bg-emerald-500/10 rounded-md border border-emerald-500/20">
+                          <Ticket className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                          <div className="flex items-center gap-3 w-full">
+                            <div className="flex items-center gap-1 text-emerald-700">
+                              <span className="text-[9px] font-bold uppercase tracking-wider">Member:</span>
+                              <span className="font-bold text-sm leading-none">₹{memberPrice}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-muted-foreground border-l border-emerald-500/30 pl-3">
+                              <span className="text-[9px] font-semibold uppercase tracking-wider">Guest:</span>
+                              <span className="font-semibold text-sm leading-none">₹{guestPrice}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Ticket className="h-3.5 w-3.5 shrink-0" /> 
+                          <span className="truncate">{ev.fee && ev.fee !== "Complimentary for Members" ? ev.fee : "Free"}</span>
+                        </div>
+                      );
+                    })()}
                   </dl>
                   <div className="mt-3 flex flex-1 flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40">
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -156,7 +186,17 @@ function EventsPage() {
                       })()}
                       <Pill tone={ev.mode === "Online" ? "primary" : "neutral"}>{ev.mode}</Pill>
                       {ev.chapter && <Pill>{ev.chapter}</Pill>}
-                      {ev.isPaid ? <Pill tone="warning">Paid (₹{ev.ticketPrice})</Pill> : <Pill tone="success">Free</Pill>}
+                      {(() => {
+                        const isEventPaid = Boolean(
+                          ev?.isPaid === true || 
+                          ev?.isPaid === "true" || 
+                          ev?.isPaid === "Paid" || 
+                          Number(ev?.ticketPrice) > 0 || 
+                          Number(ev?.memberPrice) > 0 || 
+                          (ev?.fee && ev.fee !== "Free" && ev.fee !== "Complimentary for Members")
+                        );
+                        return isEventPaid ? <Pill tone="warning">Paid</Pill> : <Pill tone="success">Free</Pill>;
+                      })()}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {getEventStatus(ev) !== "Ended" && (
