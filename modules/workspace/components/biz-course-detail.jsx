@@ -21,10 +21,17 @@ const SCOPE_LABELS = {
   state: { label: "📍 State Training", color: "bg-blue-100 text-blue-700 border-blue-200" },
   chapter: { label: "🤝 My Chapter", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   centre: { label: "🏛️ Central HQ", color: "bg-violet-100 text-violet-700 border-violet-200" },
+  business: { label: "🏢 Business Community", color: "bg-amber-100 text-amber-700 border-amber-200" },
 };
 
 function getScopeTag(course) {
   const s = (course?.scope || course?.visibilityScope || "").toLowerCase();
+  if (s === "business" && course?.businessId?.name) {
+    return {
+      label: `🏢 ${course.businessId.name}`,
+      color: "bg-amber-100 text-amber-700 border-amber-200",
+    };
+  }
   return SCOPE_LABELS[s] || { label: "📚 Training", color: "bg-slate-100 text-slate-600 border-slate-200" };
 }
 
