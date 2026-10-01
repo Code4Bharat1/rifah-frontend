@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import {
   Send,
   ExternalLink,
@@ -64,6 +64,17 @@ const Linkedin = ({ className = "h-4 w-4", ...props }) => (
     <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
     <rect width="4" height="12" x="2" y="9" />
     <circle cx="4" cy="4" r="2" />
+  </svg>
+);
+
+const WhatsAppIcon = ({ className = "h-4 w-4", ...props }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    {...props}
+  >
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
   </svg>
 );
 import { useQueryClient } from "@tanstack/react-query";
@@ -230,6 +241,7 @@ function BusinessNotFound() {
 function BusinessProfile() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const businessId = params?.businessId;
 
   const { data: business, isLoading } = useBusinessDetail(businessId);
@@ -250,6 +262,7 @@ function BusinessProfile() {
   const isMyOwnBusiness = Boolean(user?._id && ownerId && String(user._id) === String(ownerId));
 
   const [shareOpen, setShareOpen] = useState(false);
+  const [shareMode, setShareMode] = useState("profile"); // "profile" | "catalogue"
   const [copied, setCopied] = useState(false);
   const [reviewerName, setReviewerName] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
@@ -261,8 +274,19 @@ function BusinessProfile() {
   const [coverError, setCoverError] = useState(false);
   const [logoError, setLogoError] = useState(false);
 
-  // Tab and Catalogue detail modal state
-  const [activeTab, setActiveTab] = useState("about");
+  // Tab and Catalogue detail modal state - initialize accurately from URL search query or hash
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTab = urlParams.get("tab")?.toLowerCase();
+      if (urlTab && ["catalogue", "about", "gallery", "info", "reviews"].includes(urlTab)) return urlTab;
+      const hash = window.location.hash.replace("#", "").toLowerCase();
+      if (["catalogue", "about", "gallery", "info", "reviews"].includes(hash)) return hash;
+    }
+    const tabFromQuery = searchParams?.get("tab")?.toLowerCase();
+    if (tabFromQuery && ["catalogue", "about", "gallery", "info", "reviews"].includes(tabFromQuery)) return tabFromQuery;
+    return "about";
+  });
   const [selectedCatalogueItem, setSelectedCatalogueItem] = useState(null);
   const [activeCatalogueImageIndex, setActiveCatalogueImageIndex] = useState(0);
   const [catalogueLinkCopied, setCatalogueLinkCopied] = useState(false);
@@ -350,11 +374,57 @@ function BusinessProfile() {
     }
   };
 
-  // Open catalogue item from URL query parameter (e.g. ?item=slug) or hash without full page reload
+  const handleTabChange = (val) => {
+    setActiveTab(val);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (val === "about") {
+        url.searchParams.delete("tab");
+      } else {
+        url.searchParams.set("tab", val);
+      }
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  const scrollToCatalogueSection = () => {
+    if (typeof window === "undefined") return;
+    const targetEl =
+      document.getElementById("catalogue-anchor") ||
+      document.getElementById("profile-tabs") ||
+      document.getElementById("catalogue-section");
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  // Open catalogue tab/item from URL query parameter (e.g. ?tab=catalogue or ?item=slug) or hash (#catalogue)
   useEffect(() => {
-    if (typeof window === "undefined" || !catalogueItems?.length) return;
-    const urlParams = new URLSearchParams(window.location.search);
-    const itemParam = urlParams.get("item") || (window.location.hash ? window.location.hash.replace("#", "") : null);
+    const tabFromQuery = searchParams?.get("tab");
+    const hash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
+    const tabParam = (tabFromQuery || hash || "").toLowerCase();
+
+    if (tabParam && ["catalogue", "about", "gallery", "info", "reviews"].includes(tabParam)) {
+      setActiveTab(tabParam);
+      
+      if (tabParam === "catalogue" && !isLoading) {
+        const t1 = setTimeout(scrollToCatalogueSection, 100);
+        const t2 = setTimeout(scrollToCatalogueSection, 350);
+        const t3 = setTimeout(scrollToCatalogueSection, 700);
+        const t4 = setTimeout(scrollToCatalogueSection, 1200);
+        return () => {
+          clearTimeout(t1);
+          clearTimeout(t2);
+          clearTimeout(t3);
+          clearTimeout(t4);
+        };
+      }
+    }
+  }, [searchParams, isLoading]);
+
+  useEffect(() => {
+    if (isLoading || !catalogueItems?.length) return;
+    const itemParam = searchParams?.get("item");
     if (itemParam) {
       const match = catalogueItems.find(
         (i) => String(i.slug || "").toLowerCase() === itemParam.toLowerCase() || String(i._id) === itemParam
@@ -363,15 +433,123 @@ function BusinessProfile() {
         setSelectedCatalogueItem(match);
         setActiveCatalogueImageIndex(0);
         setActiveTab("catalogue");
+        const t1 = setTimeout(scrollToCatalogueSection, 100);
+        const t2 = setTimeout(scrollToCatalogueSection, 400);
+        const t3 = setTimeout(scrollToCatalogueSection, 900);
+        return () => {
+          clearTimeout(t1);
+          clearTimeout(t2);
+          clearTimeout(t3);
+        };
       }
     }
-  }, [catalogueItems]);
+  }, [searchParams, catalogueItems, isLoading]);
+
+  const getBaseAppUrl = () => {
+    const liveDomain = process.env.NEXT_PUBLIC_APP_URL || "https://rifah.nexcorealliance.com";
+    if (typeof window !== "undefined") {
+      const origin = window.location.origin;
+      if (origin && !origin.includes("localhost") && !origin.includes("127.0.0.1")) {
+        return origin;
+      }
+    }
+    return liveDomain;
+  };
+
+  const getShareUrl = () => {
+    if (!business) return "";
+    const bizSlugOrId = business.slug || business._id || businessId;
+    if (!bizSlugOrId) return "";
+    const base = getBaseAppUrl();
+    if (shareMode === "catalogue") {
+      return `${base}/business/${bizSlugOrId}?tab=catalogue#catalogue`;
+    }
+    return `${base}/business/${bizSlugOrId}`;
+  };
+
+  const getShareWhatsAppText = () => {
+    if (!business) return "";
+    const url = getShareUrl();
+    if (shareMode === "catalogue") {
+      const category = business.industry || (Array.isArray(business.categories) ? business.categories[0] : "") || "";
+      const cityState = [business.city, business.state].filter(Boolean).join(", ");
+      const publishedCount = catalogueItems?.length || 0;
+      return (
+        `*Check out the Product & Service Catalogue of ${business.name} on RIFAH!* 🛍️✨\n\n` +
+        `🏢 *${business.name}*\n` +
+        (category ? `🏷️ *Category:* ${category}\n` : "") +
+        (cityState ? `📍 *Location:* ${cityState}\n` : "") +
+        (publishedCount > 0 ? `📦 *${publishedCount} item${publishedCount === 1 ? "" : "s"} available*\n\n` : "\n") +
+        `Click below to view verified offerings, specifications & enquire directly:\n\n` +
+        `${url}\n\n` +
+        `_RIFAH Chamber of Commerce & Industry_`
+      );
+    }
+    return (
+      `*Check out ${business.name} on RIFAH Chamber of Commerce!*\n\n` +
+      `Click below to view the verified profile & details:\n\n` +
+      `${url}\n\n` +
+      `_RIFAH Chamber of Commerce & Industry_`
+    );
+  };
+
+  const handleOpenCatalogueShare = () => {
+    setShareMode("catalogue");
+    setCopied(false);
+    setShareOpen(true);
+  };
+
+  const handleOpenProfileShare = () => {
+    setShareMode("profile");
+    setCopied(false);
+    setShareOpen(true);
+  };
+
+  const handleCopyLink = async () => {
+    const url = getShareUrl();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success(shareMode === "catalogue" ? "Catalogue link copied to clipboard!" : "Profile link copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  const handleShareItemWhatsApp = (item) => {
+    if (!item || !business) return;
+    const bizSlugOrId = business.slug || business._id || businessId;
+    const itemParam = item.slug || item._id;
+    const base = getBaseAppUrl();
+    const itemUrl = `${base}/business/${bizSlugOrId}?tab=catalogue&item=${itemParam}#catalogue`;
+    const bizName = business.name || "Business";
+
+    const message =
+      `*Check out "${item.name}" by ${bizName} on RIFAH!* 🛍️✨\n\n` +
+      (item.category ? `🏷️ *Category:* ${item.category}\n` : "") +
+      (item.price ? `💰 *Price:* ${item.price}\n` : "") +
+      (item.moq ? `📦 *MOQ:* ${item.moq}\n` : "") +
+      (item.description ? `📝 *Details:* ${item.description.slice(0, 120)}${item.description.length > 120 ? "..." : ""}\n\n` : "\n") +
+      `Click below to view item specifications & enquire:\n\n` +
+      `${itemUrl}\n\n` +
+      `_RIFAH Chamber of Commerce & Industry_`;
+
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(itemUrl).catch(() => {});
+    }
+    toast.success(`Opening WhatsApp & link for "${item.name}" copied!`);
+  };
 
   const handleOpenCatalogueItem = (item) => {
     setSelectedCatalogueItem(item);
     setActiveCatalogueImageIndex(0);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
+      url.searchParams.set("tab", "catalogue");
       url.searchParams.set("item", item.slug || item._id);
       window.history.replaceState(null, "", url.toString());
     }
@@ -388,11 +566,12 @@ function BusinessProfile() {
   };
 
   const handleCopyCatalogueItemLink = async (item) => {
-    if (typeof window === "undefined" || !item) return;
+    if (!item) return;
     try {
-      const url = new URL(window.location.href);
-      url.searchParams.set("item", item.slug || item._id);
-      await navigator.clipboard.writeText(url.toString());
+      const bizSlugOrId = business?.slug || business?._id || businessId;
+      const base = getBaseAppUrl();
+      const itemUrl = `${base}/business/${bizSlugOrId}?tab=catalogue&item=${item.slug || item._id}#catalogue`;
+      await navigator.clipboard.writeText(itemUrl);
       setCatalogueLinkCopied(true);
       toast.success("Direct link to this item copied!");
       setTimeout(() => setCatalogueLinkCopied(false), 2000);
@@ -436,26 +615,7 @@ function BusinessProfile() {
     setLogoError(false);
   }, [businessId, business?._id]);
 
-  const getShareUrl = () => {
-    if (typeof window !== "undefined") {
-      return window.location.href;
-    }
-    return "";
-  };
 
-  const handleCopyLink = async () => {
-    try {
-      const url = getShareUrl();
-      if (!url) return;
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      toast.success("Profile link copied to clipboard!");
-      setTimeout(() => setCopied(false), 2500);
-    } catch (err) {
-      console.error("Copy failed:", err);
-      toast.error("Failed to copy link");
-    }
-  };
 
   const handleNativeShare = async () => {
     const url = getShareUrl();
@@ -728,7 +888,7 @@ function BusinessProfile() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShareOpen(true)}
+                    onClick={handleOpenProfileShare}
                     aria-label="Share business profile"
                     title="Share business profile"
                     className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs flex-1 sm:flex-initial justify-center"
@@ -795,7 +955,8 @@ function BusinessProfile() {
             </div>
 
             {/* Profile sections */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+            <div id="catalogue-anchor" className="scroll-mt-24" />
+            <Tabs value={activeTab} onValueChange={handleTabChange} id="profile-tabs" className="mt-4 scroll-mt-24">
               <TabsList className="w-full justify-start overflow-x-auto no-scrollbar">
                 <TabsTrigger value="about">About</TabsTrigger>
                 <TabsTrigger value="catalogue">Catalogue ({catalogue.length})</TabsTrigger>
@@ -828,8 +989,25 @@ function BusinessProfile() {
                 )}
               </TabsContent>
 
-              <TabsContent value="catalogue" className="mt-4">
-                <Panel title="Catalogue" description={`${catalogue.length} published ${catalogue.length === 1 ? "item" : "items"}`}>
+              <TabsContent value="catalogue" id="catalogue-section" className="mt-4">
+                <Panel
+                  title="Catalogue"
+                  description={`${catalogue.length} published ${catalogue.length === 1 ? "item" : "items"}`}
+                  action={
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleOpenCatalogueShare}
+                      className="rounded-xl px-2.5 sm:px-3 text-xs font-semibold cursor-pointer shadow-xs border-border bg-background hover:bg-muted text-foreground gap-1.5 transition-all"
+                      title="Share entire catalogue across social channels"
+                    >
+                      <Share2 className="h-3.5 w-3.5 shrink-0" />
+                      <span className="hidden sm:inline">Share Catalogue</span>
+                      <span className="sm:hidden">Share</span>
+                    </Button>
+                  }
+                >
                   {catalogue.length === 0 ? (
                     <div className="py-12 text-center text-sm text-muted-foreground border border-dashed rounded-2xl flex flex-col items-center justify-center gap-2">
                       <Package className="h-8 w-8 text-muted-foreground/50" />
@@ -1354,7 +1532,7 @@ function BusinessProfile() {
         </section>
       </div>
 
-      {/* Share Business Profile Dialog */}
+      {/* Share Business Profile / Catalogue Dialog */}
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent className="sm:max-w-md p-6 rounded-2xl bg-surface border border-border shadow-2xl">
           <DialogHeader className="space-y-1">
@@ -1362,10 +1540,12 @@ function BusinessProfile() {
               <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                 <Share2 className="h-4 w-4" />
               </div>
-              Share Business Profile
+              {shareMode === "catalogue" ? "Share Catalogue" : "Share Business Profile"}
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              Share <strong className="text-foreground">{business.name}</strong> with your network, clients, or partners.
+              {shareMode === "catalogue"
+                ? `Share the product & service catalogue of ${business.name} across social channels.`
+                : `Share ${business.name} with your network, clients, or partners.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -1379,7 +1559,9 @@ function BusinessProfile() {
             <div className="min-w-0 flex-1">
               <h4 className="font-semibold text-sm truncate text-foreground">{business.name}</h4>
               <p className="text-xs text-muted-foreground truncate">
-                {business.tagline || business.industry || "RIFAH Member"}
+                {shareMode === "catalogue"
+                  ? `${catalogueItems?.length || 0} items published · Products & Services`
+                  : (business.tagline || business.industry || "RIFAH Member")}
               </p>
               <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                 {business.city && <span>{business.city}, {business.state}</span>}
@@ -1400,9 +1582,7 @@ function BusinessProfile() {
             <div className="grid grid-cols-4 gap-2.5">
               {/* WhatsApp (Official Logo) */}
               <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                  `Check out *${business.name}* on RIFAH Chamber of Commerce:\n${getShareUrl()}`
-                )}`}
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(getShareWhatsAppText())}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-col items-center justify-center p-3 rounded-xl border border-border hover:border-[#25D366]/50 hover:bg-[#25D366]/5 transition group text-center"
@@ -1433,7 +1613,9 @@ function BusinessProfile() {
               {/* X / Twitter (Official Logo) */}
               <a
                 href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                  `Check out ${business.name} on RIFAH Chamber of Commerce!`
+                  shareMode === "catalogue"
+                    ? `Check out the Product & Service Catalogue of ${business.name} on RIFAH!`
+                    : `Check out ${business.name} on RIFAH Chamber of Commerce!`
                 )}&url=${encodeURIComponent(getShareUrl())}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -1449,8 +1631,14 @@ function BusinessProfile() {
 
               {/* Gmail / Email (Official 4-Color Logo) */}
               <a
-                href={`mailto:?subject=${encodeURIComponent(`${business.name} on RIFAH Chamber of Commerce`)}&body=${encodeURIComponent(
-                  `Hello,\n\nI wanted to share this business profile with you:\n\n${business.name}\n${getShareUrl()}`
+                href={`mailto:?subject=${encodeURIComponent(
+                  shareMode === "catalogue"
+                    ? `${business.name} - Product & Service Catalogue on RIFAH`
+                    : `${business.name} on RIFAH Chamber of Commerce`
+                )}&body=${encodeURIComponent(
+                  shareMode === "catalogue"
+                    ? `Hello,\n\nI would like to share the Product & Service Catalogue of ${business.name} with you:\n\nView Catalogue Online:\n${getShareUrl()}\n\nRIFAH Chamber of Commerce & Industry`
+                    : `Hello,\n\nI wanted to share this business profile with you:\n\n${business.name}\n\nView Online:\n${getShareUrl()}\n\nRIFAH Chamber of Commerce & Industry`
                 )}`}
                 className="flex flex-col items-center justify-center p-3 rounded-xl border border-border hover:border-rose-500/50 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition group text-center"
               >
@@ -1470,7 +1658,7 @@ function BusinessProfile() {
           {/* Direct Copy link */}
           <div className="mt-3 space-y-2">
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Profile Link
+              {shareMode === "catalogue" ? "Catalogue Link" : "Profile Link"}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -1859,23 +2047,34 @@ function BusinessProfile() {
 
                 {/* Action Buttons */}
                 <div className="pt-2 border-t border-border flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopyCatalogueItemLink(selectedCatalogueItem)}
-                    className="rounded-xl gap-1.5 text-xs font-semibold"
-                  >
-                    {catalogueLinkCopied ? (
-                      <>
-                        <Check className="h-3.5 w-3.5 text-emerald-600" /> Link Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3.5 w-3.5" /> Share Item Link
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleShareItemWhatsApp(selectedCatalogueItem)}
+                      className="rounded-xl gap-1.5 text-xs font-semibold border-emerald-500/40 bg-emerald-50/60 hover:bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-700 dark:text-emerald-300 transition-all"
+                    >
+                      <WhatsAppIcon className="h-3.5 w-3.5 text-[#25D366] fill-current" /> WhatsApp
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyCatalogueItemLink(selectedCatalogueItem)}
+                      className="rounded-xl gap-1.5 text-xs font-semibold"
+                    >
+                      {catalogueLinkCopied ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-600" /> Link Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" /> Copy Link
+                        </>
+                      )}
+                    </Button>
+                  </div>
 
                   <div className="flex items-center gap-2">
                     <Button

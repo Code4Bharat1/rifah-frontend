@@ -311,6 +311,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const [speakerDialogOpen, setSpeakerDialogOpen] = useState(false);
   const [newSpeaker, setNewSpeaker] = useState({
     name: "",
+    category: "",
     mobile: "",
     email: "",
     org: "",
@@ -1023,7 +1024,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       }
       toast.success(`Speaker ${newSpeaker.name} saved!`);
       setSpeakerDialogOpen(false);
-      setNewSpeaker({ name: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
+      setNewSpeaker({ name: "", category: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
     } catch (err) {
       toast.error("Failed to save speaker.");
     } finally {
@@ -4053,7 +4054,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
               <Button
                 onClick={() => {
-                  setNewSpeaker({ name: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
+                  setNewSpeaker({ name: "", category: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
                   setSpeakerDialogOpen(true);
                 }}
                 className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
@@ -4078,10 +4079,22 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                       {(s.name || "S").slice(0, 1)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
-                          {s.type || "Guest Speaker"}
-                        </span>
+                      <div className="flex items-center justify-between flex-wrap gap-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
+                            {s.type || "Guest Speaker"}
+                          </span>
+                          {s.category === "Government Official" && (
+                            <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
+                              🏛️ Govt Official
+                            </span>
+                          )}
+                          {s.category === "Foreign Delegation" && (
+                            <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
+                              🌐 Foreign Delegation
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] text-muted-foreground font-mono">{s.mobile}</span>
                       </div>
                       <h4 className="font-bold text-sm text-foreground mt-1 truncate">{s.name}</h4>
@@ -4134,16 +4147,59 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 </DialogDescription>
               </DialogHeader>
 
-              <form onSubmit={handleAddSpeaker} className="space-y-4 py-2">
+              <form onSubmit={handleAddSpeaker} className="space-y-3.5 py-1">
                 <div>
                   <Label className="text-xs font-semibold">Full Name</Label>
                   <Input
                     placeholder="e.g. Dr. Farhan Qureshi"
                     value={newSpeaker.name}
                     onChange={(e) => setNewSpeaker((prev) => ({ ...prev, name: e.target.value }))}
-                    className="mt-1"
+                    className="mt-1 h-9 text-xs"
                     required
                   />
+                </div>
+
+                {/* Optional Category: Government Official & Foreign Delegation */}
+                <div className="py-0.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Category <span className="text-muted-foreground font-normal text-[11px]">(Optional)</span>
+                    </Label>
+                    {newSpeaker.category && (
+                      <button
+                        type="button"
+                        onClick={() => setNewSpeaker((prev) => ({ ...prev, category: "" }))}
+                        className="text-[11px] text-muted-foreground hover:text-destructive underline cursor-pointer"
+                      >
+                        Clear selection
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-6 mt-1">
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground select-none">
+                      <input
+                        type="radio"
+                        name="speakerCategory"
+                        value="Government Official"
+                        checked={newSpeaker.category === "Government Official"}
+                        onChange={() => setNewSpeaker((prev) => ({ ...prev, category: "Government Official" }))}
+                        className="h-4 w-4 text-primary accent-primary cursor-pointer"
+                      />
+                      <span>Government Official</span>
+                    </label>
+
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground select-none">
+                      <input
+                        type="radio"
+                        name="speakerCategory"
+                        value="Foreign Delegation"
+                        checked={newSpeaker.category === "Foreign Delegation"}
+                        onChange={() => setNewSpeaker((prev) => ({ ...prev, category: "Foreign Delegation" }))}
+                        className="h-4 w-4 text-primary accent-primary cursor-pointer"
+                      />
+                      <span>Foreign Delegation</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

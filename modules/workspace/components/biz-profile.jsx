@@ -501,7 +501,7 @@ function BizProfile() {
         <div className="flex items-center gap-2">
           {bizSlugOrId && (
             <Button asChild variant="outline" size="sm" className="rounded-xl shadow-xs">
-              <Link href={`/business/${bizSlugOrId}`} target="_blank">
+              <Link href={`/business/${bizSlugOrId}${activeTab === "catalogue" ? "?tab=catalogue#catalogue" : activeTab === "reviews" ? "?tab=reviews#reviews" : ""}`} target="_blank">
                 <Eye className="h-4 w-4 mr-1.5" /> Public View
               </Link>
             </Button>

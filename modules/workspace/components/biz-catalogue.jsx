@@ -1,7 +1,39 @@
 "use client";
-import { Package, Pencil, Plus, Trash2, Loader2, UploadCloud, X, Image as ImageIcon, Eye, EyeOff } from "lucide-react";
+import { Package, Pencil, Plus, Trash2, Loader2, UploadCloud, X, Image as ImageIcon, Eye, EyeOff, Share2, Copy, Check } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
+
+const WhatsAppIcon = ({ className = "h-4 w-4", ...props }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    {...props}
+  >
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+  </svg>
+);
+
+const LinkedInIcon = ({ className = "h-4 w-4", ...props }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.25a1.66 1.66 0 0 0-1.67 1.66c0 .92.75 1.67 1.67 1.67s1.67-.75 1.67-1.67c0-.91-.75-1.66-1.67-1.66Z" />
+  </svg>
+);
+
+const TwitterXIcon = ({ className = "h-4 w-4", ...props }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+const EmailIcon = ({ className = "h-5 w-5", ...props }) => (
+  <svg className={className} viewBox="0 0 24 24" {...props}>
+    <path fill="#4285F4" d="M1.5 6.5v11a2 2 0 0 0 2 2h3v-9.5l-5-3.5z" />
+    <path fill="#34A853" d="M22.5 6.5v11a2 2 0 0 1-2 2h-3v-9.5l5-3.5z" />
+    <path fill="#EA4335" d="M17.5 4.5l-5.5 4-5.5-4h-3a2 2 0 0 0-2 2v.5l10.5 7.5 10.5-7.5V6.5a2 2 0 0 0-2-2h-3z" />
+    <path fill="#FBBC05" d="M6.5 10v9.5h11V10l-5.5 4z" />
+  </svg>
+);
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { EmptyState } from "@shared/components/rifah/empty-state";
@@ -243,6 +275,106 @@ export function BizCatalogueManager({ embedded = false }) {
     }
   };
 
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [selectedShareItem, setSelectedShareItem] = useState(null);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
+
+  const getBaseAppUrl = () => {
+    const liveDomain = process.env.NEXT_PUBLIC_APP_URL || "https://rifah.nexcorealliance.com";
+    if (typeof window !== "undefined") {
+      const origin = window.location.origin;
+      if (origin && !origin.includes("localhost") && !origin.includes("127.0.0.1")) {
+        return origin;
+      }
+    }
+    return liveDomain;
+  };
+
+  const getCatalogueShareUrl = () => {
+    const bizSlugOrId = business?.slug || business?._id;
+    if (!bizSlugOrId) return "";
+    const base = getBaseAppUrl();
+    return `${base}/business/${bizSlugOrId}?tab=catalogue#catalogue`;
+  };
+
+  const getItemShareUrl = (item) => {
+    if (!item) return "";
+    const bizSlugOrId = business?.slug || business?._id;
+    if (!bizSlugOrId) return "";
+    const base = getBaseAppUrl();
+    return `${base}/business/${bizSlugOrId}?tab=catalogue&item=${item.slug || item._id}#catalogue`;
+  };
+
+  const getWhatsAppCatalogueMessage = () => {
+    const catalogueUrl = getCatalogueShareUrl();
+    const bizName = business?.name || "Our Business";
+    const category = business?.industry || business?.categories?.[0] || "";
+    const cityState = [business?.city, business?.state].filter(Boolean).join(", ");
+    const publishedCount = activeItems?.length || 0;
+
+    return (
+      `*Check out our Product & Service Catalogue on RIFAH!* 🛍️✨\n\n` +
+      `🏢 *${bizName}*\n` +
+      (category ? `🏷️ *Category:* ${category}\n` : "") +
+      (cityState ? `📍 *Location:* ${cityState}\n` : "") +
+      (publishedCount > 0 ? `📦 *${publishedCount} item${publishedCount === 1 ? "" : "s"} available*\n\n` : "\n") +
+      `Click below to view all our products, services, specifications & enquire directly:\n\n` +
+      `${catalogueUrl}\n\n` +
+      `_RIFAH Chamber of Commerce & Industry_`
+    );
+  };
+
+  const getWhatsAppItemMessage = (item) => {
+    if (!item) return "";
+    const itemUrl = getItemShareUrl(item);
+    const bizName = business?.name || "Our Business";
+
+    return (
+      `*Check out "${item.name}" from ${bizName} on RIFAH!* 🛍️✨\n\n` +
+      (item.category ? `🏷️ *Category:* ${item.category}\n` : "") +
+      (item.price ? `💰 *Price:* ${item.price}\n` : "") +
+      (item.moq ? `📦 *MOQ:* ${item.moq}\n` : "") +
+      (item.description ? `📝 *Details:* ${item.description.slice(0, 120)}${item.description.length > 120 ? "..." : ""}\n\n` : "\n") +
+      `Click below to view item details and connect directly:\n\n` +
+      `${itemUrl}\n\n` +
+      `_RIFAH Chamber of Commerce & Industry_`
+    );
+  };
+
+  const handleOpenShareCatalogue = () => {
+    const bizSlugOrId = business?.slug || business?._id;
+    if (!bizSlugOrId) {
+      toast.error("Business profile not found or not published yet.");
+      return;
+    }
+    setSelectedShareItem(null);
+    setCopiedShareLink(false);
+    setShareDialogOpen(true);
+  };
+
+  const handleOpenShareItem = (item) => {
+    const bizSlugOrId = business?.slug || business?._id;
+    if (!bizSlugOrId) {
+      toast.error("Business profile not found.");
+      return;
+    }
+    setSelectedShareItem(item);
+    setCopiedShareLink(false);
+    setShareDialogOpen(true);
+  };
+
+  const handleCopyShareUrl = async (url) => {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedShareLink(true);
+      toast.success("Link copied to clipboard!");
+      setTimeout(() => setCopiedShareLink(false), 2000);
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
   const content = (
     <div className="space-y-4">
       {embedded && (
@@ -255,14 +387,27 @@ export function BizCatalogueManager({ embedded = false }) {
               {items.length} {items.length === 1 ? "item" : "items"} published · Buyers and chamber members can discover and enquire directly
             </p>
           </div>
-          <Button
-            size="sm"
-            onClick={() => setOpenAdd(true)}
-            className="rounded-xl px-3 text-xs font-semibold cursor-pointer shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 self-start sm:self-auto"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Product / Service</span>
-          </Button>
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleOpenShareCatalogue}
+              className="rounded-xl px-3 text-xs font-semibold cursor-pointer shadow-xs border-border bg-background hover:bg-muted text-foreground gap-1.5 transition-all"
+              title="Share catalogue across social channels"
+            >
+              <Share2 className="h-3.5 w-3.5 shrink-0" />
+              <span>Share Catalogue</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setOpenAdd(true)}
+              className="rounded-xl px-3 text-xs font-semibold cursor-pointer shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Product / Service</span>
+            </Button>
+          </div>
         </div>
       )}
 
@@ -525,6 +670,14 @@ export function BizCatalogueManager({ embedded = false }) {
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
+                  onClick={() => handleOpenShareItem(item)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 text-xs font-medium text-emerald-700 border border-emerald-200/80 transition-colors cursor-pointer"
+                  title="Share this item"
+                >
+                  <Share2 className="h-3.5 w-3.5 text-emerald-600" /> Share
+                </button>
+                <button
+                  type="button"
                   onClick={() => handleEditClick(item)}
                   className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 hover:bg-sky-100 px-3.5 py-1.5 text-xs font-medium text-sky-600 border border-sky-100/80 transition-colors cursor-pointer"
                 >
@@ -729,6 +882,132 @@ export function BizCatalogueManager({ embedded = false }) {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Share Catalogue / Item Modal Dialog with 4 Direct Channels */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="max-w-md rounded-3xl p-6 font-sans">
+          <DialogHeader className="space-y-1 text-left pr-6">
+            <DialogTitle className="text-xl font-bold text-foreground">
+              {selectedShareItem ? `Share "${selectedShareItem.name}"` : "Share Catalogue"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {selectedShareItem
+                ? "Share this product/service across social channels or copy direct link."
+                : "Share your business catalogue with buyers, clients, and partners."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-4">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">
+                SHARE DIRECTLY VIA
+              </p>
+              <div className="grid grid-cols-4 gap-2.5">
+                {/* WhatsApp */}
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                    selectedShareItem ? getWhatsAppItemMessage(selectedShareItem) : getWhatsAppCatalogueMessage()
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center p-3 rounded-xl border border-border hover:border-[#25D366]/50 hover:bg-[#25D366]/5 transition group text-center"
+                >
+                  <div className="w-11 h-11 rounded-2xl bg-[#25D366] flex items-center justify-center mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+                    <WhatsAppIcon className="w-6 h-6 text-white fill-current" />
+                  </div>
+                  <span className="text-xs font-medium text-foreground">WhatsApp</span>
+                </a>
+
+                {/* LinkedIn */}
+                <a
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+                    selectedShareItem ? getItemShareUrl(selectedShareItem) : getCatalogueShareUrl()
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center p-3 rounded-xl border border-border hover:border-[#0A66C2]/50 hover:bg-[#0A66C2]/5 transition group text-center"
+                >
+                  <div className="w-11 h-11 rounded-2xl bg-[#0A66C2] flex items-center justify-center mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+                    <LinkedInIcon className="w-5 h-5 text-white fill-current" />
+                  </div>
+                  <span className="text-xs font-medium text-foreground">LinkedIn</span>
+                </a>
+
+                {/* X / Twitter */}
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                    selectedShareItem
+                      ? `Check out "${selectedShareItem.name}" by ${business?.name || "our business"} on RIFAH!`
+                      : `Check out the Product & Service Catalogue of ${business?.name || "our business"} on RIFAH!`
+                  )}&url=${encodeURIComponent(
+                    selectedShareItem ? getItemShareUrl(selectedShareItem) : getCatalogueShareUrl()
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center p-3 rounded-xl border border-border hover:border-black/50 dark:hover:border-white/50 hover:bg-black/5 dark:hover:bg-white/5 transition group text-center"
+                >
+                  <div className="w-11 h-11 rounded-2xl bg-black dark:bg-white flex items-center justify-center mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+                    <TwitterXIcon className="w-4 h-4 text-white dark:text-black fill-current" />
+                  </div>
+                  <span className="text-xs font-medium text-foreground">X / Twitter</span>
+                </a>
+
+                {/* Email */}
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(
+                    selectedShareItem
+                      ? `${selectedShareItem.name} - ${business?.name || "Business"} on RIFAH`
+                      : `${business?.name || "Business"} - Product & Service Catalogue on RIFAH`
+                  )}&body=${encodeURIComponent(
+                    selectedShareItem
+                      ? `Hello,\n\nI would like to share this product/service with you:\n\n${selectedShareItem.name}\n\nView Online:\n${getItemShareUrl(selectedShareItem)}\n\nRIFAH Chamber of Commerce & Industry`
+                      : `Hello,\n\nI would like to share our Product & Service Catalogue with you:\n\n${business?.name || "Our Business"}\n\nView Catalogue Online:\n${getCatalogueShareUrl()}\n\nRIFAH Chamber of Commerce & Industry`
+                  )}`}
+                  className="flex flex-col items-center justify-center p-3 rounded-xl border border-border hover:border-rose-500/50 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition group text-center"
+                >
+                  <div className="w-11 h-11 rounded-2xl bg-muted/80 border border-border flex items-center justify-center mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+                    <EmailIcon className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-medium text-foreground">Email</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Direct Copy link */}
+            <div className="mt-3 space-y-2">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {selectedShareItem ? "Item Link" : "Catalogue Link"}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={selectedShareItem ? getItemShareUrl(selectedShareItem) : getCatalogueShareUrl()}
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 px-3 py-2 text-xs rounded-xl border border-border bg-muted/30 text-foreground font-mono select-all outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <Button
+                  type="button"
+                  onClick={() => handleCopyShareUrl(selectedShareItem ? getItemShareUrl(selectedShareItem) : getCatalogueShareUrl())}
+                  className={`gap-1.5 text-xs font-semibold shrink-0 transition-all rounded-xl ${
+                    copiedShareLink ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""
+                  }`}
+                >
+                  {copiedShareLink ? (
+                    <>
+                      <Check className="h-3.5 w-3.5" /> Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" /> Copy Link
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 
@@ -742,15 +1021,29 @@ export function BizCatalogueManager({ embedded = false }) {
       title="My catalogue"
       subtitle={`${items.length} published products & services`}
       actions={
-        <Button
-          size="sm"
-          onClick={() => setOpenAdd(true)}
-          className="rounded-xl px-2.5 sm:px-3 text-xs cursor-pointer shadow-xs"
-        >
-          <Plus className="h-3.5 w-3.5 sm:mr-1" />
-          <span className="hidden sm:inline">Add item</span>
-          <span className="sm:hidden">Add</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleOpenShareCatalogue}
+            className="rounded-xl px-2.5 sm:px-3 text-xs font-semibold cursor-pointer shadow-xs border-border bg-background hover:bg-muted text-foreground gap-1.5 transition-all"
+            title="Share catalogue across social channels"
+          >
+            <Share2 className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">Share Catalogue</span>
+            <span className="sm:hidden">Share</span>
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setOpenAdd(true)}
+            className="rounded-xl px-2.5 sm:px-3 text-xs cursor-pointer shadow-xs"
+          >
+            <Plus className="h-3.5 w-3.5 sm:mr-1" />
+            <span className="hidden sm:inline">Add item</span>
+            <span className="sm:hidden">Add</span>
+          </Button>
+        </div>
       }
     >
       {content}
