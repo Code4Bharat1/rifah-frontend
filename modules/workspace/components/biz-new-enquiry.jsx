@@ -284,7 +284,7 @@ export function BizNewEnquiry() {
       actions={
         <Button variant="outline" size="sm" asChild>
           <Link href="/biz/my-enquiries" className="flex items-center gap-1.5">
-            <ArrowLeft className="h-4 w-4" /> Back to My Enquiries
+            <ArrowLeft className="h-4 w-4" /> Back to My Ask
           </Link>
         </Button>
       }

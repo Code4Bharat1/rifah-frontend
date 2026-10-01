@@ -971,9 +971,29 @@ export function BizFeeds() {
     }
   };
 
+  // Compute if the logged-in user already has an active post in the feed (1 post limit)
+  const userExistingPost = useMemo(() => {
+    const currentUid = String(userId || user?._id || user?.id || "");
+    if (!currentUid && !currentUsername) return null;
+    return posts.find((p) => {
+      const postAuthorId = String(p.createdById || p.author?.id || p.author?._id || p.author || "");
+      return Boolean(
+        (currentUid && postAuthorId && postAuthorId === currentUid) ||
+        (p.createdByUsername && currentUsername && p.createdByUsername.toLowerCase() === currentUsername) ||
+        (p.author?.username && currentUsername && p.author.username.toLowerCase() === currentUsername)
+      );
+    });
+  }, [posts, userId, user, currentUsername]);
+
   // Live: Create and Publish Post across all devices
   const handleCreatePost = async (e) => {
     e.preventDefault();
+
+    // Enforce 1 post limit per user/business/admin
+    if (userExistingPost) {
+      toast.error("You can only have 1 active post in the feed. Please delete your existing post before creating a new one.");
+      return;
+    }
 
     let finalPostImage = formPostImage || urlInputValue.trim();
 
@@ -1107,15 +1127,19 @@ export function BizFeeds() {
   }, [posts, filterMode, selectedState, selectedChapter, searchQuery, chapters]);
 
   // =========================================================================
-  // AUTOMATIC DELETION PERMISSIONS: ONLY central_admin & post creator
+  // DELETION PERMISSIONS:
+  // - Central Admin: Can delete ANY post across the network
+  // - State Admin: Can delete posts of chapters & businesses in their state only
+  // - Chapter Admin: Can delete business posts of their chapter only
+  // - Business / Member: Can delete ONLY their own created posts
   // =========================================================================
   const hasDeletePermission = (post) => {
-    // 1. Central Admin can delete any post
-    if (userRole === "central_admin") {
+    // 1. Central Admin & Secretariat can delete ANY post
+    if (["central_admin", "admin", "super_admin", "secretariat"].includes(userRole)) {
       return true;
     }
 
-    // 2. Creator of the post can delete their own post
+    // 2. Creator of the post can always delete their own post
     const postAuthorId = String(post.createdById || post.author?.id || post.author?._id || post.author || "");
     const currentUserId = String(userId || user?._id || user?.id || "");
 
@@ -1125,7 +1149,37 @@ export function BizFeeds() {
       (post.author?.username && currentUsername && post.author.username.toLowerCase() === currentUsername)
     );
 
-    return isOwner;
+    if (isOwner) return true;
+
+    // 3. State Admin can delete posts of chapters and businesses in their own state only
+    if (userRole === "state_admin" && userState) {
+      const adminState = userState.toLowerCase().trim();
+      const postState = (
+        post.state ||
+        chapters.find((c) => (c.name || "").toLowerCase() === (post.chapter || "").toLowerCase())?.state ||
+        ""
+      ).toLowerCase().trim();
+
+      if (postState && (postState === adminState || postState.includes(adminState) || adminState.includes(postState))) {
+        return true;
+      }
+    }
+
+    // 4. Chapter Admin can delete business posts of their own chapter only
+    if (userRole === "chapter_admin" && (userChapter || userChapterId)) {
+      const cleanAdminChapter = (userChapter || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
+      const cleanPostChapter = (post.chapter || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
+
+      if (
+        (userChapterId && post.chapterId && String(post.chapterId) === String(userChapterId)) ||
+        (cleanAdminChapter && cleanPostChapter && (cleanPostChapter === cleanAdminChapter || cleanPostChapter.includes(cleanAdminChapter) || cleanAdminChapter.includes(cleanPostChapter)))
+      ) {
+        return true;
+      }
+    }
+
+    // 5. Business accounts cannot delete other users' posts
+    return false;
   };
 
   return (
@@ -1172,6 +1226,30 @@ export function BizFeeds() {
 
         {/* Main Feed Stream Column (Wider Focused Layout) */}
         <div className="relative z-10 w-full max-w-4xl mx-auto space-y-6">
+          {/* User's Active Post Notification Banner (1-post limit) */}
+          {userExistingPost && (
+            <div className="rounded-2xl border border-sky-200 bg-white p-4 text-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 font-bold shrink-0">
+                  📌
+                </div>
+                <div className="text-xs">
+                  <p className="font-bold text-slate-900">You have 1 active post in the feed</p>
+                  <p className="text-slate-500">Each member can have 1 post at a time. Delete your current post if you wish to upload a new one.</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleDeletePost(userExistingPost.id || userExistingPost._id)}
+                className="shrink-0 gap-1.5 text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-300"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete My Post
+              </Button>
+            </div>
+          )}
+
           <main className="w-full space-y-6">
             {isPostsLoading && posts.length === 0 ? (
               <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-12 text-center space-y-3 shadow-xs">
@@ -1241,12 +1319,71 @@ export function BizFeeds() {
             <DialogDescription className="sr-only">Create and share an update with your network</DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleCreatePost} className="space-y-4 py-2">
-            {/* 1. Author Details */}
-            <div className="rounded-xl border border-border bg-muted/20 p-3.5 space-y-3">
-              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                Post Author & Profile Photo
-              </Label>
+          {userExistingPost ? (
+            <div className="py-3 space-y-4">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900 space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-lg">⚠️</span>
+                  <div className="text-xs space-y-1">
+                    <p className="font-bold text-amber-950 text-sm">1 Active Post Limit</p>
+                    <p className="text-amber-800 leading-relaxed">
+                      Central Admin, State Admin, Chapter Admin, and Business accounts can only upload 1 active post in the feed at a time.
+                    </p>
+                    <p className="text-amber-800 leading-relaxed">
+                      Please delete your current post if you want to upload a new one.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 flex items-center gap-3">
+                {userExistingPost.images?.[0] ? (
+                  <img
+                    src={resolveMediaUrl(userExistingPost.images[0])}
+                    alt=""
+                    className="h-12 w-12 rounded-lg object-cover border border-slate-200 shrink-0"
+                  />
+                ) : (
+                  <div className="h-12 w-12 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+                    <ImageIcon className="h-6 w-6" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1 text-xs">
+                  <p className="font-semibold text-slate-800 truncate">{userExistingPost.caption || "Existing post"}</p>
+                  <p className="text-slate-400 text-[11px] mt-0.5">{formatRelativeTime(userExistingPost.createdAt)}</p>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-2 gap-2 sm:gap-0 flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsNewPostOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={async () => {
+                    await handleDeletePost(userExistingPost.id || userExistingPost._id);
+                    setIsNewPostOpen(false);
+                  }}
+                  className="gap-1.5 font-semibold text-xs"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete Post to Upload New
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <form onSubmit={handleCreatePost} className="space-y-4 py-2">
+              {/* 1. Author Details */}
+              <div className="rounded-xl border border-border bg-muted/20 p-3.5 space-y-3">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                  Post Author & Profile Photo
+                </Label>
 
               <div className="flex items-center gap-3">
                 {/* Profile Photo Preview or Default Icon */}
@@ -1489,7 +1626,8 @@ export function BizFeeds() {
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
+        )}
+      </DialogContent>
       </Dialog>
     </AppShell>
   );
