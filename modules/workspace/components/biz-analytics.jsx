@@ -1,5 +1,5 @@
 "use client";
-import { Eye, MessageSquare, Star, Target, TrendingUp, Sparkles, FolderOpen, MessageCircle } from "lucide-react";
+import { Eye, MessageSquare, Star, Package, TrendingUp, Sparkles, FolderOpen, MessageCircle } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel, StatCard } from "@shared/components/rifah/ui-bits";
@@ -40,10 +40,10 @@ function BizAnalytics() {
     : defaultLast6Months.map((m) => ({ month: m, views: 0 }));
   const maxViews = Math.max(...profileViewsData.map((d) => Number(d.views) || 0), 5);
 
-  // Real Leads vs enquiries directly from backend database
-  const leadsVsEnquiriesData = Array.isArray(analyticsData?.monthlyLeadsVsEnquiries) && analyticsData.monthlyLeadsVsEnquiries.length > 0
+  // Real Monthly enquiries directly from backend database
+  const monthlyEnquiriesData = Array.isArray(analyticsData?.monthlyLeadsVsEnquiries) && analyticsData.monthlyLeadsVsEnquiries.length > 0
     ? analyticsData.monthlyLeadsVsEnquiries
-    : defaultLast6Months.map((m) => ({ month: m, leads: 0, enquiries: 0 }));
+    : defaultLast6Months.map((m) => ({ month: m, enquiries: 0 }));
 
   // Real Catalogue items directly from backend database
   const catalogueList = catalogue.map((item) => ({
@@ -70,12 +70,16 @@ function BizAnalytics() {
             tone="primary"
           />
           <StatCard
-            label="Leads received"
-            value={String(stats.totalLeadsReceived ?? 0)}
-            hint={stats.totalLeadsReceived > 0 ? "Matched buyer enquiries" : "No leads yet"}
-            icon={Target}
+            label="Catalogue items"
+            value={String(catalogueList.length || catalogue.length || 0)}
+            hint={
+              (catalogueList.length || catalogue.length) > 0
+                ? `${catalogueList.length || catalogue.length} published item${(catalogueList.length || catalogue.length) > 1 ? "s" : ""}`
+                : "No items yet"
+            }
+            icon={Package}
             tone="brand"
-            href="/biz/enquiries"
+            href="/biz/profile?tab=catalogue"
           />
           <StatCard
             label="Enquiries"
@@ -135,15 +139,12 @@ function BizAnalytics() {
             </div>
           </Panel>
 
-          {/* Real Leads vs enquiries dual horizontal bars */}
+          {/* Real Monthly enquiries volume chart */}
           <Panel
-            title="Leads vs enquiries"
+            title="Monthly enquiries"
             description="Monthly volume comparison from database"
             action={
-              <div className="flex items-center gap-3 text-xs font-semibold">
-                <span className="flex items-center gap-1.5 text-slate-700">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#0088D1]" /> Leads
-                </span>
+              <div className="flex items-center gap-2 text-xs font-semibold">
                 <span className="flex items-center gap-1.5 text-slate-700">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#10b981]" /> Enquiries
                 </span>
@@ -151,11 +152,9 @@ function BizAnalytics() {
             }
           >
             <div className="space-y-3 pt-2">
-              {leadsVsEnquiriesData.map((item, index) => {
-                const leadCount = Number(item.leads) || 0;
+              {monthlyEnquiriesData.map((item, index) => {
                 const enquiryCount = Number(item.enquiries) || 0;
-                const maxVal = Math.max(...leadsVsEnquiriesData.flatMap((d) => [Number(d.leads) || 0, Number(d.enquiries) || 0]), 5);
-                const leadPercent = Math.max(leadCount > 0 ? 6 : 0, Math.min(100, (leadCount / maxVal) * 100));
+                const maxVal = Math.max(...monthlyEnquiriesData.map((d) => Number(d.enquiries) || 0), 5);
                 const enquiryPercent = Math.max(enquiryCount > 0 ? 6 : 0, Math.min(100, (enquiryCount / maxVal) * 100));
 
                 return (
@@ -163,28 +162,18 @@ function BizAnalytics() {
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-slate-800">{item.month}</span>
                       <div className="flex items-center gap-2.5 text-[11px] font-bold">
-                        <span className="text-[#0088D1]">{leadCount} Leads</span>
-                        <span className="text-slate-300">·</span>
-                        <span className="text-emerald-600">{enquiryCount} Enquiries</span>
+                        <span className="text-emerald-600">
+                          {enquiryCount} {enquiryCount === 1 ? "Enquiry" : "Enquiries"}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 h-2.5 w-full">
-                      <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                        {leadCount > 0 && (
-                          <div
-                            className="absolute inset-y-0 left-0 bg-[#0088D1] rounded-full transition-all duration-300"
-                            style={{ width: `${leadPercent}%` }}
-                          />
-                        )}
-                      </div>
-                      <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                        {enquiryCount > 0 && (
-                          <div
-                            className="absolute inset-y-0 left-0 bg-[#10b981] rounded-full transition-all duration-300"
-                            style={{ width: `${enquiryPercent}%` }}
-                          />
-                        )}
-                      </div>
+                    <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                      {enquiryCount > 0 && (
+                        <div
+                          className="absolute inset-y-0 left-0 bg-[#10b981] rounded-full transition-all duration-300"
+                          style={{ width: `${enquiryPercent}%` }}
+                        />
+                      )}
                     </div>
                   </div>
                 );

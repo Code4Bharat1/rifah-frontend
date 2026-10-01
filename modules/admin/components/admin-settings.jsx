@@ -115,7 +115,7 @@ export function AdminSettings() {
     workingHours: "Mon–Fri · 09:30–18:00 IST",
     membershipYear: "2026-27"
   });
-  
+
   const [toggleStates, setToggleStates] = useState({});
   const [confirmModal, setConfirmModal] = useState({ open: false, key: null, value: null, title: "" });
 
@@ -137,7 +137,7 @@ export function AdminSettings() {
   const handleChangePassword = async () => {
     if (!passwords.currentPassword || !passwords.newPassword) return toast.error("Please fill both password fields.");
     if (passwords.newPassword.length < 6) return toast.error("New password must be at least 6 characters.");
-    
+
     setSavingPassword(true);
     try {
       await authApi.changePassword({ oldPassword: passwords.currentPassword, newPassword: passwords.newPassword });
@@ -160,7 +160,7 @@ export function AdminSettings() {
         workingHours: globalSettings.workingHours || "Mon–Fri · 09:30–18:00 IST",
         membershipYear: globalSettings.membershipYear || "2026-27"
       });
-      
+
       const newToggles = {};
       togglesTemplate.forEach(t => {
         newToggles[t.key] = globalSettings[t.key] !== undefined ? globalSettings[t.key] : t.defaultOn;
@@ -187,7 +187,7 @@ export function AdminSettings() {
   const confirmToggle = async () => {
     const { key, value } = confirmModal;
     setConfirmModal({ open: false, key: null, value: null, title: "" });
-    
+
     // Optimistic UI update
     setToggleStates(prev => ({ ...prev, [key]: value }));
     try {
@@ -250,7 +250,7 @@ export function AdminSettings() {
           </div>
         )}
         <Panel title="All admin modules">
-            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {modules.map((m) => (
               <Button key={m.to} asChild variant="outline" className="h-auto justify-start gap-3 px-3.5 py-3">
                 <Link href={m.to}>
@@ -263,182 +263,182 @@ export function AdminSettings() {
         </Panel>
 
         {isCentralAdmin && (
-        <Panel title="Moderation rules">
-          <ul className="divide-y divide-border">
-            {togglesTemplate.map(({ key, title, desc, defaultOn }) => {
-              const isOn = toggleStates[key] !== undefined ? toggleStates[key] : defaultOn;
-              return (
-                <li key={title} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3.5 first:pt-0 last:pb-0">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
-                  </div>
-                  <Switch
-                    checked={isOn}
-                    onCheckedChange={(checked) => handleToggleClick(key, checked, title)}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        </Panel>
+          <Panel title="Moderation rules">
+            <ul className="divide-y divide-border">
+              {togglesTemplate.map(({ key, title, desc, defaultOn }) => {
+                const isOn = toggleStates[key] !== undefined ? toggleStates[key] : defaultOn;
+                return (
+                  <li key={title} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3.5 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{title}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
+                    </div>
+                    <Switch
+                      checked={isOn}
+                      onCheckedChange={(checked) => handleToggleClick(key, checked, title)}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          </Panel>
         )}
 
         {isCentralAdmin && (
-        <Panel title="Chamber details">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Organisation name</Label>
-              <Input 
-                value={chamberDetails.organisationName} 
-                onChange={(e) => setChamberDetails({...chamberDetails, organisationName: e.target.value})}
-                className="h-11" 
-                placeholder="RIFAH Chamber of Commerce & Industry"
-              />
+          <Panel title="Chamber details">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Organisation name</Label>
+                <Input
+                  value={chamberDetails.organisationName}
+                  onChange={(e) => setChamberDetails({ ...chamberDetails, organisationName: e.target.value })}
+                  className="h-11"
+                  placeholder="RIFAH Chamber of Commerce & Industry"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Central Admin email</Label>
+                <Input
+                  type="email"
+                  value={chamberDetails.secretariatEmail}
+                  onChange={(e) => setChamberDetails({ ...chamberDetails, secretariatEmail: e.target.value })}
+                  className="h-11"
+                  placeholder="admin@rifah.org"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Support phone *</Label>
+                <PhoneInput
+                  required
+                  value={chamberDetails.supportPhone}
+                  onChange={(e) => setChamberDetails({ ...chamberDetails, supportPhone: e.target.value })}
+                  placeholder="22 2345 6789"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Membership year</Label>
+                <Input
+                  value={chamberDetails.membershipYear}
+                  onChange={(e) => setChamberDetails({ ...chamberDetails, membershipYear: e.target.value })}
+                  className="h-11"
+                  placeholder="2026-27"
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Central Admin address</Label>
+                <Input
+                  value={chamberDetails.secretariatAddress}
+                  onChange={(e) => setChamberDetails({ ...chamberDetails, secretariatAddress: e.target.value })}
+                  className="h-11"
+                  placeholder="Central Admin Office, Byculla, Mumbai 400 008"
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Working hours / Timings</Label>
+                <Input
+                  value={chamberDetails.workingHours}
+                  onChange={(e) => setChamberDetails({ ...chamberDetails, workingHours: e.target.value })}
+                  className="h-11"
+                  placeholder="Mon–Fri · 09:30–18:00 IST"
+                />
+              </div>
+              <div className="col-span-full pt-2">
+                <Button onClick={handleSaveChamberDetails} disabled={savingChamber}>
+                  {savingChamber ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Central Admin email</Label>
-              <Input 
-                type="email"
-                value={chamberDetails.secretariatEmail}
-                onChange={(e) => setChamberDetails({...chamberDetails, secretariatEmail: e.target.value})}
-                className="h-11" 
-                placeholder="admin@rifah.org"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Support phone *</Label>
-              <PhoneInput 
-                required
-                value={chamberDetails.supportPhone}
-                onChange={(e) => setChamberDetails({...chamberDetails, supportPhone: e.target.value})}
-                placeholder="22 2345 6789"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Membership year</Label>
-              <Input 
-                value={chamberDetails.membershipYear}
-                onChange={(e) => setChamberDetails({...chamberDetails, membershipYear: e.target.value})}
-                className="h-11" 
-                placeholder="2026-27"
-              />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Central Admin address</Label>
-              <Input 
-                value={chamberDetails.secretariatAddress}
-                onChange={(e) => setChamberDetails({...chamberDetails, secretariatAddress: e.target.value})}
-                className="h-11" 
-                placeholder="Central Admin Office, Byculla, Mumbai 400 008"
-              />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Working hours / Timings</Label>
-              <Input 
-                value={chamberDetails.workingHours}
-                onChange={(e) => setChamberDetails({...chamberDetails, workingHours: e.target.value})}
-                className="h-11" 
-                placeholder="Mon–Fri · 09:30–18:00 IST"
-              />
-            </div>
-            <div className="col-span-full pt-2">
-              <Button onClick={handleSaveChamberDetails} disabled={savingChamber}>
-                {savingChamber ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          </div>
-        </Panel>
+          </Panel>
         )}
 
         {isCentralAdmin && (
-        <Panel title="Fees configuration">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Registration fee (₹)</Label>
-              <Input 
-                type="number" 
-                value={fees.registrationFee} 
-                onChange={(e) => setFees({...fees, registrationFee: Number(e.target.value)})}
-                className="h-11" 
-              />
+          <Panel title="Fees configuration">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Registration fee (₹)</Label>
+                <Input
+                  type="number"
+                  value={fees.registrationFee}
+                  onChange={(e) => setFees({ ...fees, registrationFee: Number(e.target.value) })}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Default membership fee (₹)</Label>
+                <Input
+                  type="number"
+                  value={fees.defaultMembershipFee}
+                  onChange={(e) => setFees({ ...fees, defaultMembershipFee: Number(e.target.value) })}
+                  className="h-11"
+                />
+              </div>
+              <div className="col-span-full pt-2">
+                <Button onClick={handleSaveFees}>Save Fees</Button>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Default membership fee (₹)</Label>
-              <Input 
-                type="number" 
-                value={fees.defaultMembershipFee} 
-                onChange={(e) => setFees({...fees, defaultMembershipFee: Number(e.target.value)})}
-                className="h-11" 
-              />
-            </div>
-            <div className="col-span-full pt-2">
-              <Button onClick={handleSaveFees}>Save Fees</Button>
-            </div>
-          </div>
-        </Panel>
+          </Panel>
         )}
 
         {isCentralAdmin && (
-        <Panel title="System limits">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label>Lead limit per month</Label>
-              <Input 
-                type="number" 
-                value={limits.leadLimitPerMonth} 
-                onChange={(e) => setLimits({...limits, leadLimitPerMonth: Number(e.target.value)})}
-                className="h-11" 
-              />
-              <p className="text-xs text-muted-foreground">Max leads a business can receive monthly</p>
+          <Panel title="System limits">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label>Lead limit per month</Label>
+                <Input
+                  type="number"
+                  value={limits.leadLimitPerMonth}
+                  onChange={(e) => setLimits({ ...limits, leadLimitPerMonth: Number(e.target.value) })}
+                  className="h-11"
+                />
+                <p className="text-xs text-muted-foreground">Max leads a business can receive monthly</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Max catalogue items</Label>
+                <Input
+                  type="number"
+                  value={limits.maxCatalogueItems}
+                  onChange={(e) => setLimits({ ...limits, maxCatalogueItems: Number(e.target.value) })}
+                  className="h-11"
+                />
+                <p className="text-xs text-muted-foreground">Max products a business can list</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Max images per item</Label>
+                <Input
+                  type="number"
+                  value={limits.maxImagesPerItem}
+                  onChange={(e) => setLimits({ ...limits, maxImagesPerItem: Number(e.target.value) })}
+                  className="h-11"
+                />
+                <p className="text-xs text-muted-foreground">Max images allowed per product listing</p>
+              </div>
+              <div className="col-span-full pt-2">
+                <Button onClick={handleSaveLimits}>Save Limits</Button>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Max catalogue items</Label>
-              <Input 
-                type="number" 
-                value={limits.maxCatalogueItems} 
-                onChange={(e) => setLimits({...limits, maxCatalogueItems: Number(e.target.value)})}
-                className="h-11" 
-              />
-              <p className="text-xs text-muted-foreground">Max products a business can list</p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Max images per item</Label>
-              <Input 
-                type="number" 
-                value={limits.maxImagesPerItem} 
-                onChange={(e) => setLimits({...limits, maxImagesPerItem: Number(e.target.value)})}
-                className="h-11" 
-              />
-              <p className="text-xs text-muted-foreground">Max images allowed per product listing</p>
-            </div>
-            <div className="col-span-full pt-2">
-              <Button onClick={handleSaveLimits}>Save Limits</Button>
-            </div>
-          </div>
-        </Panel>
+          </Panel>
         )}
 
         <Panel title="Security & Authentication">
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 max-w-3xl">
             <div className="space-y-1.5">
               <Label>Current password</Label>
-              <Input 
-                type="password" 
+              <Input
+                type="password"
                 placeholder="Enter current password"
-                value={passwords.currentPassword} 
-                onChange={(e) => setPasswords({...passwords, currentPassword: e.target.value})}
-                className="h-11" 
+                value={passwords.currentPassword}
+                onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+                className="h-11"
               />
             </div>
             <div className="space-y-1.5">
               <Label>New password</Label>
-              <Input 
-                type="password" 
+              <Input
+                type="password"
                 placeholder="Enter new password"
-                value={passwords.newPassword} 
-                onChange={(e) => setPasswords({...passwords, newPassword: e.target.value})}
-                className="h-11" 
+                value={passwords.newPassword}
+                onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                className="h-11"
               />
               <p className="text-xs text-muted-foreground">Minimum 6 characters required</p>
             </div>

@@ -1554,7 +1554,7 @@ function BizMembership() {
         period: durationYears === 1 ? "/ year" : `/ ${durationYears} yrs`,
         highlight: Boolean(p.isRecommended),
         desc: p.summary || (priceNum === 0 ? "Get started on RIFAH Connect with basic directory presence." : "Active chamber membership plan."),
-        features: Array.isArray(p.features) && p.features.length > 0 ? p.features : ["Directory listing", "Verified badge", "Leads access"],
+        features: Array.isArray(p.features) && p.features.length > 0 ? p.features : ["Directory listing", "Verified badge", "Direct enquiries"],
       };
     });
   }, [plansData]);
@@ -2152,7 +2152,7 @@ function BizMembership() {
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                        {isFreeTier ? "Unlock verified badge, leads & chamber perks" : "Explore higher membership benefits"}
+                        {isFreeTier ? "Unlock verified badge, direct enquiries & chamber perks" : "Explore higher membership benefits"}
                       </p>
                     </div>
                   </div>

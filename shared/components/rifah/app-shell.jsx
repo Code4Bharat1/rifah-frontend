@@ -1024,12 +1024,12 @@ function UnderApprovalAccessGate({ business, path }) {
               )}
             >
               {isNotSubmitted
-                ? "Your business profile is incomplete and has not been submitted for Central Admin verification. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will remain restricted until your profile details are completed and submitted for review."
+                ? "Your business profile is incomplete and has not been submitted for Central Admin verification. Workspace features like Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will remain restricted until your profile details are completed and submitted for review."
                 : isChangesReq
                   ? "The RIFAH Chamber Central Admin has reviewed your business application and requested specific changes or additional paperwork before granting verification approval."
                   : isRejected
                     ? "Your verification application has been rejected by the Central Admin. Please review the feedback reason below and update your documents to re-submit."
-                    : "Your business profile is currently in the RIFAH Central Admin Verification queue. Workspace features like Buyer Leads, Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
+                    : "Your business profile is currently in the RIFAH Central Admin Verification queue. Workspace features like Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
             </p>
 
             {isNotSubmitted && missingFields.length > 0 && (
@@ -1139,7 +1139,7 @@ function UnderApprovalAccessGate({ business, path }) {
       <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-4 text-xs text-muted-foreground flex items-center gap-3">
         <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
         <p className="leading-relaxed">
-          <strong>Locked Modules:</strong> Buyer Leads, Open Enquiries, Catalogue Items, Analytics Reports, and Direct Messaging are locked while under review to maintain Chamber buyer safety standards. They will unlock automatically upon Central Admin verification.
+          <strong>Locked Modules:</strong> Direct Enquiries, Catalogue Items, Analytics Reports, and Direct Messaging are locked while under review to maintain Chamber buyer safety standards. They will unlock automatically upon Central Admin verification.
         </p>
       </div>
     </div>

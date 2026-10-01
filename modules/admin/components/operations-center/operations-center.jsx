@@ -4006,12 +4006,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 a.name?.toLowerCase().includes(participantSearch.toLowerCase()) ||
                 a.company?.toLowerCase().includes(participantSearch.toLowerCase())
               ).length === 0 && (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  {attendees.length === 0
-                    ? "No attendees registered yet. They appear here once approved."
-                    : "No participants match your search."}
-                </div>
-              )}
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    {attendees.length === 0
+                      ? "No attendees registered yet. They appear here once approved."
+                      : "No participants match your search."}
+                  </div>
+                )}
             </div>
           </div>
 

@@ -36,7 +36,7 @@ function AdminHome() {
   const chapters = Array.isArray(chaptersData) ? chaptersData : (chaptersData?.chapters || []);
   const auditLogs = Array.isArray(auditData) ? auditData : (auditData?.logs || auditData?.auditLogs || []);
   const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || paymentsData?.data || []);
-  
+
   const membershipGrowth = overviewData?.membershipGrowth || [];
   const chaptersDist = overviewData?.chaptersDistribution || [];
   const mix = overviewData?.membershipMix || { Basic: 0, Premium: 0, Enterprise: 0 };
@@ -107,92 +107,92 @@ function AdminHome() {
         {/* Charts & Progress Panels Row */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-             <div className="mb-6">
-                <h3 className="text-lg font-bold">Membership growth</h3>
-                <p className="text-sm text-muted-foreground">Total members and new registrations</p>
-             </div>
-             <div className="h-[280px] w-full border-b border-border/40 pb-4">
-                {membershipGrowth.every(d => d.total === 0) ? (
-                  <div className="flex flex-col h-full items-center justify-center text-muted-foreground">
-                    <Activity className="h-8 w-8 mb-2 opacity-20" />
-                    <p className="text-sm">No membership data yet.</p>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={membershipGrowth} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#888888' }} dy={10} />
-                      <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                      <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={60}>
-                         {membershipGrowth.map((entry, index) => (
-                           <Cell key={`cell-${index}`} className="fill-primary" />
-                         ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-             </div>
-             <div className="mt-4 grid grid-cols-3 divide-x divide-border/40 text-center">
-                <div>
-                   <p className="text-2xl font-bold">{membershipGrowth[membershipGrowth.length - 1]?.new || 0}</p>
-                   <p className="text-xs text-muted-foreground mt-1">New registrations</p>
-                   <p className="text-[10px] text-green-600 font-medium mt-0.5">↗ Registrations up</p>
+            <div className="mb-6">
+              <h3 className="text-lg font-bold">Membership growth</h3>
+              <p className="text-sm text-muted-foreground">Total members and new registrations</p>
+            </div>
+            <div className="h-[280px] w-full border-b border-border/40 pb-4">
+              {membershipGrowth.every(d => d.total === 0) ? (
+                <div className="flex flex-col h-full items-center justify-center text-muted-foreground">
+                  <Activity className="h-8 w-8 mb-2 opacity-20" />
+                  <p className="text-sm">No membership data yet.</p>
                 </div>
-                <div>
-                   <p className="text-2xl font-bold">91%</p>
-                   <p className="text-xs text-muted-foreground mt-1">Renewal rate</p>
-                </div>
-                <div>
-                   <p className="text-2xl font-bold">{Math.round(((mix.Premium + mix.Enterprise) / totalMembers) * 100) || 0}%</p>
-                   <p className="text-xs text-muted-foreground mt-1">Premium share</p>
-                </div>
-             </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={membershipGrowth} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#888888' }} dy={10} />
+                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={60}>
+                      {membershipGrowth.map((entry, index) => (
+                        <Cell key={`cell-${index}`} className="fill-primary" />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="mt-4 grid grid-cols-3 divide-x divide-border/40 text-center">
+              <div>
+                <p className="text-2xl font-bold">{membershipGrowth[membershipGrowth.length - 1]?.new || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">New registrations</p>
+                <p className="text-[10px] text-green-600 font-medium mt-0.5">↗ Registrations up</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">91%</p>
+                <p className="text-xs text-muted-foreground mt-1">Renewal rate</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{Math.round(((mix.Premium + mix.Enterprise) / totalMembers) * 100) || 0}%</p>
+                <p className="text-xs text-muted-foreground mt-1">Premium share</p>
+              </div>
+            </div>
           </div>
-          
+
           <div className="space-y-6">
             <Panel title="Chapters Distribution" action={<MoreLink href={`${basePath}/chapters`} />}>
               <div className="space-y-5 mt-2">
                 {chaptersDist.length === 0 ? (
-                   <p className="text-xs text-muted-foreground">No chapters data available.</p>
+                  <p className="text-xs text-muted-foreground">No chapters data available.</p>
                 ) : (
-                   chaptersDist.map((c, idx) => {
-                     const pct = Math.round((c.members / (chaptersDist[0]?.members || 1)) * 100);
-                     return (
-                       <div key={c.name || idx} className="space-y-1.5">
-                          <div className="flex items-center justify-between text-sm">
-                             <span className="font-medium">{c.name}</span>
-                             <span className="font-semibold">{c.members}</span>
-                          </div>
-                          <Progress value={pct} className="h-2" />
-                       </div>
-                     );
-                   })
+                  chaptersDist.map((c, idx) => {
+                    const pct = Math.round((c.members / (chaptersDist[0]?.members || 1)) * 100);
+                    return (
+                      <div key={c.name || idx} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{c.name}</span>
+                          <span className="font-semibold">{c.members}</span>
+                        </div>
+                        <Progress value={pct} className="h-2" />
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </Panel>
             <Panel title="Membership mix" action={<MoreLink href={`${basePath}/memberships`} />}>
-               <div className="space-y-3 mt-2">
-                  <div className="flex items-center justify-between bg-primary text-primary-foreground p-3 rounded-lg">
-                     <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4" />
-                        <span className="text-sm font-medium">Enterprise member</span>
-                     </div>
-                     <span className="text-sm font-bold">{mix.Enterprise}</span>
+              <div className="space-y-3 mt-2">
+                <div className="flex items-center justify-between bg-primary text-primary-foreground p-3 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span className="text-sm font-medium">Enterprise member</span>
                   </div>
-                  <div className="flex items-center justify-between bg-red-50 text-red-700 p-3 rounded-lg border border-red-100">
-                     <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4" />
-                        <span className="text-sm font-medium">Premium member</span>
-                     </div>
-                     <span className="text-sm font-bold">{mix.Premium}</span>
+                  <span className="text-sm font-bold">{mix.Enterprise}</span>
+                </div>
+                <div className="flex items-center justify-between bg-red-50 text-red-700 p-3 rounded-lg border border-red-100">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    <span className="text-sm font-medium">Premium member</span>
                   </div>
-                  <div className="flex items-center justify-between bg-blue-50 text-blue-700 p-3 rounded-lg border border-blue-100">
-                     <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        <span className="text-sm font-medium">Basic member</span>
-                     </div>
-                     <span className="text-sm font-bold">{mix.Basic}</span>
+                  <span className="text-sm font-bold">{mix.Premium}</span>
+                </div>
+                <div className="flex items-center justify-between bg-blue-50 text-blue-700 p-3 rounded-lg border border-blue-100">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    <span className="text-sm font-medium">Basic member</span>
                   </div>
-               </div>
+                  <span className="text-sm font-bold">{mix.Basic}</span>
+                </div>
+              </div>
             </Panel>
           </div>
         </div>

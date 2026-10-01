@@ -26,7 +26,7 @@ const DASHBOARD_SUGGESTIONS = {
   ],
   business_owner: [
     { label: "🔍 Discover Businesses", query: "Discover verified businesses in Mumbai" },
-    { label: "📬 Buyer Enquiries", query: "Where are my buyer leads and enquiries?" },
+    { label: "📬 Buyer Enquiries", query: "Where are my buyer enquiries?" },
     { label: "🛡️ Verification Steps", query: "How to complete business verification?" },
     { label: "🤝 Networking Circles", query: "How does power networking work?" },
   ],
