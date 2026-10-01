@@ -280,6 +280,21 @@ export const eventApi = {
     formData.append("poster", file);
     return apiClient(`/events/${id}/poster`, { method: "POST", body: formData });
   },
+  // BUG-055: uploads the actual signature file and returns a persisted URL, instead of
+  // the frontend faking a preview with a browser-only blob: URL.
+  uploadSignatoryImage: (id, slot, file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("slot", String(slot));
+    return apiClient(`/events/${id}/signatory-image`, { method: "POST", body: formData });
+  },
+  // BUG-060: Keynote 1/2 Poster was a disabled, unwired "Choose File" button.
+  uploadKeynotePoster: (id, slot, file) => {
+    const formData = new FormData();
+    formData.append("poster", file);
+    formData.append("slot", String(slot));
+    return apiClient(`/events/${id}/keynote-poster`, { method: "POST", body: formData });
+  },
   addFinanceTransaction: (id, data) =>
     apiClient(`/events/${id}/finance`, { method: "POST", body: JSON.stringify(data) }),
   

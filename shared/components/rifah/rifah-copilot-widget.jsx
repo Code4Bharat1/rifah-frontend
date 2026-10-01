@@ -60,7 +60,7 @@ const ROLE_PRESETS = {
       "Show registered businesses",
       "Show Chapter Admins",
       "Who is the Central Admin?",
-      "Where are my buyer leads and enquiries?",
+      "Where are my buyer enquiries?",
     ],
   },
 };

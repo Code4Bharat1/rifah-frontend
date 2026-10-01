@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { eventApi } from "@shared/lib/api-services";
 import { STAGE_SCRIPTS } from "./scripts-data";
 
-export function ScriptsTab({ eventId, teamRoles = {} }) {
+export function ScriptsTab({ eventId, teamRoles = {}, slogan = "", theme = "" }) {
   const [activeSegment, setActiveSegment] = useState(1);
   const [customScripts, setCustomScripts] = useState({});
   const [isEditing, setIsEditing] = useState(false);
@@ -32,13 +32,19 @@ export function ScriptsTab({ eventId, teamRoles = {} }) {
     };
 
     const assignedName = roleMapping[segmentId] || "[Speaker Name]";
-    
+
     // Replace [Speaker Name] and [Awardee Name] with the assigned name (if it's not empty)
     if (assignedName) {
       parsed = parsed.replace(/\[Speaker Name\]/g, assignedName);
       parsed = parsed.replace(/\[Awardee Name\]/g, assignedName);
     }
-    
+
+    // BUG-059: {slogan}/{theme} tokens (see scripts-data.js THEME_LINE) — fall back to the
+    // same example copy shown in the Slogan/Theme input placeholders so a script never
+    // reads as a literal, un-filled "{theme}" before an admin has set one.
+    parsed = parsed.replace(/\{theme\}/g, theme?.trim() || "Connect • Collaborate • Grow");
+    parsed = parsed.replace(/\{slogan\}/g, slogan?.trim() || "Together for Sustainable Future");
+
     return parsed;
   };
 
@@ -79,7 +85,7 @@ export function ScriptsTab({ eventId, teamRoles = {} }) {
     const baseText = saved || STAGE_SCRIPTS[activeSegment].defaultText;
     setCurrentText(interpolateNames(baseText, activeSegment));
     setIsEditing(false);
-  }, [activeSegment, customScripts, teamRoles]);
+  }, [activeSegment, customScripts, teamRoles, slogan, theme]);
 
   const handleSave = async () => {
     try {

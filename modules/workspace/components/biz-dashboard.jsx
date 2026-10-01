@@ -436,17 +436,17 @@ function BusinessHome() {
         {/* Top 4 Stat Cards dynamically bound to live backend data */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
           <StatCard
-            label="New leads"
-            value={String(rawLeads.filter((l) => l.status === "New").length)}
+            label="New enquiries"
+            value={String(rawEnquiries.filter((e) => e.status === "New" || !e.status).length || rawLeads.filter((l) => l.status === "New").length)}
             hint="This week"
-            icon={Target}
+            icon={MessageSquare}
             tone="danger"
             href="/biz/enquiries"
           />
           <StatCard
             label="Open enquiries"
-            value={String(rawLeads.filter((l) => ["New", "In Progress"].includes(l.status)).length)}
-            hint={`${rawLeads.filter((l) => l.status === "New").length} need response`}
+            value={String(rawEnquiries.filter((e) => ["New", "In Progress"].includes(e.status)).length || rawLeads.filter((l) => ["New", "In Progress"].includes(l.status)).length)}
+            hint={`${rawEnquiries.filter((e) => e.status === "New").length || rawLeads.filter((l) => l.status === "New").length} need response`}
             icon={MessageSquare}
             tone="primary"
             href="/biz/enquiries"

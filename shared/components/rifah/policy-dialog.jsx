@@ -60,7 +60,7 @@ const FAQS_CONTENT = [
     a: "Businesses submit registration certificates (GST, MSME/Udyam, PAN, CIN) and KYC details in their workspace. The RIFAH Central Admin and Chapter Officers inspect all submitted documentation, verify business legitimacy, and either approve the verified badge, request revisions, or provide constructive guidance.",
   },
   {
-    q: "How are leads and buyer enquiries routed to members?",
+    q: "How are buyer enquiries routed to members?",
     a: "Enquiries from the RIFAH public marketplace and business directory are matched according to industry category, service capability, and geography. Premium, Gold, and Patron members receive early priority routing, while multi-branch groups can establish automated routing rules across units.",
   },
   {

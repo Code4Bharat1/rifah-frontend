@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
-import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { useConversations, useMessages } from "@shared/hooks/use-rifah-api";
@@ -642,57 +641,121 @@ function BizMessages() {
 
   return (
     <AppShell role="business" title="Messages" subtitle="Buyer enquiries & direct threads">
-      <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <Panel className={cn(openOnMobile && "hidden lg:block")} title="Inbox" bodyClassName="p-0 md:p-0">
-          {displayConversations.length === 0 ? (
-            <div className="p-6 text-center">
-              <p className="text-xs text-muted-foreground">
-                No active conversations yet. Messages will appear when buyers contact your business or when you message buyers from your Leads.
-              </p>
-              <Button asChild size="sm" variant="outline" className="mt-3">
-                <Link href="/biz/enquiries">View Enquiries</Link>
-              </Button>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {displayConversations.map((c, i) => {
-                const isSelected = c.otherUser?._id === selectedUserId;
-                return (
-                  <li key={c.otherUser?._id || i}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveOtherUser(c.otherUser);
-                        setOpenOnMobile(true);
-                      }}
-                      className={cn(
-                        "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 p-3.5 text-left transition-colors hover:bg-muted/60",
-                        isSelected && "bg-primary-soft/60"
-                      )}
-                    >
-                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-bold text-primary">
-                        {(c.otherUser?.name || "B")[0]}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold">{c.otherUser?.name || "Buyer"}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{c.otherUser?.email || ""}</span>
-                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                          {c.isNewDraft ? (
-                            <span className="italic text-primary">New message draft...</span>
-                          ) : (
-                            (c.lastMessage?.body || c.lastMessage?.text || "Active thread").replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, "").trim()
-                          )}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+      {/* Mobile: full-screen inbox OR full-screen chat, no grid */}
+      <div className="relative">
+        {/* ── Inbox Panel ── */}
+        <div
+          className={cn(
+            "w-full lg:hidden",
+            openOnMobile ? "hidden" : "block"
           )}
-        </Panel>
+        >
+          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h2 className="text-sm font-bold text-foreground">Inbox</h2>
+              <span className="text-xs text-muted-foreground">{displayConversations.length} conversations</span>
+            </div>
+            {displayConversations.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-xs text-muted-foreground">
+                  No active conversations yet. Messages will appear when buyers contact your business or when you message buyers from your Enquiries.
+                </p>
+                <Button asChild size="sm" variant="outline" className="mt-3">
+                  <Link href="/biz/enquiries">View Enquiries</Link>
+                </Button>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {displayConversations.map((c, i) => {
+                  return (
+                    <li key={c.otherUser?._id || i}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveOtherUser(c.otherUser);
+                          setOpenOnMobile(true);
+                        }}
+                        className="grid w-full grid-cols-[auto_minmax(0,1fr)] items-start gap-3 p-4 text-left transition-colors hover:bg-muted/60 active:bg-muted"
+                      >
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-bold text-primary">
+                          {(c.otherUser?.name || "B")[0]}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold">{c.otherUser?.name || "Buyer"}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{c.otherUser?.email || ""}</span>
+                          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                            {c.isNewDraft ? (
+                              <span className="italic text-primary">New message draft...</span>
+                            ) : (
+                              (c.lastMessage?.body || c.lastMessage?.text || "Active thread").replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, "").trim()
+                            )}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
 
-        <Panel className={cn(!openOnMobile && "hidden lg:block")} bodyClassName="p-0 md:p-0">
+        {/* ── Desktop: side-by-side grid ── */}
+        <div className="hidden lg:grid lg:gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h2 className="text-sm font-bold text-foreground">Inbox</h2>
+            </div>
+            {displayConversations.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-xs text-muted-foreground">
+                  No active conversations yet. Messages will appear when buyers contact your business or when you message buyers from your Enquiries.
+                </p>
+                <Button asChild size="sm" variant="outline" className="mt-3">
+                  <Link href="/biz/enquiries">View Enquiries</Link>
+                </Button>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {displayConversations.map((c, i) => {
+                  const isSelected = c.otherUser?._id === selectedUserId;
+                  return (
+                    <li key={c.otherUser?._id || i}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveOtherUser(c.otherUser);
+                          setOpenOnMobile(true);
+                        }}
+                        className={cn(
+                          "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 p-3.5 text-left transition-colors hover:bg-muted/60",
+                          isSelected && "bg-primary-soft/60"
+                        )}
+                      >
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-bold text-primary">
+                          {(c.otherUser?.name || "B")[0]}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold">{c.otherUser?.name || "Buyer"}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{c.otherUser?.email || ""}</span>
+                          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                            {c.isNewDraft ? (
+                              <span className="italic text-primary">New message draft...</span>
+                            ) : (
+                              (c.lastMessage?.body || c.lastMessage?.text || "Active thread").replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, "").trim()
+                            )}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Desktop Chat Panel */}
+          <div className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col min-h-[500px]">
           {(() => {
             const effectiveEmail = contactDetails?.email || activeOtherUser?.email || "";
             const effectivePhone = contactDetails?.phone || activeOtherUser?.phone || "";
@@ -785,7 +848,7 @@ function BizMessages() {
             );
           })()}
 
-          <div className="flex min-h-[300px] max-h-[55vh] flex-col gap-3 overflow-y-auto p-4">
+          <div className="flex-1 min-h-[320px] max-h-[60vh] flex flex-col gap-3 overflow-y-auto p-4">
             {!selectedUserId ? (
               <div className="my-auto flex flex-col items-center justify-center p-8 text-center">
                 <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary-soft text-primary">
@@ -793,7 +856,7 @@ function BizMessages() {
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-foreground">No conversation selected</h3>
                 <p className="mt-1.5 max-w-sm text-xs text-muted-foreground">
-                  Select a buyer conversation from your inbox or message buyers directly from your leads manager.
+                  Select a buyer conversation from your inbox or message buyers directly from your enquiries manager.
                 </p>
                 <Button asChild size="sm" className="mt-4">
                   <Link href="/biz/enquiries">Go to Enquiries</Link>
@@ -913,7 +976,160 @@ function BizMessages() {
               </Button>
             </div>
           </form>
-        </Panel>
+          </div>
+        </div>{/* end desktop grid */}
+
+        {/* ── Mobile Chat Panel (full-screen when openOnMobile) ── */}
+        <div className={cn("lg:hidden", openOnMobile ? "block" : "hidden")}>
+          <div className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col" style={{ height: "calc(100dvh - 130px)" }}>
+            {(() => {
+              const effectiveEmail = contactDetails?.email || activeOtherUser?.email || "";
+              const effectivePhone = contactDetails?.phone || activeOtherUser?.phone || "";
+              const effectiveWhatsapp = contactDetails?.whatsapp || activeOtherUser?.whatsapp || activeOtherUser?.whatsappNumber || "";
+              const cleanWhatsappNumber = effectiveWhatsapp ? effectiveWhatsapp.replace(/[^0-9]/g, "") : "";
+              const effectiveBizName = contactDetails?.businessName || activeOtherUser?.businessName || "";
+              return (
+                <header className="flex items-center justify-between border-b border-border p-3 bg-surface shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => setOpenOnMobile(false)}
+                      aria-label="Back to inbox"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-foreground">
+                        {activeOtherUser?.name || "Conversation"}
+                      </p>
+                      {effectiveBizName && effectiveBizName !== activeOtherUser?.name && (
+                        <p className="truncate text-[11px] text-muted-foreground">{effectiveBizName}</p>
+                      )}
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                        {effectiveEmail && <span className="truncate max-w-[160px]">{effectiveEmail}</span>}
+                        {effectivePhone && <span>{effectivePhone}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  {effectiveWhatsapp && (
+                    <a
+                      href={`https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent("Hello from RIFAH Connect, regarding your requirement/quotation.")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white px-2.5 py-1.5 text-xs font-bold transition shadow-2xs shrink-0"
+                    >
+                      <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                      <span className="hidden xs:inline">WhatsApp</span>
+                    </a>
+                  )}
+                </header>
+              );
+            })()}
+
+            {/* Messages area */}
+            <div className="flex-1 flex flex-col gap-3 overflow-y-auto p-3">
+              {messages.length === 0 ? (
+                <div className="m-auto text-center text-xs text-muted-foreground px-4">
+                  <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
+                  Start a conversation with <span className="font-semibold text-foreground">{activeOtherUser?.name}</span>.
+                </div>
+              ) : (
+                messages.map((m) => {
+                  const isMe = m.sender?._id === user?._id || m.sender === user?._id;
+                  const msgText = m.body || m.text || "";
+                  const attachments = m.attachments || [];
+                  return (
+                    <div
+                      key={m._id}
+                      className={cn(
+                        "flex max-w-[88%]",
+                        isMe ? "self-end justify-end" : "self-start justify-start"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "rounded-2xl px-3.5 py-2.5 text-sm shadow-2xs",
+                          isMe
+                            ? "bg-primary text-primary-foreground"
+                            : "border border-border bg-muted text-foreground"
+                        )}
+                      >
+                        {(() => {
+                          const quoteData = parseQuotationMessage(msgText);
+                          const quotationPdf = quoteData
+                            ? attachments.find((att) => (att.split("?")[0] || "").toLowerCase().endsWith(".pdf"))
+                            : null;
+                          const otherAttachments = quotationPdf
+                            ? attachments.filter((att) => att !== quotationPdf)
+                            : attachments;
+                          return (
+                            <>
+                              {otherAttachments.length > 0 && (
+                                <div className="space-y-1 mb-1">
+                                  {otherAttachments.map((att, idx) => (
+                                    <AttachmentItem key={idx} url={att} isMe={isMe} />
+                                  ))}
+                                </div>
+                              )}
+                              {quoteData ? (
+                                <QuotationCard quote={quoteData} isMe={isMe} pdfUrl={quotationPdf} />
+                              ) : msgText ? (
+                                <p className="whitespace-pre-wrap break-words">{msgText}</p>
+                              ) : null}
+                            </>
+                          );
+                        })()}
+                        <p className={cn("mt-1 text-[10px]", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                          {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Input form */}
+            <form onSubmit={handleSend} className="flex flex-col gap-2 border-t border-border p-3 shrink-0">
+              {selectedFile && (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-primary/20 bg-primary-soft/40 px-3 py-2 text-xs">
+                  <div className="flex items-center gap-2 truncate">
+                    {selectedFile.type.startsWith("image/") ? (
+                      <ImageIcon className="h-4 w-4 shrink-0 text-primary" />
+                    ) : selectedFile.type.startsWith("video/") ? (
+                      <Film className="h-4 w-4 shrink-0 text-primary" />
+                    ) : (
+                      <FileText className="h-4 w-4 shrink-0 text-primary" />
+                    )}
+                    <span className="truncate font-medium text-foreground">{selectedFile.name}</span>
+                  </div>
+                  <button type="button" onClick={handleRemoveSelectedFile} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={inputRef}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="Write a response..."
+                  disabled={!selectedUserId}
+                  className="h-10 flex-1"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={uploadingFile || (!inputText.trim() && !selectedFile) || !selectedUserId}
+                >
+                  {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </AppShell>
   );

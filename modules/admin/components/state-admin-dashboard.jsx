@@ -214,9 +214,9 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
   const displayedChaptersDist = chaptersDist.length > 0
     ? chaptersDist
     : chapters.slice(0, 6).map((c) => ({
-        name: c.name,
-        members: c.businessesCount || c.membersCount || 0,
-      }));
+      name: c.name,
+      members: c.businessesCount || c.membersCount || 0,
+    }));
   const maxDistributionMembers = Math.max(...displayedChaptersDist.map((c) => c.members), 1);
 
   const handleCreateChapter = async (e) => {
@@ -371,7 +371,7 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
           ? `City chapters and appointed Chapter Admins across ${stateName}`
           : `State Executive Desk · Appoint chapter admins and oversee regional growth`
       }
-     
+
     >
       <div className="space-y-6">
         {/* Executive Authority Banner */}
@@ -942,9 +942,9 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
               ) : null}
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={creatingChapter || isNewChapterBizPending}
               title={isNewChapterBizPending ? "This business is pending verification and cannot be allocated." : undefined}
             >
@@ -1093,9 +1093,9 @@ export function StateAdminDashboard({ isChaptersOnly = false }) {
                 onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
               />
             </div>
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={assigningAdmin || isSelectedBizPending}
               title={isSelectedBizPending ? "This business is pending verification and cannot be allocated." : undefined}
             >

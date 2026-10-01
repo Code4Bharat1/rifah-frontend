@@ -634,7 +634,7 @@ function BizNetworking() {
               )}
             </Panel>
 
-            <Panel title="Referrals Made To Me" description="Leads fellow members have referred to your business">
+            <Panel title="Referrals Made To Me" description="Referrals fellow members have sent to your business">
               {referralsLoading ? (
                 <div className="flex items-center justify-center py-10 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading referrals...
@@ -643,7 +643,7 @@ function BizNetworking() {
                 <EmptyState
                   icon={Sparkles}
                   title="No referrals received yet"
-                  description="When a fellow member refers a lead to your business, it will show up here."
+                  description="When a fellow member sends a referral to your business, it will show up here."
                 />
               ) : referralSearch && filteredReferralsReceived.length === 0 ? (
                 <p className="py-6 text-center text-xs text-muted-foreground">
