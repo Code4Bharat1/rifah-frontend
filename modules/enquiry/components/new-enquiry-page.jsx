@@ -107,7 +107,7 @@ function NewEnquiry() {
             <div className="mt-6 grid gap-2">
               {user ? (
                 <Button asChild>
-                  <Link href="/biz/my-enquiries">Track my enquiries</Link>
+                  <Link href="/biz/my-enquiries">Track my Ask</Link>
                 </Button>
               ) : null}
               <Button asChild variant={user ? "outline" : "default"}>

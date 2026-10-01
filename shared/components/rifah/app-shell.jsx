@@ -81,7 +81,7 @@ const navs = {
       { label: "Operations", to: "/biz/operations", icon: Radio },
       { label: "Feeds", to: "/biz/feeds", icon: Compass },
       { label: "Enquiries", to: "/biz/enquiries", icon: FileStack },
-      { label: "My Enquiries", to: "/biz/my-enquiries", icon: Send },
+      { label: "My Ask", to: "/biz/my-enquiries", icon: Send },
       { label: "More", to: "/biz/profile", icon: LayoutGrid },
     ],
     more: [
