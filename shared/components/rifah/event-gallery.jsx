@@ -470,6 +470,7 @@ export function EventGallery() {
             <Input
               id="gallery-from"
               type="date"
+              max="9999-12-31"
               value={draft.from}
               onChange={(e) => setDraft((p) => ({ ...p, from: e.target.value }))}
             />
@@ -479,6 +480,7 @@ export function EventGallery() {
             <Input
               id="gallery-to"
               type="date"
+              max="9999-12-31"
               value={draft.to}
               onChange={(e) => setDraft((p) => ({ ...p, to: e.target.value }))}
             />
