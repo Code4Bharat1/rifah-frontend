@@ -9,6 +9,8 @@ import {
   CalendarDays,
   ChartNoAxesColumn,
   CreditCard,
+  Eye,
+  EyeOff,
   FileStack,
   MapPin,
   MapPinned,
@@ -136,6 +138,7 @@ export function AdminSettings({ expectedRole }) {
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingChamber, setSavingChamber] = useState(false);
+  const [showPasswords, setShowPasswords] = useState(false);
 
   const handleChangePassword = async () => {
     if (!passwords.currentPassword || !passwords.newPassword) return toast.error("Please fill both password fields.");
@@ -421,23 +424,41 @@ export function AdminSettings({ expectedRole }) {
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 max-w-3xl">
             <div className="space-y-1.5">
               <Label>Current password</Label>
-              <Input
-                type="password"
-                placeholder="Enter current password"
-                value={passwords.currentPassword}
-                onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
-                className="h-11"
-              />
+              <div className="relative">
+                <Input
+                  type={showPasswords ? "text" : "password"}
+                  placeholder="Enter current password"
+                  value={passwords.currentPassword}
+                  onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+                  className="h-11 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(!showPasswords)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground flex items-center justify-center"
+                >
+                  {showPasswords ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>New password</Label>
-              <Input
-                type="password"
-                placeholder="Enter new password"
-                value={passwords.newPassword}
-                onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-                className="h-11"
-              />
+              <div className="relative">
+                <Input
+                  type={showPasswords ? "text" : "password"}
+                  placeholder="Enter new password"
+                  value={passwords.newPassword}
+                  onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                  className="h-11 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(!showPasswords)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground flex items-center justify-center"
+                >
+                  {showPasswords ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <p className="text-xs text-muted-foreground">Minimum 6 characters required</p>
             </div>
             <div className="col-span-full pt-2">
