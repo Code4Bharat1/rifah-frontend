@@ -631,7 +631,7 @@ export function AdminReports() {
           {user?.role !== "chapter_admin" && (
             <Panel 
               title={
-                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
                   <span className="font-bold text-slate-900 dark:text-white shrink-0 text-sm">Revenue & Payments</span>
                   <select
                     value={revenueFilter}
@@ -682,7 +682,7 @@ export function AdminReports() {
                     ? `Export all ${revenueFilter} payment transactions and invoices.`
                     : `Export all ${revenueFilter.toLowerCase()} status transactions and receipts.`}
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                <div className="flex flex-col gap-2.5 sm:gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                     <Input type="date" max="9999-12-31" value={revenueDates.start} onChange={e => setRevenueDates({...revenueDates, start: e.target.value})} />
@@ -724,7 +724,7 @@ export function AdminReports() {
         {/* Memberships Report */}
         <Panel 
           title={
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
               <span className="font-bold text-slate-900 dark:text-white shrink-0 text-sm">Memberships</span>
               <select
                 value={memberFilter}
@@ -768,7 +768,7 @@ export function AdminReports() {
                 ? "Export all registered active users, their roles, and chapters."
                 : `Export registered ${memberFilter} tier members, their roles, and chapters.`}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+            <div className="flex flex-col gap-2.5 sm:gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                 <Input type="date" max="9999-12-31" value={memberDates.start} onChange={e => setMemberDates({...memberDates, start: e.target.value})} />
@@ -832,7 +832,7 @@ export function AdminReports() {
                 ? "Export enquiry data, statuses, and sources." 
                 : "Export lead distribution data, statuses, and enquiry sources."}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+            <div className="flex flex-col gap-2.5 sm:gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Start Date (Optional)</Label>
                 <Input type="date" max="9999-12-31" value={leadDates.start} onChange={e => setLeadDates({...leadDates, start: e.target.value})} />
