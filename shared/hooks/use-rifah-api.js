@@ -518,10 +518,10 @@ export function useConversations() {
       }
     },
     enabled: isAuthenticated,
-    refetchInterval: false, // Scaled for 10k users: Real-time updates driven by WebSockets
+    refetchInterval: false, // Scaled for 10k/50k users: Real-time updates driven by WebSockets
     retry: 0,              // already handled inside queryFn — no React Query retries needed
     throwOnError: false,   // never bubble to error boundary
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -539,9 +539,9 @@ export function useMessages(otherUserId) {
       }
     },
     enabled: Boolean(otherUserId),
-    refetchInterval: false, // Scaled for 10k users: Real-time updates driven by WebSockets
+    refetchInterval: false, // Scaled for 10k/50k users: Real-time updates driven by WebSockets
     retry: 1,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -566,9 +566,9 @@ export function useNotifications() {
       }
     },
     enabled: isAuthenticated,
-    refetchInterval: false, // Scaled for 10k users: Real-time updates driven by WebSockets
+    refetchInterval: false, // Scaled for 10k/50k users: Real-time updates driven by WebSockets
     retry: 1,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 
