@@ -75,6 +75,14 @@ import {
   getPincodeForCity,
   getStateForCity,
 } from "@shared/lib/indian-states-cities";
+import {
+  ALL_INTERNATIONAL_COUNTRIES,
+  getCitiesForInternationalCountry,
+  getPincodeForInternationalCity,
+  getCountryObjByName,
+  getPostalCodeLabel,
+  getPostalCodePlaceholder,
+} from "@shared/lib/international-countries-cities";
 import { useChapters, useMembershipPlans, useCategories } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
 import { authApi, paymentApi, businessApi, verificationApi } from "@shared/lib/api-services";
@@ -189,6 +197,7 @@ function RegisterBusiness({ isAdmin = false }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [categoryError, setCategoryError] = useState(false);
+  const [pincodeError, setPincodeError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [paidSuccess, setPaidSuccess] = useState(false);
 
@@ -198,7 +207,7 @@ function RegisterBusiness({ isAdmin = false }) {
     industry: "",
     subCategory: "",
     founded: "",
-    employees: "11–50",
+    employees: "",
     about: "",
     logo: "",
     avatar: "",
@@ -421,24 +430,56 @@ function RegisterBusiness({ isAdmin = false }) {
   }, [chapters, formData.state]);
 
   const availableCities = React.useMemo(() => {
+    if (formData.region === "international") {
+      const intlCities = getCitiesForInternationalCountry(formData.state);
+      return intlCities;
+    }
     const stateCities = getCitiesForState(formData.state);
     const chapterCities = chapters
       .filter((c) => !formData.state || (c.state || "").trim().toLowerCase() === (formData.state || "").trim().toLowerCase())
       .map((c) => (c.city || "").trim())
       .filter(Boolean);
     return Array.from(new Set([...stateCities, ...chapterCities])).sort((a, b) => a.localeCompare(b));
-  }, [formData.state, chapters]);
+  }, [formData.state, formData.region, chapters]);
 
-  const handleStateChange = (selectedState) => {
+  const handleStateChange = (selectedStateOrCountry) => {
+    if (formData.region === "international") {
+      const newCities = getCitiesForInternationalCountry(selectedStateOrCountry);
+      const currentCityStillValid = newCities.some((c) => c.toLowerCase() === (formData.city || "").trim().toLowerCase());
+      
+      const countryObj = getCountryObjByName(selectedStateOrCountry);
+      
+      setFormData((prev) => {
+        let updatedPhone = prev.phone;
+        if (countryObj && countryObj.dialCode) {
+          const parsed = parsePhoneNumber(prev.phone || "");
+          if (!parsed.nationalNumber) {
+            updatedPhone = `${countryObj.dialCode} `;
+          } else {
+            updatedPhone = `${countryObj.dialCode} ${parsed.nationalNumber}`;
+          }
+        }
+        return {
+          ...prev,
+          state: selectedStateOrCountry,
+          city: currentCityStillValid ? prev.city : "",
+          pincode: currentCityStillValid ? prev.pincode : "",
+          phone: updatedPhone,
+        };
+      });
+      setError("");
+      return;
+    }
+
     const chapterStillValid = chapters.some(
-      (c) => c.name === formData.chapter && (c.state || "").trim().toLowerCase() === (selectedState || "").trim().toLowerCase()
+      (c) => c.name === formData.chapter && (c.state || "").trim().toLowerCase() === (selectedStateOrCountry || "").trim().toLowerCase()
     );
-    const newCities = getCitiesForState(selectedState);
+    const newCities = getCitiesForState(selectedStateOrCountry);
     const currentCityStillValid = newCities.some((c) => c.toLowerCase() === (formData.city || "").trim().toLowerCase());
 
     setFormData((prev) => ({
       ...prev,
-      state: selectedState,
+      state: selectedStateOrCountry,
       city: currentCityStillValid ? prev.city : "",
       pincode: currentCityStillValid ? prev.pincode : "",
       chapter: chapterStillValid ? prev.chapter : "",
@@ -447,12 +488,18 @@ function RegisterBusiness({ isAdmin = false }) {
   };
 
   const handleCityChange = (selectedCity) => {
-    const autoPin = getPincodeForCity(selectedCity);
-    const inferredState = !formData.state ? getStateForCity(selectedCity) : "";
+    let autoPin = "";
+    if (formData.region === "international") {
+      autoPin = getPincodeForInternationalCity(formData.state, selectedCity);
+    } else {
+      autoPin = getPincodeForCity(selectedCity);
+    }
+
+    const inferredState = (formData.region === "national" && !formData.state) ? getStateForCity(selectedCity) : "";
 
     // Auto-match chapter if one exists for this city
     let matchedChapter = formData.chapter;
-    if (!matchedChapter) {
+    if (formData.region === "national" && !matchedChapter) {
       const directChapter = chapters.find(
         (c) => (c.city || "").trim().toLowerCase() === (selectedCity || "").trim().toLowerCase() ||
                (c.name || "").trim().toLowerCase().includes((selectedCity || "").trim().toLowerCase())
@@ -467,6 +514,7 @@ function RegisterBusiness({ isAdmin = false }) {
       pincode: autoPin || prev.pincode,
       chapter: matchedChapter,
     }));
+    setPincodeError("");
     setError("");
   };
 
@@ -1383,6 +1431,27 @@ function RegisterBusiness({ isAdmin = false }) {
                   return;
                 }
                 setCategoryError(false);
+
+                // Year established is mandatory
+                const foundedYear = String(formData.founded || "").trim();
+                const currentYear = new Date().getFullYear();
+                if (!foundedYear) {
+                  setError("Year established is mandatory. Please enter the year your business was established.");
+                  document.getElementById("byear")?.focus();
+                  return;
+                }
+                if (!/^\d{4}$/.test(foundedYear) || Number(foundedYear) < 1800 || Number(foundedYear) > currentYear) {
+                  setError(`Please enter a valid 4-digit Year established (between 1800 and ${currentYear}).`);
+                  document.getElementById("byear")?.focus();
+                  return;
+                }
+
+                // Team size is mandatory
+                if (!formData.employees || !String(formData.employees).trim()) {
+                  setError("Team size is mandatory. Please select your business team size.");
+                  document.getElementById("bemp")?.focus();
+                  return;
+                }
               }
 
               // Strict Validation for Step 1 (Contact & Location)
@@ -1443,15 +1512,45 @@ function RegisterBusiness({ isAdmin = false }) {
                     return;
                   }
                 }
-                // Location validation: State must be selected first, then City
+                // Location validation: State (National) or Country (International), then City
                 if (formData.region === "national" && (!formData.state || !formData.state.trim())) {
                   setError("State is mandatory. Please select your business state.");
+                  return;
+                }
+                if (formData.region === "international" && (!formData.state || !formData.state.trim())) {
+                  setError("Country is mandatory. Please select or enter your business country.");
                   return;
                 }
                 if (!formData.city || formData.city.trim().length < 2) {
                   setError("City is mandatory. Please select or enter your business city.");
                   return;
                 }
+
+                // Pincode / Postal Code Validation (Field-specific error)
+                const currentPostalLabel = getPostalCodeLabel(formData.state, formData.region);
+                if (formData.region === "national") {
+                  if (formData.pincode && !/^\d{6}$/.test(formData.pincode.trim())) {
+                    setPincodeError("Please enter a valid 6-digit PIN code.");
+                    const el = document.getElementById("bpincode");
+                    if (el) {
+                      el.focus();
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                    return;
+                  }
+                } else {
+                  const cleanPin = (formData.pincode || "").trim();
+                  if (cleanPin && cleanPin.length > 12) {
+                    setPincodeError(`Please enter a valid ${currentPostalLabel}.`);
+                    const el = document.getElementById("bpincode");
+                    if (el) {
+                      el.focus();
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                    return;
+                  }
+                }
+                setPincodeError("");
                 // RIFAH Chapter is optional (visitor feedback)
               }
 
@@ -2027,7 +2126,10 @@ function RegisterBusiness({ isAdmin = false }) {
                     </p>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="byear">Year established</Label>
+                    <Label htmlFor="byear" className="flex items-center gap-1 font-medium">
+                      <span>Year established</span>
+                      <span className="text-red-500 font-bold">*</span>
+                    </Label>
                     <FastInput
                       id="byear"
                       inputMode="numeric"
@@ -2035,16 +2137,21 @@ function RegisterBusiness({ isAdmin = false }) {
                       value={formData.founded}
                       onValueChange={(val) => setFormData({ ...formData, founded: val.replace(/\D/g, "").slice(0, 4) })}
                       placeholder="e.g. 2014"
+                      required
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="bemp">Team size</Label>
+                    <Label htmlFor="bemp" className="flex items-center gap-1 font-medium">
+                      <span>Team size</span>
+                      <span className="text-red-500 font-bold">*</span>
+                    </Label>
                     <Select
                       value={formData.employees}
                       onValueChange={(v) => setFormData({ ...formData, employees: v })}
+                      required
                     >
                       <SelectTrigger id="bemp">
-                        <SelectValue placeholder="Select" />
+                        <SelectValue placeholder="Select team size" />
                       </SelectTrigger>
                       <SelectContent>
                         {["1–10", "11–50", "51–200", "200+"].map((t) => (
@@ -2149,10 +2256,11 @@ function RegisterBusiness({ isAdmin = false }) {
                       id="bjoiningDate"
                       type="date"
                       value={formData.joiningDate}
-                      onValueChange={(val) => setFormData({ ...formData, joiningDate: val })}
-                      className="h-11"
+                      readOnly
+                      disabled
+                      className="h-11 bg-muted/60 text-muted-foreground cursor-not-allowed select-none"
                     />
-                    <p className="text-[10px] text-muted-foreground">Defaults to today. Used for annual RIFAH membership anniversary milestones & chapter recognition.</p>
+                    <p className="text-[10px] text-muted-foreground">Automatically locked to registration date. Used for annual RIFAH membership anniversary milestones & chapter recognition.</p>
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <div className="flex flex-wrap items-center justify-between gap-1.5">
@@ -2229,7 +2337,7 @@ function RegisterBusiness({ isAdmin = false }) {
                       Public email displayed on your business directory card & catalogue for buyer RFQs and customer enquiries. (If left blank, your owner login email will be used).
                     </p>
                   </div>
-                  {/* 1. State (Searchable Dropdown, Selected First) */}
+                  {/* 1. State (for National/INR) or Country / Region (for International/USD) */}
                   <div className="space-y-1.5 sm:col-span-2">
                     {formData.region === "national" ? (
                       <>
@@ -2253,24 +2361,29 @@ function RegisterBusiness({ isAdmin = false }) {
                       </>
                     ) : (
                       <>
-                        <Label htmlFor="bstate" className="font-semibold text-slate-800 dark:text-slate-200">
-                          Country / Region *
-                        </Label>
-                        <FastInput
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="bstate" className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                            <Globe className="h-3.5 w-3.5 text-primary" />
+                            <span>Country / Region *</span>
+                          </Label>
+                          <span className="text-[11px] text-muted-foreground font-medium">
+                            Select country
+                          </span>
+                        </div>
+                        <CreatableCombobox
                           id="bstate"
                           value={formData.state}
-                          onValueChange={(val) => {
-                            setFormData({ ...formData, state: val });
-                            setError("");
-                          }}
-                          placeholder="e.g. United Arab Emirates"
+                          onValueChange={handleStateChange}
+                          options={ALL_INTERNATIONAL_COUNTRIES}
+                          placeholder="Select or search country (e.g. United Arab Emirates, Saudi Arabia, USA, UK)"
+                          emptyText="No matching country found. Type to enter a custom country."
                           className="h-11"
                         />
                       </>
                     )}
                   </div>
 
-                  {/* 2. City (Searchable Dropdown, Cascaded from State) */}
+                  {/* 2. City (Searchable Dropdown, Cascaded from State / Country) */}
                   <div className="space-y-1.5">
                     <Label htmlFor="bcity" className="font-semibold text-slate-800 dark:text-slate-200">
                       City *
@@ -2281,22 +2394,37 @@ function RegisterBusiness({ isAdmin = false }) {
                       onValueChange={handleCityChange}
                       options={availableCities}
                       placeholder={
-                        formData.region === "national" && !formData.state
-                          ? "Select state first (or search city)"
-                          : "Select or search city"
+                        !formData.state
+                          ? (formData.region === "international" ? "Select country first (or search city)" : "Select state first (or search city)")
+                          : (formData.region === "international" ? `Select or search city in ${formData.state}` : "Select or search city")
                       }
-                      emptyText="No matching city. Type to enter a custom city."
+                      emptyText={
+                        formData.state
+                          ? `No preset city found for ${formData.state}. Type to enter a custom city.`
+                          : "Please select a country/state first."
+                      }
                       className="h-11"
                     />
+                    {formData.region === "international" && formData.state && availableCities.length > 0 && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Showing major commercial cities for {formData.state} (or type custom city).
+                      </p>
+                    )}
                   </div>
 
                   {/* 3. Pincode / Postal code (Auto-captured based on City, Editable) */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="bpincode" className="font-semibold text-slate-800 dark:text-slate-200">
-                        Pincode / Postal code
+                      <Label
+                        htmlFor="bpincode"
+                        className={cn(
+                          "font-semibold text-slate-800 dark:text-slate-200",
+                          pincodeError && "text-red-600 dark:text-red-400 font-bold"
+                        )}
+                      >
+                        {getPostalCodeLabel(formData.state, formData.region)}
                       </Label>
-                      {formData.pincode && (
+                      {formData.pincode && !pincodeError && (
                         <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
                           Auto-captured
                         </span>
@@ -2304,12 +2432,24 @@ function RegisterBusiness({ isAdmin = false }) {
                     </div>
                     <FastInput
                       id="bpincode"
-                      inputMode="numeric"
                       value={formData.pincode}
-                      onValueChange={(val) => setFormData({ ...formData, pincode: val })}
-                      placeholder="Postal / Zip code"
-                      className="h-11"
+                      onValueChange={(val) => {
+                        setFormData({ ...formData, pincode: val });
+                        setPincodeError("");
+                        setError("");
+                      }}
+                      placeholder={getPostalCodePlaceholder(formData.state, formData.region)}
+                      className={cn(
+                        "h-11 transition-all duration-200",
+                        pincodeError && "border-red-500 ring-2 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20 text-red-900 dark:text-red-200"
+                      )}
                     />
+                    {pincodeError && (
+                      <p className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {pincodeError}
+                      </p>
+                    )}
                   </div>
 
                   {/* 4. Address */}

@@ -69,7 +69,7 @@ import { cn } from "@shared/lib/utils";
 const docTemplates = [
   {
     type: "incorporation_certificate",
-    name: "Certificate of Incorporation / Trade License",
+    name: "Business Registration Certificate",
   },
   {
     type: "gst_tax_registration",
@@ -81,7 +81,7 @@ const docTemplates = [
   },
   {
     type: "authorized_letter",
-    name: "Authorized Signatory Letter / ID Proof",
+    name: "Authorized Signatory Letter",
   },
   {
     type: "bank_details_invoicing",
@@ -92,6 +92,9 @@ const docTemplates = [
 const typeAliases = {
   incorporation_certificate: [
     "incorporation_certificate",
+    "business registration certificate",
+    "business_registration_certificate",
+    "business registration",
     "certificate of incorporation",
     "certificate_of_incorporation",
     "incorporation",
@@ -102,6 +105,7 @@ const typeAliases = {
   ],
   gst_tax_registration: [
     "gst_tax_registration",
+    "gstin / tax registration certificate",
     "gst / tax registration",
     "gst_certificate",
     "gst certificate",
@@ -112,6 +116,8 @@ const typeAliases = {
     "pan_card",
     "pan",
     "pan card",
+    "business pan / tax id card",
+    "business pan",
     "tax_id",
     "factory_licence",
     "factory licence",
@@ -120,12 +126,14 @@ const typeAliases = {
     "authorized_letter",
     "authorized_signatory",
     "authorized signatory letter",
+    "authorized signatory letter / id proof",
     "chamber_membership_form",
     "chamber membership form",
     "msme_udyam",
   ],
   bank_details_invoicing: [
     "bank_details_invoicing",
+    "bank account details / cancelled cheque",
     "bank details for invoicing",
     "bank details",
     "bank_details",
@@ -2297,9 +2305,9 @@ function BizMembership() {
         </div>
 
         {/* Row 2: 2 Columns Grid (Verification Status & Verification Documents) */}
-        <div id="verification" className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch pt-2 scroll-mt-20">
+        <div id="verification" className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start pt-2 scroll-mt-20">
           {/* Card 1: Verification Status (Vertical Animated Stepper) */}
-          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-border/90 transition-all">
+          <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs hover:border-border/90 transition-all">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-border/80">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -2348,13 +2356,13 @@ function BizMembership() {
               </p>
 
               {/* Vertical Stepper with Connected Animated Progress Line */}
-              <div className="relative my-7 pl-1 space-y-9 sm:space-y-10">
+              <div className="relative my-5 sm:my-6 pl-1 space-y-6 sm:space-y-7">
                 {/* Step 1: Profile & Application Submitted */}
                 <div className="relative flex items-start gap-4.5 group">
                   {/* Vertical Track connecting to step 2 */}
                   <div
                     className={cn(
-                      "absolute left-[17px] top-11 -bottom-9 w-[2px] rounded-full transition-all duration-500",
+                      "absolute left-[17px] top-11 -bottom-7 w-[2px] rounded-full transition-all duration-500",
                       hasBusinessProfile
                         ? totalUploadedDocsCount >= docTemplates.length
                           ? "bg-emerald-500"
@@ -2424,7 +2432,7 @@ function BizMembership() {
                 <div className="relative flex items-start gap-4.5 group">
                   {/* Vertical Track connecting to step 3 */}
                   <div className={cn(
-                    "absolute left-[17px] top-11 -bottom-9 w-[2px] rounded-full transition-all duration-500",
+                    "absolute left-[17px] top-11 -bottom-7 w-[2px] rounded-full transition-all duration-500",
                     !hasBusinessProfile
                       ? "bg-muted-foreground/20"
                       : totalUploadedDocsCount >= docTemplates.length
@@ -2497,7 +2505,7 @@ function BizMembership() {
                 <div className="relative flex items-start gap-4.5 group">
                   {/* Vertical Track connecting to step 4 */}
                   <div className={cn(
-                    "absolute left-[17px] top-11 -bottom-9 w-[2px] rounded-full transition-all duration-500",
+                    "absolute left-[17px] top-11 -bottom-7 w-[2px] rounded-full transition-all duration-500",
                     isVerified
                       ? "bg-emerald-500"
                       : isRejected
@@ -2665,36 +2673,48 @@ function BizMembership() {
             </div>
           </div>
 
-          {/* Card 2: Verification Documents */}
-          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-border/90 transition-all">
+          {/* Card 2: Verification Documents - Exactly matching Image 2 UI & Fully Responsive */}
+          <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-6 md:p-7 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all">
             <div>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/80">
-                <div>
-                  <h3 className="text-base font-bold text-foreground">Verification Documents (PDF)</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Official certificates, registration papers & identity proof
-                  </p>
+              {/* Header with Blue Document Icon + Counter & Segmented Progress Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4 pb-4 sm:pb-5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3 sm:gap-3.5">
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/40 shadow-2xs">
+                    <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                      Required Documents
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+                      Upload the required documents for verification
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap">
-                  {isVerified ? (
-                    <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-1 shrink-0">
-                      {verifiedDocsCount || docTemplates.length} of {docTemplates.length} Verified
+                <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800/60">
+                  <div className="text-xs sm:text-sm font-semibold">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      {totalUploadedDocsCount} of {docTemplates.length}
+                    </span>{" "}
+                    <span className="text-slate-500 dark:text-slate-400 font-normal">
+                      uploaded
                     </span>
-                  ) : totalUploadedDocsCount > 0 ? (
-                    <span className="rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-[11px] font-bold px-2.5 py-1 shrink-0">
-                      {totalUploadedDocsCount} of {docTemplates.length} Under Review
-                    </span>
-                  ) : !hasBusinessProfile ? (
-                    <span className="rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-[11px] font-bold px-2.5 py-1 shrink-0 flex items-center gap-1">
-                      <Lock className="h-3 w-3" />
-                      Locked · Profile Incomplete
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[11px] font-bold px-2.5 py-1 shrink-0">
-                      0 of {docTemplates.length} Uploaded
-                    </span>
-                  )}
+                  </div>
+                  {/* Segmented Progress Bar */}
+                  <div className="flex items-center gap-1 sm:gap-1.5 w-32 sm:w-44 md:w-52">
+                    {docTemplates.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "h-2 flex-1 rounded-full transition-all duration-300",
+                          idx < totalUploadedDocsCount
+                            ? "bg-emerald-500"
+                            : "bg-slate-100 dark:bg-slate-800"
+                        )}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -2719,7 +2739,7 @@ function BizMembership() {
                   </div>
                   <Link
                     href="/biz/profile"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 shadow-xs transition-colors"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 shadow-xs transition-colors"
                   >
                     <Building2 className="h-3.5 w-3.5" />
                     <span>Complete Profile</span>
@@ -2728,13 +2748,15 @@ function BizMembership() {
                 </div>
               )}
 
-              <div className="space-y-2.5 pt-4">
+              {/* Document List Items matching exact image */}
+              <div className="space-y-3 pt-4">
                 {docTemplates.map((template) => {
                   const uploaded = findMatchingUploadedDoc(template.type, uploadedDocs);
                   const docUrl = uploaded?.fileUrl || uploaded?.url || uploaded?.path;
                   const docDate = uploaded?.uploadedAt
-                    ? new Date(uploaded.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-                    : null;
+                    ? new Date(uploaded.uploadedAt)
+                    : new Date();
+                  const docDateFormatted = `${docDate.getDate()} ${docDate.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
                   const isUploaded = Boolean(docUrl);
                   const isDocVerified = isUploaded && (uploaded?.status === "verified" || uploaded?.status === "approved" || (isVerified && uploaded?.status !== "rejected" && uploaded?.status !== "pending"));
                   const isDocRejected = isUploaded && uploaded?.status === "rejected";
@@ -2743,69 +2765,82 @@ function BizMembership() {
                     <div
                       key={template.type}
                       className={cn(
-                        "flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border transition-all",
-                        !hasBusinessProfile && !isUploaded
-                          ? "border-border/60 bg-muted/20 opacity-75"
-                          : "border-border/70 bg-card hover:bg-muted/30 hover:border-border hover:shadow-2xs"
+                        "p-3.5 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 shadow-2xs",
+                        isUploaded
+                          ? "border-emerald-200/80 dark:border-emerald-900/60 bg-[#F7FCF9] dark:bg-emerald-950/20 hover:border-emerald-300"
+                          : !hasBusinessProfile
+                          ? "border-slate-200/60 bg-slate-50/50 dark:bg-slate-900/30 opacity-75"
+                          : "border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                       )}
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className={cn(
-                          "grid h-9 w-9 shrink-0 place-items-center rounded-xl border shadow-2xs",
-                          isDocVerified
-                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40"
-                            : isUploaded
-                            ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-900/40"
-                            : "bg-muted text-muted-foreground border-border/70"
-                        )}>
-                          <FileText className="h-4 w-4" />
+                      {/* Left side: Icon + Document Title + Uploaded Date + Status Pill (if uploaded) */}
+                      <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 w-full md:flex-1">
+                        <div
+                          className={cn(
+                            "h-10 w-10 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 border transition-colors shadow-2xs mt-0.5 sm:mt-0",
+                            isDocVerified
+                              ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                              : isUploaded
+                              ? "bg-amber-100/80 dark:bg-amber-950/50 text-amber-600 border-amber-200/80"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
+                          )}
+                        >
+                          <FileText className="h-5 w-5" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm font-semibold text-foreground truncate" title={template.name}>
+                          <h4 className="text-xs sm:text-sm md:text-base font-bold text-slate-900 dark:text-white break-words sm:truncate" title={template.name}>
                             {template.name}
+                          </h4>
+                          <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+                            {isUploaded ? `Uploaded • ${docDateFormatted}` : "Not uploaded yet"}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {isUploaded ? `Uploaded (${docDate || "Recently"})` : "Not uploaded yet"}
-                          </p>
+
+                          {/* When uploaded: show status badge under the text on the left */}
+                          {isUploaded && (
+                            <div className="mt-1.5 flex items-center gap-2">
+                              {isDocVerified ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5">
+                                  <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                  Verified
+                                </span>
+                              ) : isDocRejected ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5">
+                                  <XCircle className="h-3 w-3 text-rose-600" />
+                                  Needs Re-upload
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/90 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5">
+                                  <Clock className="h-3 w-3 text-amber-600" />
+                                  Under Review
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap justify-start sm:justify-end pl-12 sm:pl-0 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-border/40">
-                        {isDocVerified ? (
-                          <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2.5 py-0.5">
-                            Verified
-                          </span>
-                        ) : isDocRejected ? (
-                          <span className="rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-[11px] font-semibold px-2.5 py-0.5">
-                            Needs Re-upload
-                          </span>
-                        ) : isUploaded ? (
-                          <span className="rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-[11px] font-semibold px-2.5 py-0.5">
-                            Under Review
-                          </span>
-                        ) : !hasBusinessProfile ? (
-                          <span className="rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[11px] font-medium px-2 py-0.5 flex items-center gap-1">
-                            <Lock className="h-2.5 w-2.5" />
-                            <span>Locked</span>
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[11px] font-semibold px-2.5 py-0.5">
+                      {/* Right side: Action Buttons (Responsive flex wrap on mobile, compact on desktop) */}
+                      <div className="flex items-center gap-2 sm:gap-2.5 w-full md:w-auto shrink-0 flex-wrap justify-start md:justify-end pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80">
+                        {!isUploaded && (
+                          <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold px-3.5 py-1">
                             Pending
                           </span>
                         )}
 
+                        {/* Preview Button */}
                         {isUploaded && (
                           <button
                             type="button"
                             onClick={() => handlePreviewDocument(template, uploaded)}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40"
+                            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-white dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
                             title="Preview uploaded document"
                           >
-                            <Eye className="h-3.5 w-3.5" />
+                            <Eye className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                             <span>Preview</span>
                           </button>
                         )}
 
+                        {/* Upload / Replace Button */}
                         <button
                           type="button"
                           onClick={() => {
@@ -2819,10 +2854,11 @@ function BizMembership() {
                           }}
                           disabled={!hasBusinessProfile || uploadingDoc || deletingType === template.type}
                           className={cn(
-                            "inline-flex items-center gap-1.5 text-xs font-medium rounded-xl px-2.5 py-1.5 shadow-2xs transition-all",
+                            "flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 text-xs font-semibold rounded-xl shadow-2xs transition-all",
+                            isUploaded ? "px-3 sm:px-3.5 py-1.5" : "px-3.5 sm:px-4 py-1.5",
                             !hasBusinessProfile
-                              ? "bg-muted/60 text-muted-foreground/50 border border-border/50 cursor-not-allowed opacity-50"
-                              : "text-foreground bg-card border border-border hover:bg-muted cursor-pointer hover:border-foreground/20 disabled:opacity-50"
+                              ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50"
+                              : "text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50"
                           )}
                           title={
                             !hasBusinessProfile
@@ -2833,27 +2869,30 @@ function BizMembership() {
                           }
                         >
                           {uploadingDoc && replacingType === template.type ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-500" />
                           ) : !hasBusinessProfile ? (
-                            <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
+                            <Lock className="h-3.5 w-3.5 text-slate-400" />
+                          ) : isUploaded ? (
+                            <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
                           ) : (
-                            <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+                            <Upload className="h-3.5 w-3.5 text-slate-500" />
                           )}
                           <span>{isUploaded ? "Replace" : "Upload"}</span>
                         </button>
 
+                        {/* Delete Button */}
                         {isUploaded && !isDocVerified && (
                           <button
                             type="button"
                             onClick={() => setDeleteConfirmDoc({ template, uploaded })}
                             disabled={!hasBusinessProfile || uploadingDoc || deletingType === template.type}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-600 dark:text-rose-400 bg-card border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 rounded-xl px-2.5 py-1.5 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                             title={`Delete ${template.name}`}
                           >
                             {deletingType === template.type ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3.5 w-3.5 text-rose-500" />
                             )}
                             <span>Delete</span>
                           </button>
@@ -2864,27 +2903,20 @@ function BizMembership() {
                 })}
               </div>
 
-              {/* Bottom Action: Submit for Verification */}
-              <div className="mt-5 pt-4 border-t border-border/80 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground text-center sm:text-left">
-                  {isVerified
-                    ? "All documents verified. You can re-submit if any changes are made."
-                    : totalUploadedDocsCount === 0
-                    ? "Upload your verification documents before submitting."
-                    : "Once uploaded, submit documents to your Chapter Admin for verification."}
-                </p>
+              {/* Bottom Action: Submit for Verification Footer Matching exact Image */}
+              <div className="mt-5 sm:mt-6 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-[#F0F6FF] dark:bg-slate-800/70 border border-[#E0EDFF] dark:border-slate-700/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 sm:gap-4">
+                <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 text-xs sm:text-[13px] text-[#1E3A8A] dark:text-blue-200 font-medium">
+                  <div className="h-5 w-5 sm:h-6 sm:w-6 rounded-full bg-[#0066FF] text-white flex items-center justify-center shrink-0 font-bold text-xs shadow-xs mt-0.5 sm:mt-0">
+                    i
+                  </div>
+                  <span className="leading-snug">Once all documents are uploaded, submit them to your Chapter Admin for verification.</span>
+                </div>
 
                 <Button
                   type="button"
-                  size="sm"
                   onClick={handleSubmitForVerification}
                   disabled={submittingVerification || uploadingDoc || totalUploadedDocsCount === 0 || !hasBusinessProfile}
-                  className={cn(
-                    "w-full sm:w-auto h-9 px-4 rounded-xl text-xs font-semibold gap-1.5 shadow-2xs transition-all cursor-pointer shrink-0",
-                    isVerified
-                      ? "bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900"
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 disabled:opacity-50"
-                  )}
+                  className="w-full sm:w-auto h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-semibold text-xs sm:text-sm gap-2 shadow-md shadow-blue-500/25 transition-all cursor-pointer shrink-0 disabled:opacity-50 justify-center"
                   title={
                     !hasBusinessProfile
                       ? "Complete business profile first"
@@ -2895,12 +2927,12 @@ function BizMembership() {
                 >
                   {submittingVerification ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       <span>Submitting...</span>
                     </>
                   ) : (
                     <>
-                      <Send className="h-3.5 w-3.5" />
+                      <Send className="h-4 w-4" />
                       <span>{isVerified ? "Re-submit" : "Submit for Verification"}</span>
                     </>
                   )}

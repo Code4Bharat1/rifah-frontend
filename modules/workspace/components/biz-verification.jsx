@@ -39,7 +39,7 @@ import { cn } from "@shared/lib/utils";
 const docTemplates = [
   {
     type: "incorporation_certificate",
-    name: "Certificate of Incorporation / Trade License",
+    name: "Business Registration Certificate",
   },
   {
     type: "gst_tax_registration",
@@ -51,7 +51,7 @@ const docTemplates = [
   },
   {
     type: "authorized_letter",
-    name: "Authorized Signatory Letter / ID Proof",
+    name: "Authorized Signatory Letter",
   },
   {
     type: "bank_details_invoicing",
@@ -62,6 +62,9 @@ const docTemplates = [
 const typeAliases = {
   incorporation_certificate: [
     "incorporation_certificate",
+    "business registration certificate",
+    "business_registration_certificate",
+    "business registration",
     "certificate of incorporation",
     "certificate_of_incorporation",
     "incorporation",
@@ -72,6 +75,7 @@ const typeAliases = {
   ],
   gst_tax_registration: [
     "gst_tax_registration",
+    "gstin / tax registration certificate",
     "gst / tax registration",
     "gst_certificate",
     "gst certificate",
@@ -82,6 +86,8 @@ const typeAliases = {
     "pan_card",
     "pan",
     "pan card",
+    "business pan / tax id card",
+    "business pan",
     "tax_id",
     "factory_licence",
     "factory licence",
@@ -90,12 +96,14 @@ const typeAliases = {
     "authorized_letter",
     "authorized_signatory",
     "authorized signatory letter",
+    "authorized signatory letter / id proof",
     "chamber_membership_form",
     "chamber membership form",
     "msme_udyam",
   ],
   bank_details_invoicing: [
     "bank_details_invoicing",
+    "bank account details / cancelled cheque",
     "bank details for invoicing",
     "bank details",
     "bank_details",
@@ -734,94 +742,155 @@ function BizVerification() {
                 <FieldRow label="Reviewing Desk" value={reviewerName} />
                 <FieldRow label="Last Activity" value={lastUpdate} />
               </dl>
-            </Panel>
+            </Panel>            {/* Documents Panel - Exactly matching Image 2 UI & Fully Responsive */}
+            <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-6 md:p-7 shadow-xs">
+              {/* Header with Blue Document Icon + Counter & Segmented Progress Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4 pb-4 sm:pb-5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3 sm:gap-3.5">
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/40 shadow-2xs">
+                    <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                      Required Documents
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+                      Upload the required documents for verification
+                    </p>
+                  </div>
+                </div>
 
-            {/* Documents Panel */}
-            <Panel
-              title="Verification Documents (PDF)"
-              description="Official certificates, registration papers & identity proof"
-            >
-              <ul className="space-y-3">
+                <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800/60">
+                  <div className="text-xs sm:text-sm font-semibold">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      {uploadedTemplateCount} of {docTemplates.length}
+                    </span>{" "}
+                    <span className="text-slate-500 dark:text-slate-400 font-normal">
+                      uploaded
+                    </span>
+                  </div>
+                  {/* Segmented Progress Bar */}
+                  <div className="flex items-center gap-1 sm:gap-1.5 w-32 sm:w-44 md:w-52">
+                    {docTemplates.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "h-2 flex-1 rounded-full transition-all duration-300",
+                          idx < uploadedTemplateCount
+                            ? "bg-emerald-500"
+                            : "bg-slate-100 dark:bg-slate-800"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Document List Items */}
+              <ul className="space-y-3 pt-4">
                 {docTemplates.map((template) => {
                   const uploaded = uploadedDocs.find((d) => isMatchingDoc(d?.type, template.type));
                   const isRejectedDoc = uploaded && (uploaded.status === "rejected" || isRejected);
                   const isChecked = uploaded && (uploaded.status === "approved" || isVerified) && !isRejectedDoc;
                   const isPending = uploaded && !isChecked && !isRejectedDoc;
+                  const docDate = uploaded?.uploadedAt
+                    ? new Date(uploaded.uploadedAt)
+                    : new Date();
+                  const docDateFormatted = `${docDate.getDate()} ${docDate.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
 
                   return (
                     <li
                       key={template.type}
-                      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3.5 rounded-xl border border-border bg-card p-3.5 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                      className={cn(
+                        "p-3.5 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 shadow-2xs",
+                        uploaded
+                          ? "border-emerald-200/80 dark:border-emerald-900/60 bg-[#F7FCF9] dark:bg-emerald-950/20 hover:border-emerald-300"
+                          : "border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                      )}
                     >
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted/70 text-muted-foreground">
-                        <FileText className="h-4 w-4" />
-                      </span>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="block truncate text-sm font-semibold text-foreground">
-                            {template.name}
-                          </span>
+                      {/* Left: Icon + Name + Uploaded Date + Badge under text */}
+                      <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 w-full md:flex-1">
+                        <div
+                          className={cn(
+                            "h-10 w-10 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 border transition-colors shadow-2xs mt-0.5 sm:mt-0",
+                            isChecked
+                              ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                              : uploaded
+                              ? "bg-amber-100/80 dark:bg-amber-950/50 text-amber-600 border-amber-200/80"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
+                          )}
+                        >
+                          <FileText className="h-5 w-5" />
                         </div>
-                        <span className="block truncate text-xs text-muted-foreground mt-0.5">
-                          {uploaded ? `Uploaded (${formatDocDate(uploaded.uploadedAt, "Recently")})` : "Not uploaded yet"}
-                        </span>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-xs sm:text-sm md:text-base font-bold text-slate-900 dark:text-white break-words sm:truncate" title={template.name}>
+                            {template.name}
+                          </h4>
+                          <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+                            {uploaded ? `Uploaded • ${docDateFormatted}` : "Not uploaded yet"}
+                          </p>
+
+                          {/* When uploaded: show status badge under the text on the left */}
+                          {uploaded && (
+                            <div className="mt-1.5 flex items-center gap-2">
+                              {isChecked ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5">
+                                  <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                  Verified
+                                </span>
+                              ) : isRejectedDoc ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5">
+                                  <XCircle className="h-3 w-3 text-rose-600" />
+                                  Needs Re-upload
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/90 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5">
+                                  <Clock className="h-3 w-3 text-amber-600" />
+                                  Under Review
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-2">
+                      {/* Right: Action Buttons (Responsive flex wrap on mobile, compact on desktop) */}
+                      <div className="flex items-center gap-2 sm:gap-2.5 w-full md:w-auto shrink-0 flex-wrap justify-start md:justify-end pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80">
                         {!uploaded && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400">
-                            Not Uploaded
-                          </span>
-                        )}
-                        {isChecked && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400">
-                            Verified
-                          </span>
-                        )}
-                        {isRejectedDoc && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400">
-                            Needs Re-upload
-                          </span>
-                        )}
-                        {isPending && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400">
-                            Under Review
+                          <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold px-3.5 py-1">
+                            Pending
                           </span>
                         )}
 
                         {uploaded?.fileUrl && (
-                          <Button
+                          <button
                             type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 text-xs font-semibold text-primary"
                             onClick={() => setPreviewDoc(uploaded)}
+                            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-white dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                            title="Preview uploaded document"
                           >
-                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            <Eye className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                             <span>Preview</span>
-                          </Button>
+                          </button>
                         )}
 
-                        <label className="cursor-pointer">
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            disabled={uploadingDoc === template.type}
-                            className="h-8 px-3 text-xs font-semibold gap-1.5"
+                        <label className="cursor-pointer flex-1 sm:flex-initial">
+                          <span
+                            className={cn(
+                              "w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-2xs transition-all cursor-pointer",
+                              uploaded ? "px-3 sm:px-3.5 py-1.5" : "px-3.5 sm:px-4 py-1.5",
+                              uploadingDoc === template.type && "opacity-50 pointer-events-none"
+                            )}
                           >
-                            <span>
-                              {uploadingDoc === template.type ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <>
-                                  <Upload className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span>{uploaded ? "Replace" : "Upload"}</span>
-                                </>
-                              )}
-                            </span>
-                          </Button>
+                            {uploadingDoc === template.type ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-500" />
+                            ) : uploaded ? (
+                              <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                            ) : (
+                              <Upload className="h-3.5 w-3.5 text-slate-500" />
+                            )}
+                            <span>{uploaded ? "Replace" : "Upload"}</span>
+                          </span>
                           <input
                             type="file"
                             accept=".pdf,application/pdf,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
@@ -832,22 +901,20 @@ function BizVerification() {
                         </label>
 
                         {uploaded && !isChecked && (
-                          <Button
+                          <button
                             type="button"
-                            size="sm"
-                            variant="outline"
                             onClick={() => setDeleteConfirmDoc({ template, uploaded })}
                             disabled={deletingDoc === template.type || uploadingDoc === template.type}
-                            className="h-8 px-2.5 text-xs font-semibold gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 dark:border-rose-900/50 dark:hover:bg-rose-950/40"
+                            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                             title={`Delete ${template.name}`}
                           >
-                            {deletingDoc === template.type ? (
+                            {deletingType === template.type ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3.5 w-3.5 text-rose-500" />
                             )}
                             <span>Delete</span>
-                          </Button>
+                          </button>
                         )}
                       </div>
                     </li>
@@ -984,9 +1051,8 @@ function BizVerification() {
                   )}
                 </div>
               )}
-            </Panel>
-          </div>
-
+            </div>
+         </div>
           {/* Right Column: Audit Timeline & Chamber Guidelines */}
           <div className="space-y-4">
             {/* Audit History Timeline */}

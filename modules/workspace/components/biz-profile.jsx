@@ -866,10 +866,11 @@ function BizProfile() {
                   id="biz-joiningDate"
                   type="date"
                   value={formData.joiningDate}
-                  onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })}
-                  className="h-11"
+                  readOnly
+                  disabled
+                  className="h-11 bg-muted/60 text-muted-foreground cursor-not-allowed select-none"
                 />
-                <p className="text-[10px] text-muted-foreground">Used for annual RIFAH membership anniversary milestones & chapter recognition.</p>
+                <p className="text-[10px] text-muted-foreground">Official RIFAH membership joining date (Non-editable).</p>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="biz-timezone">Timezone</Label>
