@@ -136,6 +136,7 @@ export function AdminSettings() {
 
   const handleChangePassword = async () => {
     if (!passwords.currentPassword || !passwords.newPassword) return toast.error("Please fill both password fields.");
+    if (passwords.currentPassword === passwords.newPassword) return toast.error("New password cannot be the same as the current password.");
     if (passwords.newPassword.length < 6) return toast.error("New password must be at least 6 characters.");
 
     setSavingPassword(true);
