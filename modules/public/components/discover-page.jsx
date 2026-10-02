@@ -56,10 +56,23 @@ function DiscoverPage() {
   const [query, setQuery] = useState(search.q || search.search || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef(null);
+  const filterScrollRef = useRef(null);
+  const scrollPositionRef = useRef(0);
   const t = useTranslations("Discover");
 
   // Listing Type: "businesses" (default) | "offerings" (Products & Services merged)
   const isOfferingsView = search.type === "offerings" || search.type === "Product" || search.type === "Service";
+
+  // Restore scroll position after parameter change
+  useEffect(() => {
+    if (filterScrollRef.current && scrollPositionRef.current > 0) {
+      requestAnimationFrame(() => {
+        if (filterScrollRef.current) {
+          filterScrollRef.current.scrollTop = scrollPositionRef.current;
+        }
+      });
+    }
+  }, [searchParams]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -79,25 +92,31 @@ function DiscoverPage() {
   }, [currentSearchTerm]);
 
   // 1. Fetch Businesses (Discover directory strictly requires verified businesses)
-  const { data: businessesData, isLoading: isBusinessesLoading } = useBusinesses({
-    search: search.q || search.search,
-    industry: search.industry,
-    subCategory: search.subCategory,
-    state: search.state,
-    chapter: search.chapter,
-    membership: search.membership,
-    verified: "true",
-    sort: search.sort,
-  });
+  const { data: businessesData, isLoading: isBusinessesLoading } = useBusinesses(
+    {
+      search: search.q || search.search,
+      industry: search.industry,
+      subCategory: search.subCategory,
+      state: search.state,
+      chapter: search.chapter,
+      membership: search.membership,
+      verified: "true",
+      sort: search.sort,
+    },
+    { enabled: !isOfferingsView }
+  );
 
   // 2. Fetch Merged Catalogue (Products & Services) with full filtering
-  const { data: catalogueData, isLoading: isCatalogueLoading } = useCatalogue({
-    search: search.q || search.search || undefined,
-    industry: search.industry,
-    subCategory: search.subCategory,
-    state: search.state,
-    chapter: search.chapter,
-  });
+  const { data: catalogueData, isLoading: isCatalogueLoading } = useCatalogue(
+    {
+      search: search.q || search.search || undefined,
+      industry: search.industry,
+      subCategory: search.subCategory,
+      state: search.state,
+      chapter: search.chapter,
+    },
+    { enabled: isOfferingsView }
+  );
 
   const { data: chaptersData } = useChapters();
   const chaptersList = Array.isArray(chaptersData?.chapters)
@@ -236,6 +255,9 @@ function DiscoverPage() {
   }, [query, allMainCategories, businessResults, catalogueResults]);
 
   const setParam = (patch) => {
+    if (filterScrollRef.current) {
+      scrollPositionRef.current = filterScrollRef.current.scrollTop;
+    }
     const current = new URLSearchParams(searchParams ? searchParams.toString() : "");
     Object.entries(patch).forEach(([key, val]) => {
       if (val === undefined || val === null || val === "" || val === "All" || val === "all" || val === "businesses") {
@@ -245,7 +267,7 @@ function DiscoverPage() {
       }
     });
     const qs = current.toString();
-    router.push(qs ? `/discover?${qs}` : "/discover", { scroll: false });
+    router.replace(qs ? `/discover?${qs}` : "/discover", { scroll: false });
   };
 
   const activeChips = [
@@ -268,13 +290,13 @@ function DiscoverPage() {
   ].filter(Boolean);
 
   const filters = (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* 1. Clear All Filters at First Top */}
       <div>
         <Button
           variant="outline"
-          className="w-full h-9 rounded-xl text-xs font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
-          onClick={() => router.push("/discover")}
+          className="w-full h-8.5 rounded-xl text-xs font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
+          onClick={() => router.replace("/discover", { scroll: false })}
         >
           {t("clearAllFilters")}
         </Button>
@@ -709,12 +731,37 @@ function DiscoverPage() {
         </div>
       </div>
 
-      <div className="rifah-container grid gap-6 py-6 lg:grid-cols-[268px_minmax(0,1fr)]">
+      <div className="rifah-container grid gap-6 py-6 lg:grid-cols-[268px_minmax(0,1fr)] items-start">
         {/* Left Filters Sidebar */}
-        <aside className="hidden lg:block">
-          <Panel title={t("filters")} className="sticky top-24">
-            {filters}
-          </Panel>
+        <aside className="hidden lg:block self-start sticky top-20 z-20">
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex flex-col max-h-[calc(100vh-5.5rem)] overflow-hidden">
+            <header className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-4 py-3 shrink-0 bg-white dark:bg-slate-900 z-10">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {t("filters")}
+                </h3>
+              </div>
+              {activeChips.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => router.replace("/discover", { scroll: false })}
+                  className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                >
+                  Reset ({activeChips.length})
+                </button>
+              )}
+            </header>
+            <div
+              ref={filterScrollRef}
+              onScroll={(e) => {
+                scrollPositionRef.current = e.currentTarget.scrollTop;
+              }}
+              className="p-3.5 sm:p-4 overflow-y-auto overscroll-contain flex-1 custom-scrollbar pb-8"
+            >
+              {filters}
+            </div>
+          </div>
         </aside>
 
         {/* Results Area */}

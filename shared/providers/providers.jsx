@@ -31,7 +31,8 @@ export function Providers({ children }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 2, // 2 minutes
+            staleTime: 1000 * 60 * 5, // Scaled for 10k users: 5 minutes data freshness in memory
+            gcTime: 1000 * 60 * 30,    // Retain in browser RAM for 30 minutes
             retry: 1,
             refetchOnWindowFocus: false,
           },

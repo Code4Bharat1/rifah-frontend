@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from "@shared/components/ui/select";
 import { useBusinesses, useStates, useChapters } from "@shared/hooks/use-rifah-api";
+import { useDebounce } from "@shared/hooks/use-debounce";
 import { businessApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { cn } from "@shared/lib/utils";
@@ -164,6 +165,7 @@ function AdminBusinesses() {
 
   // Filter States
   const [q, setQ] = useState("");
+  const debouncedQ = useDebounce(q, 300);
   const [stateFilter, setStateFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'pending', 'approved', 'rejected'
@@ -192,13 +194,13 @@ function AdminBusinesses() {
     return Array.from(new Set(list)).sort();
   }, [rawChapters]);
 
-  // Query businesses with FIFO sorting & filters
+  // Query businesses with FIFO sorting & filters (Debounced search prevents query flooding)
   const {
     data: businessesData,
     isLoading,
     refetch,
   } = useBusinesses({
-    search: q.trim() || undefined,
+    search: debouncedQ.trim() || undefined,
     state: stateFilter === "all" ? undefined : stateFilter,
     chapter: chapterFilter === "all" ? undefined : chapterFilter,
     verification: statusFilter === "all" ? undefined : statusFilter,

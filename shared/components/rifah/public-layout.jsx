@@ -73,8 +73,10 @@ export function PublicHeader() {
           : "/biz";
 
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
@@ -130,7 +132,7 @@ export function PublicHeader() {
               <Search className="h-5 w-5" />
             </Link>
           </Button>
-          {isAuthenticated ? (
+          {mounted && isAuthenticated ? (
             <>
               <LanguageSelector />
               <Button asChild variant="ghost" className="hidden md:inline-flex">
@@ -165,6 +167,10 @@ function MobileMenu() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   const t = useTranslations("Navbar");
 
   const handleLogout = () => {
@@ -212,7 +218,7 @@ function MobileMenu() {
               </Link>
             );
           })}
-          {isAuthenticated ? (
+          {mounted && isAuthenticated ? (
             <div className="mt-2 border-t border-border pt-3">
               {user && (
                 <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">
