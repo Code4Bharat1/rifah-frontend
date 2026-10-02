@@ -505,6 +505,7 @@ export function AppShell({
   const router = useRouter();
   const { user, logout, switchRole, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const effectiveUser = mounted ? user : null;
   const nav = useResolvedNav(role) || navs.admin || navs.business;
 
   useEffect(() => {
@@ -599,9 +600,9 @@ export function AppShell({
   let finalTitle = title;
   let finalSubtitle = subtitle;
 
-  if (role === "admin" && user?.role === "chapter_admin") {
+  if (role === "admin" && effectiveUser?.role === "chapter_admin") {
     if (title === "Central administration" || title === "Chapters and units" || title === "Overview") {
-      finalTitle = `${user.chapter || "Regional"} Workspace`;
+      finalTitle = `${effectiveUser.chapter || "Regional"} Workspace`;
     }
     if (subtitle === "RIFAH Central Admin · all chapters" || subtitle === "Regional structure and branch desks of RIFAH Chamber") {
       finalSubtitle = "Regional branch dashboard";
@@ -726,132 +727,131 @@ export function AppShell({
         <div className="border-t border-sidebar-border p-3">
           {mounted ? (
             <>
-              {user && (
-                <Link
-                  href={
-                    role === "business"
-                      ? "/biz/profile"
-                      : user?.role === "state_admin"
-                        ? "/state-admin/settings"
-                        : user?.role === "chapter_admin"
-                          ? "/chapter-admin/settings"
-                          : "/admin/settings"
+          {effectiveUser && (
+            <Link
+              href={
+                role === "business"
+                  ? "/biz/profile"
+                  : effectiveUser?.role === "state_admin"
+                    ? "/state-admin/settings"
+                    : effectiveUser?.role === "chapter_admin"
+                      ? "/chapter-admin/settings"
+                      : "/admin/settings"
+              }
+              onClick={recordScroll}
+              className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50 transition-colors cursor-pointer group"
+              title="View profile"
+            >
+              <UserAvatar user={effectiveUser} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-semibold text-sidebar-foreground group-hover:text-primary transition-colors">{effectiveUser.name}</span>
+                <span className="block truncate text-[10px] text-sidebar-foreground/50">{effectiveUser.email}</span>
+              </span>
+            </Link>
+          )}
+          {effectiveUser?.role === "central_admin" && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-blue-500 uppercase tracking-wider">CENTRAL ADMIN</span>
+                <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-bold uppercase truncate max-w-[120px]">
+                  ALL CHAPTERS
+                </span>
+              </div>
+            </div>
+          )}
+          {effectiveUser?.role === "state_admin" && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-emerald-500 uppercase tracking-wider">STATE ADMIN</span>
+                <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-bold uppercase truncate max-w-[120px]">
+                  {effectiveUser?.state || "STATE"}
+                </span>
+              </div>
+            </div>
+          )}
+          {effectiveUser?.role === "chapter_admin" && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-cyan-400 uppercase tracking-wider">CHAPTER ADMIN</span>
+                <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold uppercase truncate max-w-[120px]">
+                  {effectiveUser?.chapter ? effectiveUser.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "CHAPTER"}
+                </span>
+              </div>
+            </div>
+          )}
+          {(effectiveUser?.role === "business_owner" || effectiveUser?.role === "customer" || effectiveUser?.role === "business") && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-primary uppercase tracking-wider">BUSINESS</span>
+                <span className="px-1.5 py-0.5 rounded bg-primary/15 text-primary font-bold uppercase truncate max-w-[120px]">
+                  {effectiveUser?.chapter ? effectiveUser.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "MEMBER"}
+                </span>
+              </div>
+            </div>
+          )}
+          {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
+            <button
+              onClick={async () => {
+                try {
+                  const targetRole = effectiveUser.previousRole;
+                  await switchRole(targetRole);
+                  if (targetRole === "central_admin") {
+                    router.push("/admin");
+                  } else if (targetRole === "state_admin") {
+                    router.push("/state-admin");
+                  } else if (targetRole === "chapter_admin") {
+                    router.push("/chapter-admin");
+                  } else if (targetRole === "business_owner") {
+                    router.push("/biz");
+                  } else {
+                    router.push("/biz");
                   }
-                  onClick={recordScroll}
-                  className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50 transition-colors cursor-pointer group"
-                  title="View profile"
-                >
-                  <UserAvatar user={user} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-semibold text-sidebar-foreground group-hover:text-primary transition-colors">{user.name}</span>
-                    <span className="block truncate text-[10px] text-sidebar-foreground/50">{user.email}</span>
-                  </span>
-                </Link>
-              )}
-              {user?.role === "central_admin" && (
-                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold text-blue-500 uppercase tracking-wider">CENTRAL ADMIN</span>
-                    <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-bold uppercase truncate max-w-[120px]">
-                      ALL CHAPTERS
-                    </span>
-                  </div>
-                </div>
-              )}
-              {user?.role === "state_admin" && (
-                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold text-emerald-500 uppercase tracking-wider">STATE ADMIN</span>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-bold uppercase truncate max-w-[120px]">
-                      {user?.state || "STATE"}
-                    </span>
-                  </div>
-                </div>
-              )}
-              {user?.role === "chapter_admin" && (
-                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold text-cyan-400 uppercase tracking-wider">CHAPTER ADMIN</span>
-                    <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold uppercase truncate max-w-[120px]">
-                      {user?.chapter ? user.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "CHAPTER"}
-                    </span>
-                  </div>
-                </div>
-              )}
-              {(user?.role === "business_owner" || user?.role === "customer" || user?.role === "business") && (
-                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold text-primary uppercase tracking-wider">BUSINESS</span>
-                    <span className="px-1.5 py-0.5 rounded bg-primary/15 text-primary font-bold uppercase truncate max-w-[120px]">
-                      {user?.chapter ? user.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "MEMBER"}
-                    </span>
-                  </div>
-                </div>
-              )}
-              {user?.previousRole && user.previousRole !== user?.role && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const targetRole = user.previousRole;
-                      await switchRole(targetRole);
-                      if (targetRole === "central_admin") {
-                        router.push("/admin");
-                      } else if (targetRole === "state_admin") {
-                        router.push("/state-admin");
-                      } else if (targetRole === "chapter_admin") {
-                        router.push("/chapter-admin");
-                      } else if (targetRole === "business_owner") {
-                        router.push("/biz");
-                      } else {
-                        router.push("/biz");
-                      }
-                    } catch (err) {
-                      toast.error(err.message || "Failed to switch role");
-                    }
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
-                >
-                  <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-                  <span>
-                    {user.previousRole === "central_admin"
-                      ? "Switch to Admin Panel"
-                      : user.previousRole === "state_admin"
-                        ? "Switch to State Admin Panel"
-                        : user.previousRole === "chapter_admin"
-                          ? "Switch to Chapter Admin Panel"
-                          : "Switch to Business Panel"}
-                  </span>
-                </button>
-              )}
-              {/* Show switch-to-business for admins who have a business but haven't switched yet */}
-              {(!user?.previousRole || user.previousRole === user?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (user?.businessId || user?.businessSlug) && (
-                <button
-                  onClick={async () => {
-                    try {
-                      await switchRole("business_owner");
-                      router.push("/biz");
-                    } catch (err) {
-                      toast.error(err.message || "Failed to switch role");
-                    }
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-amber-500/10 hover:text-amber-500 mb-1"
-                >
-                  <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-                  <span>Switch to Business Panel</span>
-                </button>
-              )}
-              <button
-                onClick={handleLogout}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-destructive/20 hover:text-destructive"
-              >
-                <LogOut className="h-[18px] w-[18px] shrink-0" />
-                <span>Logout</span>
-              </button>
+                } catch (err) {
+                  toast.error(err.message || "Failed to switch role");
+                }
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
+            >
+              <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+              <span>
+                {effectiveUser.previousRole === "central_admin"
+                  ? "Switch to Admin Panel"
+                  : effectiveUser.previousRole === "state_admin"
+                    ? "Switch to State Admin Panel"
+                    : effectiveUser.previousRole === "chapter_admin"
+                      ? "Switch to Chapter Admin Panel"
+                      : "Switch to Business Panel"}
+              </span>
+            </button>
+          )}
+          {/* Show switch-to-business for admins who have a business but haven't switched yet */}
+          {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
+            <button
+              onClick={async () => {
+                try {
+                  await switchRole("business_owner");
+                  router.push("/biz");
+                } catch (err) {
+                  toast.error(err.message || "Failed to switch role");
+                }
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-amber-500/10 hover:text-amber-500 mb-1"
+            >
+              <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+              <span>Switch to Business Panel</span>
+            </button>
+          )}
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-destructive/20 hover:text-destructive"
+          >
+            <LogOut className="h-[18px] w-[18px] shrink-0" />
+            <span>Logout</span>
+          </button>
             </>
           ) : (
             <div className="h-16"></div>
-          )}
-        </div>
+          )}        </div>
       </aside>
 
       <div className="lg:pl-64 w-full max-w-full overflow-x-hidden">
@@ -881,7 +881,7 @@ export function AppShell({
               </Button>
               <Button asChild variant="ghost" size="icon" className="relative">
                 <Link
-                  href={toRoleAwarePath(role === "admin" ? "/admin/notifications" : "/biz/notifications", role, user)}
+                  href={toRoleAwarePath(role === "admin" ? "/admin/notifications" : "/biz/notifications", role, effectiveUser)}
                   aria-label="Notifications"
                 >
                   <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -896,7 +896,7 @@ export function AppShell({
               {role === "business" && (
                 <Button asChild variant="ghost" size="icon" className="relative">
                   <Link
-                    href={toRoleAwarePath("/biz/messages", role, user)}
+                    href={toRoleAwarePath("/biz/messages", role, effectiveUser)}
                     aria-label="Messages"
                   >
                     <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -1259,9 +1259,14 @@ function MobileCategoryGroup({ group, isActive, role, isBizVerified, onSelect })
 
 export function MoreSheet({ role, isBizVerified = true }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const path = useCurrentPath();
   const router = useRouter();
   const { user, switchRole } = useAuth();
+  const effectiveUser = mounted ? user : null;
   const nav = useResolvedNav(role);
   const items = role === "chapter_admin" ? [...(nav?.primary || []), ...(nav?.more || [])] : (nav?.more || []);
 
@@ -1269,7 +1274,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
   // after switching into the Business view; mirror the desktop sidebar's
   // switch-back control here using user.previousRole from the session.
   const handleSwitchBack = async () => {
-    const targetRole = user?.previousRole;
+    const targetRole = effectiveUser?.previousRole;
     if (!targetRole) return;
     await switchRole(targetRole);
     setOpen(false);
@@ -1279,11 +1284,11 @@ export function MoreSheet({ role, isBizVerified = true }) {
     else router.push("/biz");
   };
   const switchBackLabel =
-    user?.previousRole === "central_admin"
+    effectiveUser?.previousRole === "central_admin"
       ? "Switch to Admin Panel"
-      : user?.previousRole === "state_admin"
+      : effectiveUser?.previousRole === "state_admin"
         ? "Switch to State Admin Panel"
-        : user?.previousRole === "chapter_admin"
+        : effectiveUser?.previousRole === "chapter_admin"
           ? "Switch to Chapter Admin Panel"
           : "Switch to Business Panel";
 
@@ -1351,7 +1356,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
             );
           })}
           <div className="mt-4 border-t border-border pt-3">
-            {user?.previousRole && user.previousRole !== user?.role && (
+            {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
               <button
                 type="button"
                 onClick={handleSwitchBack}
@@ -1362,7 +1367,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
               </button>
             )}
             {/* Show switch-to-business for admins who have a business but haven't switched yet */}
-            {(!user?.previousRole || user.previousRole === user?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(user?.role) && (user?.businessId || user?.businessSlug) && (
+            {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
               <button
                 type="button"
                 onClick={async () => {
@@ -1436,18 +1441,23 @@ export function BottomNav({ role, isBizVerified = true }) {
 function MobileLogoutButton() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const effectiveUser = mounted ? user : null;
   const handleLogout = () => {
     logout();
     router.push("/login");
   };
   return (
     <>
-      {user && (
+      {effectiveUser && (
         <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">
-          <UserAvatar user={user} />
+          <UserAvatar user={effectiveUser} />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-xs font-semibold">{user.name}</span>
-            <span className="block truncate text-[10px] text-muted-foreground">{user.email}</span>
+            <span className="block truncate text-xs font-semibold">{effectiveUser.name}</span>
+            <span className="block truncate text-[10px] text-muted-foreground">{effectiveUser.email}</span>
           </span>
         </div>
       )}

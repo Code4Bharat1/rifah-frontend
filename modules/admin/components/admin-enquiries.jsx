@@ -8,6 +8,7 @@ import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { useAllEnquiries, useChapters, useAdminUsers, useStates } from "@shared/hooks/use-rifah-api";
+import { useDebounce } from "@shared/hooks/use-debounce";
 import { enquiryApi } from "@shared/lib/api-services";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
@@ -41,12 +42,13 @@ function AdminEnquiries() {
       : "Buyer sourcing RFQs routed across chamber network";
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
 
   const { data: enquiriesData } = useAllEnquiries({
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     status: statusFilter,
     type: typeFilter,
     chapter: chapterFilter,

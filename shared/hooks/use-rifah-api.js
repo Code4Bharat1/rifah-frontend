@@ -37,13 +37,14 @@ import { useAuth } from "../providers/auth-provider";
 
 // ==================== BUSINESS HOOKS ====================
 
-export function useBusinesses(params = {}) {
+export function useBusinesses(params = {}, options = {}) {
   return useQuery({
     queryKey: ["businesses", params],
     queryFn: async () => {
       const res = await businessApi.list(params);
       return res?.data || res;
     },
+    ...options,
   });
 }
 
@@ -112,6 +113,8 @@ export function useCategories() {
       const res = await categoryApi.list();
       return res?.data?.categories || res?.data || res;
     },
+    staleTime: 1000 * 60 * 30, // Scaled for 10k users: 30 minutes in RAM
+    gcTime: 1000 * 60 * 60,    // Retain in cache for 1 hour
   });
 }
 
@@ -122,6 +125,8 @@ export function useChapters() {
       const res = await chapterApi.list();
       return res?.data?.chapters || res?.data || res;
     },
+    staleTime: 1000 * 60 * 30, // Scaled for 10k users: 30 minutes in RAM
+    gcTime: 1000 * 60 * 60,    // Retain in cache for 1 hour
   });
 }
 
@@ -170,6 +175,8 @@ export function useStates() {
       const res = await stateApi.list();
       return res?.data?.states || res?.data || res;
     },
+    staleTime: 1000 * 60 * 30, // Scaled for 10k users: 30 minutes in RAM
+    gcTime: 1000 * 60 * 60,    // Retain in cache for 1 hour
   });
 }
 

@@ -40,6 +40,7 @@ import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { useAuth } from "@shared/providers/auth-provider";
 import { useChapters, useStates, useMyBusiness, usePosts, useCreatePost, useTogglePostLike, useAddPostComment, useDeletePost } from "@shared/hooks/use-rifah-api";
+import { useDebounce } from "@shared/hooks/use-debounce";
 import { postsApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/media";
 import { toast } from "sonner";
@@ -706,6 +707,7 @@ export function BizFeeds() {
   const [selectedState, setSelectedState] = useState("");
   const [selectedChapter, setSelectedChapter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const profilePicInputRef = useRef(null);
   const postImageInputRef = useRef(null);
@@ -808,9 +810,9 @@ export function BizFeeds() {
       filterMode,
       chapter: filterMode === "chapter" ? selectedChapter : undefined,
       state: filterMode === "state" ? selectedState : undefined,
-      search: searchQuery,
+      search: debouncedSearchQuery,
     }),
-    [filterMode, selectedChapter, selectedState, searchQuery]
+    [filterMode, selectedChapter, selectedState, debouncedSearchQuery]
   );
 
   // Live API query for feed posts — automatically refetches every 10s and on window focus

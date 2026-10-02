@@ -92,25 +92,31 @@ function DiscoverPage() {
   }, [currentSearchTerm]);
 
   // 1. Fetch Businesses (Discover directory strictly requires verified businesses)
-  const { data: businessesData, isLoading: isBusinessesLoading } = useBusinesses({
-    search: search.q || search.search,
-    industry: search.industry,
-    subCategory: search.subCategory,
-    state: search.state,
-    chapter: search.chapter,
-    membership: search.membership,
-    verified: "true",
-    sort: search.sort,
-  });
+  const { data: businessesData, isLoading: isBusinessesLoading } = useBusinesses(
+    {
+      search: search.q || search.search,
+      industry: search.industry,
+      subCategory: search.subCategory,
+      state: search.state,
+      chapter: search.chapter,
+      membership: search.membership,
+      verified: "true",
+      sort: search.sort,
+    },
+    { enabled: !isOfferingsView }
+  );
 
   // 2. Fetch Merged Catalogue (Products & Services) with full filtering
-  const { data: catalogueData, isLoading: isCatalogueLoading } = useCatalogue({
-    search: search.q || search.search || undefined,
-    industry: search.industry,
-    subCategory: search.subCategory,
-    state: search.state,
-    chapter: search.chapter,
-  });
+  const { data: catalogueData, isLoading: isCatalogueLoading } = useCatalogue(
+    {
+      search: search.q || search.search || undefined,
+      industry: search.industry,
+      subCategory: search.subCategory,
+      state: search.state,
+      chapter: search.chapter,
+    },
+    { enabled: isOfferingsView }
+  );
 
   const { data: chaptersData } = useChapters();
   const chaptersList = Array.isArray(chaptersData?.chapters)
