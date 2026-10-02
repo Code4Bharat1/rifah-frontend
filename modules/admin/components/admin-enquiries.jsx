@@ -338,83 +338,9 @@ function AdminEnquiries() {
                 key: "action",
                 header: "",
                 cell: (r) => (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>Manage Enquiry</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => setSelectedEnquiry(r)}>
-                        <Eye className="mr-2 h-4 w-4 text-muted-foreground" />
-                        View Details
-                      </DropdownMenuItem>
-
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>State Admin</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => handleOpenAssignModal(r)}>
-                        <ShieldCheck className="mr-2 h-4 w-4 text-primary" />
-                        <span>Assign to State Admin</span>
-                      </DropdownMenuItem>
-
-                      {stateAdminList.length > 0 && (
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>
-                            <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                            <span>Quick Route</span>
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent className="w-60">
-                            <DropdownMenuLabel>Select State Admin</DropdownMenuLabel>
-                            {stateAdminList.map((sa) => (
-                              <DropdownMenuItem
-                                key={sa._id}
-                                onClick={() => handleQuickAssignStateAdmin(r, sa)}
-                                className="flex flex-col items-start gap-0.5 cursor-pointer py-1.5"
-                              >
-                                <span className="font-semibold text-xs flex items-center gap-1.5">
-                                  {sa.name}
-                                  {sa.state && (
-                                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-normal">
-                                      {sa.state}
-                                    </span>
-                                  )}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">
-                                  {sa.email}
-                                </span>
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                      )}
-
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>Update Status</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "New")} disabled={r.status === "New"}>
-                        Mark as New
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Routed")} disabled={r.status === "Routed"}>
-                        Mark as Routed
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "In Progress")} disabled={r.status === "In Progress"}>
-                        Mark as In Progress
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Responded")} disabled={r.status === "Responded"}>
-                        Mark as Responded
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Won")} disabled={r.status === "Won"}>
-                        Mark as Won
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-red-600 focus:bg-red-50" onClick={() => handleUpdateStatus(r._id, "Rejected")} disabled={r.status === "Rejected"}>
-                        Reject Enquiry
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id, "Closed")} disabled={r.status === "Closed"}>
-                        Close Enquiry
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => setSelectedEnquiry(r)}>
+                    <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  </Button>
                 ),
               },
             ]}
@@ -429,10 +355,9 @@ function AdminEnquiries() {
                 <div className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5">
                   <Pill>{r.category}</Pill>
                   <div className="flex items-center gap-1.5">
-                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleOpenAssignModal(r)}>
-                      <ShieldCheck className="h-3.5 w-3.5 text-primary" /> State Admin
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setSelectedEnquiry(r)}>
+                      <Eye className="h-3.5 w-3.5" /> View Details
                     </Button>
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectedEnquiry(r)}>View Details</Button>
                   </div>
                 </div>
               </div>
@@ -472,44 +397,7 @@ function AdminEnquiries() {
                 <p className="text-sm font-semibold">{selectedEnquiry?.budget || "To be discussed"}</p>
               </div>
             </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Current Status & Routing</p>
-              <div className="flex flex-wrap items-center gap-3">
-                <StatusBadge status={selectedEnquiry?.status} />
-                {selectedEnquiry?.assignedTo ? (
-                  <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-md border border-border flex items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                    Assigned to: <span className="font-semibold text-foreground">{selectedEnquiry.assignedTo.name}</span>
-                    {selectedEnquiry.assignedTo.state && (
-                      <span className="text-[10px] text-muted-foreground">({selectedEnquiry.assignedTo.state})</span>
-                    )}
-                  </span>
-                ) : (
-                  <span className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-md border border-amber-200 dark:border-amber-800">
-                    Not assigned to any admin
-                  </span>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs gap-1.5 ml-auto"
-                  onClick={() => {
-                    const enq = selectedEnquiry;
-                    setSelectedEnquiry(null);
-                    handleOpenAssignModal(enq);
-                  }}
-                >
-                  <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Assign to State Admin
-                </Button>
-              </div>
 
-              {selectedEnquiry?.resolutionNote && (
-                <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border">
-                  <p className="text-xs font-semibold mb-1 text-primary">Routing / Resolution Note</p>
-                  <p className="text-sm text-muted-foreground italic">"{selectedEnquiry.resolutionNote}"</p>
-                </div>
-              )}
-            </div>
           </div>
         </DialogContent>
       </Dialog>
