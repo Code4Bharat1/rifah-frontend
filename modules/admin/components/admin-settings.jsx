@@ -8,16 +8,22 @@ import {
   Building2,
   CalendarDays,
   ChartNoAxesColumn,
+  Compass,
   CreditCard,
   Eye,
   EyeOff,
   FileStack,
+  GraduationCap,
   MapPin,
   MapPinned,
   MessageSquare,
+  Radio,
   ScrollText,
+  Shield,
   ShieldCheck,
   Star,
+  Ticket,
+  TrendingUp,
   Users,
 } from "lucide-react";
 
@@ -28,30 +34,65 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Label } from "@shared/components/ui/label";
-import { Switch } from "@shared/components/ui/switch";
 import { useSettings } from "@shared/hooks/use-rifah-api";
 import { settingsApi, authApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { isValidPhone } from "@shared/lib/validators";
 
 // Central-admin-only modules that have no state-admin/chapter-admin equivalent route.
-const CENTRAL_ONLY = new Set(["Memberships", "States"]);
-// Modules that exist for chapter_admin but not state_admin.
-const CHAPTER_ONLY = new Set(["Reviews", "Units", "Payments"]);
+const adminModules = [
+  { label: "Operations Center", to: "/admin/operations", icon: Radio },
+  { label: "Businesses", to: "/admin/businesses", icon: Building2 },
+  { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
+  { label: "Users", to: "/admin/users", icon: Users },
+  { label: "Feeds", to: "/biz/feeds", icon: Compass },
+  { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
+  { label: "Memberships", to: "/admin/memberships", icon: Star },
+  { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
+  { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
+  { label: "States", to: "/admin/states", icon: MapPin },
+  { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
+  { label: "Units", to: "/admin/units", icon: Users },
+  { label: "Events", to: "/admin/events", icon: Ticket },
+  { label: "Payments", to: "/admin/payments", icon: CreditCard },
+  { label: "Notifications", to: "/admin/notifications", icon: Bell },
+  { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
+  { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
+  { label: "Roles", to: "/admin/roles", icon: ShieldCheck },
+  { label: "LMS", to: "/admin/lms", icon: GraduationCap },
+];
 
-const ALL_MODULES = [
-  { label: "Businesses", to: "/businesses", icon: Building2 },
-  { label: "Users & roles", to: "/users", icon: Users },
-  { label: "Memberships", to: "/memberships", icon: Star },
-  { label: "Enquiries", to: "/enquiries", icon: FileStack },
-  { label: "Reviews", to: "/reviews", icon: MessageSquare },
-  { label: "States", to: "/states", icon: MapPin },
-  { label: "Units", to: "/units", icon: Users },
-  { label: "Events", to: "/events", icon: CalendarDays },
-  { label: "Payments", to: "/payments", icon: CreditCard },
-  { label: "Announcements", to: "/notifications", icon: Bell },
-  { label: "Reports", to: "/reports", icon: ChartNoAxesColumn },
-  { label: "Audit log", to: "/audit", icon: ScrollText },
+const stateAdminModules = [
+  { label: "Operations Center", to: "/state-admin/operations", icon: Radio },
+  { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
+  { label: "Members", to: "/state-admin/members", icon: Users },
+  { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
+  { label: "Feeds", to: "/biz/feeds", icon: Compass },
+  { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
+  { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
+  { label: "Events", to: "/state-admin/events", icon: CalendarDays },
+  { label: "Notifications", to: "/state-admin/notifications", icon: Bell },
+  { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
+  { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
+  { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
+];
+
+const chapterAdminModules = [
+  { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
+  { label: "Members", to: "/chapter-admin/members", icon: Users },
+  { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
+  { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
+  { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
+  { label: "Feeds", to: "/biz/feeds", icon: Compass },
+  { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
+  { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
+  { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
+  { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
+  { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
+  { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
+  { label: "Reviews", to: "/chapter-admin/reviews", icon: MessageSquare },
+  { label: "Units", to: "/chapter-admin/units", icon: Users },
+  { label: "Payments", to: "/chapter-admin/payments", icon: CreditCard },
 ];
 
 const ROLE_CONFIG = {
@@ -59,45 +100,25 @@ const ROLE_CONFIG = {
     basePath: "/state-admin",
     title: "Settings and modules",
     subtitle: "Platform configuration for state administration",
-    modules: ALL_MODULES.filter((m) => !CENTRAL_ONLY.has(m.label) && !CHAPTER_ONLY.has(m.label)),
+    modules: stateAdminModules,
   },
   chapter_admin: {
     basePath: "/chapter-admin",
     title: "Settings and modules",
     subtitle: "Platform configuration for chapter administration",
-    modules: ALL_MODULES.filter((m) => !CENTRAL_ONLY.has(m.label)),
+    modules: chapterAdminModules,
   },
   admin: {
     basePath: "/admin",
     title: "Settings and modules",
     subtitle: "Platform configuration for central admin",
-    modules: ALL_MODULES,
+    modules: adminModules,
   },
 };
 
 function getRoleConfig(role) {
-  const config = ROLE_CONFIG[role] || ROLE_CONFIG.admin;
-  return {
-    ...config,
-    modules: config.modules.map((m) => ({ ...m, to: `${config.basePath}${m.to}` })),
-  };
+  return ROLE_CONFIG[role] || ROLE_CONFIG.admin;
 }
-
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@shared/components/ui/dialog";
-
-const togglesTemplate = [
-  { key: "manualVerificationRequired", title: "Manual verification required", desc: "Every new listing is reviewed by the central admin", defaultOn: true },
-  { key: "moderateReviewsBeforePublishing", title: "Moderate reviews before publishing", desc: "Buyer feedback stays hidden until approved", defaultOn: true },
-  { key: "allowPublicEnquiryPosting", title: "Allow public enquiry posting", desc: "Buyers can post requirements without an account", defaultOn: false },
-  { key: "autoRouteLeadsByCategory", title: "Auto-route leads by category", desc: "Match new enquiries to members automatically", defaultOn: true },
-];
 
 export function AdminSettings({ expectedRole }) {
   const queryClient = useQueryClient();
@@ -119,20 +140,6 @@ export function AdminSettings({ expectedRole }) {
     secretariatAddress: "Central Admin Office, Byculla, Mumbai 400 008",
     workingHours: "Mon–Fri · 09:30–18:00 IST",
     membershipYear: "2026-27"
-  });
-
-  const [toggleStates, setToggleStates] = useState({});
-  const [confirmModal, setConfirmModal] = useState({ open: false, key: null, value: null, title: "" });
-
-  const [fees, setFees] = useState({
-    registrationFee: 1000,
-    defaultMembershipFee: 5000,
-  });
-
-  const [limits, setLimits] = useState({
-    leadLimitPerMonth: 100,
-    maxCatalogueItems: 50,
-    maxImagesPerItem: 5,
   });
 
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
@@ -167,47 +174,8 @@ export function AdminSettings({ expectedRole }) {
         workingHours: globalSettings.workingHours || "Mon–Fri · 09:30–18:00 IST",
         membershipYear: globalSettings.membershipYear || "2026-27"
       });
-
-      const newToggles = {};
-      togglesTemplate.forEach(t => {
-        newToggles[t.key] = globalSettings[t.key] !== undefined ? globalSettings[t.key] : t.defaultOn;
-      });
-      setToggleStates(newToggles);
-
-      setFees({
-        registrationFee: globalSettings.registrationFee ?? 1000,
-        defaultMembershipFee: globalSettings.defaultMembershipFee ?? 5000,
-      });
-
-      setLimits({
-        leadLimitPerMonth: globalSettings.leadLimitPerMonth ?? 100,
-        maxCatalogueItems: globalSettings.maxCatalogueItems ?? 50,
-        maxImagesPerItem: globalSettings.maxImagesPerItem ?? 5,
-      });
     }
   }, [globalSettings]);
-
-  const handleToggleClick = (key, value, title) => {
-    setConfirmModal({ open: true, key, value, title });
-  };
-
-  const confirmToggle = async () => {
-    const { key, value } = confirmModal;
-    setConfirmModal({ open: false, key: null, value: null, title: "" });
-
-    // Optimistic UI update
-    setToggleStates(prev => ({ ...prev, [key]: value }));
-    try {
-      await settingsApi.update({ [key]: value });
-      toast.success("Settings updated successfully");
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-    } catch (e) {
-      // Revert on failure
-      setToggleStates(prev => ({ ...prev, [key]: !value }));
-      toast.error("Failed to update settings");
-    }
-  };
 
   const handleSaveChamberDetails = async () => {
     if (!isValidPhone(chamberDetails.supportPhone)) {
@@ -227,26 +195,6 @@ export function AdminSettings({ expectedRole }) {
     }
   };
 
-  const handleSaveFees = async () => {
-    try {
-      await settingsApi.update(fees);
-      toast.success("Fees configuration saved!");
-      refetch();
-    } catch (e) {
-      toast.error("Failed to save fees");
-    }
-  };
-
-  const handleSaveLimits = async () => {
-    try {
-      await settingsApi.update(limits);
-      toast.success("System limits saved!");
-      refetch();
-    } catch (e) {
-      toast.error("Failed to save limits");
-    }
-  };
-
   return (
     <AppShell role={role || "admin"} title={title} subtitle={subtitle}>
       <div className="space-y-4">
@@ -262,28 +210,6 @@ export function AdminSettings({ expectedRole }) {
             ))}
           </div>
         </Panel>
-
-        {isCentralAdmin && (
-          <Panel title="Moderation rules">
-            <ul className="divide-y divide-border">
-              {togglesTemplate.map(({ key, title, desc, defaultOn }) => {
-                const isOn = toggleStates[key] !== undefined ? toggleStates[key] : defaultOn;
-                return (
-                  <li key={title} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3.5 first:pt-0 last:pb-0">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">{title}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
-                    </div>
-                    <Switch
-                      checked={isOn}
-                      onCheckedChange={(checked) => handleToggleClick(key, checked, title)}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-          </Panel>
-        )}
 
         {isCentralAdmin && (
           <Panel title="Chamber details">
@@ -352,74 +278,6 @@ export function AdminSettings({ expectedRole }) {
           </Panel>
         )}
 
-        {isCentralAdmin && (
-          <Panel title="Fees configuration">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label>Registration fee (₹)</Label>
-                <Input
-                  type="number"
-                  value={fees.registrationFee}
-                  onChange={(e) => setFees({ ...fees, registrationFee: Number(e.target.value) })}
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Default membership fee (₹)</Label>
-                <Input
-                  type="number"
-                  value={fees.defaultMembershipFee}
-                  onChange={(e) => setFees({ ...fees, defaultMembershipFee: Number(e.target.value) })}
-                  className="h-11"
-                />
-              </div>
-              <div className="col-span-full pt-2">
-                <Button onClick={handleSaveFees}>Save Fees</Button>
-              </div>
-            </div>
-          </Panel>
-        )}
-
-        {isCentralAdmin && (
-          <Panel title="System limits">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-1.5">
-                <Label>Lead limit per month</Label>
-                <Input
-                  type="number"
-                  value={limits.leadLimitPerMonth}
-                  onChange={(e) => setLimits({ ...limits, leadLimitPerMonth: Number(e.target.value) })}
-                  className="h-11"
-                />
-                <p className="text-xs text-muted-foreground">Max leads a business can receive monthly</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Max catalogue items</Label>
-                <Input
-                  type="number"
-                  value={limits.maxCatalogueItems}
-                  onChange={(e) => setLimits({ ...limits, maxCatalogueItems: Number(e.target.value) })}
-                  className="h-11"
-                />
-                <p className="text-xs text-muted-foreground">Max products a business can list</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Max images per item</Label>
-                <Input
-                  type="number"
-                  value={limits.maxImagesPerItem}
-                  onChange={(e) => setLimits({ ...limits, maxImagesPerItem: Number(e.target.value) })}
-                  className="h-11"
-                />
-                <p className="text-xs text-muted-foreground">Max images allowed per product listing</p>
-              </div>
-              <div className="col-span-full pt-2">
-                <Button onClick={handleSaveLimits}>Save Limits</Button>
-              </div>
-            </div>
-          </Panel>
-        )}
-
         <Panel title="Security & Authentication">
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 max-w-3xl">
             <div className="space-y-1.5">
@@ -469,25 +327,6 @@ export function AdminSettings({ expectedRole }) {
           </div>
         </Panel>
       </div>
-
-      <Dialog open={confirmModal.open} onOpenChange={(open) => setConfirmModal(prev => ({ ...prev, open }))}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirm Action</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to {confirmModal.value ? "enable" : "disable"} "{confirmModal.title}"? This will affect how the platform operates globally.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setConfirmModal({ open: false, key: null, value: null, title: "" })}>
-              Cancel
-            </Button>
-            <Button onClick={confirmToggle}>
-              Confirm & Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </AppShell>
   );
 }
