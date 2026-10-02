@@ -55,6 +55,7 @@ function DiscoverPage() {
   const router = useRouter();
   const [query, setQuery] = useState(search.q || search.search || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [displayCount, setDisplayCount] = useState(18);
   const searchContainerRef = useRef(null);
   const filterScrollRef = useRef(null);
   const scrollPositionRef = useRef(0);
@@ -63,8 +64,9 @@ function DiscoverPage() {
   // Listing Type: "businesses" (default) | "offerings" (Products & Services merged)
   const isOfferingsView = search.type === "offerings" || search.type === "Product" || search.type === "Service";
 
-  // Restore scroll position after parameter change
+  // Restore scroll position and reset pagination on parameter change
   useEffect(() => {
+    setDisplayCount(18);
     if (filterScrollRef.current && scrollPositionRef.current > 0) {
       requestAnimationFrame(() => {
         if (filterScrollRef.current) {
@@ -203,6 +205,10 @@ function DiscoverPage() {
 
   const results = isOfferingsView ? catalogueResults : businessResults;
   const isLoading = isOfferingsView ? isCatalogueLoading : isBusinessesLoading;
+
+  // Scaled for 10k/50k users: Windowed card slicing to keep browser DOM light & fast
+  const visibleBusinesses = React.useMemo(() => businessResults.slice(0, displayCount), [businessResults, displayCount]);
+  const visibleCatalogue = React.useMemo(() => catalogueResults.slice(0, displayCount), [catalogueResults, displayCount]);
 
   const searchSuggestions = React.useMemo(() => {
     const q = (query || "").trim().toLowerCase();
@@ -882,7 +888,7 @@ function DiscoverPage() {
           ) : isOfferingsView ? (
             /* PRODUCTS & SERVICES CATALOGUE GRID (MERGED) */
             <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {catalogueResults.map((item) => {
+              {visibleCatalogue.map((item) => {
                 const biz = item.business;
                 const hasImage = item.images && item.images.length > 0;
                 return (
@@ -971,17 +977,31 @@ function DiscoverPage() {
             <>
               {/* Mobile: compact rows */}
               <div className="mt-4 space-y-3 sm:hidden">
-                {businessResults.map((b) => (
+                {visibleBusinesses.map((b) => (
                   <CompactBusinessCard key={b._id || b.slug} business={b} />
                 ))}
               </div>
               {/* Tablet/desktop: card grid */}
               <div className="mt-4 hidden gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-3">
-                {businessResults.map((b) => (
+                {visibleBusinesses.map((b) => (
                   <BusinessCard key={b._id || b.slug} business={b} />
                 ))}
               </div>
             </>
+          )}
+
+          {/* Scaled for 10k/50k users: Windowed batch pagination */}
+          {results.length > displayCount && (
+            <div className="mt-8 flex justify-center pb-8">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setDisplayCount((prev) => prev + 18)}
+                className="rounded-2xl border-primary/30 px-8 py-3 text-sm font-semibold hover:bg-primary/5 transition-all shadow-xs"
+              >
+                Load more results ({results.length - displayCount} remaining)
+              </Button>
+            </div>
           )}
         </div>
       </div>

@@ -506,13 +506,12 @@ export function AppShell({
   const router = useRouter();
   const { user, logout, switchRole, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const effectiveUser = mounted ? user : null;
+  const nav = useResolvedNav(role) || navs.admin || navs.business;
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const effectiveUser = mounted ? user : null;
-  const nav = useResolvedNav(role) || navs.admin || navs.business;
 
   useEffect(() => {
     if (!loading && !user) {
@@ -727,6 +726,8 @@ export function AppShell({
           })}
         </nav>
         <div className="border-t border-sidebar-border p-3">
+          {mounted ? (
+            <>
           {effectiveUser && (
             <Link
               href={
@@ -848,7 +849,10 @@ export function AppShell({
             <LogOut className="h-[18px] w-[18px] shrink-0" />
             <span>Logout</span>
           </button>
-        </div>
+            </>
+          ) : (
+            <div className="h-16"></div>
+          )}        </div>
       </aside>
 
       <div className="lg:pl-64 w-full max-w-full overflow-x-hidden">
