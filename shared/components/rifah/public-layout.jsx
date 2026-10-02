@@ -73,8 +73,10 @@ export function PublicHeader() {
           : "/biz";
 
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
@@ -130,28 +132,36 @@ export function PublicHeader() {
               <Search className="h-5 w-5" />
             </Link>
           </Button>
-          {isAuthenticated ? (
-            <>
-              <LanguageSelector />
-              <Button asChild variant="ghost" className="hidden md:inline-flex">
-                <Link href={dashboardPath}>{t("dashboard")}</Link>
-              </Button>
-              <div className="hidden items-center gap-1.5 md:flex">
-                <UserAvatar user={user} className="h-8 w-8 text-xs" />
-                <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" title="Logout">
-                  <LogOut className="h-4.5 w-4.5" />
+          {mounted ? (
+            isAuthenticated ? (
+              <>
+                <LanguageSelector />
+                <Button asChild variant="ghost" className="hidden md:inline-flex">
+                  <Link href={dashboardPath}>{t("dashboard")}</Link>
                 </Button>
-              </div>
-            </>
+                <div className="hidden items-center gap-1.5 md:flex">
+                  <UserAvatar user={user} className="h-8 w-8 text-xs" />
+                  <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" title="Logout">
+                    <LogOut className="h-4.5 w-4.5" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <LanguageSelector />
+                <Button asChild variant="ghost" className="hidden md:inline-flex">
+                  <Link href="/login">{t("login")}</Link>
+                </Button>
+                <Button asChild variant="brand" className="hidden sm:inline-flex">
+                  <Link href="/register-business">{t("register")}</Link>
+                </Button>
+              </>
+            )
           ) : (
             <>
               <LanguageSelector />
-              <Button asChild variant="ghost" className="hidden md:inline-flex">
-                <Link href="/login">{t("login")}</Link>
-              </Button>
-              <Button asChild variant="brand" className="hidden sm:inline-flex">
-                <Link href="/register-business">{t("register")}</Link>
-              </Button>
+              <div className="hidden md:inline-flex w-[60px] h-[36px] bg-muted/50 animate-pulse rounded-md" />
+              <div className="hidden sm:inline-flex w-[80px] h-[36px] bg-muted/50 animate-pulse rounded-md" />
             </>
           )}
           <MobileMenu />
