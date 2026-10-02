@@ -105,7 +105,7 @@ function EventAnalyticsDetailView({ event, onBack }) {
                 ))}
               </div>
               <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground border border-border">
-                {["All", "Member", "Non-Member"].map(tab => (
+                {["All", "Member", "Non-Member", "Guest"].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setMembershipFilter(tab)}
@@ -143,11 +143,11 @@ function EventAnalyticsDetailView({ event, onBack }) {
               const filteredRegistrations = (registrations || []).filter(r => {
                 if (attendanceFilter === "Attendee" && r.attendanceStatus !== "Present") return false;
                 
-                const isMem = ["central_admin", "state_admin", "chapter_admin", "business_owner"].includes(r.user?.role) || 
-                             (r.user?.membershipStatus && r.user?.membershipStatus !== "None" && r.user?.membershipStatus !== "Expired");
+                const roleValue = r.role || "guest";
                              
-                if (membershipFilter === "Member" && !isMem) return false;
-                if (membershipFilter === "Non-Member" && isMem) return false;
+                if (membershipFilter === "Member" && roleValue !== "member") return false;
+                if (membershipFilter === "Non-Member" && roleValue !== "non_member") return false;
+                if (membershipFilter === "Guest" && roleValue !== "guest") return false;
                 
                 return true;
               });
@@ -209,13 +209,11 @@ function EventAnalyticsDetailView({ event, onBack }) {
                         key: "membership",
                         header: "Membership",
                         cell: (r) => {
-                          const isMem = ["central_admin", "state_admin", "chapter_admin", "business_owner"].includes(r.user?.role) || 
-                                       (r.user?.membershipStatus && r.user?.membershipStatus !== "None" && r.user?.membershipStatus !== "Expired");
-                          return (
-                            <span className={isMem ? "text-primary font-semibold text-sm" : "text-muted-foreground text-sm"}>
-                              {isMem ? "Active Member" : "Non-Member"}
-                            </span>
-                          );
+                          const roleValue = r.role || "guest";
+                          
+                          if (roleValue === "member") return <span className="font-semibold text-blue-600 text-sm">Member</span>;
+                          if (roleValue === "non_member") return <span className="text-orange-600 text-sm">Non-Member</span>;
+                          return <span className="text-gray-600 text-sm">Guest</span>;
                         }
                       },
                       {
