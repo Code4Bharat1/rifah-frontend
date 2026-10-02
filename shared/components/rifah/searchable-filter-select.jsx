@@ -94,7 +94,7 @@ export function SearchableFilterSelect({
             onValueChange={setSearch}
             className="text-xs h-9"
           />
-          <CommandList className="max-h-60 overflow-y-auto p-1">
+          <CommandList className="max-h-60 overflow-y-auto custom-scrollbar p-1">
             <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
               No matching options found.
             </CommandEmpty>

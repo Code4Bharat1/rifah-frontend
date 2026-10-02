@@ -146,6 +146,7 @@ const loadRazorpayScript = () => {
             password: pwd,
             chapter: "General",
             organization: guestForm.businessName || "Guest User",
+            isGuestCheckout: true,
           });
           const responseData = regRes?.data || regRes;
           if (responseData?.accessToken) {

@@ -484,6 +484,40 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Custom smooth visible scrollbar utilities */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 136, 209, 0.45) rgba(0, 0, 0, 0.04);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 136, 209, 0.4);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 136, 209, 0.75);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Accessible reduced motion override: disable heavy looping effects only */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -495,4 +529,5 @@ html {
     animation: none !important;
   }
 }
+
 
