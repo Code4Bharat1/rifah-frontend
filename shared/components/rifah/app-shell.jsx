@@ -140,6 +140,7 @@ const roleNavs = {
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
+      { label: "Queries", to: "/chapter-admin/queries", icon: MessageSquareText },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
