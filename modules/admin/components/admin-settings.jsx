@@ -97,14 +97,17 @@ const togglesTemplate = [
   { key: "autoRouteLeadsByCategory", title: "Auto-route leads by category", desc: "Match new enquiries to members automatically", defaultOn: true },
 ];
 
-export function AdminSettings() {
+export function AdminSettings({ expectedRole }) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { basePath, title, subtitle, modules } = getRoleConfig(user?.role);
+  
+  const role = user?.role || expectedRole || "admin";
+  const { basePath, title, subtitle, modules } = getRoleConfig(role);
+  
   // BUG-017: Chamber details, moderation rules, fees and system limits are
   // organisation-wide settings owned by Central Admin. State/chapter admins
   // should only see the module shortcuts and their own account security.
-  const isCentralAdmin = (user?.role || "admin") === "admin";
+  const isCentralAdmin = role === "admin" || role === "central_admin";
   const { data: globalSettings, refetch, isLoading } = useSettings();
 
   const [chamberDetails, setChamberDetails] = useState({
@@ -242,14 +245,8 @@ export function AdminSettings() {
   };
 
   return (
-    <AppShell role={user?.role || "admin"} title={title} subtitle={subtitle}>
+    <AppShell role={role || "admin"} title={title} subtitle={subtitle}>
       <div className="space-y-4">
-        {isLoading && !globalSettings && (
-          <div className="p-4 flex items-center justify-center bg-blue-50/50 rounded-lg text-sm text-blue-600 mb-4">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-            Loading settings from server...
-          </div>
-        )}
         <Panel title="All admin modules">
           <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {modules.map((m) => (
