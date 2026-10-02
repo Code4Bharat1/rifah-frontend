@@ -6,8 +6,21 @@ import { authApi, userApi } from "../lib/api-services";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("rifah_user");
+        return cached ? JSON.parse(cached) : null;
+      } catch (_) {}
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      return !Boolean(localStorage.getItem("rifah_user") && localStorage.getItem("rifah_access_token"));
+    }
+    return true;
+  });
   const queryClient = useQueryClient();
 
   // BUG-013: the mount-time session check (fetchCurrentUser, below) and an
@@ -39,12 +52,36 @@ export function AuthProvider({ children }) {
       setUser(userData);
       localStorage.setItem("rifah_user", JSON.stringify(userData));
     } catch (err) {
-      console.warn("Session expired or invalid token:", err.message);
+      console.warn("User session check:", err.message);
       if (requestId === requestIdRef.current) {
-        setUser(null);
-        localStorage.removeItem("rifah_access_token");
-        localStorage.removeItem("rifah_refresh_token");
-        localStorage.removeItem("rifah_user");
+        const isAuthError =
+          err?.status === 401 ||
+          err?.statusCode === 401 ||
+          err?.code === "UNAUTHORIZED" ||
+          err?.code === "TOKEN_EXPIRED" ||
+          err?.code === "TOKEN_INVALID" ||
+          (typeof err?.message === "string" && (
+            err.message.includes("401") ||
+            err.message.toLowerCase().includes("session has expired") ||
+            err.message.toLowerCase().includes("invalid or expired refresh token") ||
+            err.message.toLowerCase().includes("please log in to continue")
+          ));
+
+        if (isAuthError) {
+          setUser(null);
+          localStorage.removeItem("rifah_access_token");
+          localStorage.removeItem("rifah_refresh_token");
+          localStorage.removeItem("rifah_user");
+        } else {
+          // Non-auth error (e.g. temporary network glitch or server restart)
+          // Retain cached user so panels do not panic-redirect
+          const cachedUserStr = typeof window !== "undefined" ? localStorage.getItem("rifah_user") : null;
+          if (cachedUserStr) {
+            try {
+              setUser(JSON.parse(cachedUserStr));
+            } catch (_) {}
+          }
+        }
       }
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);

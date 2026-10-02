@@ -506,15 +506,15 @@ export function useConversations() {
         const res = await messageApi.getConversations();
         return res?.data?.conversations || res?.data || res || [];
       } catch {
-        // Return empty array on temporary network/auth hiccups during polling
+        // Return empty array on temporary network/auth hiccups
         return [];
       }
     },
     enabled: isAuthenticated,
-    refetchInterval: 6000,
+    refetchInterval: false, // Scaled for 10k users: Real-time updates driven by WebSockets
     retry: 0,              // already handled inside queryFn — no React Query retries needed
-    throwOnError: false,   // never bubble to error boundary for polling failures
-    refetchOnWindowFocus: false,
+    throwOnError: false,   // never bubble to error boundary
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -532,8 +532,9 @@ export function useMessages(otherUserId) {
       }
     },
     enabled: Boolean(otherUserId),
-    refetchInterval: 4000,
+    refetchInterval: false, // Scaled for 10k users: Real-time updates driven by WebSockets
     retry: 1,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -558,8 +559,9 @@ export function useNotifications() {
       }
     },
     enabled: isAuthenticated,
-    refetchInterval: 8000,
+    refetchInterval: false, // Scaled for 10k users: Real-time updates driven by WebSockets
     retry: 1,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -704,7 +706,7 @@ export function usePowerNetworkingStats() {
       const res = await powerNetworkingApi.getStats();
       return res?.data || res;
     },
-    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -854,8 +856,6 @@ export function usePosts(params = {}) {
       const res = await postsApi.list(params);
       return res?.data || res || [];
     },
-    // Auto-refetch every 10 seconds and on window focus so multi-PC posts sync automatically
-    refetchInterval: 10000,
     refetchOnWindowFocus: true,
   });
 }

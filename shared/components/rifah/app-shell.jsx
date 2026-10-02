@@ -65,6 +65,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@sha
 import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
 import { useNotifications, useConversations, useMyBusiness } from "@shared/hooks/use-rifah-api";
+import { useQueryClient } from "@tanstack/react-query";
+import { getSocket } from "@shared/lib/socket";
 import { VerificationBadge } from "@shared/components/rifah/badges";
 import { RifahCopilotWidget } from "@shared/components/rifah/rifah-copilot-widget";
 import { UserAvatar } from "@shared/components/rifah/ui-bits";
@@ -249,6 +251,10 @@ function useResolvedNav(role) {
 }
 
 function toRoleAwarePath(path, role, user) {
+  // If the user is currently within an Admin shell (Central, State, or Chapter), preserve their admin routes!
+  if (role === "admin" || role === "state" || role === "chapter") {
+    return path;
+  }
   const effectiveRole = user?.role || role;
   if (effectiveRole === "business_owner" || effectiveRole === "customer" || effectiveRole === "business") {
     if (path.startsWith("/admin/notifications")) return "/biz/notifications";
@@ -505,6 +511,36 @@ export function AppShell({
       router.push(`/login?redirect=${encodeURIComponent(path)}`);
     }
   }, [user, loading, path, router]);
+
+  const queryClient = useQueryClient();
+
+  // Real-time WebSockets synchronization for notifications and conversations
+  useEffect(() => {
+    if (!user?._id) return;
+    const socket = getSocket();
+    if (!socket) return;
+
+    socket.emit("join_room", user._id);
+
+    const handleNewNotification = () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    };
+
+    const handleMessageUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["messages"] });
+    };
+
+    socket.on("notification:new", handleNewNotification);
+    socket.on("receive_message", handleMessageUpdate);
+    socket.on("update_conversations", handleMessageUpdate);
+
+    return () => {
+      socket.off("notification:new", handleNewNotification);
+      socket.off("receive_message", handleMessageUpdate);
+      socket.off("update_conversations", handleMessageUpdate);
+    };
+  }, [user?._id, queryClient]);
 
   const { data: notifData } = useNotifications();
   const unreadNotifs = notifData?.unreadCount ?? 0;

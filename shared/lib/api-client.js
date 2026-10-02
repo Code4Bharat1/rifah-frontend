@@ -107,6 +107,9 @@ export async function downloadFile(endpoint, filename) {
   URL.revokeObjectURL(blobUrl);
 }
 
+// Global in-flight promise to queue concurrent requests during token refresh and prevent race conditions
+let refreshPromise = null;
+
 export async function apiClient(endpoint, options = {}, isRetry = false) {
   // Never send stale Authorization tokens to unauthenticated auth endpoints
   const isAuthEndpoint =
@@ -182,37 +185,86 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
   if (response.status === 401 && !isRetry && !endpoint.includes("/login") && !endpoint.includes("/auth/refresh-token")) {
     const refreshToken = typeof window !== "undefined" ? localStorage.getItem("rifah_refresh_token") : null;
     if (refreshToken) {
-      try {
-        const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken }),
-        });
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          const newAccessToken = refreshData?.data?.accessToken || refreshData?.accessToken;
-          const newRefreshToken = refreshData?.data?.refreshToken || refreshData?.refreshToken;
-          if (newAccessToken) {
-            localStorage.setItem("rifah_access_token", newAccessToken);
-            if (newRefreshToken) localStorage.setItem("rifah_refresh_token", newRefreshToken);
-            // Retry original request with clean headers
-            const retryOptions = {
-              ...options,
-              headers: customHeaders,
-            };
-            return apiClient(endpoint, retryOptions, true);
-          }
-        }
-      } catch (e) {
-        // Token refresh attempt failed
-      }
-    }
+      // If a refresh is not already in flight, start one; otherwise wait for the existing refresh promise
+      if (!refreshPromise) {
+        refreshPromise = (async () => {
+          const activeApiUrl = getApiBaseUrl();
+          try {
+            const refreshRes = await fetch(`${activeApiUrl}/auth/refresh-token`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refreshToken }),
+            });
 
-    // If we reach here on a 401, refresh failed or didn't exist.
-    if (typeof window !== "undefined") {
-      const hadToken = Boolean(token || refreshToken);
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              const newAccessToken = refreshData?.data?.accessToken || refreshData?.accessToken;
+              const newRefreshToken = refreshData?.data?.refreshToken || refreshData?.refreshToken;
+              if (newAccessToken && typeof window !== "undefined") {
+                localStorage.setItem("rifah_access_token", newAccessToken);
+                if (newRefreshToken) localStorage.setItem("rifah_refresh_token", newRefreshToken);
+                return { success: true, newAccessToken };
+              }
+            }
+            // Explicit auth failure (expired or revoked refresh token)
+            return {
+              success: false,
+              isExplicitAuthFailure: refreshRes.status === 401 || refreshRes.status === 403,
+            };
+          } catch (netErr) {
+            // Transient network error or backend reboot - do not treat as explicit auth failure
+            return { success: false, isExplicitAuthFailure: false };
+          }
+        })().finally(() => {
+          refreshPromise = null;
+        });
+      }
+
+      const refreshResult = await refreshPromise;
+      if (refreshResult && refreshResult.success) {
+        // Retry original request with clean headers and the updated token
+        const retryOptions = {
+          ...options,
+          headers: customHeaders,
+        };
+        return apiClient(endpoint, retryOptions, true);
+      }
+
+      // If the refresh failed because the token was explicitly revoked/expired, purge session & redirect
+      if (refreshResult && refreshResult.isExplicitAuthFailure && typeof window !== "undefined") {
+        localStorage.removeItem("rifah_access_token");
+        localStorage.removeItem("rifah_refresh_token");
+        localStorage.removeItem("rifah_user");
+
+        const publicPaths = [
+          "/",
+          "/about",
+          "/about-rifah",
+          "/aboutrifah",
+          "/aboutRIFAH",
+          "/about-us",
+          "/discover",
+          "/catalogue",
+          "/events",
+          "/contact",
+          "/membership",
+          "/presence",
+          "/members",
+          "/login",
+          "/register-business",
+        ];
+        const currentPath = window.location.pathname;
+        const isPublicPath = publicPaths.some(
+          (p) => currentPath === p || (p !== "/" && currentPath.startsWith(p))
+        );
+
+        if (!isPublicPath) {
+          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+        }
+      }
+    } else if (typeof window !== "undefined") {
+      // No refresh token available at all on protected route
       localStorage.removeItem("rifah_access_token");
-      localStorage.removeItem("rifah_refresh_token");
       localStorage.removeItem("rifah_user");
 
       const publicPaths = [
@@ -237,7 +289,6 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
         (p) => currentPath === p || (p !== "/" && currentPath.startsWith(p))
       );
 
-      // Redirect to /login if user is on a protected path (e.g. /biz, /admin, /me)
       if (!isPublicPath) {
         window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
       }
