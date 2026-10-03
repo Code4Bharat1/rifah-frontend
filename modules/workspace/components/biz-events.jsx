@@ -345,6 +345,64 @@ export function BizEvents() {
             {displayedEvents.map((ev) => {
               const registered = isRegistered(ev);
 
+              if (activeView === "my-passes") {
+                const qrUserName = user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member') : 'Attendee';
+                const qrUserEmail = user ? user.email : 'N/A';
+                const qrUserBusiness = user?.businessName || '';
+                const qrEventName = ev?.title || '';
+                
+                const verifyUrl = `https://rifah.nexcorealliance.com/verify-pass?name=${encodeURIComponent(qrUserName)}&email=${encodeURIComponent(qrUserEmail)}&business=${encodeURIComponent(qrUserBusiness)}&event=${encodeURIComponent(qrEventName)}`;
+                
+                return (
+                  <article key={ev._id || ev.slug} className="flex flex-col bg-card rounded-2xl shadow-sm border border-emerald-500/20 relative overflow-hidden transition-all hover:shadow-md hover:border-emerald-500/40">
+                    <div className="p-4 bg-emerald-600 text-white">
+                      <div className="flex justify-between items-start mb-2">
+                        <Pill className="bg-white/20 text-white border-none text-[9px] uppercase tracking-wider px-2 py-0.5 font-bold shadow-none">{ev.mode || "In-Person"}</Pill>
+                        <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold backdrop-blur-sm tracking-wider">RSVP CONFIRMED</span>
+                      </div>
+                      <h3 className="font-bold text-sm leading-snug line-clamp-2">{ev.title}</h3>
+                      <p className="text-[11px] text-emerald-100 mt-1.5 flex items-center gap-1 font-medium"><CalendarDays className="w-3 h-3 shrink-0"/> {formatEventDate(ev.date)} · {ev.time}</p>
+                    </div>
+                    
+                    {/* Dashed line tear */}
+                    <div className="w-full border-t-2 border-dashed border-border my-0 relative bg-card">
+                      <div className="absolute -left-3 -top-3 w-6 h-6 bg-background rounded-full border-r border-border"></div>
+                      <div className="absolute -right-3 -top-3 w-6 h-6 bg-background rounded-full border-l border-border"></div>
+                    </div>
+                    
+                    <div className="p-4 flex flex-col items-center bg-card">
+                      <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest mb-3">Digital Entry Pass</p>
+                      <div className="p-1.5 bg-white rounded-xl border border-gray-200 shadow-xs mb-4">
+                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(verifyUrl)}`} alt="Entry Pass QR" className="w-[100px] h-[100px]" />
+                      </div>
+                      
+                      <div className="w-full text-left space-y-2.5 px-1">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0">
+                            <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Attendee</p>
+                            <p className="font-bold text-foreground text-xs truncate">{qrUserName}</p>
+                          </div>
+                          {qrUserBusiness && (
+                            <div className="text-right min-w-0 shrink-0 max-w-[45%]">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Business</p>
+                              <p className="font-bold text-foreground text-xs truncate">{qrUserBusiness}</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                           <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Email</p>
+                           <p className="font-semibold text-muted-foreground text-[10px] truncate">{qrUserEmail}</p>
+                        </div>
+                      </div>
+                      
+                      <Button asChild size="sm" variant="outline" className="w-full mt-4 rounded-xl text-xs h-8 border-emerald-200 text-emerald-700 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950">
+                        <Link href={`/events/${ev._id || ev.slug}`}>View Event Details</Link>
+                      </Button>
+                    </div>
+                  </article>
+                );
+              }
+
               return (
                 <article
                   key={ev._id || ev.slug}

@@ -4,6 +4,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Image as ImageIcon, X, Check, ChevronsUpDown, Video, Sparkles, Copy, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const MapComponent = dynamic(
+  () => import("@shared/components/rifah/location-picker").then((mod) => mod.LocationPicker),
+  { ssr: false }
+);
 import {
   Command,
   CommandEmpty,
@@ -749,13 +755,44 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="venue">Venue / Meeting Link</Label>
-              <Input
-                id="venue"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              />
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="venue">Venue / Address</Label>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      const el = document.getElementById("location-picker-container");
+                      if (el) el.classList.toggle("hidden");
+                    }}
+                    className="h-6 text-[10px] uppercase tracking-wider text-primary"
+                  >
+                    Select on Map
+                  </Button>
+                </div>
+                <Input
+                  id="venue"
+                  placeholder="e.g. Bombay Exhibition Centre, Mumbai"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                />
+              </div>
+              
+              {/* Interactive Location Picker */}
+              <div id="location-picker-container" className={formData.location ? "hidden" : "block"}>
+                <div className="p-3 bg-card border border-border rounded-xl shadow-sm">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">Pinpoint Location on Map</p>
+                  <MapComponent 
+                    onLocationSelect={(addr) => {
+                      setFormData({ ...formData, location: addr });
+                      toast.success("Location set from map!");
+                      document.getElementById("location-picker-container").classList.add("hidden");
+                    }} 
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">

@@ -7,6 +7,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
 import { cn } from "@shared/lib/utils";
+import dynamic from "next/dynamic";
+
+const StaticMap = dynamic(
+  () => import("@shared/components/rifah/static-map").then((mod) => mod.StaticMap),
+  { ssr: false }
+);
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { Input } from "@shared/components/ui/input";
@@ -462,6 +468,14 @@ const loadRazorpayScript = () => {
                   <FieldRow label="Who should attend" value="Member businesses, buyers and chapter invitees" />
                 </dl>
               </Panel>
+              
+              {event.venue && event.venue.length > 3 && (
+                <Panel title="Event Location Map">
+                  <div className="w-full rounded-2xl overflow-hidden border border-border shadow-sm h-[350px] bg-muted/50 relative">
+                    <StaticMap address={event.venue + (event.city && !event.venue.toLowerCase().includes(event.city.toLowerCase()) ? `, ${event.city}` : '')} />
+                  </div>
+                </Panel>
+              )}
             </div>
           </div>
 
@@ -510,15 +524,63 @@ const loadRazorpayScript = () => {
                     <span className="font-medium text-emerald-700/70 dark:text-emerald-300/70">Status</span>
                     <span className="font-bold text-emerald-600 px-2 py-1 bg-emerald-500/10 rounded-md">RSVP Confirmed</span>
                   </div>
-                  <div className="mt-5 flex flex-col items-center justify-center space-y-2">
-                    <div className="bg-white p-2 rounded-xl shadow-sm border border-emerald-500/20">
-                      <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`Name: ${user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member') : (guestForm.name || 'Attendee')}\nEmail: ${user ? user.email : (guestForm.email || 'N/A')}\n${(user?.businessName || guestForm.businessName) ? `Business: ${user?.businessName || guestForm.businessName}\n` : ''}Event: ${event?.title}\nStatus: Registered`)}`} 
-                        alt="Registration QR Code" 
-                        className="w-32 h-32"
-                      />
+                  <div className="mt-5 flex flex-col items-center justify-center space-y-4">
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-500/20 w-full relative overflow-hidden">
+                      {(() => {
+                        const qrUserName = user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member') : (guestForm.name || 'Attendee');
+                        const qrUserEmail = user ? user.email : (guestForm.email || 'N/A');
+                        const qrUserBusiness = user?.businessName || guestForm.businessName || '';
+                        const qrEventName = event?.title || '';
+                        
+                        const verifyUrl = `https://rifah.nexcorealliance.com/verify-pass?name=${encodeURIComponent(qrUserName)}&email=${encodeURIComponent(qrUserEmail)}&business=${encodeURIComponent(qrUserBusiness)}&event=${encodeURIComponent(qrEventName)}`;
+                        
+                        return (
+                          <div className="flex flex-col items-center">
+                            <p className="text-[10px] text-emerald-600/80 font-bold uppercase tracking-widest mb-3">Digital Entry Pass</p>
+                            <div className="p-2 bg-white rounded-xl mb-4 border border-gray-100 shadow-sm">
+                              <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verifyUrl)}`} 
+                                alt="Registration QR Code" 
+                                className="w-32 h-32"
+                              />
+                            </div>
+                            
+                            {/* Dashed divider representing ticket tear */}
+                            <div className="w-full border-t-2 border-dashed border-gray-200 my-2 relative">
+                              <div className="absolute -left-6 -top-3 w-6 h-6 bg-emerald-500/10 rounded-full"></div>
+                              <div className="absolute -right-6 -top-3 w-6 h-6 bg-emerald-500/10 rounded-full"></div>
+                            </div>
+                            
+                            {/* Ticket Details */}
+                            <div className="w-full text-left space-y-3 mt-3 px-2">
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Attendee</p>
+                                  <p className="font-bold text-gray-800 text-sm truncate">{qrUserName}</p>
+                                </div>
+                                <div className="text-right min-w-0 shrink-0 max-w-[45%]">
+                                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Event</p>
+                                  <p className="font-bold text-gray-800 text-sm truncate">{qrEventName}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Email</p>
+                                  <p className="font-semibold text-gray-600 text-[11px] truncate">{qrUserEmail}</p>
+                                </div>
+                                {qrUserBusiness && (
+                                  <div className="text-right min-w-0 shrink-0 max-w-[45%]">
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Business</p>
+                                    <p className="font-semibold text-gray-600 text-[11px] truncate">{qrUserBusiness}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
-                    <p className="text-[10px] text-emerald-600/70 font-medium uppercase tracking-wider">Scan for entry pass</p>
                   </div>
 
                   {event.meetingLink && (
