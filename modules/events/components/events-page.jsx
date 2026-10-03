@@ -31,6 +31,10 @@ function EventsPage() {
     if (tab === "Live") return status === "Live";
     if (tab === "Past" || tab === "Ended") return status === "Ended";
     return true;
+  }).sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return dateA - dateB;
   });
 
   return (

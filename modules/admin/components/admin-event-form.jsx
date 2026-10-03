@@ -100,6 +100,11 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [errors, setErrors] = useState({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: statesData } = useStates();
   const { data: chaptersData } = useChapters();
@@ -673,7 +678,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     }}
                     className="max-w-xs"
                   />
-                  <p className="text-[11px] text-muted-foreground">Recommended: 1200×630px, max 5MB</p>
+                  <p className="text-[11px] text-muted-foreground">Recommended: 1900×301px, max 5MB</p>
                 </div>
               </div>
             </div>
@@ -756,7 +761,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
 
 
 
-            {isCentralAdmin && (
+            {mounted && isCentralAdmin && (
               <div className="space-y-3 pt-6 border-t">
                 <div>
                   <Label className="text-base">Target States</Label>
@@ -775,7 +780,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               </div>
             )}
 
-            {!["chapter_admin"].includes(user?.role) && (
+            {mounted && !["chapter_admin"].includes(user?.role) && (
               <div className="space-y-3 pt-6 border-t">
                 <div>
                   <Label className="text-base">Target Chapters</Label>
@@ -825,6 +830,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   />
                   {errors.scheduledTime && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.scheduledTime}</p>}
                 </div>
+              </div>
+
+              <div className="pt-6 mt-2 border-t flex justify-end gap-3">
                 <Button 
                   variant="outline" 
                   onClick={() => handleSave("Scheduled")} 
@@ -833,15 +841,12 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 >
                   {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : "Schedule Event"}
                 </Button>
-              </div>
-
-              <div className="pt-6 mt-2 border-t flex justify-end gap-3">
                 <Button 
                   onClick={() => handleSave("Upcoming")} 
                   disabled={loading || savingDraft}
                   className="w-48 bg-primary"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isCentralAdmin ? "Publish Now & Broadcast" : "Submit for Approval")}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (mounted && isCentralAdmin ? "Publish Now & Broadcast" : "Submit for Approval")}
                 </Button>
               </div>
             </div>
