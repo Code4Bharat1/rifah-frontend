@@ -8,10 +8,6 @@ import {
   Building2,
   Shield,
   Check,
-  Headphones,
-  MessageSquare,
-  Users,
-  ShieldCheck,
   ArrowRight,
   Sparkles,
   Star,
@@ -507,45 +503,6 @@ export function ChamberMembershipTiers({
           );
         })}
       </div>
-
-      {/* ── Help + Trust Footer ─────────────────────────────── */}
-      {showFooter && (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-2xl border border-border/70 bg-sky-50/40 dark:bg-slate-900/50 px-4 py-3 mt-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <Headphones className="h-4 w-4" />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-foreground block leading-tight">
-                Need help choosing?
-              </span>
-              <span className="text-[11px] text-muted-foreground leading-tight">
-                Our chamber secretariat will help you find the right membership plan.
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <Users className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <span>
-                <strong className="font-semibold text-foreground">10,000+</strong> businesses
-              </span>
-              <span className="text-slate-300 dark:text-slate-600">·</span>
-              <ShieldCheck className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <span>Trusted nationwide</span>
-            </div>
-
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-foreground font-semibold text-[11px] h-8 px-3 shadow-2xs shrink-0 transition-colors"
-            >
-              <MessageSquare className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Contact Secretariat</span>
-            </Link>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

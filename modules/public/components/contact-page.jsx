@@ -42,13 +42,26 @@ function ContactPage() {
 
   return (
     <PublicLayout>
-      <div className="rifah-container py-6 sm:py-10">
-        <SectionHeader
-          title="Contact RIFAH"
-          description="The central admin routes enquiries to the regional chapter within one working day."
-        />
+      {/* 1. PREMIUM HERO SECTION */}
+      <section className="relative overflow-hidden bg-slate-950 text-white py-14 sm:py-20 border-b border-white/5">
+        {/* Premium Background Effects */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/30 via-slate-950 to-slate-950 pointer-events-none" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.04] pointer-events-none" />
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="rifah-container relative z-10 text-center max-w-3xl mx-auto">
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight animate-[fadeInUp_0.8s_ease-out]">
+            Contact <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-400 to-emerald-300">RIFAH</span>
+          </h1>
+          <p className="mt-4 text-sm sm:text-base text-slate-300 leading-relaxed animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
+            The central admin routes enquiries to the regional chapter within one working day.
+          </p>
+        </div>
+      </section>
+
+      <div className="rifah-container py-8 sm:py-12">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <Panel title="Send a message">
             {sent ? (
               <div className="py-6 text-center">

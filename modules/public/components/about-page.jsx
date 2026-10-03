@@ -410,32 +410,29 @@ function AboutPage() {
               const IconComponent = val.icon;
               return (
                 <div
-                  key={val.num}
+                  key={val.title}
                   className="group relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 shadow-xs hover:border-primary/50 hover:shadow-md transition-all duration-200"
                 >
                   <div>
-                    {/* Top Row: Num & Arabic */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <span className="text-xs font-mono font-bold text-muted-foreground/80 px-2 py-0.5 rounded-md bg-muted/60">
-                        {val.num}
-                      </span>
-                      <span className="text-xs font-semibold text-primary/80 dir-rtl tracking-wide font-sans">
-                        {val.arabic}
-                      </span>
-                    </div>
-
                     {/* Icon */}
                     <div className="mb-3.5 inline-grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
                       <IconComponent className="h-5 w-5" />
                     </div>
 
-                    {/* Title */}
+                    {/* Title & English Subtitle */}
                     <h3 className="text-sm font-bold text-foreground leading-snug">
                       {val.title}
                     </h3>
                     <p className="text-xs font-semibold text-primary mt-0.5">
                       ({val.subtitle})
                     </p>
+
+                    {/* Urdu Text below English */}
+                    <div className="mt-1">
+                      <span className="inline-block text-xs font-semibold text-primary/85 dir-rtl tracking-wide font-sans" dir="rtl">
+                        {val.arabic}
+                      </span>
+                    </div>
 
                     {/* Description */}
                     <p className="mt-2.5 text-xs text-muted-foreground leading-relaxed">
