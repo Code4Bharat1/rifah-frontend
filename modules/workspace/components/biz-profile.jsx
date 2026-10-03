@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Eye,
+  EyeOff,
   FileBadge2,
   ImagePlus,
   Loader2,
@@ -18,6 +19,8 @@ import {
   Plus,
   Star,
   AlertTriangle,
+  Quote,
+  Pencil,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -45,7 +48,7 @@ import { CityCombobox } from "@shared/components/rifah/city-combobox";
 import { getMainCategories, getSubCategoriesFor } from "@shared/lib/categories-data";
 import { useMyBusiness, useCategories, useBusinessCatalogue, useBusinessReviews } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
-import { businessApi, userApi } from "@shared/lib/api-services";
+import { businessApi, userApi, authApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { isValidEmail } from "@shared/lib/validators";
 import { useQueryClient } from "@tanstack/react-query";
@@ -434,6 +437,162 @@ function BizProfile() {
     }
   };
 
+  // Testimonials State & Handlers
+  const [testimonials, setTestimonials] = useState([]);
+  const [isTestimonialModalOpen, setIsTestimonialModalOpen] = useState(false);
+  const [editingTestimonialIndex, setEditingTestimonialIndex] = useState(null);
+  const [testimonialForm, setTestimonialForm] = useState({
+    userName: "",
+    businessName: "",
+    photo: "",
+    testimonial: "",
+    rating: 5,
+    isHidden: false,
+  });
+  const [uploadingTestimonialPhoto, setUploadingTestimonialPhoto] = useState(false);
+  const [savingTestimonial, setSavingTestimonial] = useState(false);
+
+  useEffect(() => {
+    if (business && Array.isArray(business.testimonials)) {
+      setTestimonials(business.testimonials);
+    }
+  }, [business?.testimonials]);
+
+  const handleOpenAddTestimonial = () => {
+    setEditingTestimonialIndex(null);
+    setTestimonialForm({
+      userName: "",
+      businessName: "",
+      photo: "",
+      testimonial: "",
+      rating: 5,
+      isHidden: false,
+    });
+    setIsTestimonialModalOpen(true);
+  };
+
+  const handleOpenEditTestimonial = (index) => {
+    const item = testimonials[index];
+    if (!item) return;
+    setEditingTestimonialIndex(index);
+    setTestimonialForm({
+      userName: item.userName || "",
+      businessName: item.businessName || "",
+      photo: item.photo || "",
+      testimonial: item.testimonial || "",
+      rating: item.rating || 5,
+      isHidden: Boolean(item.isHidden),
+    });
+    setIsTestimonialModalOpen(true);
+  };
+
+  const handleTestimonialPhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingTestimonialPhoto(true);
+    try {
+      const res = await authApi.uploadPhoto(file);
+      const url = res?.data?.url || res?.data?.fileUrl || res?.url || res?.fileUrl || "";
+      if (url) {
+        setTestimonialForm((prev) => ({ ...prev, photo: url }));
+        toast.success("Client photo uploaded successfully");
+      } else {
+        toast.error("Could not obtain image URL.");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to upload photo.");
+    } finally {
+      setUploadingTestimonialPhoto(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleSaveTestimonial = async (e) => {
+    e.preventDefault();
+    if (!testimonialForm.userName.trim()) {
+      toast.error("Client name is required");
+      return;
+    }
+    if (!testimonialForm.testimonial.trim()) {
+      toast.error("Testimonial text is required");
+      return;
+    }
+    if (!business?._id) {
+      toast.error("Business profile not found.");
+      return;
+    }
+
+    setSavingTestimonial(true);
+    try {
+      const currentList = Array.isArray(testimonials) ? [...testimonials] : [];
+      let updatedList;
+      if (editingTestimonialIndex !== null && editingTestimonialIndex >= 0) {
+        updatedList = currentList.map((item, idx) =>
+          idx === editingTestimonialIndex ? { ...item, ...testimonialForm } : item
+        );
+      } else {
+        updatedList = [
+          ...currentList,
+          {
+            ...testimonialForm,
+            createdAt: new Date().toISOString(),
+          },
+        ];
+      }
+
+      await businessApi.update(business._id, { testimonials: updatedList });
+      setTestimonials(updatedList);
+      syncBusinessCache();
+      setIsTestimonialModalOpen(false);
+      toast.success(
+        editingTestimonialIndex !== null
+          ? "Testimonial updated successfully"
+          : "Testimonial added successfully"
+      );
+    } catch (err) {
+      toast.error(err.message || "Failed to save testimonial.");
+    } finally {
+      setSavingTestimonial(false);
+    }
+  };
+
+  const handleDeleteTestimonial = async (indexToDelete) => {
+    if (!business?._id) return;
+    try {
+      const currentList = Array.isArray(testimonials) ? [...testimonials] : [];
+      const updatedList = currentList.filter((_, idx) => idx !== indexToDelete);
+      await businessApi.update(business._id, { testimonials: updatedList });
+      setTestimonials(updatedList);
+      syncBusinessCache();
+      toast.success("Testimonial deleted successfully");
+    } catch (err) {
+      toast.error(err.message || "Failed to delete testimonial.");
+    }
+  };
+
+  const handleToggleHideTestimonial = async (indexToToggle) => {
+    if (!business?._id) return;
+    try {
+      const currentList = Array.isArray(testimonials) ? [...testimonials] : [];
+      const targetItem = currentList[indexToToggle];
+      if (!targetItem) return;
+      const isNowHidden = !targetItem.isHidden;
+      const updatedList = currentList.map((item, idx) =>
+        idx === indexToToggle ? { ...item, isHidden: isNowHidden } : item
+      );
+      await businessApi.update(business._id, { testimonials: updatedList });
+      setTestimonials(updatedList);
+      syncBusinessCache();
+      toast.success(
+        isNowHidden
+          ? "Testimonial hidden from public profile"
+          : "Testimonial is now visible on public profile"
+      );
+    } catch (err) {
+      toast.error(err.message || "Failed to update visibility.");
+    }
+  };
+
   const bizSlugOrId = business?.slug || business?._id || "";
 
   const missingProfileFields = React.useMemo(() => {
@@ -627,6 +786,29 @@ function BizProfile() {
             {totalReviewsCount}
           </span>
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("testimonials")}
+          className={cn(
+            "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0",
+            activeTab === "testimonials"
+              ? "bg-[#0284c7] text-white shadow-xs"
+              : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+          )}
+        >
+          <Quote className="h-4 w-4" />
+          <span>Client Testimonials</span>
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors",
+              activeTab === "testimonials"
+                ? "bg-white/20 text-white"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+            )}
+          >
+            {testimonials.length}
+          </span>
+        </button>
       </div>
 
       {activeTab === "catalogue" ? (
@@ -636,6 +818,341 @@ function BizProfile() {
       ) : activeTab === "reviews" ? (
         <div className="animate-in fade-in duration-200">
           <BizReviews embedded={true} />
+        </div>
+      ) : activeTab === "testimonials" ? (
+        <div className="animate-in fade-in duration-200 space-y-4">
+          {/* Client Testimonials Panel */}
+          <Panel
+            title="Client Testimonials"
+            description="Manage client endorsements and reviews displayed on your public Discover profile"
+            action={
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleOpenAddTestimonial}
+                className="gap-1.5 rounded-xl text-xs font-semibold shadow-xs"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Testimonial</span>
+              </Button>
+            }
+          >
+            {isTestimonialModalOpen && (
+              <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5 shadow-xs space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between border-b border-primary/20 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Quote className="h-4 w-4 text-primary" />
+                    <h4 className="font-bold text-sm text-foreground">
+                      {editingTestimonialIndex !== null ? "Edit Testimonial" : "New Client Testimonial"}
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsTestimonialModalOpen(false)}
+                    className="grid h-6 w-6 place-items-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveTestimonial} className="space-y-4">
+                  {/* Photo Upload Row */}
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      {testimonialForm.photo ? (
+                        <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-primary/30 shadow-xs">
+                          <img
+                            src={resolveMediaUrl(testimonialForm.photo)}
+                            alt="Client Preview"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="grid h-16 w-16 place-items-center rounded-full bg-muted border-2 border-dashed border-border text-muted-foreground">
+                          <UserRound className="h-7 w-7 text-muted-foreground/60" />
+                        </div>
+                      )}
+                      {testimonialForm.photo && (
+                        <button
+                          type="button"
+                          onClick={() => setTestimonialForm((prev) => ({ ...prev, photo: "" }))}
+                          className="absolute -top-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-rose-600 text-white shadow-xs hover:bg-rose-700 cursor-pointer"
+                          title="Remove photo"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">Client Photo</Label>
+                      <div>
+                        <label className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted shadow-2xs cursor-pointer transition-colors">
+                          {uploadingTestimonialPhoto ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <span>Uploading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <ImagePlus className="h-3.5 w-3.5 text-primary" />
+                              <span>{testimonialForm.photo ? "Change Photo" : "Upload Photo"}</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={uploadingTestimonialPhoto}
+                            onChange={handleTestimonialPhotoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">Avatar or picture of the client.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="t-userName" className="text-xs font-semibold">
+                        Client / Reviewer Name *
+                      </Label>
+                      <Input
+                        id="t-userName"
+                        required
+                        value={testimonialForm.userName}
+                        onChange={(e) => setTestimonialForm({ ...testimonialForm, userName: e.target.value })}
+                        placeholder="e.g. Sarah Jenkins"
+                        className="h-9.5 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="t-businessName" className="text-xs font-semibold">
+                        Client Company / Business Name
+                      </Label>
+                      <Input
+                        id="t-businessName"
+                        value={testimonialForm.businessName}
+                        onChange={(e) => setTestimonialForm({ ...testimonialForm, businessName: e.target.value })}
+                        placeholder="e.g. Apex Industrial Solutions"
+                        className="h-9.5 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Rating Selector */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Rating</Label>
+                    <div className="flex items-center gap-1.5">
+                      {[1, 2, 3, 4, 5].map((starVal) => (
+                        <button
+                          key={starVal}
+                          type="button"
+                          onClick={() => setTestimonialForm({ ...testimonialForm, rating: starVal })}
+                          className="p-1 rounded hover:bg-muted transition-colors cursor-pointer"
+                        >
+                          <Star
+                            className={cn(
+                              "h-5 w-5 transition-colors",
+                              starVal <= testimonialForm.rating
+                                ? "fill-amber-400 text-amber-400"
+                                : "text-muted-foreground/30"
+                            )}
+                          />
+                        </button>
+                      ))}
+                      <span className="ml-2 text-xs font-bold text-foreground">
+                        {testimonialForm.rating} of 5 Stars
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Testimonial Content */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="t-content" className="text-xs font-semibold">
+                      Testimonial Feedback / Review *
+                    </Label>
+                    <Textarea
+                      id="t-content"
+                      required
+                      rows={3}
+                      value={testimonialForm.testimonial}
+                      onChange={(e) => setTestimonialForm({ ...testimonialForm, testimonial: e.target.value })}
+                      placeholder="Write what the client said about your work, service, or product..."
+                      className="text-xs leading-relaxed"
+                    />
+                  </div>
+
+                  {/* Hide Option */}
+                  <div className="rounded-lg border border-border/60 bg-muted/30 p-2.5 flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="t-hide-checkbox" className="text-xs font-semibold cursor-pointer">
+                        Hide from Public Profile
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground">
+                        Keep this testimonial saved privately without displaying it on your Discover business page.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        id="t-hide-checkbox"
+                        type="checkbox"
+                        checked={testimonialForm.isHidden}
+                        onChange={(e) =>
+                          setTestimonialForm({ ...testimonialForm, isHidden: e.target.checked })
+                        }
+                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20 accent-primary cursor-pointer"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-primary/20">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsTestimonialModalOpen(false)}
+                      className="text-xs font-semibold"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={savingTestimonial || uploadingTestimonialPhoto}
+                      className="gap-1.5 text-xs font-semibold shadow-xs"
+                    >
+                      {savingTestimonial ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        <span>{editingTestimonialIndex !== null ? "Update Testimonial" : "Save Testimonial"}</span>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {testimonials.length === 0 && !isTestimonialModalOpen ? (
+              <div className="rounded-xl border border-dashed border-border/80 p-8 text-center space-y-3 bg-muted/20">
+                <Quote className="h-8 w-8 text-muted-foreground/30 mx-auto" />
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-foreground">No Testimonials Added Yet</h4>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Add endorsements from your clients to showcase social proof and build trust on your Discover business profile.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenAddTestimonial}
+                  className="gap-1.5 text-xs font-semibold cursor-pointer shadow-xs"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add First Testimonial</span>
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {testimonials.map((t, idx) => (
+                  <div
+                    key={t._id || `testimonial-${idx}`}
+                    className={cn(
+                      "group relative flex flex-col justify-between rounded-xl border p-4 shadow-2xs transition-all duration-200",
+                      t.isHidden
+                        ? "border-amber-400/60 bg-amber-500/5 hover:border-amber-500/80"
+                        : "border-border/70 bg-card hover:border-primary/40 hover:shadow-xs"
+                    )}
+                  >
+                    <div>
+                      {/* Top: User Photo, Name, Business, Rating & Actions */}
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          {t.photo ? (
+                            <img
+                              src={resolveMediaUrl(t.photo)}
+                              alt={t.userName}
+                              className="h-10 w-10 rounded-full object-cover border border-border/80 shadow-2xs shrink-0"
+                            />
+                          ) : (
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary font-bold text-xs border border-primary/20">
+                              {(t.userName || "C").charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h5 className="font-bold text-xs text-foreground truncate">
+                                {t.userName || "Anonymous"}
+                              </h5>
+                              {t.isHidden && (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                  <EyeOff className="h-2.5 w-2.5" />
+                                  <span>Hidden</span>
+                                </span>
+                              )}
+                            </div>
+                            {t.businessName && (
+                              <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
+                                <Building2 className="h-2.5 w-2.5 shrink-0 text-muted-foreground/70" />
+                                <span>{t.businessName}</span>
+                              </p>
+                            )}
+                            <div className="flex items-center gap-0.5 mt-0.5">
+                              {Array.from({ length: Math.min(5, Math.max(1, t.rating || 5)) }).map((_, starIdx) => (
+                                <Star key={starIdx} className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Card Action Buttons */}
+                        <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleHideTestimonial(idx)}
+                            className={cn(
+                              "grid h-6 w-6 place-items-center rounded-md transition-colors cursor-pointer",
+                              t.isHidden
+                                ? "text-amber-600 hover:text-amber-700 hover:bg-amber-100/60 dark:hover:bg-amber-950/60"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            title={t.isHidden ? "Unhide testimonial (click to make visible)" : "Hide testimonial from public profile"}
+                          >
+                            {t.isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditTestimonial(idx)}
+                            className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                            title="Edit testimonial"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTestimonial(idx)}
+                            className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                            title="Delete testimonial"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Testimonial Quote */}
+                      <p className="text-xs text-foreground/90 italic leading-relaxed line-clamp-4 border-t border-border/40 pt-2.5">
+                        &ldquo;{t.testimonial}&rdquo;
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] animate-in fade-in duration-200">
@@ -956,6 +1473,8 @@ function BizProfile() {
               </label>
             </div>
           </Panel>
+
+
         </div>
 
         <div className="space-y-4">

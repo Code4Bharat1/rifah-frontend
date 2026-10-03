@@ -28,6 +28,7 @@ import {
   Tag,
   ChevronLeft,
   ChevronRight,
+  Quote,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -976,6 +977,67 @@ function BusinessProfile() {
                     ))}
                   </div>
                 </Panel>
+
+                {/* Client Testimonials Section */}
+                {Array.isArray(business.testimonials) &&
+                  business.testimonials.filter((t) => !t.isHidden).length > 0 && (
+                  <Panel
+                    title="Client Testimonials"
+                    description={`Endorsements and reviews from verified clients and partners`}
+                  >
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {business.testimonials
+                        .filter((t) => !t.isHidden)
+                        .map((t, idx) => (
+                        <div
+                          key={t._id || `testimonial-${idx}`}
+                          className="relative flex flex-col justify-between rounded-2xl border border-border/70 bg-card p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all duration-200"
+                        >
+                          <div>
+                            {/* Top: User Photo, Name, Company, Rating & Quote Icon */}
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                {t.photo ? (
+                                  <img
+                                    src={resolveMediaUrl(t.photo)}
+                                    alt={t.userName || "Client"}
+                                    className="h-11 w-11 rounded-full object-cover border border-border/80 shadow-2xs shrink-0"
+                                  />
+                                ) : (
+                                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary font-bold text-sm border border-primary/20">
+                                    {(t.userName || "C").charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="font-bold text-sm text-foreground truncate">
+                                    {t.userName || "Verified Client"}
+                                  </h4>
+                                  {t.businessName && (
+                                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                                      <Building2 className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+                                      <span>{t.businessName}</span>
+                                    </p>
+                                  )}
+                                  <div className="flex items-center gap-0.5 mt-1">
+                                    {Array.from({ length: Math.min(5, Math.max(1, t.rating || 5)) }).map((_, starIdx) => (
+                                      <Star key={starIdx} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                              <Quote className="h-6 w-6 text-primary/20 shrink-0" />
+                            </div>
+
+                            {/* Testimonial Quote */}
+                            <p className="text-sm text-foreground/90 leading-relaxed italic border-t border-border/40 pt-3">
+                              &ldquo;{t.testimonial}&rdquo;
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Panel>
+                )}
                 {business.certifications?.length > 0 && (
                   <Panel title="Certifications">
                     <ul className="grid gap-2 sm:grid-cols-2">
