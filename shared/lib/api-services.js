@@ -256,6 +256,9 @@ export const announcementApi = {
 export const eventApi = {
   list: (params = {}) => apiClient(`/events${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/events/detail/${idOrSlug}`),
+  generateMeetLink: (data = {}) =>
+    apiClient("/events/generate-meet", { method: "POST", body: JSON.stringify(data) }),
+  getGoogleMeetAuthUrl: () => apiClient("/events/google/auth-url"),
   register: (id) => apiClient(`/events/${id}/register`, { method: "POST", body: JSON.stringify({}) }),
   registerPaid: (id, data) => apiClient(`/events/${id}/register-paid`, { method: "POST", body: JSON.stringify(data) }),
   markAttendance: (id) => apiClient(`/events/${id}/attend`, { method: "POST", body: JSON.stringify({}) }),
