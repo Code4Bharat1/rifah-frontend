@@ -102,7 +102,7 @@ const navs = {
     title: "RIFAH Central Administration",
     primary: [
       { label: "Dashboard", to: "/admin", icon: Gauge },
-      { label: "Operations Center", to: "/admin/operations", icon: Radio },
+      { label: "Event Operations", to: "/admin/operations", icon: Radio },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
       { label: "Users", to: "/admin/users", icon: Users },
@@ -135,7 +135,7 @@ const roleNavs = {
     title: "Chapter admin",
     primary: [
       { label: "Dashboard", to: "/chapter-admin", icon: Gauge },
-      { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
+      { label: "Event Operations", to: "/chapter-admin/operations", icon: Radio },
       { label: "Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
@@ -159,7 +159,7 @@ const roleNavs = {
     title: "State admin",
     primary: [
       { label: "Dashboard", to: "/state-admin", icon: Gauge },
-      { label: "Operations Center", to: "/state-admin/operations", icon: Radio },
+      { label: "Event Operations", to: "/state-admin/operations", icon: Radio },
       { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
       { label: "Members", to: "/state-admin/members", icon: Users },
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },

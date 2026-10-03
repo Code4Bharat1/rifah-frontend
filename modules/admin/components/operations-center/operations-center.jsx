@@ -93,6 +93,7 @@ import { isValidName, isValidEmail } from "@shared/lib/validators";
 import { EventGallery } from "@shared/components/rifah/event-gallery";
 import { FinanceTab } from "./finance-tab";
 import { CertificatesTab } from "./certificates-tab";
+import { FollowupTab } from "./follow-up-tab";
 import { ScriptsTab } from "./scripts-tab";
 import { AskGiveBoard } from "./ask-give-board";
 import { MyTeamTab } from "./my-team-tab";
@@ -126,14 +127,11 @@ const HORIZONTAL_MODULE_TABS = [
   { key: "finance", label: "Finance", icon: CreditCard },
   { key: "speakers-guests", label: "Speakers & Guests", icon: Mic },
   { key: "follow-up", label: "Follow-up", icon: MessageSquareText },
-  { key: "ask-give", label: "Ask & Give", icon: Users },
-  { key: "gallery", label: "Gallery", icon: Images },
   { key: "certificates", label: "Certificates", icon: FileStack },
-  { key: "scripts", label: "Scripts", icon: ScrollText },
   { key: "documents", label: "Documents", icon: FileStack },
+  { key: "gallery", label: "Media Reports & Gallery", icon: Images },
   { key: "data", label: "Data", icon: ChartNoAxesColumn },
   { key: "my-links", label: "My Links", icon: Link2 },
-  { key: "overview", label: "Chapter Overview", icon: Gauge },
 ];
 
 export function OperationsCenter({ initialTab = "event-setup" }) {
@@ -503,7 +501,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
     function onConnect() {
       setSocketConnected(true);
-      socket.emit("projector:join", chapterSlug);
+      socket.emit("projector:join", activeEvent?._id || chapterSlug);
     }
 
     function onDisconnect() {
@@ -817,13 +815,14 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       const socket = getSocket();
       if (socket && socket.connected) {
         socket.emit("projector:control", {
-          target: chapterSlug,
+          target: activeEvent?._id || chapterSlug,
           action: "appearance",
           appearance,
         });
       }
 
       toast.success("✅ Slogan & theme saved!");
+      fetchOperationsData(selectedEventId);
     } catch (err) {
       toast.error("Failed: " + (err.message || "Unknown error"));
     } finally {
@@ -1134,7 +1133,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     const socket = getSocket();
     if (socket && socket.connected) {
       socket.emit("projector:control", {
-        target: chapterSlug,
+        target: activeEvent?._id || chapterSlug,
         action: "slide",
         mode: projectorMode,
         slideIndex: newIndex,
@@ -1170,7 +1169,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     const socket = getSocket();
     if (socket && socket.connected) {
       socket.emit("projector:control", {
-        target: chapterSlug,
+        target: activeEvent?._id || chapterSlug,
         action: "mode",
         mode,
         slideIndex: currentSlideIndex,
@@ -1202,7 +1201,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     const socket = getSocket();
     if (socket && socket.connected) {
       socket.emit("projector:control", {
-        target: chapterSlug,
+        target: activeEvent?._id || chapterSlug,
         action: "timer",
         timerAction: "start",
         remaining: stageTimerSeconds,
@@ -1216,7 +1215,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     const socket = getSocket();
     if (socket && socket.connected) {
       socket.emit("projector:control", {
-        target: chapterSlug,
+        target: activeEvent?._id || chapterSlug,
         action: "timer",
         timerAction: "pause",
       });
@@ -1231,7 +1230,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     const socket = getSocket();
     if (socket && socket.connected) {
       socket.emit("projector:control", {
-        target: chapterSlug,
+        target: activeEvent?._id || chapterSlug,
         action: "timer",
         timerAction: "reset",
         duration,
@@ -1246,7 +1245,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       const socket = getSocket();
       if (socket && socket.connected) {
         socket.emit("projector:control", {
-          target: chapterSlug,
+          target: activeEvent?._id || chapterSlug,
           action: "timer",
           timerAction: "adjust",
           delta: secondsDelta,
@@ -1264,7 +1263,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     const socket = getSocket();
     if (socket && socket.connected) {
       socket.emit("projector:control", {
-        target: chapterSlug,
+        target: activeEvent?._id || chapterSlug,
         action: "announcement",
         announcement: text,
       });
@@ -1322,7 +1321,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     const socket = getSocket();
     if (socket && socket.connected) {
       socket.emit("projector:control", {
-        target: chapterSlug,
+        target: activeEvent?._id || chapterSlug,
         action: "chime",
         chime: true,
       });
@@ -1381,7 +1380,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     const socket = getSocket();
     if (socket && socket.connected) {
       socket.emit("projector:control", {
-        target: chapterSlug,
+        target: activeEvent?._id || chapterSlug,
         action: "status",
         mode: projectorMode,
         slideIndex: currentSlideIndex,
@@ -1433,7 +1432,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     const socket = getSocket();
     if (socket && socket.connected) {
       socket.emit("projector:control", {
-        target: chapterSlug,
+        target: activeEvent?._id || chapterSlug,
         action: "refresh",
         mode: projectorMode,
         slideIndex: currentSlideIndex,
@@ -1458,8 +1457,8 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   // presentation.html is a static file (no Next.js env injection), so the backend socket
   // origin is passed explicitly via query param rather than guessed from window.location.
   const projectorUrl = mounted
-    ? `${origin}/presentation.html?c=${chapterSlug}&s=${encodeURIComponent(getBackendServerBase())}`
-    : `/presentation.html?c=${chapterSlug}`;
+    ? `${origin}/presentation.html?c=${activeEvent?._id || chapterSlug}&s=${encodeURIComponent(getBackendServerBase())}`
+    : `/presentation.html?c=${activeEvent?._id || chapterSlug}`;
 
   // Copy All Links
   const handleCopyAllLinks = () => {
@@ -1921,6 +1920,36 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     toast.success("Attendee roster exported successfully as CSV!");
   };
 
+  const handleExportAttendeesExcel = async () => {
+    if (!attendees || attendees.length === 0) {
+      toast.error("No attendees available to export.");
+      return;
+    }
+    try {
+      const XLSX = await import("xlsx");
+      const dataToExport = attendees.map(a => ({
+        "Name": a.name,
+        "Email": a.email,
+        "Phone": a.mobile,
+        "Company": a.company,
+        "Chapter": a.chapter || activeEvent?.chapter || "",
+        "Event": activeEvent?.title || "",
+        "Status": a.approvalStatus,
+        "Membership": a.isMember ? "Member" : "Visitor",
+        "Role": a.designation || "",
+        "Follow-up Status": "Pending",
+      }));
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Attendees");
+      XLSX.writeFile(wb, `RIFAH_Attendees_${(activeEvent?.title || "event").replace(/\s+/g, "_")}.xlsx`);
+      toast.success("Attendees exported to Excel successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export Excel file.");
+    }
+  };
+
   const handleExportMemberDirectoryCSV = () => {
     const listToExport = chapterMembers.length > 0 ? chapterMembers : attendees;
     if (!listToExport || listToExport.length === 0) {
@@ -2097,8 +2126,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-5">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Pill tone="brand">{roleLabel}</Pill>
-              <Pill tone="neutral">{chapterName.toUpperCase()}</Pill>
+              {mounted ? (
+                <Pill tone="brand">{roleLabel}</Pill>
+              ) : (
+                <Pill tone="brand">LOADING ROLE</Pill>
+              )}
+              <Pill tone="neutral">{mounted ? chapterName.toUpperCase() : "LOADING CHAPTER"}</Pill>
               <Pill tone={socketConnected ? "success" : "warning"}>
                 <span
                   className={cn(
@@ -2110,7 +2143,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </Pill>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight mt-2 flex items-center gap-2">
-              RIFAH Operations Center {isCentralAdmin ? "Central" : isStateAdmin ? "State" : "Chapter"} Admin Panel
+              RIFAH Operations Center {mounted ? (isCentralAdmin ? "Central" : isStateAdmin ? "State" : "Chapter") : "..."} Admin Panel
             </h1>
             <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground mt-1">
               <span>
@@ -2122,7 +2155,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </span>
               <span className="text-border">|</span>
               <span>
-                <span className="font-semibold text-foreground">Current Admin:</span> {user?.name || user?.email || roleLabel}
+                <span className="font-semibold text-foreground">Current Admin:</span> {mounted ? (user?.name || user?.email || roleLabel) : "Loading..."}
               </span>
             </div>
           </div>
@@ -2772,204 +2805,6 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
           </div>
 
 
-          {/* ── CARD 4: Certificate Design ────────────────────────────────── */}
-          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
-              <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
-                <GraduationCap className="h-4 w-4 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-foreground">Certificate Design</p>
-                <p className="text-xs text-muted-foreground">Style, accent colour and second signatory</p>
-              </div>
-            </div>
-            <div className="px-5 py-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Design Style</Label>
-                  <Select value={eventSetupForm.certificateStyle} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, certificateStyle: val }))}>
-                    <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {[
-                        "1 — Classic (border, serif, dark blue)",
-                        "2 — Modern (gradient header, sans-serif)",
-                        "3 — Elegant (gold foil line, premium)",
-                        "4 — Minimal (clean white, accent left bar)",
-                        "5 — Corporate (navy band, gold rule, clean typography)",
-                      ].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Accent Colour</Label>
-                  <div className="mt-2 flex items-center gap-3">
-                    <input type="color" value={eventSetupForm.certificateAccentColor} onChange={(e) => setEventSetupForm(prev => ({ ...prev, certificateAccentColor: e.target.value }))} className="h-9 w-14 rounded-md border border-border cursor-pointer p-0.5" />
-                    <span className="text-sm font-mono text-muted-foreground">{eventSetupForm.certificateAccentColor}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Signatory 1</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs font-semibold">Role / Designation</Label>
-                    <Select value={eventSetupForm.signatory1Role} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, signatory1Role: val }))}>
-                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {["— none —", "Chapter Vice President", "Chapter President", "Chapter Secretary", "State President", "State Secretary", "Other"].map(r => (
-                          <SelectItem key={r} value={r}>{r}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs font-semibold">Name (as printed)</Label>
-                    <Input value={eventSetupForm.signatory1Name} onChange={(e) => setEventSetupForm(prev => ({ ...prev, signatory1Name: e.target.value }))} placeholder="Full name" className="mt-1" />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs font-semibold">Signature Image</Label>
-                  <Input type="file" accept="image/*" className="mt-1"
-                    disabled={signatoryUploading[1]}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      handleSignatoryImageChange(1, file);
-                      e.target.value = "";
-                    }}
-                  />
-                  <div className="mt-2 flex items-center gap-3">
-                    {signatoryPreview[1] || eventSetupForm.signatory1Image ? (
-                      <img
-                        src={signatoryPreview[1] || resolveMediaUrl(eventSetupForm.signatory1Image)}
-                        alt="Signatory 1 signature preview"
-                        className="h-14 w-32 rounded-md border border-border bg-white object-contain"
-                      />
-                    ) : (
-                      <div className="h-14 w-32 rounded-md border border-dashed border-border grid place-items-center text-[10px] text-muted-foreground">
-                        No signature yet
-                      </div>
-                    )}
-                    {signatoryUploading[1] && (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Signatory 2 (Optional)</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs font-semibold">Role / Designation</Label>
-                    <Select value={eventSetupForm.signatory2Role} onValueChange={(val) => setEventSetupForm(prev => ({ ...prev, signatory2Role: val }))}>
-                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {["— none —", "Chapter Vice President", "Chapter President", "Chapter Secretary", "State President", "State Secretary", "Other"].map(r => (
-                          <SelectItem key={r} value={r}>{r}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs font-semibold">Name (as printed)</Label>
-                    <Input value={eventSetupForm.signatory2Name} onChange={(e) => setEventSetupForm(prev => ({ ...prev, signatory2Name: e.target.value }))} placeholder="Full name" className="mt-1" />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs font-semibold">Signature Image</Label>
-                  <Input type="file" accept="image/*" className="mt-1"
-                    disabled={signatoryUploading[2]}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      handleSignatoryImageChange(2, file);
-                      e.target.value = "";
-                    }}
-                  />
-                  <div className="mt-2 flex items-center gap-3">
-                    {signatoryPreview[2] || eventSetupForm.signatory2Image ? (
-                      <img
-                        src={signatoryPreview[2] || resolveMediaUrl(eventSetupForm.signatory2Image)}
-                        alt="Signatory 2 signature preview"
-                        className="h-14 w-32 rounded-md border border-border bg-white object-contain"
-                      />
-                    ) : (
-                      <div className="h-14 w-32 rounded-md border border-dashed border-border grid place-items-center text-[10px] text-muted-foreground">
-                        No signature yet
-                      </div>
-                    )}
-                    {signatoryUploading[2] && (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <p className="text-[11px] text-muted-foreground bg-muted/50 rounded-lg p-2.5">
-                Logo & photos keep their real ratio automatically. Sponsor logos appear neatly at the bottom of every certificate.
-              </p>
-              <Button variant="outline" onClick={handleSaveCertificateDesign} disabled={savingCertDesign} className="w-full gap-2 rounded-xl font-semibold">
-                {savingCertDesign ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : "Save Certificate Design"}
-              </Button>
-            </div>
-          </div>
-
-
-          {/* ── CARD 6: Certificates of Appreciation ─────────────────────── */}
-          <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
-              <div className="h-8 w-8 rounded-lg bg-warning/15 flex items-center justify-center">
-                <Award className="h-4 w-4 text-warning-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-foreground">Certificates of Appreciation</p>
-                <p className="text-xs text-muted-foreground">Speakers, sponsors, hero & star connector</p>
-              </div>
-            </div>
-            <div className="px-5 py-5 space-y-2">
-              <p className="text-xs text-muted-foreground pb-1">Download a certificate for each keynote speaker and each sponsor. Formal design with your logo, both signatures and every partner logo. <strong className="text-primary mt-1 block">Note: Certificates are generated dynamically by the backend (Node.js/Puppeteer) using your saved Certificate Design settings. They are not stored as static files until downloaded.</strong></p>
-              {speakers.length > 0 ? speakers.map((sp) => (
-                <div key={sp.id || sp.name} className="flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-muted/20">
-                  <div className="flex items-center gap-2">
-                    <Mic className="h-4 w-4 text-primary shrink-0" />
-                    <span className="text-sm font-semibold text-foreground">{sp.name}</span>
-                    {sp.organization && <span className="text-xs text-muted-foreground">• {sp.organization.toUpperCase()}</span>}
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => handleDownloadCertificate(sp.name, "Keynote Speaker")} className="rounded-lg text-xs h-7">Download</Button>
-                </div>
-              )) : (
-                <div className="px-4 py-3 rounded-xl border border-dashed border-border bg-muted/20">
-                  <p className="text-xs text-muted-foreground">No speakers yet — add them in the Speakers & Guests tab.</p>
-                </div>
-              )}
-              <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-dashed border-border bg-muted/20">
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-amber-500 shrink-0" />
-                  <span className="text-xs text-muted-foreground">Hero of the Event — available after Ask & Give session</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-dashed border-border bg-muted/20">
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-amber-400 shrink-0" />
-                  <span className="text-xs text-muted-foreground">Star Connector — available once guests name who invited them</span>
-                </div>
-              </div>
-              {sponsorsList.length > 0 && sponsorsList.map((sp) => (
-                <div key={sp.id || sp.name} className="flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-muted/20">
-                  <div className="flex items-center gap-2">
-                    <Handshake className="h-4 w-4 text-primary shrink-0" />
-                    <span className="text-sm font-semibold text-foreground">{sp.name}</span>
-                    <span className="text-xs text-muted-foreground">• {sp.category || "Sponsor"}</span>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => handleDownloadCertificate(sp.name, sp.category || "Event Sponsor")} className="rounded-lg text-xs h-7">Download</Button>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* ── CARD 7: Slogan & Theme + Appearance ──────────────────────── */}
           <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-muted/30">
@@ -3259,6 +3094,10 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     <SelectItem value="pending">Check-in Pending</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Button variant="outline" size="sm" onClick={handleExportAttendeesExcel} className="gap-2 h-9 text-xs">
+                  <Download className="h-4 w-4" /> Export (.xlsx)
+                </Button>
               </div>
             </div>
 
@@ -3915,11 +3754,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     const socket = getSocket();
                     if (socket && socket.connected) {
                       socket.emit("projector:control", {
-                        target: chapterSlug,
+                        target: activeEvent?._id || chapterSlug,
                         action: "participant-intro",
-                        participantName: attendee.name,
-                        participantCompany: attendee.company,
-                        participantRole: attendee.isMember ? "Member" : "Visitor",
+                        speaker: attendee.name,
+                        slideTitle: attendee.company || "Participant Introduction",
+                        duration: attendee.isMember ? "Member" : "Visitor",
                         chapter: chapterName,
                         eventTitle: activeEvent?.title || "RIFAH Chapter Meet",
                       });
@@ -4381,976 +4220,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {currentTab === "follow-up" && (
         <div className="space-y-6">
 
-          {/* ── TOP TAB ROW ───────────────────────────────────────────────────── */}
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setFollowupMode("event")}
-              className={cn(
-                "flex-1 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer border",
-                followupMode === "event"
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "bg-card text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
-              )}
-            >
-              🏠 Event follow-up
-            </button>
-            <button
-              type="button"
-              onClick={() => setFollowupMode("membership")}
-              className={cn(
-                "flex-1 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer border",
-                followupMode === "membership"
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "bg-card text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
-              )}
-            >
-              🏷️ Membership follow-up
-            </button>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
-            {/* Mode Selector Toggle — hidden, using top tabs above */}
-            <div className="sr-only">Mode: {followupMode}</div>
-
-            {/* EVENT FOLLOW-UP SUBSECTION */}
-            {followupMode === "event" && (
-              <div className="space-y-6">
-
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-primary text-lg">🏠</span>
-                    <h3 className="text-base font-bold text-primary">Event follow-up</h3>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={fetchFollowups}
-                    className="h-8 text-xs gap-1.5 border-border text-foreground hover:bg-muted"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" /> Refresh
-                  </Button>
-                </div>
-
-                {/* Description */}
-                <p className="text-xs text-muted-foreground leading-relaxed -mt-2">
-                  Everyone who has ever walked into your meeting, kept between events. Nobody types a name in here — approving someone at the gate is what adds them, and the count goes up the next time they come.
-                </p>
-
-                {/* KPI Stats Row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">PEOPLE ON THE LIST</p>
-                    <p className="text-2xl font-black text-foreground mt-1 tabular-nums">
-                      {followupStats.event.total || followups.length}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {followupStats.event.members || 0} members · {followupStats.event.visitors || (followups.length - (followupStats.event.members || 0))} visitors
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">CAME MORE THAN ONCE</p>
-                    <p className="text-2xl font-black text-primary mt-1 tabular-nums">
-                      {followupStats.event.repeat || 0}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {(followupStats.event.total || followups.length) - (followupStats.event.repeat || 0)} came once only
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">CONTACTED</p>
-                    <p className="text-2xl font-black text-primary mt-1 tabular-nums">
-                      {followupStats.event.contacted || 0}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {Math.max(0, (followupStats.event.contacted || 0) - (followupStats.event.messaged || 0))} called · {followupStats.event.messaged || 0} messaged
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600">STILL TO CONTACT</p>
-                    <p className="text-2xl font-black text-amber-500 mt-1 tabular-nums">
-                      {followupStats.event.pending || 0}
-                    </p>
-                    <p className="text-[11px] text-amber-600/70 mt-0.5">waiting for a call</p>
-                  </div>
-                </div>
-
-                {/* Event by event table */}
-                <div className="rounded-xl border border-border overflow-hidden">
-                  <div className="px-5 py-4 border-b border-border">
-                    <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                      <span>📊</span> Event by event
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      How many came, how many were members, and how many of the visitors were new faces.
-                    </p>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/30">
-                          <th className="px-4 py-3 text-left font-semibold text-muted-foreground uppercase tracking-wider">EVENT</th>
-                          <th className="px-4 py-3 text-center font-semibold text-muted-foreground uppercase tracking-wider">CAME</th>
-                          <th className="px-4 py-3 text-center font-semibold text-muted-foreground uppercase tracking-wider">MEMBERS</th>
-                          <th className="px-4 py-3 text-center font-semibold text-muted-foreground uppercase tracking-wider">VISITORS</th>
-                          <th className="px-4 py-3 text-center font-semibold text-muted-foreground uppercase tracking-wider">NEW</th>
-                          <th className="px-4 py-3 text-center font-semibold text-muted-foreground uppercase tracking-wider">REPEAT</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {events.length > 0 ? events.slice(0, 5).map((ev) => {
-                          const totalCame = ev.registeredCount || 0;
-                          const members = ev.membersCount || Math.floor(totalCame * 0.5);
-                          const visitors = totalCame - members;
-                          const newVisitors = ev.newVisitors || Math.floor(visitors * 0.8);
-                          const repeat = visitors - newVisitors;
-                          return (
-                            <tr key={ev._id} className="border-b border-border/60 hover:bg-muted/30 transition-colors">
-                              <td className="px-4 py-3">
-                                <p className="font-semibold text-foreground">{ev.title}</p>
-                                <p className="text-[11px] text-muted-foreground">{ev.date ? ev.date.split("T")[0] : ""}</p>
-                              </td>
-                              <td className="px-4 py-3 text-center font-bold text-foreground">{totalCame}</td>
-                              <td className="px-4 py-3 text-center font-semibold text-foreground">{members}</td>
-                              <td className="px-4 py-3 text-center font-semibold text-foreground">{visitors}</td>
-                              <td className="px-4 py-3 text-center font-bold text-primary">{newVisitors}</td>
-                              <td className="px-4 py-3 text-center font-bold text-primary">{repeat}</td>
-                            </tr>
-                          );
-                        }) : (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No events found</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  <p className="px-5 py-2.5 text-[11px] text-muted-foreground bg-muted/20 border-t border-border">
-                    *"New" is someone whose very first RIFAH event this was. "Repeat" had been before.
-                  </p>
-                </div>
-
-                {/* The message you send */}
-                <div className="rounded-xl border border-border p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span>✉️</span>
-                    <h4 className="text-sm font-bold text-foreground">The message you send</h4>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Write it once. Use <span className="font-mono bg-muted px-1 rounded">{`{name}`}</span> <span className="font-mono bg-muted px-1 rounded">{`{firm}`}</span> <span className="font-mono bg-muted px-1 rounded">{`{city}`}</span> <span className="font-mono bg-muted px-1 rounded">{`{chapter}`}</span> and each person gets their own copy. Add a picture or a PDF and the phone hands both to WhatsApp together.
-                  </p>
-                  <Textarea
-                    rows={4}
-                    value={customFollowupMessage}
-                    onChange={(e) => setCustomFollowupMessage(e.target.value)}
-                    placeholder="Assalamu Alaikum {name},"
-                    className="text-sm bg-background border-border text-foreground placeholder:text-muted-foreground"
-                  />
-                  <div className="flex items-center gap-2 pt-1">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(customFollowupMessage);
-                        toast.success("Message template copied!");
-                      }}
-                      className="font-semibold h-8 text-xs gap-1.5 shadow-xs"
-                    >
-                      <Copy className="h-3.5 w-3.5" /> Copy Message
-                    </Button>
-                    <span className="text-[11px] text-muted-foreground italic">
-                      Preview: {interpolateMessage(customFollowupMessage, { contactDetails: { name: "Aamir Khan" } }).slice(0, 80)}…
-                    </span>
-                  </div>
-                </div>
-
-                {/* Filters & Search */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="relative flex-1">
-                    <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Search participant by name, phone, or company..."
-                      value={followupSearch}
-                      onChange={(e) => setFollowupSearch(e.target.value)}
-                      className="pl-8 h-9 text-xs"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Select value={followupFilter} onValueChange={setFollowupFilter}>
-                      <SelectTrigger className="h-9 text-xs w-40">
-                        <SelectValue placeholder="Status Filter" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="contacted">Contacted</SelectItem>
-                        <SelectItem value="interested">Interested / Waiting</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="not_interested">Not Interested</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        if (!selectedEventId) {
-                          toast.error("Please select an active event first.");
-                          return;
-                        }
-                        try {
-                          await followupApi.syncFromEvent(selectedEventId);
-                          toast.success("Event attendees synced into follow-up roster!");
-                          fetchFollowups();
-                        } catch (err) {
-                          toast.error("Sync failed");
-                        }
-                      }}
-                      className="h-9 text-xs gap-1.5 text-primary border-primary/30 hover:bg-primary/10 font-semibold"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" /> Sync Attendees
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Participant Roster Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {followups.map((item) => {
-                    const d = item.contactDetails || item || {};
-                    const name = item.name || d.name || "Participant";
-                    const mobile = item.mobile || d.mobile || "";
-                    const company = item.company || d.company || "Enterprise";
-                    const membershipStatus = item.category || d.membershipStatus || "Attendee";
-                    const assignedTo = item.assignedToName || item.assignedTo?.name || "Admin";
-                    const msg = interpolateMessage(customFollowupMessage, item);
-                    const whatsappUrl = `https://api.whatsapp.com/send?phone=91${mobile}&text=${encodeURIComponent(msg)}`;
-
-                    return (
-                      <div
-                        key={item._id}
-                        className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all space-y-3"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary-soft text-primary font-bold flex items-center justify-center shrink-0 text-sm">
-                              {name ? name.slice(0, 1).toUpperCase() : "P"}
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-sm text-foreground">{name}</h4>
-                              <p className="text-xs text-muted-foreground">{company}</p>
-                            </div>
-                          </div>
-
-                          <span
-                            className={cn(
-                              "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
-                              item.status === "completed"
-                                ? "bg-emerald-500/15 text-emerald-500"
-                                : item.status === "contacted"
-                                  ? "bg-primary-soft text-primary"
-                                  : item.status === "interested"
-                                    ? "bg-blue-500/15 text-blue-500"
-                                    : "bg-amber-500/15 text-amber-500"
-                            )}
-                          >
-                            {item.status}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground border-y border-border/50 py-2">
-                          <div>
-                            Mobile: <span className="font-mono text-foreground">{mobile || "N/A"}</span>
-                          </div>
-                          <div>
-                            Membership: <span className="font-semibold text-foreground">{membershipStatus}</span>
-                          </div>
-                          <div className="col-span-2">
-                            Assigned To: <span className="text-foreground">{assignedTo}</span>
-                          </div>
-                          {item.notes && (
-                            <div className="col-span-2 text-primary text-[10px] bg-primary/5 p-1.5 rounded">
-                              Note: {Array.isArray(item.notes) ? item.notes[item.notes.length - 1]?.content : item.notes}
-                            </div>
-                          )}
-                          {item.history && item.history.length > 0 && (
-                            <div className="col-span-2 text-[10px] text-primary bg-primary-soft p-1.5 rounded border border-primary/20">
-                              Latest: {item.history[item.history.length - 1].method?.toUpperCase()} on{" "}
-                              {new Date(item.history[item.history.length - 1].contactedAt).toLocaleDateString()}
-                              {item.history[item.history.length - 1].notes && ` - "${item.history[item.history.length - 1].notes}"`}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
-                          <div className="flex items-center gap-1.5">
-                            {mobile && (
-                              <>
-                                <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
-                                  <a href={`tel:${mobile}`} title="Direct Call">
-                                    <Phone className="h-3 w-3" /> Call
-                                  </a>
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  asChild
-                                  className="h-7 text-xs px-2 gap-1 text-emerald-600 border-emerald-500/30"
-                                >
-                                  <a href={whatsappUrl} target="_blank" title="Send WhatsApp">
-                                    WhatsApp
-                                  </a>
-                                </Button>
-                              </>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setHistoryTarget(item);
-                                setHistoryForm({
-                                  method: "call",
-                                  notes: "",
-                                  message: msg,
-                                  status: item.status || "contacted",
-                                  nextFollowUpAt: "",
-                                });
-                                setHistoryModalOpen(true);
-                              }}
-                              className="h-7 text-xs px-2 gap-1 text-primary border-border font-semibold"
-                            >
-                              <PhoneCall className="h-3 w-3" /> Log
-                            </Button>
-                          </div>
-
-                          <Select
-                            value={item.status}
-                            onValueChange={(val) => handleUpdateFollowupStatus(item._id, val)}
-                          >
-                            <SelectTrigger className="h-7 text-[11px] w-28">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="contacted">Contacted</SelectItem>
-                              <SelectItem value="interested">Interested</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="not_interested">Not Interested</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* MEMBERSHIP FOLLOW-UP SUBSECTION */}
-            {followupMode === "membership" && (
-              <div className="space-y-6">
-
-                {/* Header */}
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🏷️</span>
-                  <h3 className="text-base font-bold text-amber-500">Membership follow-up</h3>
-                </div>
-
-                {/* Description */}
-                <p className="text-xs text-muted-foreground leading-relaxed -mt-2">
-                  Members whose membership is running out, scored first — straight from the member list, so somebody who has never been to a meet still appears. This is a different conversation from the event call, and its own progress is kept separately.
-                </p>
-
-                {/* KPI Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">IN THIS VIEW</p>
-                    <p className="text-2xl font-black text-foreground mt-1 tabular-nums">
-                      {followupStats.membership.prospects || followups.length}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">every city</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-rose-500">ALREADY EXPIRED</p>
-                    <p className="text-2xl font-black text-rose-500 mt-1 tabular-nums">
-                      {followupStats.membership.expired || 0}
-                    </p>
-                    <p className="text-[11px] text-rose-500/70 mt-0.5">ring these first</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">DUE WITHIN 30 DAYS</p>
-                    <p className="text-2xl font-black text-amber-500 mt-1 tabular-nums">
-                      {followupStats.membership.expiringSoon || 0}
-                    </p>
-                    <p className="text-[11px] text-amber-600/70 mt-0.5">{followupStats.membership.withinSixty || 0} more within 60</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">STILL TO CONTACT</p>
-                    <p className="text-2xl font-black text-foreground mt-1 tabular-nums">
-                      {followupStats.membership.pending || followupStats.membership.prospects || 0}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{followupStats.membership.recentlyRenewed || 0} renewed so far</p>
-                  </div>
-                </div>
-
-                {/* Renewal Message Composer */}
-                <div className="rounded-xl border border-border p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span>✉️</span>
-                    <h4 className="text-sm font-bold text-foreground">The renewal message</h4>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Use <span className="font-mono bg-muted px-1 rounded">{`{name}`}</span> <span className="font-mono bg-muted px-1 rounded">{`{firm}`}</span> <span className="font-mono bg-muted px-1 rounded">{`{city}`}</span> <span className="font-mono bg-muted px-1 rounded">{`{chapter}`}</span> — and <span className="font-mono bg-muted px-1 rounded">{`{expiry}`}</span> for the date their membership runs out, <span className="font-mono bg-muted px-1 rounded">{`{memberid}`}</span> for their membership number.
-                  </p>
-                  <Textarea
-                    rows={5}
-                    value={membershipRenewalMessage}
-                    onChange={(e) => setMembershipRenewalMessage(e.target.value)}
-                    className="text-sm bg-background border-border text-foreground"
-                  />
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(membershipRenewalMessage);
-                        toast.success("Renewal message saved & copied!");
-                      }}
-                      className="font-semibold h-8 text-xs gap-1.5 shadow-xs flex-1 sm:flex-none"
-                    >
-                      <Save className="h-3.5 w-3.5" /> Save renewal message
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const ai = "Assalamu Alaikum {name},\n\nAap ki RIFAH membership {expiry} ko complete ho rahi hai.\n\n{firm} ke liye renewal ka process bahut simple hai — bas reply kijiye aur main aap ko link bhej deta hoon.";
-                        setMembershipRenewalMessage(ai);
-                        toast.success("Template applied!");
-                      }}
-                      className="h-8 text-xs gap-1 border-border"
-                    >
-                      ✨ Write it for me
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Members List with filters */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Members {followupStats.membership.prospects || followups.length} shown
-                    </h4>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            await followupApi.syncFromMembers(chapterName);
-                            toast.success("Chapter members synced!");
-                            fetchFollowups();
-                          } catch (err) {
-                            toast.error("Failed to sync members");
-                          }
-                        }}
-                        className="h-8 text-xs gap-1.5 font-semibold"
-                      >
-                        ▶ Start calling
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => toast.info("Excel export coming soon")}>
-                        📊 Excel
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => toast.info("PDF export coming soon")}>
-                        📄 PDF
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Filters row */}
-                  <div className="flex flex-wrap gap-2">
-                    <Select value={membershipFilterCity} onValueChange={setMembershipFilterCity}>
-                      <SelectTrigger className="h-9 text-xs w-44">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="every-city">Every city ({chapterMembers.length > 0 ? chapterMembers.length : 504} members)</SelectItem>
-                        <SelectItem value="my-city">My city</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={membershipFilterStatus} onValueChange={setMembershipFilterStatus}>
-                      <SelectTrigger className="h-9 text-xs w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="expiring-expired">🔴 Expiring or already expired</SelectItem>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        <SelectItem value="active">Active only</SelectItem>
-                        <SelectItem value="expired">Expired only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={membershipFilterWindow} onValueChange={setMembershipFilterWindow}>
-                      <SelectTrigger className="h-9 text-xs w-36">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="30-days">within 30 days</SelectItem>
-                        <SelectItem value="60-days">within 60 days</SelectItem>
-                        <SelectItem value="90-days">within 90 days</SelectItem>
-                        <SelectItem value="all-time">all time</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Search */}
-                  <Input
-                    placeholder="Search name, firm, mobile, city, membership id"
-                    value={followupSearch}
-                    onChange={(e) => setFollowupSearch(e.target.value)}
-                    className="h-9 text-xs"
-                  />
-
-                  {/* Member Cards */}
-                  <div className="space-y-2.5">
-                    {followups.map((item) => {
-                      const d = item.contactDetails || item || {};
-                      const name = item.name || d.name || "Member";
-                      const mobile = item.mobile || d.mobile || "";
-                      const company = item.company || d.company || "Enterprise";
-                      const membershipStatus = item.category || d.membershipStatus || "Gold Membership";
-                      const expiryDate = d.membershipExpiryDate
-                        ? new Date(d.membershipExpiryDate).toISOString().split("T")[0]
-                        : null;
-                      const daysAgo = expiryDate
-                        ? Math.floor((Date.now() - new Date(expiryDate).getTime()) / (1000 * 60 * 60 * 24))
-                        : null;
-                      const msg = interpolateMessage(membershipRenewalMessage, item);
-                      const whatsappUrl = `https://api.whatsapp.com/send?phone=91${mobile}&text=${encodeURIComponent(msg)}`;
-
-                      return (
-                        <div key={item._id} className="p-4 rounded-xl border border-border bg-card space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-bold text-sm text-foreground">{name}</h4>
-                                {item.memberId && (
-                                  <span className="text-[10px] font-mono text-primary bg-primary-soft px-1.5 py-0.5 rounded">
-                                    RCC: {item.memberId}
-                                  </span>
-                                )}
-                                <span className="text-[10px] text-muted-foreground">{membershipStatus}</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-0.5">{company}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {mobile && <span className="font-mono">{mobile}</span>}
-                                {d.email && <span> · {d.email}</span>}
-                              </p>
-                              {expiryDate && (
-                                <p className="text-[11px] text-rose-500 mt-0.5 font-medium">
-                                  expired {daysAgo !== null ? `${daysAgo} days ago` : ""} · {expiryDate}
-                                </p>
-                              )}
-                            </div>
-                            <Select
-                              value={item.status || "pending"}
-                              onValueChange={(val) => handleUpdateFollowupStatus(item._id, val)}
-                            >
-                              <SelectTrigger className="h-7 text-[11px] w-24">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pending">Due</SelectItem>
-                                <SelectItem value="contacted">Called</SelectItem>
-                                <SelectItem value="completed">Renewed</SelectItem>
-                                <SelectItem value="not_interested">Not interested</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border/50">
-                            {mobile && (
-                              <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2.5 gap-1">
-                                <a href={`tel:${mobile}`}><Phone className="h-3 w-3" /> Call</a>
-                              </Button>
-                            )}
-                            {mobile && (
-                              <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2.5 gap-1 text-emerald-600 border-emerald-500/30">
-                                <a href={whatsappUrl} target="_blank">WhatsApp</a>
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setHistoryTarget(item);
-                                setHistoryForm({ method: "call", notes: "", message: msg, status: item.status || "contacted", nextFollowUpAt: "" });
-                                setHistoryModalOpen(true);
-                              }}
-                              className="h-7 text-xs px-2 gap-1 text-primary border-border font-semibold"
-                            >
-                              📝 Note
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                const msgStr = interpolateMessage(membershipRenewalMessage, item);
-                                const waUrl = `https://api.whatsapp.com/send?phone=91${mobile}&text=${encodeURIComponent(msgStr)}`;
-                                window.open(waUrl, "_blank");
-                              }}
-                              className="h-7 text-xs px-2.5 gap-1 font-semibold"
-                            >
-                              🚀 Message for them
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {followups.length === 0 && (
-                      <div className="text-center py-10 text-muted-foreground text-sm">
-                        <p className="font-semibold">No membership follow-ups found</p>
-                        <p className="text-xs mt-1">Sync chapter members to populate this list</p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-3 text-xs"
-                          onClick={async () => {
-                            try {
-                              await followupApi.syncFromMembers(chapterName);
-                              toast.success("Chapter members synced!");
-                              fetchFollowups();
-                            } catch (err) {
-                              toast.error("Failed to sync members");
-                            }
-                          }}
-                        >
-                          <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Sync Chapter Members
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Follow-up Message Composer */}
-                <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-primary" /> Follow-up Message Composer
-                    </h4>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      Placeholders: {"{name}"}, {"{company}"}, {"{event}"}, {"{chapter}"}
-                    </span>
-                  </div>
-
-                  <Textarea
-                    rows={2}
-                    value={customFollowupMessage}
-                    onChange={(e) => setCustomFollowupMessage(e.target.value)}
-                    className="text-xs bg-background"
-                  />
-
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <p className="text-[11px] text-muted-foreground italic truncate max-w-md">
-                      Preview: {interpolateMessage(customFollowupMessage, { contactDetails: { name: "Aamir Khan" } })}
-                    </p>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(customFollowupMessage);
-                        toast.success("Message template copied!");
-                      }}
-                      className="font-semibold h-7 text-xs gap-1 shadow-xs"
-                    >
-                      <Copy className="h-3 w-3" /> Copy Template
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Filters & Search */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="relative flex-1">
-                    <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Search participant by name, phone, or company..."
-                      value={followupSearch}
-                      onChange={(e) => setFollowupSearch(e.target.value)}
-                      className="pl-8 h-9 text-xs"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Select value={followupFilter} onValueChange={setFollowupFilter}>
-                      <SelectTrigger className="h-9 text-xs w-40">
-                        <SelectValue placeholder="Status Filter" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="contacted">Contacted</SelectItem>
-                        <SelectItem value="interested">Interested / Waiting</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="not_interested">Not Interested</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        if (!selectedEventId) {
-                          toast.error("Please select an active event first.");
-                          return;
-                        }
-                        try {
-                          await followupApi.syncFromEvent(selectedEventId);
-                          toast.success("Event attendees synced into follow-up roster!");
-                          fetchFollowups();
-                        } catch (err) {
-                          toast.error("Sync failed");
-                        }
-                      }}
-                      className="h-9 text-xs gap-1.5 text-primary border-primary/30 hover:bg-primary/10 font-semibold"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" /> Sync Attendees
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Participant Roster Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {followups.map((item) => {
-                    const d = item.contactDetails || item || {};
-                    const name = item.name || d.name || "Participant";
-                    const mobile = item.mobile || d.mobile || "";
-                    const company = item.company || d.company || "Enterprise";
-                    const membershipStatus = item.category || d.membershipStatus || "Attendee";
-                    const assignedTo = item.assignedToName || item.assignedTo?.name || "Admin";
-                    const msg = interpolateMessage(customFollowupMessage, item);
-                    const whatsappUrl = `https://api.whatsapp.com/send?phone=91${mobile}&text=${encodeURIComponent(msg)}`;
-
-                    return (
-                      <div
-                        key={item._id}
-                        className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all space-y-3"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary-soft text-primary font-bold flex items-center justify-center shrink-0 text-sm">
-                              {name ? name.slice(0, 1).toUpperCase() : "P"}
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-sm text-foreground">{name}</h4>
-                              <p className="text-xs text-muted-foreground">{company}</p>
-                            </div>
-                          </div>
-
-                          <span
-                            className={cn(
-                              "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
-                              item.status === "completed"
-                                ? "bg-emerald-500/15 text-emerald-500"
-                                : item.status === "contacted"
-                                  ? "bg-primary-soft text-primary"
-                                  : item.status === "interested"
-                                    ? "bg-blue-500/15 text-blue-500"
-                                    : "bg-amber-500/15 text-amber-500"
-                            )}
-                          >
-                            {item.status}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground border-y border-border/50 py-2">
-                          <div>
-                            Mobile: <span className="font-mono text-foreground">{mobile || "N/A"}</span>
-                          </div>
-                          <div>
-                            Membership: <span className="font-semibold text-foreground">{membershipStatus}</span>
-                          </div>
-                          <div className="col-span-2">
-                            Assigned To: <span className="text-foreground">{assignedTo}</span>
-                          </div>
-                          {item.notes && (
-                            <div className="col-span-2 text-primary text-[10px] bg-primary/5 p-1.5 rounded">
-                              Note: {Array.isArray(item.notes) ? item.notes[item.notes.length - 1]?.content : item.notes}
-                            </div>
-                          )}
-                          {item.history && item.history.length > 0 && (
-                            <div className="col-span-2 text-[10px] text-primary bg-primary-soft p-1.5 rounded border border-primary/20">
-                              Latest: {item.history[item.history.length - 1].method?.toUpperCase()} on{" "}
-                              {new Date(item.history[item.history.length - 1].contactedAt).toLocaleDateString()}
-                              {item.history[item.history.length - 1].notes && ` - "${item.history[item.history.length - 1].notes}"`}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
-                          <div className="flex items-center gap-1.5">
-                            {mobile && (
-                              <>
-                                <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
-                                  <a href={`tel:${mobile}`} title="Direct Call">
-                                    <Phone className="h-3 w-3" /> Call
-                                  </a>
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  asChild
-                                  className="h-7 text-xs px-2 gap-1 text-emerald-600 border-emerald-500/30"
-                                >
-                                  <a href={whatsappUrl} target="_blank" title="Send WhatsApp">
-                                    WhatsApp
-                                  </a>
-                                </Button>
-                              </>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setHistoryTarget(item);
-                                setHistoryForm({
-                                  method: "call",
-                                  notes: "",
-                                  message: msg,
-                                  status: item.status || "contacted",
-                                  nextFollowUpAt: "",
-                                });
-                                setHistoryModalOpen(true);
-                              }}
-                              className="h-7 text-xs px-2 gap-1 text-primary border-border font-semibold"
-                            >
-                              <PhoneCall className="h-3 w-3" /> Log
-                            </Button>
-                          </div>
-
-                          <Select
-                            value={item.status}
-                            onValueChange={(val) => handleUpdateFollowupStatus(item._id, val)}
-                          >
-                            <SelectTrigger className="h-7 text-[11px] w-28">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="contacted">Contacted</SelectItem>
-                              <SelectItem value="interested">Interested</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="not_interested">Not Interested</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-
-          {/* Log Follow-up Contact History Dialog */}
-          <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Log Contact Interaction</DialogTitle>
-                <DialogDescription>
-                  Record contact details, discussion notes, and next scheduled follow-up date in MongoDB.
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleSaveFollowupHistory} className="space-y-4 py-2">
-                <div className="p-3 rounded-lg bg-muted/40 text-xs flex items-center justify-between border border-border">
-                  <div>
-                    <span className="font-bold text-foreground block">{historyTarget?.name}</span>
-                    <span className="text-muted-foreground">{historyTarget?.mobile} · {historyTarget?.company}</span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px] uppercase">
-                    {historyTarget?.status}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs font-semibold">Contact Method</Label>
-                    <Select
-                      value={historyForm.method}
-                      onValueChange={(val) => setHistoryForm((prev) => ({ ...prev, method: val }))}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="call">Phone Call</SelectItem>
-                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="in_person">In Person / Meeting</SelectItem>
-                        <SelectItem value="sms">SMS</SelectItem>
-                        <SelectItem value="note">Internal Log</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs font-semibold">Updated Status</Label>
-                    <Select
-                      value={historyForm.status}
-                      onValueChange={(val) => setHistoryForm((prev) => ({ ...prev, status: val }))}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="contacted">Contacted</SelectItem>
-                        <SelectItem value="interested">Interested</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="not_interested">Not Interested</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">Discussion Notes / Remarks</Label>
-                  <Textarea
-                    rows={3}
-                    placeholder="Discussed chapter membership induction, ethical networking benefits..."
-                    value={historyForm.notes}
-                    onChange={(e) => setHistoryForm((prev) => ({ ...prev, notes: e.target.value }))}
-                    className="mt-1 text-xs"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">Next Follow-up Date</Label>
-                  <Input
-                    type="date"
-                    value={historyForm.nextFollowUpAt}
-                    onChange={(e) => setHistoryForm((prev) => ({ ...prev, nextFollowUpAt: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-
-                <DialogFooter className="pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setHistoryModalOpen(false)}
-                    className="text-xs"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={submittingHistory}
-                    className="font-semibold text-xs shadow-xs"
-                  >
-                    {submittingHistory ? "Saving..." : "Save to History"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+        <FollowupTab eventId={selectedEventId} />
         </div>
       )}
 
@@ -5381,7 +4251,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {/* MODULE 13: CERTIFICATES                                                   */}
       {/* ========================================================================= */}
       {/* MODULE: GALLERY */}
-      {currentTab === "gallery" && <EventGallery />}
+      {currentTab === "gallery" && <EventGallery eventId={selectedEventId} />}
 
       {currentTab === "certificates" && (
         <div className="space-y-6">
