@@ -64,7 +64,8 @@ import { Button } from "@shared/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@shared/components/ui/sheet";
 import { cn } from "@shared/lib/utils";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useNotifications, useConversations, useMyBusiness } from "@shared/hooks/use-rifah-api";
+import { useNotifications, useConversations, useMyBusiness, useMyMembership } from "@shared/hooks/use-rifah-api";
+import { useFeatureAccess } from "@shared/hooks/use-feature-access";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSocket } from "@shared/lib/socket";
 import { VerificationBadge } from "@shared/components/rifah/badges";
@@ -286,7 +287,7 @@ function toRoleAwarePath(path, role, user) {
 
 function isAccessibleUnverifiedPath(pathname) {
   if (!pathname) return true;
-  const clean = pathname.split("?")[0];
+  const clean = pathname.split("?")[0].replace(/\/$/, "");
   return (
     clean === "/biz/feeds" ||
     clean.startsWith("/biz/feeds/") ||
@@ -312,8 +313,6 @@ function isAccessibleUnverifiedPath(pathname) {
     clean.startsWith("/biz/operations/") ||
     clean === "/biz/messages" ||
     clean.startsWith("/biz/messages/") ||
-    clean === "/biz/advertisements" ||
-    clean.startsWith("/biz/advertisements/") ||
     clean === "/biz/my-duty" ||
     clean.startsWith("/biz/my-duty/")
   );
@@ -577,6 +576,7 @@ export function AppShell({
     user?.role === "business";
 
   const { data: rawBusinessData, isLoading: isBizLoading } = useMyBusiness();
+  const { isRouteLocked, isExpired: isSubscriptionExpired, planName: currentPlanName } = useFeatureAccess();
 
   // Only treat the data as valid when the user is actually in a business role
   const businessData = isBusinessRole ? rawBusinessData : null;
@@ -598,13 +598,16 @@ export function AppShell({
     user?.previousRole === "state_admin" ||
     user?.previousRole === "chapter_admin";
 
-  const isGatedPage =
+  const isRoutePlanLocked = isBusinessRole && !isBizLoading && !isAdminSwitchedToBusiness && isRouteLocked(path);
+  const isVerificationLocked =
     isBusinessRole &&
     !isBizLoading &&
     Boolean(businessData) &&
     !hasEverBeenVerified &&
     !isAccessibleUnverifiedPath(path) &&
     !isAdminSwitchedToBusiness;
+
+  const isGatedPage = isRoutePlanLocked || isVerificationLocked;
 
   let finalTitle = title;
   let finalSubtitle = subtitle;
@@ -720,7 +723,9 @@ export function AppShell({
             let badge = null;
             if (item.label === "Messages") badge = unreadMsgs;
             if (item.label === "Notifications") badge = unreadNotifs;
-            const isItemLocked = isBusinessRole && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to) && !isAdminSwitchedToBusiness;
+            const isItemPlanLocked = isBusinessRole && !isBizLoading && !isAdminSwitchedToBusiness && isRouteLocked(item.to);
+            const isItemUnverifiedLocked = isBusinessRole && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to) && !isAdminSwitchedToBusiness;
+            const isItemLocked = isItemPlanLocked || isItemUnverifiedLocked;
             return (
               <SidebarLink
                 key={`sidebar-${item.to}-${item.label}-${index}`}
@@ -938,7 +943,13 @@ export function AppShell({
           <div className="mx-auto w-full min-w-0 max-w-[1440px]">
             <BirthdayBanner />
             {isGatedPage ? (
-              <UnderApprovalAccessGate business={businessData} path={path} />
+              <UnderApprovalAccessGate
+                business={businessData}
+                path={path}
+                isSubscriptionExpired={isSubscriptionExpired}
+                planName={currentPlanName}
+                isRoutePlanLocked={isRoutePlanLocked}
+              />
             ) : (
               children
             )}
@@ -955,7 +966,7 @@ export function AppShell({
   );
 }
 
-function UnderApprovalAccessGate({ business, path }) {
+function UnderApprovalAccessGate({ business, path, isSubscriptionExpired, planName, isRoutePlanLocked }) {
   const vStatus = (business?.verification || business?.verificationStatus || "").toLowerCase();
   const isChangesReq = vStatus === "changes_required" || vStatus === "correction" || vStatus === "correction_requested";
   const isRejected = vStatus === "rejected";
@@ -975,6 +986,14 @@ function UnderApprovalAccessGate({ business, path }) {
 
   const accessibleModules = [
     {
+      title: "Membership & Subscription Plans",
+      description: "Upgrade or renew your membership plan, review billing tier privileges and download invoices.",
+      to: "/biz/membership",
+      icon: Star,
+      badge: planName || "Plans",
+      actionText: "Manage / Upgrade Plan →",
+    },
+    {
       title: "Business Profile & Details",
       description: "Review and update your enterprise profile, address, business type, founded year, and contact details.",
       to: "/biz/profile",
@@ -991,14 +1010,6 @@ function UnderApprovalAccessGate({ business, path }) {
       actionText: "Open Verification Desk →",
     },
     {
-      title: "Membership & Payments",
-      description: "Check your subscription plan tier, payment invoice receipt, and tier privileges.",
-      to: "/biz/membership",
-      icon: Star,
-      badge: business?.membership ? `${business.membership} Tier` : "Accessible",
-      actionText: "Manage Membership →",
-    },
-    {
       title: "Central Admin Notifications",
       description: "Receive real-time notifications, status updates, and Central Admin review announcements.",
       to: "/biz/notifications",
@@ -1010,163 +1021,241 @@ function UnderApprovalAccessGate({ business, path }) {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto py-4 animate-in fade-in duration-300">
-      {/* Primary Alert Banner */}
-      <div
-        className={cn(
-          "rounded-3xl border p-6 sm:p-8 shadow-xs relative overflow-hidden",
-          isNotSubmitted && "border-red-400 bg-red-50/95 dark:border-red-800 dark:bg-red-950/40 text-red-950 dark:text-red-100",
-          isChangesReq && "border-blue-300 bg-blue-50/90 dark:border-blue-800 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100",
-          isRejected && "border-rose-300 bg-rose-50/90 dark:border-rose-800 dark:bg-rose-950/40 text-rose-950 dark:text-rose-100",
-          isUnderReview && "border-amber-300 bg-amber-50/90 dark:border-amber-800 dark:bg-amber-950/40 text-amber-950 dark:text-amber-100"
-        )}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
-          <div
-            className={cn(
-              "grid h-14 w-14 shrink-0 place-items-center rounded-2xl shadow-xs",
-              isNotSubmitted && "bg-red-600 text-white shadow-red-500/20",
-              isChangesReq && "bg-blue-600 text-white",
-              isRejected && "bg-rose-600 text-white",
-              isUnderReview && "bg-amber-500 text-white"
-            )}
-          >
-            {isNotSubmitted ? (
-              <AlertTriangle className="h-7 w-7 text-white" />
-            ) : isChangesReq ? (
-              <RotateCcw className="h-7 w-7" />
-            ) : isRejected ? (
-              <XCircle className="h-7 w-7" />
-            ) : (
-              <Clock className="h-7 w-7" />
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                  isNotSubmitted && "bg-red-600 text-white dark:bg-red-600 dark:text-white",
-                  isChangesReq && "bg-blue-200 text-blue-900 dark:bg-blue-900 dark:text-blue-200",
-                  isRejected && "bg-rose-600 text-white dark:bg-rose-600 dark:text-white",
-                  isUnderReview && "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200"
-                )}
-              >
-                {isNotSubmitted
-                  ? "PROFILE INCOMPLETE — NOT SUBMITTED"
-                  : isChangesReq
-                    ? "CHANGES REQUESTED"
-                    : isRejected
-                      ? "VERIFICATION REJECTED"
-                      : "UNDER CENTRAL ADMIN APPROVAL"}
-              </span>
-              <span className="text-xs text-muted-foreground">•</span>
-              <span className="text-xs font-semibold text-foreground/80">{business?.name || "Business Enterprise"}</span>
+      {/* 1. Subscription Expired State */}
+      {isSubscriptionExpired ? (
+        <div className="rounded-3xl border border-red-500/30 bg-red-50/95 dark:border-red-800 dark:bg-red-950/40 p-6 sm:p-8 shadow-sm relative overflow-hidden text-red-950 dark:text-red-100">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-red-600 text-white shadow-md shadow-red-500/20">
+              <Lock className="h-7 w-7 text-white" />
             </div>
-
-            <h2
-              className={cn(
-                "text-lg sm:text-xl font-bold tracking-tight",
-                isNotSubmitted ? "text-red-950 dark:text-red-100" : "text-foreground"
-              )}
-            >
-              {isNotSubmitted
-                ? "Workspace Access Restricted — Profile Incomplete & Not Submitted"
-                : isChangesReq
-                  ? "Action Required: Central Admin Requested Changes"
-                  : isRejected
-                    ? "Verification Application Rejected"
-                    : "Workspace Access Restricted — Under Central Admin Approval"}
-            </h2>
-
-            <p
-              className={cn(
-                "mt-2 text-xs sm:text-sm leading-relaxed",
-                isNotSubmitted
-                  ? "text-red-900/90 dark:text-red-200 font-medium"
-                  : "text-muted-foreground"
-              )}
-            >
-              {isNotSubmitted
-                ? "Your business profile is incomplete and has not been submitted for Central Admin verification. Workspace features like Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will remain restricted until your profile details are completed and submitted for review."
-                : isChangesReq
-                  ? "The RIFAH Chamber Central Admin has reviewed your business application and requested specific changes or additional paperwork before granting verification approval."
-                  : isRejected
-                    ? "Your verification application has been rejected by the Central Admin. Please review the feedback reason below and update your documents to re-submit."
-                    : "Your business profile is currently in the RIFAH Central Admin Verification queue. Workspace features like Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
-            </p>
-
-            {isNotSubmitted && missingFields.length > 0 && (
-              <div className="mt-3.5 rounded-2xl bg-white/95 dark:bg-slate-900/90 p-3.5 border border-red-200 dark:border-red-900/60 text-xs shadow-2xs">
-                <span className="block font-bold text-red-700 dark:text-red-400 text-[11px] uppercase tracking-wider mb-1.5">
-                  Missing required profile information:
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="rounded-full bg-red-600 text-white px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                  SUBSCRIPTION EXPIRED (1 MONTH COMPLETED)
                 </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {missingFields.map((field) => (
-                    <span
-                      key={field}
-                      className="rounded-md bg-red-100 dark:bg-red-950/80 px-2.5 py-0.5 text-[11px] font-semibold text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900"
-                    >
-                      • {field}
-                    </span>
-                  ))}
-                </div>
+                <span className="text-xs text-muted-foreground">•</span>
+                <span className="text-xs font-semibold text-foreground/80">{business?.name || "Business Enterprise"}</span>
               </div>
-            )}
-
-            {business?.verificationReviewReason && (
-              <div className="mt-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 p-4 border border-border/80 text-xs">
-                <span className="block font-bold text-foreground text-[11px] uppercase tracking-wider mb-1 text-primary">
-                  Central Admin Review Notes:
-                </span>
-                <p className="text-foreground/90 font-medium leading-relaxed">
-                  {business.verificationReviewReason}
-                </p>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-red-950 dark:text-red-100">
+                1-Month Subscription Validity Expired — Features Locked
+              </h2>
+              <p className="mt-2 text-xs sm:text-sm leading-relaxed text-red-900/90 dark:text-red-200">
+                Your monthly membership period has concluded. All workspace modules, lead unlocks, buyer enquiries, direct messaging, and analytics are currently locked. Please renew or upgrade your plan to immediately restore full privileges.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                <Button asChild size="sm" className="font-semibold shadow-xs gap-2 bg-red-600 hover:bg-red-700 text-white">
+                  <Link href="/biz/membership">
+                    <Star className="h-4 w-4" />
+                    <span>Renew / Upgrade Membership Plan</span>
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline" className="font-semibold gap-2 border-red-300 text-red-900 hover:bg-red-100 dark:border-red-800 dark:text-red-200">
+                  <Link href="/biz/profile">
+                    <Building2 className="h-4 w-4" />
+                    <span>View Profile</span>
+                  </Link>
+                </Button>
               </div>
-            )}
-
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <Button
-                asChild
-                size="sm"
-                className={cn(
-                  "font-semibold shadow-xs gap-2",
-                  isNotSubmitted
-                    ? "bg-red-600 hover:bg-red-700 text-white"
-                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                )}
-              >
-                <Link href="/biz/profile">
-                  <Building2 className="h-4 w-4" />
-                  <span>{isNotSubmitted ? "Complete Business Profile" : "Edit Business Profile"}</span>
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className={cn(
-                  "font-semibold gap-2",
-                  isNotSubmitted && "border-red-300 text-red-900 hover:bg-red-100 dark:border-red-800 dark:text-red-200 dark:hover:bg-red-900/40"
-                )}
-              >
-                <Link href="/biz/verification">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span>Go to Verification & Documents</span>
-                </Link>
-              </Button>
             </div>
           </div>
         </div>
-      </div>
+      ) : isRoutePlanLocked ? (
+        /* 2. Route Plan Restricted State */
+        <div className="rounded-3xl border border-indigo-500/30 bg-indigo-50/90 dark:border-indigo-800 dark:bg-indigo-950/40 p-6 sm:p-8 shadow-sm relative overflow-hidden text-indigo-950 dark:text-indigo-100">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-500/20">
+              <Lock className="h-7 w-7 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="rounded-full bg-indigo-600 text-white px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                  PLAN TIER UPGRADE REQUIRED
+                </span>
+                <span className="text-xs text-muted-foreground">•</span>
+                <span className="text-xs font-semibold text-foreground/80">{planName || "Tier I (Free)"}</span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-indigo-950 dark:text-indigo-100">
+                Feature Restricted on {planName || "Tier I (Free)"}
+              </h2>
+              <p className="mt-2 text-xs sm:text-sm leading-relaxed text-indigo-900/90 dark:text-indigo-200">
+                This workspace module is not available on your current <strong>{planName || "Tier I (Free)"}</strong> plan. Upgrade your subscription to unlock this feature along with higher enquiry limits, lead unlocking, direct chat, and premium visibility.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                <Button asChild size="sm" className="font-semibold shadow-xs gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+                  <Link href="/biz/membership">
+                    <Star className="h-4 w-4" />
+                    <span>Upgrade Membership Plan</span>
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline" className="font-semibold gap-2 border-indigo-300 text-indigo-900 hover:bg-indigo-100 dark:border-indigo-800 dark:text-indigo-200">
+                  <Link href="/biz/profile">
+                    <Building2 className="h-4 w-4" />
+                    <span>View Profile</span>
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* 3. Verification Approval State */
+        <div
+          className={cn(
+            "rounded-3xl border p-6 sm:p-8 shadow-xs relative overflow-hidden",
+            isNotSubmitted && "border-red-400 bg-red-50/95 dark:border-red-800 dark:bg-red-950/40 text-red-950 dark:text-red-100",
+            isChangesReq && "border-blue-300 bg-blue-50/90 dark:border-blue-800 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100",
+            isRejected && "border-rose-300 bg-rose-50/90 dark:border-rose-800 dark:bg-rose-950/40 text-rose-950 dark:text-rose-100",
+            isUnderReview && "border-amber-300 bg-amber-50/90 dark:border-amber-800 dark:bg-amber-950/40 text-amber-950 dark:text-amber-100"
+          )}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
+            <div
+              className={cn(
+                "grid h-14 w-14 shrink-0 place-items-center rounded-2xl shadow-xs",
+                isNotSubmitted && "bg-red-600 text-white shadow-red-500/20",
+                isChangesReq && "bg-blue-600 text-white",
+                isRejected && "bg-rose-600 text-white",
+                isUnderReview && "bg-amber-500 text-white"
+              )}
+            >
+              {isNotSubmitted ? (
+                <AlertTriangle className="h-7 w-7 text-white" />
+              ) : isChangesReq ? (
+                <RotateCcw className="h-7 w-7" />
+              ) : isRejected ? (
+                <XCircle className="h-7 w-7" />
+              ) : (
+                <Clock className="h-7 w-7" />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                    isNotSubmitted && "bg-red-600 text-white dark:bg-red-600 dark:text-white",
+                    isChangesReq && "bg-blue-200 text-blue-900 dark:bg-blue-900 dark:text-blue-200",
+                    isRejected && "bg-rose-600 text-white dark:bg-rose-600 dark:text-white",
+                    isUnderReview && "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200"
+                  )}
+                >
+                  {isNotSubmitted
+                    ? "PROFILE INCOMPLETE — NOT SUBMITTED"
+                    : isChangesReq
+                      ? "CHANGES REQUESTED"
+                      : isRejected
+                        ? "VERIFICATION REJECTED"
+                        : "UNDER CENTRAL ADMIN APPROVAL"}
+                </span>
+                <span className="text-xs text-muted-foreground">•</span>
+                <span className="text-xs font-semibold text-foreground/80">{business?.name || "Business Enterprise"}</span>
+              </div>
+
+              <h2
+                className={cn(
+                  "text-lg sm:text-xl font-bold tracking-tight",
+                  isNotSubmitted ? "text-red-950 dark:text-red-100" : "text-foreground"
+                )}
+              >
+                {isNotSubmitted
+                  ? "Workspace Access Restricted — Profile Incomplete & Not Submitted"
+                  : isChangesReq
+                    ? "Action Required: Central Admin Requested Changes"
+                    : isRejected
+                      ? "Verification Application Rejected"
+                      : "Workspace Access Restricted — Under Central Admin Approval"}
+              </h2>
+
+              <p
+                className={cn(
+                  "mt-2 text-xs sm:text-sm leading-relaxed",
+                  isNotSubmitted
+                    ? "text-red-900/90 dark:text-red-200 font-medium"
+                    : "text-muted-foreground"
+                )}
+              >
+                {isNotSubmitted
+                  ? "Your business profile is incomplete and has not been submitted for Central Admin verification. Workspace features like Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will remain restricted until your profile details are completed and submitted for review."
+                  : isChangesReq
+                    ? "The RIFAH Chamber Central Admin has reviewed your business application and requested specific changes or additional paperwork before granting verification approval."
+                    : isRejected
+                      ? "Your verification application has been rejected by the Central Admin. Please review the feedback reason below and update your documents to re-submit."
+                      : "Your business profile is currently in the RIFAH Central Admin Verification queue. Workspace features like Direct Enquiries, Catalogue Publishing, Analytics, and Messaging will be activated as soon as your business documents are verified."}
+              </p>
+
+              {isNotSubmitted && missingFields.length > 0 && (
+                <div className="mt-3.5 rounded-2xl bg-white/95 dark:bg-slate-900/90 p-3.5 border border-red-200 dark:border-red-900/60 text-xs shadow-2xs">
+                  <span className="block font-bold text-red-700 dark:text-red-400 text-[11px] uppercase tracking-wider mb-1.5">
+                    Missing required profile information:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {missingFields.map((field) => (
+                      <span
+                        key={field}
+                        className="rounded-md bg-red-100 dark:bg-red-950/80 px-2.5 py-0.5 text-[11px] font-semibold text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900"
+                      >
+                        • {field}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {business?.verificationReviewReason && (
+                <div className="mt-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 p-4 border border-border/80 text-xs">
+                  <span className="block font-bold text-foreground text-[11px] uppercase tracking-wider mb-1 text-primary">
+                    Central Admin Review Notes:
+                  </span>
+                  <p className="text-foreground/90 font-medium leading-relaxed">
+                    {business.verificationReviewReason}
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                <Button
+                  asChild
+                  size="sm"
+                  className={cn(
+                    "font-semibold shadow-xs gap-2",
+                    isNotSubmitted
+                      ? "bg-red-600 hover:bg-red-700 text-white"
+                      : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                  )}
+                >
+                  <Link href="/biz/profile">
+                    <Building2 className="h-4 w-4" />
+                    <span>{isNotSubmitted ? "Complete Business Profile" : "Edit Business Profile"}</span>
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className={cn(
+                    "font-semibold gap-2",
+                    isNotSubmitted && "border-red-300 text-red-900 hover:bg-red-100 dark:border-red-800 dark:text-red-200 dark:hover:bg-red-900/40"
+                  )}
+                >
+                  <Link href="/biz/verification">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>Go to Verification & Documents</span>
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Accessible Pages Grid */}
       <div>
         <div className="flex items-center justify-between mb-3 px-1">
           <h3 className="text-sm font-bold text-foreground">
-            Accessible Pages During Approval Stage
+            Accessible Pages & Services
           </h3>
-          <span className="text-xs text-muted-foreground font-medium">4 Pages Accessible</span>
+          <span className="text-xs text-muted-foreground font-medium">4 Modules Accessible</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -1203,7 +1292,7 @@ function UnderApprovalAccessGate({ business, path }) {
       <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-4 text-xs text-muted-foreground flex items-center gap-3">
         <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
         <p className="leading-relaxed">
-          <strong>Locked Modules:</strong> Direct Enquiries, Catalogue Items, Analytics Reports, and Direct Messaging are locked while under review to maintain Chamber buyer safety standards. They will unlock automatically upon Central Admin verification.
+          <strong>Restricted Features:</strong> Lead unlocks, direct messaging, enquiry posting limits, and advanced networking groups depend on your active plan tier. Upgrades apply immediately.
         </p>
       </div>
     </div>
@@ -1213,6 +1302,7 @@ function UnderApprovalAccessGate({ business, path }) {
 function MobileCategoryGroup({ group, isActive, role, isBizVerified, onSelect }) {
   const items = group.items || [];
   const hasActiveChild = items.some((item) => isActive(item.to));
+  const { isRouteLocked } = useFeatureAccess();
   // Keep closed by default unless the active route belongs to this category
   const [isOpen, setIsOpen] = useState(hasActiveChild);
 
@@ -1241,7 +1331,7 @@ function MobileCategoryGroup({ group, isActive, role, isBizVerified, onSelect })
       {isOpen && (
         <div className="mt-1 space-y-0.5 pl-1.5">
           {items.map((i, idx) => {
-            const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
+            const isLocked = role === "business" && (isRouteLocked(i.to) || (!isBizVerified && !isAccessibleUnverifiedPath(i.to)));
             return (
               <Link
                 key={`ms-${group.category}-${i.to}-${i.label}-${idx}`}
@@ -1249,7 +1339,7 @@ function MobileCategoryGroup({ group, isActive, role, isBizVerified, onSelect })
                 onClick={(e) => {
                   if (isLocked) {
                     e.preventDefault();
-                    toast.error(`${i.label} is locked. Upgrade your plan to unlock this module.`);
+                    toast.error(`${i.label} is locked on your current plan. Upgrade your plan to unlock.`);
                     return;
                   }
                   onSelect?.(e);
@@ -1283,6 +1373,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
   const path = useCurrentPath();
   const router = useRouter();
   const { user, switchRole } = useAuth();
+  const { isRouteLocked } = useFeatureAccess();
   const effectiveUser = mounted ? user : null;
   const nav = useResolvedNav(role);
   const items = role === "chapter_admin" ? [...(nav?.primary || []), ...(nav?.more || [])] : (nav?.more || []);
@@ -1344,7 +1435,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
             {nav.title}
           </p>
           {items.map((i, idx) => {
-            const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(i.to);
+            const isLocked = role === "business" && (isRouteLocked(i.to) || (!isBizVerified && !isAccessibleUnverifiedPath(i.to)));
             return (
               <div key={`ms-item-${i.to}-${i.label}-${idx}`} className="py-1">
                 <Link
@@ -1352,7 +1443,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
                   onClick={(e) => {
                     if (isLocked) {
                       e.preventDefault();
-                      toast.error(`${i.label} is locked. Upgrade your plan to unlock this module.`);
+                      toast.error(`${i.label} is locked on your current plan. Upgrade your plan to unlock.`);
                       return;
                     }
                     setOpen(false);
@@ -1413,6 +1504,7 @@ export function BottomNav({ role, isBizVerified = true }) {
   const path = useCurrentPath();
   const nav = useResolvedNav(role);
   const primary = nav.primary;
+  const { isRouteLocked } = useFeatureAccess();
 
   return (
     <nav
@@ -1422,7 +1514,7 @@ export function BottomNav({ role, isBizVerified = true }) {
       <ul className={cn("grid w-full", primary.length === 6 ? "grid-cols-6" : "grid-cols-5")}>
         {primary.map((item) => {
           const active = path === item.to;
-          const isLocked = role === "business" && !isBizVerified && !isAccessibleUnverifiedPath(item.to);
+          const isLocked = role === "business" && (isRouteLocked(item.to) || (!isBizVerified && !isAccessibleUnverifiedPath(item.to)));
           return (
             <li key={item.label} className="min-w-0">
               <Link
@@ -1430,7 +1522,7 @@ export function BottomNav({ role, isBizVerified = true }) {
                 onClick={(e) => {
                   if (isLocked) {
                     e.preventDefault();
-                    toast.error(`${item.label} is locked. Upgrade your plan to unlock this module.`);
+                    toast.error(`${item.label} is locked on your current plan. Upgrade your plan to unlock.`);
                   }
                 }}
                 className={cn(

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useMyBusiness } from "@shared/hooks/use-rifah-api";
+import { useMyBusiness, useMyMembership } from "@shared/hooks/use-rifah-api";
 import { checkFeatureAccess, normalizeUserTier, SUBSCRIBER_TIERS } from "@shared/lib/subscription-models";
 
 // Map navigation routes to 32-feature matrix keys
@@ -22,14 +22,29 @@ const ROUTE_FEATURE_MAP = {
 export function useFeatureAccess() {
   const { user } = useAuth();
   const { data: business } = useMyBusiness();
+  const { data: membershipData } = useMyMembership();
 
-  // Determine current tier from business or user subscription
-  const planName = business?.membership || user?.membershipPlan || user?.membership || "Tier I (Free)";
+  // Determine current tier from membership data, business or user subscription
+  const planName =
+    membershipData?.planName ||
+    membershipData?.planId ||
+    business?.membership ||
+    user?.membershipPlan ||
+    user?.membership ||
+    "Tier I (Free)";
   const tierId = normalizeUserTier(planName);
   const currentTier = SUBSCRIBER_TIERS.find((t) => t.id === tierId) || SUBSCRIBER_TIERS[0];
 
-  // Check if subscription has expired
+  // Check if subscription has expired (e.g. 1 month passed for monthly subscriber or plan period passed)
   const isExpired = useMemo(() => {
+    if (membershipData) {
+      if (membershipData.isExpired === true || (membershipData.status || "").toLowerCase() === "expired") {
+        return true;
+      }
+      if (membershipData.endDate && new Date(membershipData.endDate) < new Date()) {
+        return true;
+      }
+    }
     if (business?.membershipExpiryDate) {
       return new Date(business.membershipExpiryDate) < new Date();
     }
@@ -37,7 +52,7 @@ export function useFeatureAccess() {
       return new Date(user.membershipExpiresAt) < new Date();
     }
     return false;
-  }, [business?.membershipExpiryDate, user?.membershipExpiresAt]);
+  }, [membershipData, business?.membershipExpiryDate, user?.membershipExpiresAt]);
 
   /**
    * Check if a specific feature key is accessible
@@ -55,22 +70,62 @@ export function useFeatureAccess() {
    * Check if a sidebar navigation path is locked
    */
   const isRouteLocked = (pathname) => {
-    // Admin roles bypass
-    if (user?.role === "central_admin" || user?.role === "super_admin" || user?.role === "admin" || user?.role === "chapter_admin") {
+    if (!pathname) return false;
+    const clean = pathname.split("?")[0].replace(/\/$/, "");
+
+    // Central & Chapter Admins have route bypass
+    if (
+      user?.role === "central_admin" ||
+      user?.role === "super_admin" ||
+      user?.role === "admin" ||
+      user?.role === "chapter_admin" ||
+      user?.role === "state_admin"
+    ) {
       return false;
     }
 
-    const featureKey = ROUTE_FEATURE_MAP[pathname];
-    if (!featureKey) return false; // Basic routes like Dashboard or Profile are always unlocked
+    // Universal account management paths are never locked
+    if (
+      clean === "/biz/membership" ||
+      clean.startsWith("/biz/membership/") ||
+      clean === "/biz/payments" ||
+      clean.startsWith("/biz/payments/") ||
+      clean === "/biz/profile" ||
+      clean.startsWith("/biz/profile/") ||
+      clean === "/biz/verification" ||
+      clean.startsWith("/biz/verification/") ||
+      clean === "/biz/notifications" ||
+      clean.startsWith("/biz/notifications/") ||
+      clean === "/biz/business" ||
+      clean.startsWith("/biz/business/")
+    ) {
+      return false;
+    }
 
-    const access = canAccess(featureKey);
-    return !access.isAllowed;
+    // If subscription is expired (1 month finished), lock all feature pages
+    if (isExpired) {
+      return true;
+    }
+
+    // Check specific route against feature matrix
+    const matchedPrefix = Object.keys(ROUTE_FEATURE_MAP).find(
+      (prefix) => clean === prefix || clean.startsWith(`${prefix}/`)
+    );
+
+    if (matchedPrefix) {
+      const featureKey = ROUTE_FEATURE_MAP[matchedPrefix];
+      const access = canAccess(featureKey);
+      return !access.isAllowed;
+    }
+
+    return false;
   };
 
   return {
     planName,
     currentTier,
     isExpired,
+    membershipData,
     canAccess,
     isRouteLocked,
   };

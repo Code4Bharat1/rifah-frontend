@@ -57,6 +57,7 @@ import {
 } from "@shared/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMyBusiness, useBusinessCatalogue, useCategories } from "@shared/hooks/use-rifah-api";
+import { useFeatureAccess } from "@shared/hooks/use-feature-access";
 import { catalogueApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
@@ -66,6 +67,7 @@ export function BizCatalogueManager({ embedded = false }) {
   const { data: business } = useMyBusiness();
   const { data: catalogueItems, refetch } = useBusinessCatalogue(business?._id);
   const { data: categoriesData } = useCategories();
+  const { planName, currentTier } = useFeatureAccess();
 
   const categoryOptions = useMemo(() => {
     const raw = Array.isArray(categoriesData) ? categoriesData : categoriesData?.categories || [];
@@ -77,6 +79,14 @@ export function BizCatalogueManager({ embedded = false }) {
   const allItems = catalogueItems || [];
   const activeItems = allItems.filter(item => item.status === "Active");
   const hiddenItems = allItems.filter(item => item.status === "Draft" || item.status === "Archived");
+
+  const productCount = allItems.filter(i => (i.type || "Product").toLowerCase() === "product").length;
+  const serviceCount = allItems.filter(i => (i.type || "").toLowerCase() === "service").length;
+
+  const rawMaxProd = currentTier?.features?.product_listing;
+  const rawMaxServ = currentTier?.features?.service_listing;
+  const maxProducts = rawMaxProd === "Unlimited" ? Infinity : (Number(rawMaxProd) || 1);
+  const maxServices = rawMaxServ === "Unlimited" ? Infinity : (Number(rawMaxServ) || 1);
   
   const [activeTab, setActiveTab] = useState("Active");
   const items = activeTab === "Active" ? activeItems : hiddenItems;
@@ -165,6 +175,17 @@ export function BizCatalogueManager({ embedded = false }) {
   const handleAddItem = async (e) => {
     e.preventDefault();
     if (!newItem.name.trim()) return;
+
+    const targetType = (newItem.type || "Product").toLowerCase() === "service" ? "Service" : "Product";
+    if (targetType === "Product" && isFinite(maxProducts) && productCount >= maxProducts) {
+      toast.error(`Product catalogue limit reached (${productCount}/${maxProducts} allowed on ${planName}). Please upgrade your plan to add more products.`);
+      return;
+    }
+    if (targetType === "Service" && isFinite(maxServices) && serviceCount >= maxServices) {
+      toast.error(`Services catalogue limit reached (${serviceCount}/${maxServices} allowed on ${planName}). Please upgrade your plan to add more services.`);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await catalogueApi.create({

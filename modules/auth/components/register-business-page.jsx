@@ -297,6 +297,7 @@ function RegisterBusiness({ isAdmin = false }) {
   const [otpSent, setOtpSent] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [devOtp, setDevOtp] = useState("");
   const [otpTimer, setOtpTimer] = useState(150);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
@@ -765,7 +766,15 @@ function RegisterBusiness({ isAdmin = false }) {
       const res = await authApi.sendRegisterOtp(formData.email.trim());
       setOtpSent(true);
       setOtpTimer(150);
-      setOtpDigits(["", "", "", "", "", ""]);
+      const returnedOtp = res?.data?.otp || res?.otp;
+      if (returnedOtp) {
+        setDevOtp(returnedOtp);
+        const digits = String(returnedOtp).split("").slice(0, 6);
+        while (digits.length < 6) digits.push("");
+        setOtpDigits(digits);
+      } else {
+        setOtpDigits(["", "", "", "", "", ""]);
+      }
       setOtpSuccess(res?.message || "Verification code sent to your email.");
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
@@ -787,8 +796,16 @@ function RegisterBusiness({ isAdmin = false }) {
     setOtpSending(true);
     try {
       const res = await authApi.sendRegisterOtp(formData.email.trim());
+      const returnedOtp = res?.data?.otp || res?.otp;
+      if (returnedOtp) {
+        setDevOtp(returnedOtp);
+        const digits = String(returnedOtp).split("").slice(0, 6);
+        while (digits.length < 6) digits.push("");
+        setOtpDigits(digits);
+      } else {
+        setOtpDigits(["", "", "", "", "", ""]);
+      }
       setOtpSuccess(res?.message || "A fresh verification code has been sent.");
-      setOtpDigits(["", "", "", "", "", ""]);
       setOtpTimer(150);
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
@@ -2789,6 +2806,27 @@ function RegisterBusiness({ isAdmin = false }) {
                         <div className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-2.5 text-xs text-emerald-800">
                           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                           <span>{otpSuccess}</span>
+                        </div>
+                      )}
+
+                      {devOtp && (
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/80 border border-blue-200 text-xs text-blue-900 animate-in fade-in">
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-[#0060df] shrink-0" />
+                            <span>Verification Code: <strong className="font-mono text-sm tracking-widest font-extrabold text-[#0060df]">{devOtp}</strong></span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const digits = String(devOtp).split("").slice(0, 6);
+                              while (digits.length < 6) digits.push("");
+                              setOtpDigits(digits);
+                              setOtpError("");
+                            }}
+                            className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#0060df] hover:bg-[#0051bd] rounded-lg cursor-pointer transition-all"
+                          >
+                            Auto-fill Code
+                          </button>
                         </div>
                       )}
 
