@@ -126,13 +126,15 @@ function AdminPayments() {
       // Resolve Chapter / State
       const chName = (r.collectingChapter || r.chapter || r.business?.chapter || r.payer?.chapter || "").trim();
       const stName = (r.collectingState || r.state || r.business?.state || r.payer?.state || "").trim();
-      let chapterStateLocation = "RIFAH Central";
+      let chapterStateLocation = "RIFAH Central / All Chapters";
       if (chName && stName && chName.toLowerCase() !== "unassigned") {
         chapterStateLocation = `${chName}, ${stName}`;
       } else if (chName && chName.toLowerCase() !== "unassigned") {
         chapterStateLocation = chName;
       } else if (stName) {
         chapterStateLocation = stName;
+      } else if (r.business?.city) {
+        chapterStateLocation = `${r.business.city}`;
       }
 
       const rows = [
@@ -194,7 +196,7 @@ function AdminPayments() {
           doc.setFont("helvetica", "bold");
           doc.setFontSize(9.5);
           doc.setTextColor(30, 41, 59);
-          doc.text(String(value || "").slice(0, 50), mx + labelW + 5, ry + 6.5);
+          doc.text(String(value || "").slice(0, 60), mx + labelW + 5, ry + 6.5);
         } else {
           doc.setFont("helvetica", "normal");
           doc.setFontSize(value && String(value).length > 36 ? 8.5 : 9.5);
@@ -346,13 +348,13 @@ function AdminPayments() {
                       return <span className="font-medium text-primary">Event: {r.eventId.title}</span>;
                     }
                     let rawPlan = r.planTier || r.membershipTier || r.business?.membership || r.membership || "";
-                    if (rawPlan) {
+                    if (rawPlan && rawPlan !== "Free") {
                       const clean = rawPlan.replace(/\bplan\b/gi, "").trim();
                       rawPlan = clean ? `${clean} Plan` : rawPlan;
                     }
-                    const baseDesc = r.description || r.purpose || "Admin Registered Business";
+                    const baseDesc = r.description || r.purpose || r.itemType || "Admin Registered Business";
                     let formattedDesc = baseDesc;
-                    if (rawPlan && !baseDesc.toLowerCase().includes(rawPlan.toLowerCase())) {
+                    if (rawPlan && rawPlan !== "Free" && !baseDesc.toLowerCase().includes(rawPlan.toLowerCase())) {
                       if (/\(Cash\)/i.test(baseDesc)) {
                         formattedDesc = `${baseDesc.replace(/\(Cash\)/i, "").trim()} (${rawPlan}) (Cash)`;
                       } else {
@@ -514,12 +516,12 @@ function AdminPayments() {
                   <span className="text-sm font-semibold">
                     {(() => {
                       let rawPlan = selectedTransaction.planTier || selectedTransaction.membershipTier || selectedTransaction.business?.membership || selectedTransaction.membership || "";
-                      if (rawPlan) {
+                      if (rawPlan && rawPlan !== "Free") {
                         const clean = rawPlan.replace(/\bplan\b/gi, "").trim();
                         rawPlan = clean ? `${clean} Plan` : rawPlan;
                       }
-                      const baseDesc = selectedTransaction.description || selectedTransaction.purpose || "Membership Subscription";
-                      if (rawPlan && !baseDesc.toLowerCase().includes(rawPlan.toLowerCase())) {
+                      let baseDesc = selectedTransaction.description || selectedTransaction.purpose || selectedTransaction.itemType || "Membership Subscription";
+                      if (rawPlan && rawPlan !== "Free" && !baseDesc.toLowerCase().includes(rawPlan.toLowerCase())) {
                         if (/\(Cash\)/i.test(baseDesc)) {
                           return `${baseDesc.replace(/\(Cash\)/i, "").trim()} (${rawPlan}) (Cash)`;
                         }
@@ -537,7 +539,7 @@ function AdminPayments() {
                       const st = (selectedTransaction.collectingState || selectedTransaction.state || selectedTransaction.business?.state || selectedTransaction.payer?.state || "").trim();
                       if (ch && st && ch.toLowerCase() !== "unassigned") return `${ch}, ${st}`;
                       if (ch && ch.toLowerCase() !== "unassigned") return ch;
-                      return st || "RIFAH Central";
+                      return st || "RIFAH Central / All Chapters";
                     })()}
                   </span>
                 </div>

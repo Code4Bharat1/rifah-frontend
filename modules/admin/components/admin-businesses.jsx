@@ -14,7 +14,9 @@ import {
   MapPin,
   RotateCcw,
   Check,
+
   Plus,
+
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -165,7 +167,10 @@ function AdminBusinesses() {
 
   // Filter States
   const [q, setQ] = useState("");
+
   const debouncedQ = useDebounce(q, 300);
+
+
   const [stateFilter, setStateFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'pending', 'approved', 'rejected'
@@ -195,12 +200,14 @@ function AdminBusinesses() {
   }, [rawChapters]);
 
   // Query businesses with FIFO sorting & filters (Debounced search prevents query flooding)
+  // Query businesses with FIFO sorting & filters
   const {
     data: businessesData,
     isLoading,
     refetch,
   } = useBusinesses({
     search: debouncedQ.trim() || undefined,
+    search: q.trim() || undefined,
     state: stateFilter === "all" ? undefined : stateFilter,
     chapter: chapterFilter === "all" ? undefined : chapterFilter,
     verification: statusFilter === "all" ? undefined : statusFilter,
@@ -405,6 +412,7 @@ function AdminBusinesses() {
           : `${rows.length} listed businesses`
       }
       actions={
+
         <div className="flex items-center gap-1.5 sm:gap-2">
           <Button
             variant="outline"
@@ -417,7 +425,7 @@ function AdminBusinesses() {
             <span className="hidden sm:inline">Export directory</span>
             <span className="sm:hidden">Export</span>
           </Button>
-          {(user?.role === "central_admin" || user?.role === "super_admin" || user?.role === "chapter_admin") && (
+          {(user?.role === "central_admin" || user?.role === "super_admin" || user?.role === "chapter_admin" || user?.role === "state_admin") && (
             <Button asChild size="sm" className="rounded-full bg-blue-600 hover:bg-blue-700 h-8 sm:h-9 px-2.5 sm:px-4 text-xs sm:text-sm font-semibold shrink-0 shadow-xs">
               <Link href={`${basePath}/businesses/new`} className="flex items-center gap-1">
                 <Plus className="h-3.5 w-3.5" />

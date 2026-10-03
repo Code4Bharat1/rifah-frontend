@@ -24,6 +24,7 @@ import { useMembershipPlans, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { membershipApi, paymentApi, businessApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { useQueryClient } from "@tanstack/react-query";
+import { ChamberMembershipTiers, DEFAULT_BUSINESS_PLANS, DEFAULT_USER_PLANS } from "@shared/components/rifah/chamber-membership-tiers";
 import { cn } from "@shared/lib/utils";
 
 const steps = ["Plan", "Billing", "Payment", "Confirmation"];
@@ -53,35 +54,106 @@ function Checkout() {
   const { data: business } = useMyBusiness();
   const { data: plansData } = useMembershipPlans();
   const plans = useMemo(() => {
-    if (!plansData) return [];
-    const list = (Array.isArray(plansData) ? plansData.map((p) => ({ id: p.id || p.planId, ...p })) : Object.entries(plansData))
-      .map((item) => (Array.isArray(item) ? { id: item[0], ...item[1] } : item))
-      .filter((p) => p.isActive !== false && p.price > 0);
-
-    return list.sort((a, b) => {
-      const CANONICAL = { silver: 1, gold: 2, platinum: 3, diamond: 4 };
-      const idA = String(a.id || a.planId || a.name || "").toLowerCase();
-      const idB = String(b.id || b.planId || b.name || "").toLowerCase();
-      const orderA = a.displayOrder !== undefined && a.displayOrder !== null && Number(a.displayOrder) > 0 ? Number(a.displayOrder) : (CANONICAL[idA] ?? null);
-      const orderB = b.displayOrder !== undefined && b.displayOrder !== null && Number(b.displayOrder) > 0 ? Number(b.displayOrder) : (CANONICAL[idB] ?? null);
-      if (orderA !== null && orderB !== null && orderA !== orderB) return orderA - orderB;
-      if (orderA !== null) return -1;
-      if (orderB !== null) return 1;
-      return (Number(a.price) || 0) - (Number(b.price) || 0);
+    const rawMap = {};
+    Object.entries(DEFAULT_BUSINESS_PLANS).forEach(([key, plan]) => {
+      rawMap[key.toLowerCase()] = { ...plan };
     });
+    Object.entries(DEFAULT_USER_PLANS).forEach(([key, plan]) => {
+      rawMap[key.toLowerCase()] = { ...plan };
+    });
+
+    if (plansData) {
+      const list = (Array.isArray(plansData) ? plansData.map((p) => ({ id: p.id || p.planId, ...p })) : Object.entries(plansData))
+        .map((item) => (Array.isArray(item) ? { id: item[0], ...item[1] } : item));
+      list.forEach((p) => {
+        const idKey = String(p.id || p.planId || "").toLowerCase();
+        if (idKey) {
+          rawMap[idKey] = { ...(rawMap[idKey] || {}), ...p, id: idKey, planId: idKey };
+        }
+      });
+    }
+
+    const CANONICAL = {
+      silver: 1,
+      gold: 2,
+      platinum: 3,
+      diamond: 4,
+      tier_1: 5,
+      tier_2: 6,
+      tier_3: 7,
+      tier_4: 8,
+      free: 0,
+      basic: 1,
+      premium: 3,
+      enterprise: 4,
+    };
+
+    return Object.values(rawMap)
+      .filter((p) => {
+        if (!p.id) return false;
+        if (p.isActive === false) return false;
+        const idKey = String(p.id || p.planId || "").toLowerCase();
+        if (["free", "basic", "premium", "enterprise"].includes(idKey)) return false;
+        return p.price > 0;
+      })
+      .sort((a, b) => {
+        const idA = String(a.id || a.planId || a.name || "").toLowerCase();
+        const idB = String(b.id || b.planId || b.name || "").toLowerCase();
+        const orderA =
+          a.displayOrder !== undefined && a.displayOrder !== null && Number(a.displayOrder) > 0
+            ? Number(a.displayOrder)
+            : (CANONICAL[idA] ?? null);
+        const orderB =
+          b.displayOrder !== undefined && b.displayOrder !== null && Number(b.displayOrder) > 0
+            ? Number(b.displayOrder)
+            : (CANONICAL[idB] ?? null);
+        if (orderA !== null && orderB !== null && orderA !== orderB) return orderA - orderB;
+        if (orderA !== null) return -1;
+        if (orderB !== null) return 1;
+        return (Number(a.price) || 0) - (Number(b.price) || 0);
+      });
   }, [plansData]);
+
+  const initialCategory = useMemo(() => {
+    const p = String(planParam || "").toLowerCase();
+    if (p.startsWith("tier_")) return "user";
+    if (["silver", "gold", "platinum", "diamond"].includes(p)) return "business";
+    if (currentUser?.role === "subscriber" || currentUser?.role === "user") return "user";
+    return "business";
+  }, [planParam, currentUser?.role]);
+
+  const [category, setCategory] = useState(initialCategory);
+
+  useEffect(() => {
+    const p = String(planParam || "").toLowerCase();
+    if (p.startsWith("tier_")) {
+      setCategory("user");
+    } else if (["silver", "gold", "platinum", "diamond"].includes(p)) {
+      setCategory("business");
+    }
+  }, [planParam]);
+
+  const displayedPlans = useMemo(() => {
+    return plans.filter((p) => {
+      const isUserTier = p.category === "user" || String(p.id || "").toLowerCase().startsWith("tier_");
+      if (category === "user") {
+        return isUserTier;
+      }
+      return !isUserTier;
+    });
+  }, [plans, category]);
 
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(planParam);
   const planInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!plans || plans.length === 0) return;
+    if (!displayedPlans || displayedPlans.length === 0) return;
 
     if (!planInitializedRef.current) {
       planInitializedRef.current = true;
       if (planParam) {
-        const match = plans.find(
+        const match = displayedPlans.find(
           (p) => p.id?.toLowerCase() === planParam.toLowerCase() || p.name?.toLowerCase() === planParam.toLowerCase()
         );
         if (match) {
@@ -89,10 +161,17 @@ function Checkout() {
           return;
         }
       }
-      const fallback = plans.find((p) => p.isRecommended) || plans[0];
+      const fallback = displayedPlans.find((p) => p.isRecommended) || displayedPlans[0];
       if (fallback) setSelected(fallback.id);
+    } else {
+      // Check if current selected plan belongs to active category, otherwise switch to valid plan in category
+      const currentMatch = displayedPlans.find((p) => p.id?.toLowerCase() === String(selected || "").toLowerCase());
+      if (!currentMatch) {
+        const fallback = displayedPlans.find((p) => p.isRecommended) || displayedPlans[0];
+        if (fallback) setSelected(fallback.id);
+      }
     }
-  }, [plans, planParam]);
+  }, [displayedPlans, planParam, category]);
   const [method, setMethod] = useState("razorpay");
   const [loading, setLoading] = useState(false);
   const [invoiceId, setInvoiceId] = useState("");
@@ -128,8 +207,11 @@ function Checkout() {
   const totalWithGst = subtotal + gstAmount;
 
   // Duration label for selected plan
+  const isUserPlan = active?.category === "user" || String(active?.id || "").startsWith("tier_");
   const durationYears = Number(active?.durationYears) || 1;
-  const durationLabel = durationYears === 1 ? "1 Year Validity" : `${durationYears} Years Validity`;
+  const durationLabel = isUserPlan
+    ? "1 Month Validity (Monthly Renewal)"
+    : (durationYears === 1 ? "1 Year Validity" : `${durationYears} Years Validity`);
 
   // Pre-fill existing business or user details if available
   useEffect(() => {
@@ -788,12 +870,47 @@ function Checkout() {
                     </div>
                   </div>
 
+                  {/* Plan Category Switcher */}
+                  <div className="flex items-center rounded-xl border border-border/80 bg-muted/50 p-1 mb-3.5 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setCategory("business")}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-xs font-semibold transition-all cursor-pointer",
+                        category === "business"
+                          ? "bg-white dark:bg-slate-900 text-foreground shadow-xs font-bold ring-1 ring-border/50"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Building2 className="h-3.5 w-3.5 text-amber-500" />
+                      <span>Business Chamber Plans</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCategory("user")}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-xs font-semibold transition-all cursor-pointer",
+                        category === "user"
+                          ? "bg-white dark:bg-slate-900 text-foreground shadow-xs font-bold ring-1 ring-border/50"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
+                      <span>Member / User Plans</span>
+                    </button>
+                  </div>
+
                   <div className="space-y-2.5" role="radiogroup" aria-label="Select membership tier">
-                    {plans.map((p) => {
+                    {displayedPlans.map((p) => {
                       const pAmt = isIntl
                         ? (p.priceUsd ?? (p.price === 0 ? 0 : Math.round(p.price / 80)))
                         : p.price;
                       const isCardSelected = selected === p.id;
+                      const isItemUserTier = p.category === "user" || String(p.id || "").toLowerCase().startsWith("tier_");
+                      const itemGstRate = p.gstRate !== undefined && p.gstRate !== null ? Number(p.gstRate) : (isItemUserTier ? 0 : 18);
+                      const itemGstAmt = Math.round(pAmt * itemGstRate / 100);
+                      const itemTotalPayable = pAmt + itemGstAmt;
+
                       return (
                         <div
                           key={p.id}
@@ -831,13 +948,17 @@ function Checkout() {
                               <span className="text-sm font-semibold text-foreground">{p.name}</span>
                               <span className="text-sm font-bold text-primary">
                                 {isIntl ? `$ ${pAmt.toLocaleString("en-US")} USD` : `₹ ${pAmt.toLocaleString("en-IN")}`}
-                                {p.durationYears && <span className="font-normal text-muted-foreground text-xs ml-1">/ {p.durationYears === 1 ? "1 yr" : `${p.durationYears} yrs`}</span>}
+                                {isItemUserTier ? (
+                                  <span className="font-normal text-muted-foreground text-xs ml-1">/ mo</span>
+                                ) : p.durationYears ? (
+                                  <span className="font-normal text-muted-foreground text-xs ml-1">/ {p.durationYears === 1 ? "1 yr" : `${p.durationYears} yrs`}</span>
+                                ) : null}
                               </span>
                             </div>
                             <span className="mt-0.5 block text-xs text-muted-foreground">{p.summary}</span>
-                            {pAmt > 0 && (
+                            {pAmt > 0 && itemGstAmt > 0 && (
                               <span className="mt-0.5 block text-[10px] text-muted-foreground">
-                                + {isIntl ? `$ ${Math.round(pAmt * (p.gstRate || 18) / 100).toLocaleString("en-US")} USD` : `₹ ${Math.round(pAmt * (p.gstRate || 18) / 100).toLocaleString("en-IN")}`} GST ({p.gstRate || 18}%) = {isIntl ? `$ ${(pAmt + Math.round(pAmt * (p.gstRate || 18) / 100)).toLocaleString("en-US")} USD` : `₹ ${(pAmt + Math.round(pAmt * (p.gstRate || 18) / 100)).toLocaleString("en-IN")}`} total payable
+                                + {isIntl ? `$ ${itemGstAmt.toLocaleString("en-US")} USD` : `₹ ${itemGstAmt.toLocaleString("en-IN")}`} GST ({itemGstRate}%) = {isIntl ? `$ ${itemTotalPayable.toLocaleString("en-US")} USD` : `₹ ${itemTotalPayable.toLocaleString("en-IN")}`} total payable
                               </span>
                             )}
                           </div>

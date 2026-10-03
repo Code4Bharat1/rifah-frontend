@@ -31,12 +31,11 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
   const [nationalNumber, setNationalNumber] = useState(parsed.nationalNumber || "");
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [popoverAlign, setPopoverAlign] = useState(alignProp || "start");
 
   const containerRef = useRef(null);
   const searchInputRef = useRef(null);
   const numberInputRef = useRef(null);
-  const [popoverAlign, setPopoverAlign] = useState(alignProp || "start");
-
   // Dynamically calculate alignment (start or end) to keep dropdown within dialog/screen boundaries
   useEffect(() => {
     if (alignProp) {
@@ -68,7 +67,6 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
       checkAlignment();
     }
   }, [isOpen, alignProp]);
-
   // Synchronize when value changes externally (avoid resetting state if digits already match)
   useEffect(() => {
     const nextParsed = parsePhoneNumber(value, defaultCountry);
