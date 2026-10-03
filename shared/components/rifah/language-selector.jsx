@@ -1,9 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { Check, Globe } from "lucide-react";
+import { Check, Globe, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,11 +11,24 @@ import {
   DropdownMenuTrigger,
 } from "@shared/components/ui/dropdown-menu";
 import { Button } from "@shared/components/ui/button";
+import { Input } from "@shared/components/ui/input";
+import { LANGUAGES } from "../../config/languages";
 
 export function LanguageSelector() {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const locale = useLocale();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredLanguages = useMemo(() => {
+    if (!searchQuery) return LANGUAGES;
+    const query = searchQuery.toLowerCase();
+    return LANGUAGES.filter(
+      (lang) =>
+        lang.name.toLowerCase().includes(query) ||
+        lang.nativeName.toLowerCase().includes(query)
+    );
+  }, [searchQuery]);
 
   const handleLanguageChange = (newLocale) => {
     startTransition(() => {
@@ -48,24 +61,38 @@ export function LanguageSelector() {
           <span className="sr-only">Toggle Language</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleLanguageChange("en")} className="justify-between cursor-pointer">
-          English
-          {locale === "en" && <Check className="h-4 w-4" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleLanguageChange("hi")} className="justify-between cursor-pointer">
-          हिंदी (Hindi)
-          {locale === "hi" && <Check className="h-4 w-4" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleLanguageChange("ur")} className="justify-between cursor-pointer font-[ur-font]">
-          اردو (Urdu)
-          {locale === "ur" && <Check className="h-4 w-4" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleLanguageChange("mr")} className="justify-between cursor-pointer">
-          मराठी (Marathi)
-          {locale === "mr" && <Check className="h-4 w-4" />}
-        </DropdownMenuItem>
+      <DropdownMenuContent align="end" className="w-[280px]">
+        <div className="flex items-center px-2 pb-2 pt-1 sticky top-0 bg-background z-10 border-b">
+          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+          <Input
+            placeholder="Search language..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-8 border-0 shadow-none focus-visible:ring-0 px-0"
+          />
+        </div>
+        <div className="max-h-[300px] overflow-y-auto">
+          {filteredLanguages.length > 0 ? (
+            filteredLanguages.map((lang) => (
+              <DropdownMenuItem
+                key={lang.code}
+                onClick={() => handleLanguageChange(lang.code)}
+                className="justify-between cursor-pointer"
+              >
+                <span>
+                  {lang.name} <span className="text-muted-foreground text-xs ml-1">({lang.nativeName})</span>
+                </span>
+                {locale === lang.code && <Check className="h-4 w-4" />}
+              </DropdownMenuItem>
+            ))
+          ) : (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No language found.
+            </div>
+          )}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+

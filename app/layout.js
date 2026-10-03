@@ -4,6 +4,7 @@ import { getLocale, getMessages } from 'next-intl/server';
 import Script from 'next/script';
 import "@/app/globals.css";
 import { withAssetPrefix } from "@shared/lib/asset-prefix";
+import { RTL_LANGUAGES } from "@shared/config/languages";
 
 export const metadata = {
   title: "RIFAH Connect",
