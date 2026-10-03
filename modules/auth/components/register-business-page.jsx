@@ -499,7 +499,7 @@ function RegisterBusiness({ isAdmin = false }) {
 
     // Auto-match chapter if one exists for this city
     let matchedChapter = formData.chapter;
-    if (formData.region === "national" && !matchedChapter) {
+    if (!matchedChapter) {
       const directChapter = chapters.find(
         (c) => (c.city || "").trim().toLowerCase() === (selectedCity || "").trim().toLowerCase() ||
                (c.name || "").trim().toLowerCase().includes((selectedCity || "").trim().toLowerCase())
@@ -617,6 +617,9 @@ function RegisterBusiness({ isAdmin = false }) {
         return { available: false, message: msg };
       }
       setEmailCheckResult({ available: true, message: "Email is available for registration.", email: clean });
+      if (error && isFieldSpecificError(error)) {
+        setError("");
+      }
       return { available: true };
     } catch (err) {
       const errMsg = err?.message || "";
@@ -689,6 +692,9 @@ function RegisterBusiness({ isAdmin = false }) {
         return { available: false, message: msg };
       }
       setBusinessEmailCheckResult({ available: true, message: "Business email is available.", email: clean });
+      if (error && isFieldSpecificError(error)) {
+        setError("");
+      }
       return { available: true };
     } catch (err) {
       const errMsg = err?.message || "";

@@ -57,12 +57,12 @@ function formatEventDate(value) {
   return parsed.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export function EventGallery() {
+export function EventGallery({ eventId }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
 
-  const [openEventId, setOpenEventId] = useState(null);
+  const [openEventId, setOpenEventId] = useState(eventId || null);
   const [lightbox, setLightbox] = useState(null);
   const [uploading, setUploading] = useState(false);
 

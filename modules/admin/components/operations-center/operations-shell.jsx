@@ -3,6 +3,7 @@
 // Every panel (central / state / chapter) mounts the same Operations Centre, but the
 // shell around it must name the panel the signed-in admin is actually in — the header
 // used to read "Central Admin" everywhere.
+import React, { useState, useEffect } from "react";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { OperationsCenter } from "@modules/admin/components/operations-center/operations-center";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -29,12 +30,15 @@ const PANEL_COPY = {
 export function OperationsShell({ panel = "chapter_admin", initialTab = "event-setup" }) {
   const { user } = useAuth();
 
-  const key = PANEL_COPY[user?.role] ? user.role : panel;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const key = (mounted && PANEL_COPY[user?.role]) ? user.role : panel;
   const copy = PANEL_COPY[key] || PANEL_COPY.chapter_admin;
-  const subtitle = typeof copy.subtitle === "function" ? copy.subtitle(user) : copy.subtitle;
+  const subtitle = mounted ? (typeof copy.subtitle === "function" ? copy.subtitle(user) : copy.subtitle) : "Loading session...";
 
   return (
-    <AppShell role={copy.role} title="Operations Center" subtitle={subtitle}>
+    <AppShell role={copy.role} title="Event Operations" subtitle={subtitle}>
       <OperationsCenter initialTab={initialTab} />
     </AppShell>
   );

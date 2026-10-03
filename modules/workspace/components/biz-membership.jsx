@@ -1553,13 +1553,18 @@ function BizMembership() {
     return activeList.map((p) => {
       const pId = (p.id || p.planId || "").toLowerCase();
       const priceNum = Number(p.price) || 0;
+      const isUserTier = p.category === "user" || pId.startsWith("tier_");
       const durationYears = Number(p.durationYears) || 1;
+      const periodLabel = isUserTier
+        ? "/ mo"
+        : (durationYears === 1 ? "/ year" : `/ ${durationYears} yrs`);
+
       return {
         id: pId,
         name: p.name || pId.toUpperCase(),
         price: priceNum === 0 ? "₹ 0" : `₹ ${priceNum.toLocaleString("en-IN")}`,
         rawPrice: priceNum,
-        period: durationYears === 1 ? "/ year" : `/ ${durationYears} yrs`,
+        period: periodLabel,
         highlight: Boolean(p.isRecommended),
         desc: p.summary || (priceNum === 0 ? "Get started on RIFAH Connect with basic directory presence." : "Active chamber membership plan."),
         features: Array.isArray(p.features) && p.features.length > 0 ? p.features : ["Directory listing", "Verified badge", "Direct enquiries"],

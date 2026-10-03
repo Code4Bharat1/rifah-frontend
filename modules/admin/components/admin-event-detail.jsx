@@ -62,7 +62,9 @@ export function AdminEventDetail() {
   const canEdit = isCentralAdmin || createdByStr === userIdStr || isSameState;
 
   const coverUrl = event.coverImage ? resolveMediaUrl(event.coverImage) : eventImage;
-  const seatsRemaining = Math.max(0, (event.seats || 100) - (event.registeredCount || 0));
+  const totalSeats = event.totalSeats || 0;
+  const isUnlimited = totalSeats === 0;
+  const seatsRemaining = isUnlimited ? "Unlimited" : Math.max(0, totalSeats - (event.registeredCount || 0));
 
   return (
     <AppShell
@@ -148,6 +150,7 @@ export function AdminEventDetail() {
                 <FieldRow label="Organiser" value={event.organizer} />
                 <FieldRow label="Fee" value={event.isPaid ? `Paid (₹${event.ticketPrice})` : (event.fee && event.fee !== "Complimentary for Members" ? event.fee : "Free")} />
                 <FieldRow label="Mode" value={event.mode} />
+                <FieldRow label="Total Seats" value={isUnlimited ? "Unlimited" : String(totalSeats)} />
               </dl>
             </Panel>
 

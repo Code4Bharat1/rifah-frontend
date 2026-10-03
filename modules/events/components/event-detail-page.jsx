@@ -16,6 +16,7 @@ import { Pill } from "@shared/components/rifah/badges";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { FieldRow, Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
+import { Progress } from "@shared/components/ui/progress";
 import { eventImage } from "@shared/lib/media";
 import { useEventDetail, useEvents } from "@shared/hooks/use-rifah-api";
 import { eventApi, paymentApi, authApi } from "@shared/lib/api-services";
@@ -305,63 +306,72 @@ const loadRazorpayScript = () => {
 
   const coverUrl = event.coverImage ? resolveMediaUrl(event.coverImage) : eventImage;
 
+  const totalSeats = event.totalSeats || 0;
+  const registeredCount = event.registeredCount || 0;
+  const isFull = totalSeats > 0 && registeredCount >= totalSeats;
+  const seatsRemaining = totalSeats > 0 ? totalSeats - registeredCount : null;
+  const seatsPercentage = totalSeats > 0 ? Math.min(100, Math.round((registeredCount / totalSeats) * 100)) : 0;
+
   return (
     <PublicLayout>
       {/* Immersive Hero Header */}
-      <section className="relative w-full bg-slate-950 overflow-hidden border-b border-border">
-        <div className="absolute inset-0 z-0">
-          <img
-            src={coverUrl}
-            alt={`${event.title} — RIFAH event`}
-            className="h-full w-full object-cover opacity-75 sm:opacity-85 transition-opacity"
-          />
-          {/* Directional gradients so text is readable while image remains clearly visible */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-slate-950/25" />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-transparent" />
-        </div>
+      <section className="relative w-full overflow-hidden border-b border-border">
+        {/* Full Banner Image */}
+        <img
+          src={coverUrl}
+          alt={`${event.title} — RIFAH event`}
+          className="w-full h-auto block"
+        />
+        {/* Gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
-        <div className="rifah-container relative z-10 pt-6 pb-8 sm:pt-14 sm:pb-14 lg:pt-20 lg:pb-18">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <Link href="/events" className="inline-flex items-center text-xs sm:text-sm font-medium text-slate-300 hover:text-white transition-colors">
+        {/* Overlay Content — sits on top of the image */}
+        <div className="absolute inset-0 flex flex-col justify-between py-4 sm:py-6">
+          {/* Top: Back link */}
+          <div className="rifah-container w-full">
+            <Link href="/events" className="inline-flex items-center text-xs sm:text-sm font-medium text-white/90 hover:text-white transition-colors drop-shadow-md">
               ← Back to all events
             </Link>
+          </div>
+
+          {/* Bottom: Pills, Title + Share Event */}
+          <div className="rifah-container w-full flex items-end justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white max-w-4xl leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] mb-2 sm:mb-3">
+                {event.title}
+              </h1>
+
+              {(() => {
+                const computedStatus = getEventStatus(event);
+                const statusConfig = getEventStatusConfig(computedStatus);
+                return (
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Pill tone={event.mode === "Online" ? "primary" : "neutral"} className="bg-white/15 text-white border-white/25 backdrop-blur-md shadow-sm text-xs">{event.mode}</Pill>
+                    <Pill className="bg-white/15 text-white border-white/25 backdrop-blur-md shadow-sm text-xs">{event.chapter}</Pill>
+                    <Pill tone={statusConfig.tone} className={`${statusConfig.className} shadow-sm backdrop-blur-md text-xs`}>
+                      {statusConfig.dot && <span className="w-1.5 h-1.5 rounded-full bg-white inline-block mr-1" />}
+                      {statusConfig.label}
+                    </Pill>
+                  </div>
+                );
+              })()}
+            </div>
+            
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setIsShareModalOpen(true)}
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md gap-2 rounded-full px-4 text-xs font-semibold shadow-xs cursor-pointer"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md gap-2 rounded-full px-4 text-xs font-semibold shadow-xs cursor-pointer shrink-0"
             >
               <Share2 className="h-3.5 w-3.5" />
               <span>Share Event</span>
             </Button>
           </div>
-          
-          {(() => {
-            const computedStatus = getEventStatus(event);
-            const statusConfig = getEventStatusConfig(computedStatus);
-            return (
-              <div className="flex flex-wrap gap-2 mb-4 items-center">
-                <Pill tone={event.mode === "Online" ? "primary" : "neutral"} className="bg-white/15 text-white border-white/25 backdrop-blur-md shadow-sm text-xs">{event.mode}</Pill>
-                <Pill className="bg-white/15 text-white border-white/25 backdrop-blur-md shadow-sm text-xs">{event.chapter}</Pill>
-                <Pill tone={statusConfig.tone} className={`${statusConfig.className} shadow-sm backdrop-blur-md text-xs`}>
-                  {statusConfig.dot && <span className="w-1.5 h-1.5 rounded-full bg-white inline-block mr-1" />}
-                  {statusConfig.label}
-                </Pill>
-              </div>
-            );
-          })()}
-          
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white max-w-4xl leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
-            {event.title}
-          </h1>
-          <p className="mt-3 text-xs sm:text-base lg:text-lg text-slate-200 max-w-2xl leading-relaxed drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-            {event.summary || event.description || "Join this chamber event to connect with members and businesses."}
-          </p>
         </div>
       </section>
 
-      <div className="rifah-container py-5 sm:py-10">
+      <div className="rifah-container pt-6 sm:pt-10 pb-5 sm:pb-10">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* Main Details */}
           <div className="space-y-6">
@@ -385,6 +395,16 @@ const loadRazorpayScript = () => {
                 ))}
               </dl>
             </div>
+
+            {/* Full Description & Agenda */}
+            {(event.description || event.summary) && (
+              <div className="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+                <h2 className="text-base sm:text-lg font-bold text-foreground mb-3">Full Description & Agenda</h2>
+                <div className="text-sm sm:text-base text-muted-foreground leading-relaxed whitespace-pre-line">
+                  {event.description || event.summary}
+                </div>
+              </div>
+            )}
 
             <div className="mt-4 space-y-4">
               {event.agenda && event.agenda.length > 0 && (
@@ -410,6 +430,27 @@ const loadRazorpayScript = () => {
                   <FieldRow label="Chapter" value={event.chapter} />
                   <FieldRow label="Mode" value={event.mode} />
                   <FieldRow label="Location" value={`${event.venue || ""}${event.city ? `, ${event.city}` : ""}`} />
+                  {totalSeats > 0 ? (
+                    <div className="grid grid-cols-[minmax(0,40%)_minmax(0,1fr)] gap-3 border-b border-border py-2.5 last:border-0 sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)]">
+                      <dt className="text-xs font-medium text-muted-foreground sm:text-sm pt-1">Capacity</dt>
+                      <dd className="min-w-0 text-sm font-medium">
+                        <div className="space-y-2 max-w-sm">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-medium text-muted-foreground">Seats Filled</span>
+                            <span className={`font-bold ${isFull ? 'text-destructive' : 'text-primary'}`}>
+                              {isFull ? 'Full' : `${seatsRemaining} Available`}
+                            </span>
+                          </div>
+                          <Progress value={seatsPercentage} className={`h-2 ${isFull ? '[&>div]:bg-destructive' : ''}`} />
+                          <p className="text-[10px] text-muted-foreground text-center">
+                            {registeredCount} / {totalSeats} seats booked
+                          </p>
+                        </div>
+                      </dd>
+                    </div>
+                  ) : (
+                    <FieldRow label="Total Capacity" value="Unlimited" />
+                  )}
                   {isEventPaid ? (
                     <>
                       <FieldRow label="Member Fee" value={`₹${memberPrice}`} />
@@ -469,23 +510,16 @@ const loadRazorpayScript = () => {
                     <span className="font-medium text-emerald-700/70 dark:text-emerald-300/70">Status</span>
                     <span className="font-bold text-emerald-600 px-2 py-1 bg-emerald-500/10 rounded-md">RSVP Confirmed</span>
                   </div>
-                  {isEventToday && (
-                    <div className="mt-4 pt-4 border-t border-emerald-500/20">
-                      {isUserAttended ? (
-                        <div className="flex items-center justify-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-500/10 py-2.5 rounded-lg">
-                          <CheckCircle2 className="h-4 w-4" /> Attendance Marked
-                        </div>
-                      ) : (
-                        <Button 
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-all hover:shadow-lg" 
-                          onClick={handleMarkAttendance} 
-                          disabled={marking}
-                        >
-                          {marking ? "Marking..." : "Mark Attendance Now"}
-                        </Button>
-                      )}
+                  <div className="mt-5 flex flex-col items-center justify-center space-y-2">
+                    <div className="bg-white p-2 rounded-xl shadow-sm border border-emerald-500/20">
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`Name: ${user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member') : (guestForm.name || 'Attendee')}\nEmail: ${user ? user.email : (guestForm.email || 'N/A')}\n${(user?.businessName || guestForm.businessName) ? `Business: ${user?.businessName || guestForm.businessName}\n` : ''}Event: ${event?.title}\nStatus: Registered`)}`} 
+                        alt="Registration QR Code" 
+                        className="w-32 h-32"
+                      />
                     </div>
-                  )}
+                    <p className="text-[10px] text-emerald-600/70 font-medium uppercase tracking-wider">Scan for entry pass</p>
+                  </div>
 
                   {event.meetingLink && (
                     <div className="mt-4 pt-4 border-t border-emerald-500/20 text-center">
@@ -563,13 +597,27 @@ const loadRazorpayScript = () => {
                       </div>
                     )}
                   </div>
+                  {totalSeats > 0 && (
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center text-xs font-semibold mb-1.5">
+                        <span className="text-muted-foreground">Seats Filled</span>
+                        <span className={isFull ? "text-destructive font-bold" : "text-primary font-bold"}>
+                          {isFull ? "Full" : `${seatsRemaining} remaining`}
+                        </span>
+                      </div>
+                      <Progress value={seatsPercentage} className={`h-2.5 ${isFull ? '[&>div]:bg-destructive' : ''}`} />
+                      <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+                        {registeredCount} / {totalSeats} seats booked
+                      </p>
+                    </div>
+                  )}
                   <Button
-                    className="w-full text-base font-bold shadow-md transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+                    className={`w-full text-base font-bold shadow-md transition-all ${isFull ? 'bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/10 cursor-not-allowed' : 'hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]'}`}
                     size="lg"
-                    disabled={registering}
-                    onClick={handleRegisterClick}
+                    disabled={registering || isFull}
+                    onClick={isFull ? undefined : handleRegisterClick}
                   >
-                    {registering ? "Processing..." : "RSVP / Register Now"}
+                    {registering ? "Processing..." : isFull ? "Registration Full" : "RSVP / Register Now"}
                   </Button>
                   <Button
                     type="button"

@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Building2, CalendarDays, ShieldCheck, Users, Wallet, ArrowRight, Activity, Plus } from "lucide-react";
@@ -21,7 +22,13 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminHome() {
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isCentralAdmin = mounted && user?.role === "central_admin";
 
   const { data: overviewData, refetch: refetchOverview } = useAdminOverview();
   const { data: queueData, refetch: refetchQueue } = useVerificationQueue();
@@ -41,6 +48,8 @@ function AdminHome() {
   const chaptersDist = overviewData?.chaptersDistribution || [];
   const mix = overviewData?.membershipMix || { Basic: 0, Premium: 0, Enterprise: 0 };
   const totalMembers = Object.values(mix).reduce((a, b) => a + b, 0) || 1;
+
+  if (!mounted) return null;
 
   const basePath = user?.role === "chapter_admin" ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
   return (

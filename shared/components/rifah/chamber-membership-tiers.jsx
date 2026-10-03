@@ -88,6 +88,75 @@ const TIER_STYLE_CONFIG = {
     buttonText: "Proceed",
     highlight: false,
   },
+  tier_1: {
+    icon: Shield,
+    cardBg: "bg-white dark:bg-slate-900",
+    circleGradient:
+      "bg-gradient-to-b from-slate-200 via-slate-400 to-slate-500 shadow-md shadow-slate-400/25 ring-4 ring-slate-100 dark:ring-slate-800",
+    iconColor: "text-white",
+    cardBorder:
+      "border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-lg",
+    durationPill:
+      "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    durationLabel: "1 Month Validity",
+    waveColor: "text-slate-100/90 dark:text-slate-800/40",
+    buttonClass:
+      "border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs",
+    buttonText: "Proceed",
+    highlight: false,
+  },
+  tier_2: {
+    icon: Building2,
+    cardBg: "bg-[#fffdf9] dark:bg-slate-900",
+    circleGradient:
+      "bg-gradient-to-b from-emerald-400 via-emerald-500 to-teal-600 shadow-md shadow-emerald-500/25 ring-4 ring-emerald-50 dark:ring-emerald-950/40",
+    iconColor: "text-white",
+    cardBorder:
+      "border border-emerald-200/90 dark:border-emerald-900/40 hover:border-emerald-300 dark:hover:border-emerald-800 hover:shadow-lg",
+    durationPill:
+      "bg-emerald-100/80 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+    durationLabel: "1 Month Validity",
+    waveColor: "text-emerald-100/50 dark:text-emerald-950/30",
+    buttonClass:
+      "border border-emerald-500/90 dark:border-emerald-500 bg-white dark:bg-slate-900 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shadow-2xs",
+    buttonText: "Proceed",
+    highlight: false,
+  },
+  tier_3: {
+    icon: Crown,
+    cardBg: "bg-[#f8faff] dark:bg-slate-900",
+    circleGradient:
+      "bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 shadow-md shadow-blue-500/25 ring-4 ring-blue-50 dark:ring-blue-950/40",
+    iconColor: "text-white",
+    cardBorder:
+      "border-2 border-blue-600 dark:border-blue-500 shadow-xl shadow-blue-500/15 hover:shadow-2xl hover:shadow-blue-500/20",
+    durationPill:
+      "bg-blue-100/80 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300",
+    durationLabel: "1 Month Validity",
+    waveColor: "text-blue-100/60 dark:text-blue-950/30",
+    buttonClass:
+      "bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/30",
+    buttonText: "Proceed",
+    highlight: true,
+    badgeText: "Most Popular",
+  },
+  tier_4: {
+    icon: Diamond,
+    cardBg: "bg-[#fcfaff] dark:bg-slate-900",
+    circleGradient:
+      "bg-gradient-to-b from-purple-400 via-purple-500 to-violet-600 shadow-md shadow-purple-500/25 ring-4 ring-purple-50 dark:ring-purple-950/40",
+    iconColor: "text-white",
+    cardBorder:
+      "border border-purple-200/90 dark:border-purple-900/40 hover:border-purple-300 dark:hover:border-purple-800 hover:shadow-lg",
+    durationPill:
+      "bg-purple-100/80 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300",
+    durationLabel: "1 Month Validity",
+    waveColor: "text-purple-100/50 dark:text-purple-950/30",
+    buttonClass:
+      "border border-purple-500 dark:border-purple-400 bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 shadow-2xs",
+    buttonText: "Proceed",
+    highlight: false,
+  },
   // Legacy aliases
   free: {
     icon: Shield,
@@ -263,6 +332,190 @@ function computeGst(price, gstRate = 18) {
 }
 
 /**
+ * Fallback defaults for Chamber Business Plans
+ */
+export const DEFAULT_BUSINESS_PLANS = {
+  silver: {
+    id: "silver",
+    planId: "silver",
+    name: "Silver",
+    price: 3000,
+    priceUsd: 39,
+    durationYears: 1,
+    gstRate: 18,
+    category: "business",
+    displayOrder: 1,
+    isRecommended: false,
+    summary: "1-Year Verified Chamber Membership",
+    features: [
+      "Directory listing with Verified Chamber Badge",
+      "Up to 15 matched buyer lead enquiries / mo",
+      "Standard catalogue listing (up to 5 items)",
+      "Chamber community & chapter networking access",
+    ],
+  },
+  gold: {
+    id: "gold",
+    planId: "gold",
+    name: "Gold",
+    price: 5000,
+    priceUsd: 65,
+    durationYears: 2,
+    gstRate: 18,
+    category: "business",
+    displayOrder: 2,
+    isRecommended: false,
+    summary: "2-Year Chamber Access & Direct Messaging",
+    features: [
+      "Directory listing with Verified Chamber Badge",
+      "Up to 35 matched buyer lead enquiries / mo",
+      "Expanded catalogue listing (up to 15 items)",
+      "Direct B2B buyer messaging",
+      "Priority RFQ & high-value lead routing",
+    ],
+  },
+  platinum: {
+    id: "platinum",
+    planId: "platinum",
+    name: "Platinum",
+    price: 25000,
+    priceUsd: 325,
+    durationYears: 10,
+    gstRate: 18,
+    category: "business",
+    displayOrder: 3,
+    isRecommended: true,
+    summary: "10-Year Enterprise Patronage (Recommended)",
+    features: [
+      "Featured placement across Directory & Homepage",
+      "Unlimited matched buyer lead enquiries",
+      "Full commercial product & service catalogue",
+      "Direct B2B buyer messaging",
+      "Priority RFQ & high-value lead routing",
+      "4 Annual Chamber Summit & Networking delegate passes",
+      "Secretariat & Trade Advisory Desk",
+    ],
+  },
+  diamond: {
+    id: "diamond",
+    planId: "diamond",
+    name: "Diamond",
+    price: 50000,
+    priceUsd: 650,
+    durationYears: 25,
+    gstRate: 18,
+    category: "business",
+    displayOrder: 4,
+    isRecommended: false,
+    summary: "25-Year Prestige Chamber Patronage",
+    features: [
+      "All Platinum features included",
+      "25-Year Lifetime chamber patronage",
+      "Unlimited verified buyer lead enquiries",
+      "Full commercial product & service catalogue",
+      "Direct B2B buyer messaging",
+      "Priority RFQ & high-value lead routing",
+      "VIP Delegate passes for national & regional summits",
+      "Dedicated Secretariat Trade Advisory Desk",
+      "Global Chapter & International Network Access",
+      "Custom exhibition pavilion & sponsor showcase",
+    ],
+  },
+};
+
+/**
+ * Fallback defaults for Subscriber / Member Plans (Monthly)
+ */
+export const DEFAULT_USER_PLANS = {
+  tier_1: {
+    id: "tier_1",
+    planId: "tier_1",
+    name: "Tier I (Free)",
+    price: 0,
+    priceUsd: 0,
+    durationYears: 0,
+    durationMonths: 1,
+    gstRate: 0,
+    category: "user",
+    displayOrder: 5,
+    isRecommended: false,
+    summary: "Essential access to Rifah Connect directory and basic networking.",
+    features: [
+      "Directory listing on RIFAH Connect",
+      "Basic business presence",
+      "2 Inquiries/month",
+      "1 Lead unlock/month",
+    ],
+  },
+  tier_2: {
+    id: "tier_2",
+    planId: "tier_2",
+    name: "Tier II (Starter)",
+    price: 50,
+    priceUsd: 1,
+    durationYears: 0,
+    durationMonths: 1,
+    gstRate: 0,
+    category: "user",
+    displayOrder: 6,
+    isRecommended: false,
+    summary: "Starter monthly subscription with direct chat and post feeds.",
+    features: [
+      "5 Feed posts/month",
+      "5 Direct chats",
+      "10 Inquiries/month",
+      "5 Lead unlocks/month",
+      "5 Catalogue products",
+    ],
+  },
+  tier_3: {
+    id: "tier_3",
+    planId: "tier_3",
+    name: "Tier III (Growth)",
+    price: 100,
+    priceUsd: 2,
+    durationYears: 0,
+    durationMonths: 1,
+    gstRate: 0,
+    category: "user",
+    displayOrder: 7,
+    isRecommended: true,
+    summary: "Most popular monthly plan for active business lead generation.",
+    features: [
+      "10 Feed posts/month",
+      "15 Direct chats",
+      "30 Inquiries/month",
+      "15 Lead unlocks/month",
+      "10 Catalogue products",
+      "Featured business visibility",
+    ],
+  },
+  tier_4: {
+    id: "tier_4",
+    planId: "tier_4",
+    name: "Tier IV (Enterprise)",
+    price: 200,
+    priceUsd: 4,
+    durationYears: 0,
+    durationMonths: 1,
+    gstRate: 0,
+    category: "user",
+    displayOrder: 8,
+    isRecommended: false,
+    summary: "Complete scale for business teams with unlimited chats and leads.",
+    features: [
+      "20 Feed posts/month",
+      "Unlimited Direct chats",
+      "Unlimited Inquiries",
+      "Unlimited Lead unlocks",
+      "Unlimited Catalogue products",
+      "Featured business visibility",
+      "5 Team member seats",
+    ],
+  },
+};
+
+/**
  * ChamberMembershipTiers
  *
  * Renders official dynamic RIFAH membership cards
@@ -272,6 +525,8 @@ export function ChamberMembershipTiers({
   currentTier = "",
   plansData = null,
   currency = "INR",
+  defaultCategory = "business",
+  showCategoryToggle = true,
   onSelectPlan,
   showHeader = true,
   showFooter = true,
@@ -283,53 +538,163 @@ export function ChamberMembershipTiers({
   className,
 }) {
   const isIntl = currency === "USD";
+  const [selectedCategory, setSelectedCategory] = React.useState(defaultCategory || "business");
   const { data: fetchedPlansData } = useMembershipPlans();
   const effectivePlansData = plansData ?? fetchedPlansData;
   const hasTheory = Boolean(showTheory && (showSummary || showFeatures));
 
-  // Convert plansData map → ordered array using canonical rank and display order.
-  const plans = React.useMemo(() => {
-    const CANONICAL_ORDER = { silver: 1, gold: 2, platinum: 3, diamond: 4, free: 0, basic: 1, enterprise: 4 };
-    const source = Array.isArray(effectivePlansData)
-      ? effectivePlansData.map((plan) => ({ id: plan.id || plan.planId, ...plan }))
-      : Object.entries(effectivePlansData || {}).map(([id, plan]) => ({ id, ...plan }));
+  // Merge backend data with full fallback list to ensure all 8 plans are always accessible
+  const allMergedPlans = React.useMemo(() => {
+    const rawMap = {};
 
-    return source
-      .filter((plan) => plan.id && (showInactive ? true : plan.isActive !== false))
+    // 1. Seed fallback business tiers
+    Object.entries(DEFAULT_BUSINESS_PLANS).forEach(([key, plan]) => {
+      rawMap[key.toLowerCase()] = { ...plan };
+    });
+
+    // 2. Seed fallback user tiers
+    Object.entries(DEFAULT_USER_PLANS).forEach(([key, plan]) => {
+      rawMap[key.toLowerCase()] = { ...plan };
+    });
+
+    // 3. Override with live server data
+    if (effectivePlansData) {
+      const sourceList = Array.isArray(effectivePlansData)
+        ? effectivePlansData.map((p) => ({ id: p.id || p.planId, ...p }))
+        : Object.entries(effectivePlansData).map(([id, p]) => ({ id: p?.id || p?.planId || id, ...p }));
+
+      sourceList.forEach((p) => {
+        const idKey = String(p.id || p.planId || "").toLowerCase();
+        if (idKey) {
+          rawMap[idKey] = {
+            ...(rawMap[idKey] || {}),
+            ...p,
+            id: idKey,
+            planId: idKey,
+          };
+        }
+      });
+    }
+
+    return Object.values(rawMap);
+  }, [effectivePlansData]);
+
+  // Filter and sort plans based on active tab category
+  const filteredPlans = React.useMemo(() => {
+    const CANONICAL_ORDER = {
+      silver: 1,
+      gold: 2,
+      platinum: 3,
+      diamond: 4,
+      tier_1: 5,
+      tier_2: 6,
+      tier_3: 7,
+      tier_4: 8,
+      free: 0,
+      basic: 1,
+      premium: 3,
+      enterprise: 4,
+    };
+
+    return allMergedPlans
+      .filter((plan) => {
+        if (!plan.id) return false;
+        if (!showInactive && plan.isActive === false) return false;
+
+        const idKey = String(plan.id || "").toLowerCase();
+        // Exclude legacy "free", "basic", "premium", "enterprise" alias plans
+        if (["free", "basic", "premium", "enterprise"].includes(idKey)) return false;
+
+        const isUserTier = idKey.startsWith("tier_");
+
+        if (selectedCategory === "business") {
+          return !isUserTier;
+        }
+        if (selectedCategory === "user") {
+          return isUserTier;
+        }
+        return true;
+      })
       .sort((a, b) => {
         const idA = String(a.id || a.planId || a.name || "").toLowerCase();
         const idB = String(b.id || b.planId || b.name || "").toLowerCase();
-        const orderA = a.displayOrder !== undefined && a.displayOrder !== null && Number(a.displayOrder) > 0 ? Number(a.displayOrder) : (CANONICAL_ORDER[idA] ?? null);
-        const orderB = b.displayOrder !== undefined && b.displayOrder !== null && Number(b.displayOrder) > 0 ? Number(b.displayOrder) : (CANONICAL_ORDER[idB] ?? null);
-        if (orderA !== null && orderB !== null && orderA !== orderB) return orderA - orderB;
-        if (orderA !== null) return -1;
-        if (orderB !== null) return 1;
+        const orderA =
+          a.displayOrder !== undefined && a.displayOrder !== null && Number(a.displayOrder) > 0
+            ? Number(a.displayOrder)
+            : CANONICAL_ORDER[idA] ?? 99;
+        const orderB =
+          b.displayOrder !== undefined && b.displayOrder !== null && Number(b.displayOrder) > 0
+            ? Number(b.displayOrder)
+            : CANONICAL_ORDER[idB] ?? 99;
+        if (orderA !== orderB) return orderA - orderB;
         return (Number(a.price) || 0) - (Number(b.price) || 0);
       });
-  }, [effectivePlansData, showInactive]);
+  }, [allMergedPlans, selectedCategory, showInactive]);
 
   return (
     <div className={cn("w-full flex flex-col gap-6", className)}>
       {/* ── Header ─────────────────────────────────────────── */}
       {showHeader && (
-        <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-2xl bg-amber-100/90 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 shadow-2xs">
-            <Crown className="h-5 w-5 stroke-[2.2]" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-2xl bg-amber-100/90 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 shadow-2xs">
+              <Crown className="h-5 w-5 stroke-[2.2]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-foreground tracking-tight leading-tight">
+                RIFAH Membership &amp; Subscription Plans
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Select the right plan to match your business growth &amp; networking needs. Applicable taxes are shown for each plan.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground tracking-tight leading-tight">
-              Chamber Membership Tiers
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Select the right plan to match your business growth &amp; chamber networking needs. Applicable taxes are shown for each plan.
-            </p>
+        </div>
+      )}
+
+      {/* ── Category Switcher Tab Bar (Business Multi-Year vs Member Monthly) ── */}
+      {showCategoryToggle && (
+        <div className="flex items-center justify-center pt-1">
+          <div className="inline-flex items-center rounded-2xl border border-border/80 bg-muted/60 p-1.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("business")}
+              className={cn(
+                "flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+                selectedCategory === "business"
+                  ? "bg-white dark:bg-slate-900 text-foreground shadow-xs font-bold ring-1 ring-border/50"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Building2 className="h-4 w-4 text-amber-500" />
+              <span>Business Chamber Membership</span>
+              <span className="rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-300">
+                Multi-Year
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("user")}
+              className={cn(
+                "flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+                selectedCategory === "user"
+                  ? "bg-white dark:bg-slate-900 text-foreground shadow-xs font-bold ring-1 ring-border/50"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Shield className="h-4 w-4 text-blue-500" />
+              <span>Member / User Plans</span>
+              <span className="rounded-full bg-blue-100 dark:bg-blue-950/60 px-2 py-0.5 text-[10px] font-bold text-blue-800 dark:text-blue-300">
+                1 Month
+              </span>
+            </button>
           </div>
         </div>
       )}
 
       {/* ── Cards Grid ──────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 pt-6">
-        {plans.map((plan, index) => {
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 pt-3">
+        {filteredPlans.map((plan, index) => {
           const style = getPlanStyle(plan, index);
           const isRecommended = Boolean(plan.isRecommended ?? style.highlight);
           const isCurrent =
@@ -343,9 +708,15 @@ export function ChamberMembershipTiers({
           const gstRate = Number(plan.gstRate ?? 0);
           const gstAmt = !isIntl ? computeGst(plan.price, gstRate) : null;
 
-          // Duration label
-          const durationYears = Number(plan.durationYears) || 1;
-          const durationLabel = durationYears === 1 ? "1 Year Validity" : `${durationYears} Years Validity`;
+          // Duration label - user plans are strictly 1 month validity, chamber plans are multi-year
+          const isUserPlan = String(plan.id || "").toLowerCase().startsWith("tier_");
+          const durationYears = Number(plan.durationYears) || 0;
+          let durationLabel = style.durationLabel;
+          if (isUserPlan) {
+            durationLabel = "1 Month Validity";
+          } else if (durationYears > 0) {
+            durationLabel = durationYears === 1 ? "1 Year Validity" : `${durationYears} Years Validity`;
+          }
 
           // Button label
           const isActionSelect = Boolean(onSelectPlan);
@@ -424,14 +795,17 @@ export function ChamberMembershipTiers({
                   <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight whitespace-nowrap">
                     {displayPrice}
                   </span>
+                  {isUserPlan && plan.price > 0 && (
+                    <span className="text-xs text-muted-foreground font-semibold">/ mo</span>
+                  )}
                 </div>
 
                 {/* GST / Tax subtext */}
-                {!isIntl && gstAmt != null && plan.price > 0 ? (
+                {!isIntl && gstAmt != null && plan.price > 0 && !isUserPlan ? (
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 whitespace-nowrap">
                     + ₹{gstAmt.toLocaleString("en-IN")} GST ({gstRate}%)
                   </p>
-                ) : isIntl ? (
+                ) : isIntl && !isUserPlan && plan.price > 0 ? (
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 whitespace-nowrap">
                     + {gstRate}% Tax / GST
                   </p>
@@ -447,15 +821,15 @@ export function ChamberMembershipTiers({
                 {/* Plan features preview */}
                 {hasTheory && showFeatures && Array.isArray(plan.features) && plan.features.length > 0 && (
                   <ul className="mt-3.5 space-y-1.5 w-full text-left px-1">
-                    {plan.features.slice(0, 3).map((f, i) => (
+                    {plan.features.slice(0, 4).map((f, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                         <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
                         <span className="leading-tight line-clamp-1">{f}</span>
                       </li>
                     ))}
-                    {plan.features.length > 3 && (
+                    {plan.features.length > 4 && (
                       <li className="text-[11px] font-medium text-muted-foreground pl-5">
-                        +{plan.features.length - 3} more benefits
+                        +{plan.features.length - 4} more benefits
                       </li>
                     )}
                   </ul>

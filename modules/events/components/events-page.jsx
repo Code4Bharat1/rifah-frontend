@@ -31,6 +31,10 @@ function EventsPage() {
     if (tab === "Live") return status === "Live";
     if (tab === "Past" || tab === "Ended") return status === "Ended";
     return true;
+  }).sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return dateA - dateB;
   });
 
   return (
@@ -172,6 +176,22 @@ function EventsPage() {
                       );
                     })()}
                   </dl>
+                  {ev.totalSeats > 0 && (
+                    <div className="mt-4 pt-3 border-t border-border/40">
+                      <div className="flex justify-between items-center text-[10px] font-semibold mb-1.5 uppercase tracking-wide">
+                        <span className="text-muted-foreground">Seats Booked</span>
+                        <span className={ev.registeredCount >= ev.totalSeats ? "text-destructive" : "text-primary"}>
+                          {ev.registeredCount || 0} / {ev.totalSeats}
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted/80 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${ev.registeredCount >= ev.totalSeats ? 'bg-destructive' : 'bg-primary'}`} 
+                          style={{ width: `${Math.min(100, ((ev.registeredCount || 0) / ev.totalSeats) * 100)}%` }} 
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="mt-3 flex flex-1 flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {(() => {
@@ -200,14 +220,20 @@ function EventsPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {getEventStatus(ev) !== "Ended" && (
-                        <Button
-                          asChild
-                          size="sm"
-                          variant="default"
-                          className="rounded-xl h-8 px-3 text-xs shadow-sm cursor-pointer"
-                        >
-                          <span>Register</span>
-                        </Button>
+                        ev.totalSeats > 0 && (ev.registeredCount || 0) >= ev.totalSeats ? (
+                          <div className="flex items-center bg-destructive/10 text-destructive text-[10px] font-bold px-3 rounded-xl border border-destructive/20 h-8 shadow-sm">
+                            Seats Full
+                          </div>
+                        ) : (
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="default"
+                            className="rounded-xl h-8 px-3 text-xs shadow-sm cursor-pointer"
+                          >
+                            <span>Register</span>
+                          </Button>
+                        )
                       )}
                       <Button
                         type="button"

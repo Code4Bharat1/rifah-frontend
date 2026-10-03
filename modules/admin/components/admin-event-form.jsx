@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Image as ImageIcon, X, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, ArrowLeft, Image as ImageIcon, X, Check, ChevronsUpDown, Video, Sparkles, Copy, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import {
   Command,
@@ -99,7 +99,13 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [generatingMeet, setGeneratingMeet] = useState(false);
   const [errors, setErrors] = useState({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: statesData } = useStates();
   const { data: chaptersData } = useChapters();
@@ -167,6 +173,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     isPaid: false,
     ticketPrice: "",
     memberPrice: "",
+    totalSeats: "",
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -193,6 +200,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         date: initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : "",
         startTime: parsedTime.startTime,
         endTime: parsedTime.endTime,
+        totalSeats: initialData.totalSeats || "",
         scheduledDate: initialSchDate,
         scheduledTime: initialSchTime,
         eventCategory: initialData.eventCategory || "Meet",
@@ -261,6 +269,56 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       }
       return { ...prev, targetStates: [...withoutAll, state] };
     });
+  };
+
+  const autoGenerateMeet = async () => {
+    setGeneratingMeet(true);
+    try {
+      const res = await eventApi.generateMeetLink({
+        title: formData.title || "RIFAH Event Meeting",
+        description: formData.description || "",
+        date: formData.date || "",
+        startTime: formData.startTime || "10:00",
+        endTime: formData.endTime || "13:00",
+      });
+
+      const link = res?.data?.meetingLink || res?.meetingLink;
+      if (link) {
+        setFormData((prev) => ({ ...prev, meetingLink: link }));
+        toast.success("Google Meet link generated!");
+      }
+    } catch (err) {
+      console.error("Failed to generate Google Meet link:", err);
+      toast.error("Could not auto-generate link. You can enter one manually.");
+    } finally {
+      setGeneratingMeet(false);
+    }
+  };
+
+  const handleModeChange = async (val) => {
+    setFormData((prev) => ({ ...prev, mode: val }));
+    if ((val === "Online" || val === "Hybrid") && !formData.meetingLink) {
+      setGeneratingMeet(true);
+      try {
+        const res = await eventApi.generateMeetLink({
+          title: formData.title || "RIFAH Event Meeting",
+          description: formData.description || "",
+          date: formData.date || "",
+          startTime: formData.startTime || "10:00",
+          endTime: formData.endTime || "13:00",
+        });
+
+        const link = res?.data?.meetingLink || res?.meetingLink;
+        if (link) {
+          setFormData((prev) => ({ ...prev, mode: val, meetingLink: link }));
+          toast.success("Google Meet link auto-generated!");
+        }
+      } catch (err) {
+        console.error("Auto meet error:", err);
+      } finally {
+        setGeneratingMeet(false);
+      }
+    }
   };
 
   const formatTimeStr = (start, end) => {
@@ -474,7 +532,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="mode">Mode</Label>
-                <Select value={formData.mode} onValueChange={(val) => setFormData({ ...formData, mode: val })}>
+                <Select value={formData.mode} onValueChange={handleModeChange}>
                   <SelectTrigger id="mode">
                     <SelectValue />
                   </SelectTrigger>
@@ -487,13 +545,88 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               </div>
               {(formData.mode === "Online" || formData.mode === "Hybrid") && (
                 <div className="space-y-2">
-                  <Label htmlFor="meetingLink">Meeting Link (Google Meet, Zoom, etc.)</Label>
-                  <Input
-                    id="meetingLink"
-                    placeholder="https://meet.google.com/..."
-                    value={formData.meetingLink}
-                    onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
-                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="meetingLink" className="flex items-center gap-2 font-medium text-sm text-foreground whitespace-nowrap">
+                      <div className="h-6 w-6 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <Video className="h-3.5 w-3.5" />
+                      </div>
+                      <span>Meeting Link</span>
+                    </Label>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="h-7 text-xs px-2 gap-1 text-muted-foreground hover:text-foreground rounded-md font-normal"
+                        title="Create a new Google Meet room in a new tab"
+                      >
+                        <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3 w-3" />
+                          <span>New Meet</span>
+                        </a>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={autoGenerateMeet}
+                        disabled={generatingMeet}
+                        className="h-7 text-xs px-2.5 gap-1.5 border-emerald-500/25 text-emerald-700 dark:text-emerald-300 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-md font-medium transition-colors"
+                      >
+                        {generatingMeet ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin text-emerald-600" />
+                            <span>Generating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                            <span>{formData.meetingLink ? "Re-generate" : "Generate"}</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="relative flex items-center">
+                    <Input
+                      id="meetingLink"
+                      placeholder="https://meet.google.com/..."
+                      value={formData.meetingLink}
+                      onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
+                      className={`font-mono text-sm h-10 ${formData.meetingLink ? "pr-20" : ""} ${generatingMeet ? "opacity-60" : ""}`}
+                    />
+                    {formData.meetingLink && (
+                      <div className="absolute right-1.5 flex items-center gap-0.5 bg-background/80 backdrop-blur-sm px-1 py-0.5 rounded-md">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded text-muted-foreground hover:text-foreground"
+                          title="Copy meeting link"
+                          onClick={() => {
+                            navigator.clipboard.writeText(formData.meetingLink);
+                            toast.success("Meeting link copied to clipboard!");
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                        <div className="h-3.5 w-px bg-border my-auto" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded text-muted-foreground hover:text-emerald-600"
+                          title="Open link in new tab"
+                          asChild
+                        >
+                          <a href={formData.meetingLink} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
               <div className="space-y-2">
@@ -567,6 +700,18 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     <SelectItem value="Paid">Paid Event</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="totalSeats">Total Seats / Capacity</Label>
+                <Input
+                  id="totalSeats"
+                  type="number"
+                  min="0"
+                  value={formData.totalSeats}
+                  onChange={(e) => setFormData({ ...formData, totalSeats: e.target.value ? Number(e.target.value) : "" })}
+                  placeholder="e.g. 100 (0 for unlimited)"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1 font-medium">Leave 0 if seats are unlimited.</p>
               </div>
               {formData.isPaid && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-full border border-border rounded-xl p-5 bg-muted/10 shadow-sm relative overflow-hidden">
@@ -673,7 +818,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     }}
                     className="max-w-xs"
                   />
-                  <p className="text-[11px] text-muted-foreground">Recommended: 1200×630px, max 5MB</p>
+                  <p className="text-[11px] text-muted-foreground">Recommended: 1900×301px, max 5MB</p>
                 </div>
               </div>
             </div>
@@ -756,7 +901,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
 
 
 
-            {isCentralAdmin && (
+            {mounted && isCentralAdmin && (
               <div className="space-y-3 pt-6 border-t">
                 <div>
                   <Label className="text-base">Target States</Label>
@@ -775,7 +920,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               </div>
             )}
 
-            {!["chapter_admin"].includes(user?.role) && (
+            {mounted && !["chapter_admin"].includes(user?.role) && (
               <div className="space-y-3 pt-6 border-t">
                 <div>
                   <Label className="text-base">Target Chapters</Label>
@@ -825,6 +970,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   />
                   {errors.scheduledTime && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.scheduledTime}</p>}
                 </div>
+              </div>
+
+              <div className="pt-6 mt-2 border-t flex justify-end gap-3">
                 <Button 
                   variant="outline" 
                   onClick={() => handleSave("Scheduled")} 
@@ -833,15 +981,12 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 >
                   {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : "Schedule Event"}
                 </Button>
-              </div>
-
-              <div className="pt-6 mt-2 border-t flex justify-end gap-3">
                 <Button 
                   onClick={() => handleSave("Upcoming")} 
                   disabled={loading || savingDraft}
                   className="w-48 bg-primary"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isCentralAdmin ? "Publish Now & Broadcast" : "Submit for Approval")}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (mounted && isCentralAdmin ? "Publish Now & Broadcast" : "Submit for Approval")}
                 </Button>
               </div>
             </div>
