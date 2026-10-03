@@ -172,6 +172,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     isPaid: false,
     ticketPrice: "",
     memberPrice: "",
+    totalSeats: "",
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -198,6 +199,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         date: initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : "",
         startTime: parsedTime.startTime,
         endTime: parsedTime.endTime,
+        totalSeats: initialData.totalSeats || "",
         scheduledDate: initialSchDate,
         scheduledTime: initialSchTime,
         eventCategory: initialData.eventCategory || "Meet",
@@ -572,6 +574,18 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     <SelectItem value="Paid">Paid Event</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="totalSeats">Total Seats / Capacity</Label>
+                <Input
+                  id="totalSeats"
+                  type="number"
+                  min="0"
+                  value={formData.totalSeats}
+                  onChange={(e) => setFormData({ ...formData, totalSeats: e.target.value ? Number(e.target.value) : "" })}
+                  placeholder="e.g. 100 (0 for unlimited)"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1 font-medium">Leave 0 if seats are unlimited.</p>
               </div>
               {formData.isPaid && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-full border border-border rounded-xl p-5 bg-muted/10 shadow-sm relative overflow-hidden">
