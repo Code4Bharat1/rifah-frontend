@@ -1,6 +1,7 @@
 "use client";
 import { Megaphone, Send, Loader2, Bell } from "lucide-react";
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -89,17 +90,37 @@ function formatEventDate(val) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function AdminNotifications() {
+function AdminNotifications({ expectedRole }) {
+  const pathname = usePathname();
+  const routeRole =
+    expectedRole ||
+    (pathname?.startsWith("/state-admin")
+      ? "state_admin"
+      : pathname?.startsWith("/chapter-admin")
+      ? "chapter_admin"
+      : pathname?.startsWith("/admin")
+      ? "admin"
+      : null);
+
   const { user } = useAuth();
-  const role = user?.role === "chapter_admin" ? "chapter_admin" : user?.role === "state_admin" ? "state_admin" : "admin";
+  const role = routeRole || (user?.role === "chapter_admin" ? "chapter_admin" : user?.role === "state_admin" ? "state_admin" : "admin");
 
   const isCentralAdmin = role === "admin";
   const isStateAdmin = role === "state_admin";
   const isChapterAdmin = role === "chapter_admin";
 
   const [audience, setAudience] = useState("all");
-  const [targetStates, setTargetStates] = useState(isStateAdmin && user?.state ? [user.state] : []);
-  const [targetChapters, setTargetChapters] = useState(isChapterAdmin && user?.chapter ? [user.chapter] : []);
+  const [targetStates, setTargetStates] = useState([]);
+  const [targetChapters, setTargetChapters] = useState([]);
+
+  useEffect(() => {
+    if (isStateAdmin && user?.state && targetStates.length === 0) {
+      setTargetStates([user.state]);
+    }
+    if (isChapterAdmin && user?.chapter && targetChapters.length === 0) {
+      setTargetChapters([user.chapter]);
+    }
+  }, [isStateAdmin, isChapterAdmin, user?.state, user?.chapter]);
 
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");

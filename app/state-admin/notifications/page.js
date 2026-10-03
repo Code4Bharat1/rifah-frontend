@@ -6,5 +6,6 @@ export const metadata = {
 };
 
 export default function StateAdminNotificationsPage(props) {
-  return <AdminNotifications {...props} />;
+  return <AdminNotifications expectedRole="state_admin" {...props} />;
 }
+

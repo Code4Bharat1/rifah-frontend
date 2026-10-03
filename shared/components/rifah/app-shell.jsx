@@ -90,6 +90,7 @@ const navs = {
       { label: "Networking", to: "/biz/networking", icon: Handshake },
       { label: "Power Networking", to: "/biz/power-networking", icon: Zap },
       { label: "Messages", to: "/biz/messages", icon: MessageSquare },
+      { label: "Advertisements", to: "/biz/advertisements", icon: Megaphone },
       { label: "Events", to: "/biz/events", icon: CalendarDays },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
       { label: "My Profile", to: "/biz/profile", icon: UserRound },
@@ -102,7 +103,7 @@ const navs = {
     title: "RIFAH Central Administration",
     primary: [
       { label: "Dashboard", to: "/admin", icon: Gauge },
-      { label: "Operations Center", to: "/admin/operations", icon: Radio },
+      { label: "Event Operations", to: "/admin/operations", icon: Radio },
       { label: "Businesses", to: "/admin/businesses", icon: Building2 },
       { label: "Enquiries", to: "/admin/enquiries", icon: FileStack },
       { label: "Users", to: "/admin/users", icon: Users },
@@ -113,6 +114,7 @@ const navs = {
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
       { label: "Memberships", to: "/admin/memberships", icon: Star },
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
+      { label: "Advertisements", to: "/admin/advertisements", icon: Megaphone },
       { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
       { label: "States", to: "/admin/states", icon: MapPin },
       { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
@@ -135,10 +137,11 @@ const roleNavs = {
     title: "Chapter admin",
     primary: [
       { label: "Dashboard", to: "/chapter-admin", icon: Gauge },
-      { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
+      { label: "Event Operations", to: "/chapter-admin/operations", icon: Radio },
       { label: "Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
+      { label: "Advertisements", to: "/chapter-admin/advertisements", icon: Megaphone },
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
       { label: "Queries", to: "/chapter-admin/queries", icon: MessageSquareText },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
@@ -159,10 +162,11 @@ const roleNavs = {
     title: "State admin",
     primary: [
       { label: "Dashboard", to: "/state-admin", icon: Gauge },
-      { label: "Operations Center", to: "/state-admin/operations", icon: Radio },
+      { label: "Event Operations", to: "/state-admin/operations", icon: Radio },
       { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
       { label: "Members", to: "/state-admin/members", icon: Users },
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
+      { label: "Advertisements", to: "/state-admin/advertisements", icon: Megaphone },
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
@@ -201,22 +205,24 @@ function useResolvedNav(role) {
   const { user } = useAuth();
   const pathname = usePathname();
 
-  // 1. Explicit path overrides for dedicated admin panels
-  if (pathname?.startsWith("/chapter-admin")) {
+  // 1. Explicit path and role overrides for dedicated panels (deterministic on both SSR & client)
+  if (pathname?.startsWith("/biz") || role === "business" || role === "business_owner") {
+    return navs.business;
+  }
+  if (pathname?.startsWith("/chapter-admin") || role === "chapter" || role === "chapter_admin") {
     return roleNavs.chapter_admin;
   }
-  if (pathname?.startsWith("/state-admin")) {
+  if (pathname?.startsWith("/state-admin") || role === "state" || role === "state_admin") {
     return roleNavs.state_admin;
   }
-  if (pathname?.startsWith("/admin")) {
-    // If a business user hits /admin, show business workspace
+  if (pathname?.startsWith("/admin") || role === "admin" || role === "central_admin") {
     if (user && (user.role === "business_owner" || user.role === "customer")) {
       return navs.business;
     }
     return navs.admin;
   }
 
-  // 2. Strict Role Segregation based on authenticated user's role
+  // 2. Strict Role Segregation based on authenticated user's role (for non-prefixed routes like /)
   const userRole = user?.role;
   if (userRole === "business_owner" || userRole === "customer" || userRole === "business") {
     return navs.business;
@@ -228,23 +234,6 @@ function useResolvedNav(role) {
     return roleNavs.state_admin;
   }
   if (userRole === "central_admin") {
-    if (role === "business" && pathname === "/biz") {
-      return navs.business;
-    }
-    return navs.admin;
-  }
-
-  // 3. Fallback based on passed role prop or current route
-  if (role === "business" || role === "business_owner" || pathname?.startsWith("/biz")) {
-    return navs.business;
-  }
-  if (role === "chapter_admin" || pathname?.startsWith("/chapter-admin")) {
-    return roleNavs.chapter_admin;
-  }
-  if (role === "state_admin" || pathname?.startsWith("/state-admin")) {
-    return roleNavs.state_admin;
-  }
-  if (role === "admin" || role === "central_admin" || pathname?.startsWith("/admin")) {
     return navs.admin;
   }
 
@@ -253,9 +242,25 @@ function useResolvedNav(role) {
 
 function toRoleAwarePath(path, role, user) {
   // If the user is currently within an Admin shell (Central, State, or Chapter), preserve their admin routes!
-  if (role === "admin" || role === "state" || role === "chapter") {
+  if (
+    role === "admin" ||
+    role === "state" ||
+    role === "chapter" ||
+    role === "state_admin" ||
+    role === "chapter_admin" ||
+    role === "central_admin"
+  ) {
     return path;
   }
+
+  // If in business shell, deterministically keep business paths across SSR & client
+  if (role === "business" || role === "business_owner" || role === "customer") {
+    if (path.startsWith("/admin/notifications")) return "/biz/notifications";
+    if (path.startsWith("/admin/messages")) return "/biz/messages";
+    if (path.startsWith("/admin/")) return path.replace(/^\/admin/, "/biz");
+    return path;
+  }
+
   const effectiveRole = user?.role || role;
   if (effectiveRole === "business_owner" || effectiveRole === "customer" || effectiveRole === "business") {
     if (path.startsWith("/admin/notifications")) return "/biz/notifications";
@@ -307,10 +312,13 @@ function isAccessibleUnverifiedPath(pathname) {
     clean.startsWith("/biz/operations/") ||
     clean === "/biz/messages" ||
     clean.startsWith("/biz/messages/") ||
+    clean === "/biz/advertisements" ||
+    clean.startsWith("/biz/advertisements/") ||
     clean === "/biz/my-duty" ||
     clean.startsWith("/biz/my-duty/")
   );
 }
+
 
 function useCurrentPath() {
   return usePathname();
@@ -882,7 +890,15 @@ export function AppShell({
               </Button>
               <Button asChild variant="ghost" size="icon" className="relative">
                 <Link
-                  href={toRoleAwarePath(role === "admin" ? "/admin/notifications" : "/biz/notifications", role, effectiveUser)}
+                  href={
+                    path?.startsWith("/state-admin") || role === "state_admin" || role === "state"
+                      ? "/state-admin/notifications"
+                      : path?.startsWith("/chapter-admin") || role === "chapter_admin" || role === "chapter"
+                      ? "/chapter-admin/notifications"
+                      : path?.startsWith("/admin") || role === "admin" || role === "central_admin"
+                      ? "/admin/notifications"
+                      : "/biz/notifications"
+                  }
                   aria-label="Notifications"
                 >
                   <Bell className="h-4 w-4 sm:h-5 sm:w-5" />

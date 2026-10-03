@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -15,7 +15,15 @@ import {
   Sparkles,
   AlertTriangle,
   ChevronDown,
-  Loader2
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  X,
+  Megaphone,
+  ExternalLink,
+  Globe,
+  MapPin,
+  Building2,
 } from "lucide-react";
 
 import {
@@ -36,6 +44,7 @@ import { MoreLink, Panel, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Progress } from "@shared/components/ui/progress";
 import { cn } from "@shared/lib/utils";
+import { resolveMediaUrl } from "@shared/lib/media";
 import {
   useMyBusiness,
   useMyLeads,
@@ -45,7 +54,9 @@ import {
   useConversations,
   useNotifications,
   useBusinessReviews,
+  useActiveAdvertisement,
 } from "@shared/hooks/use-rifah-api";
+import { useAuth } from "@shared/providers/auth-provider";
 
 function safeText(val, fallback = "") {
   if (!val) return fallback;
@@ -58,6 +69,276 @@ function safeText(val, fallback = "") {
     return fallback;
   }
   return fallback;
+}
+
+function ActiveAdCarousel() {
+  const { user } = useAuth();
+  const { data: adsRaw, isLoading } = useActiveAdvertisement();
+  const [dismissedIds, setDismissedIds] = useState(() => new Set());
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const rawList = Array.isArray(adsRaw) ? adsRaw : (adsRaw ? [adsRaw] : []);
+
+  // Clean up any legacy persistent localStorage dismissals so refreshing shows the ad again
+  useEffect(() => {
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("rifah_dismissed_ad_")) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  const visibleAds = rawList.filter((ad) => ad?._id && !dismissedIds.has(String(ad._id)));
+
+  // Auto-scroll carousel every 6 seconds if multiple ads exist and not paused
+  useEffect(() => {
+    if (visibleAds.length <= 1 || isPaused) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % visibleAds.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [visibleAds.length, isPaused]);
+
+  if (isLoading || visibleAds.length === 0) return null;
+
+  const safeIndex = currentIndex >= visibleAds.length ? 0 : currentIndex;
+  const activeAd = visibleAds[safeIndex];
+  if (!activeAd) return null;
+
+  const bannerImg = activeAd.bannerImage ? resolveMediaUrl(activeAd.bannerImage) : null;
+  const targetUrl = activeAd.linkUrl || (activeAd.businessId?.slug ? `/business/${activeAd.businessId.slug}` : activeAd.businessId?._id ? `/business/${activeAd.businessId._id}` : null);
+
+  const handleDismiss = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Dismiss temporarily for this session/view. Refreshing the website will show the ad again.
+    setDismissedIds((prev) => new Set([...prev, String(activeAd._id)]));
+    if (safeIndex >= visibleAds.length - 1) {
+      setCurrentIndex(0);
+    }
+  };
+
+  const handlePrev = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + visibleAds.length) % visibleAds.length);
+  };
+
+  const handleNext = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % visibleAds.length);
+  };
+
+  const scope = activeAd.targetScope || "chapter";
+
+  // Clean, professional theme styling per scope (no glassmorphism)
+  const theme =
+    scope === "global"
+      ? {
+          topStripe: "from-blue-600 via-indigo-600 to-sky-500",
+          badgeBg: "bg-indigo-600 text-white border-indigo-700",
+          dot: "bg-indigo-600",
+          icon: Globe,
+          label: "Global Spotlight",
+          ctaBtn: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs",
+        }
+      : scope === "state"
+      ? {
+          topStripe: "from-amber-500 via-amber-600 to-orange-500",
+          badgeBg: "bg-amber-600 text-white border-amber-700",
+          dot: "bg-amber-600",
+          icon: MapPin,
+          label: `Statewide • ${activeAd.state || "State"}`,
+          ctaBtn: "bg-amber-600 hover:bg-amber-700 text-white shadow-xs",
+        }
+      : {
+          topStripe: "from-emerald-500 via-teal-600 to-emerald-600",
+          badgeBg: "bg-emerald-600 text-white border-emerald-700",
+          dot: "bg-emerald-600",
+          icon: MapPin,
+          label: `Chapter • ${activeAd.chapterName || "Local"}`,
+          ctaBtn: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs",
+        };
+
+  const ScopeIcon = theme.icon;
+
+  return (
+    <div
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xs transition-all duration-300"
+    >
+      {/* Refined Top Accent Gradient Stripe */}
+      <div className={cn("absolute top-0 inset-x-0 h-[2.5px] bg-gradient-to-r", theme.topStripe)} />
+
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-col md:flex-row items-stretch gap-4 md:gap-5">
+          {/* Left Media Showcase Frame */}
+          {bannerImg ? (
+            <div className="relative w-full md:w-56 lg:w-64 aspect-[16/10] shrink-0 rounded-xl overflow-hidden bg-muted border border-border/60 shadow-2xs group-hover:border-primary/40 transition-colors">
+              <img
+                src={bannerImg}
+                alt={activeAd.title || "Advertisement"}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute bottom-2 left-2 flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 rounded-md bg-black/85 text-white px-2 py-0.5 text-[10px] font-bold shadow-xs">
+                  <Sparkles className="h-2.5 w-2.5 text-amber-400" />
+                  <span>Showcase</span>
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="relative w-full md:w-56 lg:w-64 aspect-[16/10] shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-primary/10 via-muted to-muted/60 border border-border/60 shadow-2xs flex flex-col items-center justify-center p-3 text-center">
+              <Building2 className="h-7 w-7 text-primary/70 mb-1" />
+              <span className="text-xs font-bold text-foreground line-clamp-1">{activeAd.businessName}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Verified Member</span>
+            </div>
+          )}
+
+          {/* Right Content Column */}
+          <div className="flex-1 min-w-0 flex flex-col justify-between space-y-3">
+            {/* Top Row: Scope Badge, Business Name, Controls */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                {/* Scope Badge */}
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-2xs",
+                    theme.badgeBg
+                  )}
+                >
+                  <ScopeIcon className="h-3 w-3 shrink-0" />
+                  <span>{theme.label}</span>
+                </span>
+
+                {/* Business Info */}
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-foreground truncate">
+                  <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="truncate">{activeAd.businessName}</span>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                </div>
+
+                {activeAd.chapterName && scope !== "chapter" && (
+                  <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline">
+                    • {activeAd.chapterName}
+                  </span>
+                )}
+              </div>
+
+              {/* Controls: Prev/Next & Close */}
+              <div className="flex items-center gap-1 shrink-0">
+                {visibleAds.length > 1 && (
+                  <div className="flex items-center gap-0.5 border border-border/60 rounded-lg p-0.5 bg-muted/40">
+                    <button
+                      type="button"
+                      onClick={handlePrev}
+                      className="grid h-6 w-6 place-items-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                      title="Previous ad"
+                      aria-label="Previous advertisement"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="text-[10px] font-bold text-muted-foreground px-1 select-none">
+                      {safeIndex + 1}/{visibleAds.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      className="grid h-6 w-6 place-items-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                      title="Next ad"
+                      aria-label="Next advertisement"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleDismiss}
+                  title="Hide for this session"
+                  aria-label="Hide advertisement"
+                  className="grid h-7 w-7 place-items-center rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Middle: Title & Description */}
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+                {activeAd.title}
+              </h3>
+              {activeAd.description && (
+                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed font-normal">
+                  {activeAd.description}
+                </p>
+              )}
+            </div>
+
+            {/* Bottom Row: Actions & Navigation Indicator */}
+            <div className="pt-0.5 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
+                {targetUrl && (
+                  <Button
+                    asChild
+                    size="sm"
+                    className={cn(
+                      "rounded-lg font-semibold shadow-xs text-xs h-8 px-3.5 transition-all duration-200",
+                      theme.ctaBtn
+                    )}
+                  >
+                    <Link
+                      href={targetUrl}
+                      target={targetUrl.startsWith("http") ? "_blank" : undefined}
+                      rel="noopener noreferrer"
+                    >
+                      <span>Explore Showcase</span>
+                      <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                )}
+                <Link
+                  href="/biz/advertisements"
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
+                >
+                  <Megaphone className="h-3 w-3" />
+                  <span>Advertise your enterprise →</span>
+                </Link>
+              </div>
+
+              {/* Pagination Dots */}
+              {visibleAds.length > 1 && (
+                <div className="flex items-center gap-1 border border-border/50 bg-muted/40 rounded-full px-2 py-1">
+                  {visibleAds.map((ad, idx) => (
+                    <button
+                      key={ad._id}
+                      onClick={() => setCurrentIndex(idx)}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-200 cursor-pointer",
+                        idx === safeIndex
+                          ? cn("w-4", theme.dot)
+                          : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                      )}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function BusinessHome() {
@@ -285,6 +566,9 @@ function BusinessHome() {
       </AlertDialog>
 
       <div className="space-y-4">
+        {/* Live Multi-Scope Platform Advertisement Carousel */}
+        <ActiveAdCarousel />
+
         {/* Dynamic Verification Status Banners */}
         {(() => {
           if (loadingBusiness || !business) return null;

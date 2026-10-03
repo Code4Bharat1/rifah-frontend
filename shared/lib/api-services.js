@@ -256,6 +256,9 @@ export const announcementApi = {
 export const eventApi = {
   list: (params = {}) => apiClient(`/events${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/events/detail/${idOrSlug}`),
+  generateMeetLink: (data = {}) =>
+    apiClient("/events/generate-meet", { method: "POST", body: JSON.stringify(data) }),
+  getGoogleMeetAuthUrl: () => apiClient("/events/google/auth-url"),
   register: (id) => apiClient(`/events/${id}/register`, { method: "POST", body: JSON.stringify({}) }),
   registerPaid: (id, data) => apiClient(`/events/${id}/register-paid`, { method: "POST", body: JSON.stringify(data) }),
   markAttendance: (id) => apiClient(`/events/${id}/attend`, { method: "POST", body: JSON.stringify({}) }),
@@ -535,3 +538,20 @@ export const copilotApi = {
     }),
   getSuggestions: () => apiClient("/copilot/suggestions"),
 };
+
+export const advertisementApi = {
+  getActive: () => apiClient("/advertisements/active"),
+  getCalendar: (params = {}) => apiClient(`/advertisements/calendar${toQueryString(params)}`),
+  getMy: (params = {}) => apiClient(`/advertisements/my${toQueryString(params)}`),
+  create: (formDataOrData) => {
+    if (typeof FormData !== "undefined" && formDataOrData instanceof FormData) {
+      return apiClient("/advertisements", { method: "POST", body: formDataOrData });
+    }
+    return apiClient("/advertisements", { method: "POST", body: JSON.stringify(formDataOrData) });
+  },
+  getChapterAds: (params = {}) => apiClient(`/advertisements/chapter-admin${toQueryString(params)}`),
+  getAdminList: (params = {}) => apiClient(`/advertisements/admin/list${toQueryString(params)}`),
+  review: (id, data) => apiClient(`/advertisements/${id}/review`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/advertisements/${id}`, { method: "DELETE" }),
+};
+

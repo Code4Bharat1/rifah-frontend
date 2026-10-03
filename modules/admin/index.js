@@ -18,3 +18,9 @@ export { AdminUnits } from "./components/admin-units.jsx";
 export { AdminUsers } from "./components/admin-users.jsx";
 export { AdminVerification } from "./components/admin-verification.jsx";
 export { AdminAnnouncements } from "./components/admin-announcements.jsx";
+export {
+  AdminAdvertisementsDesk,
+  ChapterAdminAdvertisements,
+  StateAdminAdvertisements,
+  CentralAdminAdvertisements,
+} from "./components/chapter-admin-advertisements.jsx";

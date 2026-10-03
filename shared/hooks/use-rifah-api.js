@@ -32,6 +32,7 @@ import {
   anniversaryApi,
   powerNetworkingApi,
   postsApi,
+  advertisementApi,
 } from "../lib/api-services";
 import { useAuth } from "../providers/auth-provider";
 
@@ -903,6 +904,108 @@ export function useDeletePost() {
     mutationFn: (id) => postsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+}
+
+// ==================== ADVERTISEMENT HOOKS ====================
+
+export function useActiveAdvertisement() {
+  return useQuery({
+    queryKey: ["advertisement-active"],
+    queryFn: async () => {
+      try {
+        const res = await advertisementApi.getActive();
+        const data = res?.data ?? res;
+        return Array.isArray(data) ? data : (data ? [data] : []);
+      } catch (err) {
+        return [];
+      }
+    },
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useMyAdvertisements(params = {}) {
+  return useQuery({
+    queryKey: ["my-advertisements", params],
+    queryFn: async () => {
+      const res = await advertisementApi.getMy(params);
+      return res?.data || res || [];
+    },
+  });
+}
+
+export function useAdvertisementCalendar(params = {}) {
+  return useQuery({
+    queryKey: ["advertisement-calendar", params],
+    queryFn: async () => {
+      const res = await advertisementApi.getCalendar(params);
+      return res?.data || res || [];
+    },
+  });
+}
+
+export function useChapterAdvertisements(params = {}) {
+  return useQuery({
+    queryKey: ["chapter-advertisements", params],
+    queryFn: async () => {
+      const res = await advertisementApi.getChapterAds(params);
+      return res?.data || res || [];
+    },
+  });
+}
+
+export function useAdminAdvertisements(params = {}) {
+  return useQuery({
+    queryKey: ["admin-advertisements", params],
+    queryFn: async () => {
+      const res = await advertisementApi.getAdminList(params);
+      return res?.data || res || [];
+    },
+  });
+}
+
+export function useCreateAdvertisement() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => advertisementApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-advertisements"] });
+      queryClient.invalidateQueries({ queryKey: ["advertisement-calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["advertisement-active"] });
+      queryClient.invalidateQueries({ queryKey: ["chapter-advertisements"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-advertisements"] });
+    },
+  });
+}
+
+export function useReviewAdvertisement() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }) => advertisementApi.review(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chapter-advertisements"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-advertisements"] });
+      queryClient.invalidateQueries({ queryKey: ["advertisement-active"] });
+      queryClient.invalidateQueries({ queryKey: ["advertisement-calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["my-advertisements"] });
+    },
+  });
+}
+
+export function useDeleteAdvertisement() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => advertisementApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-advertisements"] });
+      queryClient.invalidateQueries({ queryKey: ["chapter-advertisements"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-advertisements"] });
+      queryClient.invalidateQueries({ queryKey: ["advertisement-active"] });
+      queryClient.invalidateQueries({ queryKey: ["advertisement-calendar"] });
     },
   });
 }
