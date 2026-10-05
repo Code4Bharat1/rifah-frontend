@@ -32,6 +32,11 @@ export function CustomerProfile() {
   const router = useRouter();
   const { user, loading: authLoading, refreshProfile } = useAuth();
   const fileInputRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -175,8 +180,8 @@ export function CustomerProfile() {
     }
   };
 
-  const avatarUrl = user?.avatar ? resolveMediaUrl(user.avatar) : null;
-  const userInitials = (user?.name || "Customer")
+  const avatarUrl = mounted && user?.avatar ? resolveMediaUrl(user.avatar) : null;
+  const userInitials = (mounted && user?.name ? user.name : "Customer")
     .split(" ")
     .map((n) => n[0])
     .filter(Boolean)
@@ -206,16 +211,22 @@ export function CustomerProfile() {
           <div className="flex flex-col sm:flex-row items-center sm:items-center gap-5">
             {/* Avatar Preview */}
             <div className="relative group shrink-0">
-              <div className="h-20 w-20 sm:h-22 sm:w-22 rounded-full overflow-hidden border-2 border-border shadow-xs bg-muted/50 flex items-center justify-center">
-                {avatarUrl ? (
+              <div
+                suppressHydrationWarning
+                className="h-20 w-20 sm:h-22 sm:w-22 rounded-full overflow-hidden border-2 border-border shadow-xs bg-muted/50 flex items-center justify-center"
+              >
+                {mounted && avatarUrl ? (
                   <img
                     src={avatarUrl}
                     alt={user?.name || "Customer"}
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="h-full w-full rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white font-bold text-xl sm:text-2xl shadow-inner">
-                    {userInitials}
+                  <div
+                    suppressHydrationWarning
+                    className="h-full w-full rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white font-bold text-xl sm:text-2xl shadow-inner"
+                  >
+                    {mounted ? userInitials : "C"}
                   </div>
                 )}
               </div>
@@ -265,7 +276,7 @@ export function CustomerProfile() {
                   )}
                 </Button>
 
-                {avatarUrl && (
+                {mounted && avatarUrl && (
                   <Button
                     type="button"
                     size="sm"
