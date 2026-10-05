@@ -1916,13 +1916,25 @@ function BizMembership() {
                         : `Publish up to ${activeSubscriberModel.features.feed_posting} posts per month.`}
                     </p>
                   </div>
-                  <Link
-                    href="/biz/feeds"
-                    className="mt-3 text-xs font-bold text-primary hover:underline flex items-center gap-1 pt-2 border-t border-border/60"
-                  >
-                    <span>Open Community Feed</span>
-                    <ChevronRight className="h-3 w-3" />
-                  </Link>
+                  {activeSubscriberModel.features.feed_posting === "None" ? (
+                    <button
+                      type="button"
+                      onClick={() => setUpgradeDialogOpen(true)}
+                      className="mt-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1.5 pt-2 border-t border-border/60 text-left cursor-pointer"
+                    >
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>Upgrade to Post</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </button>
+                  ) : (
+                    <Link
+                      href="/biz/feeds"
+                      className="mt-3 text-xs font-bold text-primary hover:underline flex items-center gap-1 pt-2 border-t border-border/60"
+                    >
+                      <span>Open Community Feed</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </div>
 
                 {/* 3. Enquiry Posting */}
@@ -1998,13 +2010,25 @@ function BizMembership() {
                         : "Engage in direct 1-to-1 supplier conversations and industry groups."}
                     </p>
                   </div>
-                  <Link
-                    href="/biz/messages"
-                    className="mt-3 text-xs font-bold text-primary hover:underline flex items-center gap-1 pt-2 border-t border-border/60"
-                  >
-                    <span>Open Messages</span>
-                    <ChevronRight className="h-3 w-3" />
-                  </Link>
+                  {activeSubscriberModel.features.chat === "None" ? (
+                    <button
+                      type="button"
+                      onClick={() => setUpgradeDialogOpen(true)}
+                      className="mt-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1.5 pt-2 border-t border-border/60 text-left cursor-pointer"
+                    >
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>Upgrade to Chat</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </button>
+                  ) : (
+                    <Link
+                      href="/biz/messages"
+                      className="mt-3 text-xs font-bold text-primary hover:underline flex items-center gap-1 pt-2 border-t border-border/60"
+                    >
+                      <span>Open Messages</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </div>
 
                 {/* 6. Quotation Posting + Chat */}
@@ -2030,13 +2054,25 @@ function BizMembership() {
                         : `Submit up to ${activeSubscriberModel.features.quotation_chat} formal quotations with chat.`}
                     </p>
                   </div>
-                  <Link
-                    href="/biz/leads"
-                    className="mt-3 text-xs font-bold text-primary hover:underline flex items-center gap-1 pt-2 border-t border-border/60"
-                  >
-                    <span>View RFPs</span>
-                    <ChevronRight className="h-3 w-3" />
-                  </Link>
+                  {activeSubscriberModel.features.quotation_chat === "None" ? (
+                    <button
+                      type="button"
+                      onClick={() => setUpgradeDialogOpen(true)}
+                      className="mt-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1.5 pt-2 border-t border-border/60 text-left cursor-pointer"
+                    >
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>Upgrade for RFPs</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </button>
+                  ) : (
+                    <Link
+                      href="/biz/leads"
+                      className="mt-3 text-xs font-bold text-primary hover:underline flex items-center gap-1 pt-2 border-t border-border/60"
+                    >
+                      <span>View RFPs</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </div>
 
                 {/* 7. 1-to-1 Meetings */}
@@ -2062,13 +2098,25 @@ function BizMembership() {
                         : `Schedule up to ${activeSubscriberModel.features.meeting_request} 1-to-1 business meetings.`}
                     </p>
                   </div>
-                  <Link
-                    href="/biz/networking"
-                    className="mt-3 text-xs font-bold text-primary hover:underline flex items-center gap-1 pt-2 border-t border-border/60"
-                  >
-                    <span>Networking Hub</span>
-                    <ChevronRight className="h-3 w-3" />
-                  </Link>
+                  {activeSubscriberModel.features.meeting_request === "None" ? (
+                    <button
+                      type="button"
+                      onClick={() => setUpgradeDialogOpen(true)}
+                      className="mt-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1.5 pt-2 border-t border-border/60 text-left cursor-pointer"
+                    >
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>Upgrade for 1-to-1 Meetings</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </button>
+                  ) : (
+                    <Link
+                      href="/biz/networking"
+                      className="mt-3 text-xs font-bold text-primary hover:underline flex items-center gap-1 pt-2 border-t border-border/60"
+                    >
+                      <span>Networking Hub</span>
+                      <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </div>
 
                 {/* 8. Event Announcements & Notifications */}
@@ -3916,17 +3964,7 @@ function BizMembership() {
         </DialogContent>
       </Dialog>
 
-      {/* Explore All Plans / Upgrade Modal */}
-      <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
-        <DialogContent className="w-[96vw] sm:max-w-5xl xl:max-w-6xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-border bg-card shadow-2xl">
-          <ChamberMembershipTiers
-            currentTier={currentTier}
-            plansData={plansData}
-            currency="INR"
-            showHeader={true}
-          />
-        </DialogContent>
-      </Dialog>
+
 
       {/* Billing Details Modal */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -4077,6 +4115,43 @@ function BizMembership() {
               className="rounded-xl text-xs"
             >
               Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Upgrade / Compare Plans Modal ── */}
+      <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+        <DialogContent className="w-[96vw] sm:max-w-6xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-border bg-card shadow-2xl">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-xl sm:text-2xl font-extrabold flex items-center gap-2">
+              <Crown className="h-6 w-6 text-amber-500" />
+              <span>Choose Your RIFAH Membership Plan</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+              Select any monthly subscriber tier or multi-year business chamber accreditation plan. Tier I (Free) activates instantly without payment gateway.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ChamberMembershipTiers
+            showHeader={false}
+            defaultCategory="user"
+            currentTier={subscriberTierKey}
+            plansData={plansData}
+            onSelectPlan={(plan) => {
+              setUpgradeDialogOpen(false);
+              window.location.href = `/membership/checkout?plan=${plan.id}`;
+            }}
+          />
+
+          <DialogFooter className="mt-4 pt-4 border-t border-border/60">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setUpgradeDialogOpen(false)}
+              className="rounded-xl text-xs"
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

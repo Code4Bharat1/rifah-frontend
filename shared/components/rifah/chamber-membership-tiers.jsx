@@ -539,6 +539,13 @@ export function ChamberMembershipTiers({
 }) {
   const isIntl = currency === "USD";
   const [selectedCategory, setSelectedCategory] = React.useState(defaultCategory || "business");
+  
+  React.useEffect(() => {
+    if (defaultCategory) {
+      setSelectedCategory(defaultCategory);
+    }
+  }, [defaultCategory]);
+
   const { data: fetchedPlansData } = useMembershipPlans();
   const effectivePlansData = plansData ?? fetchedPlansData;
   const hasTheory = Boolean(showTheory && (showSummary || showFeatures));
@@ -720,33 +727,36 @@ export function ChamberMembershipTiers({
 
           // Button label
           const isActionSelect = Boolean(onSelectPlan);
-          const ctaLabel = isCurrent
-            ? (isActionSelect ? "Selected" : `Renew ${plan.name}`)
-            : (style.buttonText || "Proceed");
+          let ctaLabel = style.buttonText || "Proceed";
+          if (isCurrent) {
+            ctaLabel = isActionSelect ? "Current Plan" : `Renew ${plan.name}`;
+          } else if (plan.price === 0 || plan.id === "tier_1") {
+            ctaLabel = "Select Free Plan";
+          }
 
           return (
             <div
               key={plan.id}
               className={cn(
-                "membership-tier-card relative flex flex-col items-center justify-between rounded-2xl sm:rounded-3xl p-4 sm:p-6 pt-8 sm:pt-9 pb-6 sm:pb-7 text-center transition-all duration-300 w-full min-w-0 will-change-transform will-change-opacity",
-                hasTheory ? "min-h-[400px] sm:min-h-[440px]" : "min-h-[270px] sm:min-h-[290px]",
+                "membership-tier-card relative flex flex-col items-center justify-between rounded-2xl sm:rounded-3xl p-4 sm:p-5 pt-7 sm:pt-8 pb-5 sm:pb-6 text-center transition-all duration-300 w-full min-w-0 will-change-transform will-change-opacity",
+                hasTheory ? "min-h-[380px] sm:min-h-[410px]" : "min-h-[260px] sm:min-h-[280px]",
                 style.cardBg || "bg-white dark:bg-slate-900",
                 style.cardBorder,
                 isCurrent && "ring-2 ring-emerald-500 border-emerald-500 shadow-xl",
-                isRecommended && !isCurrent && "shadow-xl shadow-blue-500/10 animate-platinum-glow hover:-translate-y-2.5 hover:scale-[1.02]",
-                !isRecommended && "hover:-translate-y-1.5 hover:shadow-lg"
+                isRecommended && !isCurrent && "shadow-xl shadow-blue-500/10 animate-platinum-glow hover:-translate-y-2 hover:scale-[1.01]",
+                !isRecommended && "hover:-translate-y-1 hover:shadow-lg"
               )}
             >
               {/* Floating Badge for Most Popular or Selected */}
               {isRecommended && !isCurrent && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3.5 py-1 text-xs font-bold text-white shadow-md tracking-wide whitespace-nowrap z-30 flex items-center gap-1.5">
-                  <Crown className="h-3.5 w-3.5 fill-white stroke-[1.5]" />
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-0.5 text-[11px] font-bold text-white shadow-md tracking-wide whitespace-nowrap z-30 flex items-center gap-1.5">
+                  <Crown className="h-3 w-3 fill-white stroke-[1.5]" />
                   <span>{style.badgeText ?? "Recommended"}</span>
                 </div>
               )}
               {isCurrent && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-emerald-600 px-3.5 py-1 text-xs font-bold text-white shadow-md tracking-wide whitespace-nowrap z-30 flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 stroke-[3]" />
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-600 px-3 py-0.5 text-[11px] font-bold text-white shadow-md tracking-wide whitespace-nowrap z-30 flex items-center gap-1.5">
+                  <Check className="h-3 w-3 stroke-[3]" />
                   <span>Current Plan</span>
                 </div>
               )}
@@ -766,23 +776,23 @@ export function ChamberMembershipTiers({
                 {/* 3D Gradient Icon Badge */}
                 <div
                   className={cn(
-                    "w-16 h-16 rounded-full flex items-center justify-center mb-3.5 transition-transform hover:scale-105",
+                    "w-14 h-14 rounded-full flex items-center justify-center mb-3 transition-transform hover:scale-105",
                     style.circleGradient
                   )}
                 >
-                  <IconComponent className={cn("h-7 w-7", style.iconColor)} />
+                  <IconComponent className={cn("h-6 w-6", style.iconColor)} />
                 </div>
 
                 {/* Plan Name */}
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
                   {plan.name}
                 </h3>
 
                 {/* Duration Tag */}
-                <div className="mt-2 mb-3">
+                <div className="mt-1.5 mb-2.5">
                   <span
                     className={cn(
-                      "inline-flex items-center px-3.5 py-1 rounded-full text-xs font-semibold tracking-wide whitespace-nowrap",
+                      "inline-flex items-center px-3 py-0.5 rounded-full text-[11px] font-bold tracking-wide whitespace-nowrap",
                       style.durationPill
                     )}
                   >
@@ -792,7 +802,7 @@ export function ChamberMembershipTiers({
 
                 {/* Large Bold Price */}
                 <div className="mt-1 flex items-baseline justify-center gap-1">
-                  <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight whitespace-nowrap">
+                  <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight whitespace-nowrap">
                     {displayPrice}
                   </span>
                   {isUserPlan && plan.price > 0 && (
@@ -802,25 +812,25 @@ export function ChamberMembershipTiers({
 
                 {/* GST / Tax subtext */}
                 {!isIntl && gstAmt != null && plan.price > 0 && !isUserPlan ? (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 whitespace-nowrap">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 whitespace-nowrap">
                     + ₹{gstAmt.toLocaleString("en-IN")} GST ({gstRate}%)
                   </p>
                 ) : isIntl && !isUserPlan && plan.price > 0 ? (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 whitespace-nowrap">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 whitespace-nowrap">
                     + {gstRate}% Tax / GST
                   </p>
                 ) : null}
 
                 {/* Plan summary */}
                 {hasTheory && showSummary && plan.summary && (
-                  <p className="mt-2 text-xs text-muted-foreground line-clamp-2 px-1">
+                  <p className="mt-2 text-[11px] text-muted-foreground line-clamp-2 px-1 leading-snug">
                     {plan.summary}
                   </p>
                 )}
 
                 {/* Plan features preview */}
                 {hasTheory && showFeatures && Array.isArray(plan.features) && plan.features.length > 0 && (
-                  <ul className="mt-3.5 space-y-1.5 w-full text-left px-1">
+                  <ul className="mt-3 space-y-1.5 w-full text-left px-1">
                     {plan.features.slice(0, 4).map((f, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                         <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
@@ -837,7 +847,7 @@ export function ChamberMembershipTiers({
               </div>
 
               {/* Bottom CTA Button or Custom Card Footer */}
-              <div className="relative z-10 w-full mt-6">
+              <div className="relative z-10 w-full mt-5">
                 {renderCardFooter ? (
                   renderCardFooter(plan)
                 ) : onSelectPlan ? (
@@ -845,7 +855,7 @@ export function ChamberMembershipTiers({
                     type="button"
                     onClick={() => onSelectPlan(plan)}
                     className={cn(
-                      "membership-proceed-btn magnetic-btn w-full rounded-full h-11 px-4 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none group",
+                      "membership-proceed-btn magnetic-btn w-full rounded-full h-10 px-4 text-xs font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none group",
                       isCurrent
                         ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/25"
                         : style.buttonClass
@@ -853,9 +863,9 @@ export function ChamberMembershipTiers({
                   >
                     <span className="whitespace-nowrap tracking-wide">{ctaLabel}</span>
                     {isCurrent ? (
-                      <Check className="h-4 w-4 shrink-0 stroke-[2.5]" />
+                      <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.5]" />
                     ) : (
-                      <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.2] transition-transform duration-200 group-hover:translate-x-1" />
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 stroke-[2.2] transition-transform duration-200 group-hover:translate-x-1" />
                     )}
                   </button>
                 ) : (
@@ -864,12 +874,12 @@ export function ChamberMembershipTiers({
                       isIntl ? "&currency=USD" : ""
                     }`}
                     className={cn(
-                      "membership-proceed-btn magnetic-btn w-full rounded-full h-11 px-4 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none group",
+                      "membership-proceed-btn magnetic-btn w-full rounded-full h-10 px-4 text-xs font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs select-none group",
                       style.buttonClass
                     )}
                   >
                     <span className="whitespace-nowrap tracking-wide">{ctaLabel}</span>
-                    <ArrowRight className="h-4 w-4 shrink-0 stroke-[2.2] transition-transform duration-200 group-hover:translate-x-1" />
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 stroke-[2.2] transition-transform duration-200 group-hover:translate-x-1" />
                   </Link>
                 )}
               </div>

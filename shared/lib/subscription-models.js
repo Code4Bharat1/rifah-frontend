@@ -367,9 +367,9 @@ export const FEATURE_SPEC_DEFINITIONS = [
 export function normalizeUserTier(tierString) {
   if (!tierString) return "tier_1";
   const s = String(tierString).toLowerCase().trim();
-  if (s.includes("tier iv") || s.includes("tier 4") || s.includes("enterprise") || s.includes("diamond")) return "tier_4";
-  if (s.includes("tier iii") || s.includes("tier 3") || s.includes("growth") || s.includes("platinum")) return "tier_3";
-  if (s.includes("tier ii") || s.includes("tier 2") || s.includes("starter") || s.includes("basic") || s.includes("silver") || s.includes("gold")) return "tier_2";
+  if (s.includes("tier iv") || s.includes("tier 4") || s.includes("tier_4") || s.includes("tier-4") || s.includes("enterprise")) return "tier_4";
+  if (s.includes("tier iii") || s.includes("tier 3") || s.includes("tier_3") || s.includes("tier-3") || s.includes("growth")) return "tier_3";
+  if (s.includes("tier ii") || s.includes("tier 2") || s.includes("tier_2") || s.includes("tier-2") || s.includes("starter")) return "tier_2";
   return "tier_1";
 }
 

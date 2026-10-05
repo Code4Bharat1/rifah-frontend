@@ -82,7 +82,7 @@ function Checkout() {
       tier_2: 6,
       tier_3: 7,
       tier_4: 8,
-      free: 0,
+      free: 5,
       basic: 1,
       premium: 3,
       enterprise: 4,
@@ -93,8 +93,9 @@ function Checkout() {
         if (!p.id) return false;
         if (p.isActive === false) return false;
         const idKey = String(p.id || p.planId || "").toLowerCase();
-        if (["free", "basic", "premium", "enterprise"].includes(idKey)) return false;
-        return p.price > 0;
+        if (["basic", "premium", "enterprise"].includes(idKey)) return false;
+        if (idKey === "tier_1" || idKey === "free") return true;
+        return Number(p.price) >= 0;
       })
       .sort((a, b) => {
         const idA = String(a.id || a.planId || a.name || "").toLowerCase();
@@ -364,9 +365,9 @@ function Checkout() {
     setLoading(true);
     try {
       // Direct upgrade for Free Plan (no payment gateway needed)
-      if (selected === "free" || checkoutAmount <= 0) {
+      if (selected === "free" || selected === "tier_1" || checkoutAmount <= 0) {
         const upgradeRes = await membershipApi.upgradePlan({
-          planId: "free",
+          planId: selected === "free" ? "tier_1" : (selected || "tier_1"),
           businessId: business?._id,
         });
         const resultData = upgradeRes?.data || upgradeRes;
@@ -380,6 +381,7 @@ function Checkout() {
           try { await refreshProfile(); } catch (e) {}
         }
         queryClient.invalidateQueries({ queryKey: ["my-business"] });
+        queryClient.invalidateQueries({ queryKey: ["my-membership"] });
         queryClient.invalidateQueries({ queryKey: ["user"] });
         setInvoiceId(`FREE-${Date.now().toString().slice(-4)}`);
         setStep(3);
@@ -1377,11 +1379,15 @@ function Checkout() {
                   </Button>
                   <Button
                     size="lg"
-                    className="sm:min-w-48 font-semibold shadow-xs"
+                    className="sm:min-w-48 font-semibold shadow-xs cursor-pointer"
                     disabled={loading}
                     onClick={() => {
                       if (step === 0) {
-                        setStep(1);
+                        if (checkoutAmount <= 0 || selected === "tier_1" || selected === "free") {
+                          handleConfirmAndPay();
+                        } else {
+                          setStep(1);
+                        }
                       } else if (step === 1) {
                         const isValid = validateBillingStep();
                         if (!isValid) return;
@@ -1395,6 +1401,8 @@ function Checkout() {
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                       </>
+                    ) : (step === 0 && (checkoutAmount <= 0 || selected === "tier_1" || selected === "free")) ? (
+                      "Activate Free Plan"
                     ) : step === 2 ? (
                       "Confirm and pay"
                     ) : (

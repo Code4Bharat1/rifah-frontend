@@ -7,16 +7,12 @@ import { checkFeatureAccess, normalizeUserTier, SUBSCRIBER_TIERS } from "@shared
 
 // Map navigation routes to 32-feature matrix keys
 const ROUTE_FEATURE_MAP = {
-  "/biz/feeds": "feed_posting",
   "/biz/messages": "chat",
   "/biz/networking": "networking_groups",
   "/biz/power-networking": "meeting_request",
-  "/biz/enquiries": "enquiry_posting",
-  "/biz/my-enquiries": "enquiry_posting",
   "/biz/lms": "lms",
-  "/biz/analytics": "analytics",
-  "/biz/events": "event_notifications",
-  "/biz/operations": "lead_unlock",
+  "/biz/advertisements": "featured_business",
+  "/biz/events": "event_announcements",
 };
 
 export function useFeatureAccess() {
@@ -26,11 +22,13 @@ export function useFeatureAccess() {
 
   // Determine current tier from membership data, business or user subscription
   const planName =
+    membershipData?.subscriberTier ||
+    business?.subscriberTier ||
+    user?.subscriberTier ||
     membershipData?.planName ||
     membershipData?.planId ||
-    business?.membership ||
     user?.membershipPlan ||
-    user?.membership ||
+    (business?.membership && String(business.membership).toLowerCase().includes("tier") ? business.membership : null) ||
     "Tier I (Free)";
   const tierId = normalizeUserTier(planName);
   const currentTier = SUBSCRIBER_TIERS.find((t) => t.id === tierId) || SUBSCRIBER_TIERS[0];

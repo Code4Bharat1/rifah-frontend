@@ -43,6 +43,7 @@ import { useChapters, useStates, useMyBusiness, usePosts, useCreatePost, useTogg
 import { useDebounce } from "@shared/hooks/use-debounce";
 import { postsApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/media";
+import { useFeatureAccess } from "@shared/hooks/use-feature-access";
 import { toast } from "sonner";
 import { cn } from "@shared/lib/utils";
 
@@ -681,6 +682,7 @@ const FeedFilterSidebar = FeedFilterBar;
 // Main BizFeeds Component
 export function BizFeeds() {
   const { user } = useAuth();
+  const { canAccess } = useFeatureAccess();
   const { data: businessData } = useMyBusiness();
   const { data: statesData } = useStates();
   const { data: chaptersData } = useChapters();
@@ -991,6 +993,12 @@ export function BizFeeds() {
   const handleCreatePost = async (e) => {
     e.preventDefault();
 
+    const access = canAccess("feed_posting");
+    if (!access.isAllowed) {
+      toast.error("Feed Posting is locked on Tier I (Free). Upgrade to Starter or higher to post updates.");
+      return;
+    }
+
     // Enforce 1 post limit per user/business/admin
     if (userExistingPost) {
       toast.error("You can only have 1 active post in the feed. Please delete your existing post before creating a new one.");
@@ -1197,7 +1205,14 @@ export function BizFeeds() {
       subtitle="Connect, share business milestones, and explore updates from fellow members"
       actions={
         <Button
-          onClick={() => setIsNewPostOpen(true)}
+          onClick={() => {
+            const access = canAccess("feed_posting");
+            if (!access.isAllowed) {
+              toast.error("Feed Posting is locked on Tier I (Free). Upgrade to Starter or higher to post updates.");
+              return;
+            }
+            setIsNewPostOpen(true);
+          }}
           className="gap-2 font-semibold shadow-md bg-[#00A6F4] hover:bg-[#0096dc] text-white cursor-pointer"
         >
           <PlusCircle className="h-4 w-4" /> Create Post

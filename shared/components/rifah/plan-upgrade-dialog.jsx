@@ -101,7 +101,7 @@ export function PlanUpgradeDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-0 rounded-3xl border-border bg-card">
+      <DialogContent className="w-[96vw] sm:max-w-6xl max-h-[92vh] overflow-y-auto no-scrollbar p-0 rounded-2xl sm:rounded-3xl border-border bg-card shadow-2xl">
         {/* Header */}
         <div className="p-6 sm:p-8 bg-gradient-to-br from-blue-50 via-indigo-50/40 to-transparent dark:from-blue-950/30 dark:via-indigo-950/10 dark:to-transparent border-b border-border">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
