@@ -784,11 +784,13 @@ export function AppShell({
               href={
                 role === "business"
                   ? "/biz/profile"
-                  : effectiveUser?.role === "state_admin"
-                    ? "/state-admin/settings"
-                    : effectiveUser?.role === "chapter_admin"
-                      ? "/chapter-admin/settings"
-                      : "/admin/settings"
+                  : role === "customer" || effectiveUser?.role === "customer" || effectiveUser?.role === "buyer"
+                    ? "/customer/profile"
+                    : effectiveUser?.role === "state_admin"
+                      ? "/state-admin/settings"
+                      : effectiveUser?.role === "chapter_admin"
+                        ? "/chapter-admin/settings"
+                        : "/admin/settings"
               }
               onClick={recordScroll}
               className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50 transition-colors cursor-pointer group"
