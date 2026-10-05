@@ -21,8 +21,10 @@ export const authApi = {
   resetPassword: (data) => apiClient("/auth/reset-password", { method: "POST", body: JSON.stringify(data) }),
   googleAuth: (data) => apiClient("/auth/google", { method: "POST", body: JSON.stringify(data) }),
   completeOnboarding: (data) => apiClient("/auth/complete-onboarding", { method: "POST", body: JSON.stringify(data) }),
-  sendRegisterOtp: (email) => apiClient("/auth/register-otp/send", { method: "POST", body: JSON.stringify({ email }) }),
-  verifyRegisterOtp: (email, otp) => apiClient("/auth/register-otp/verify", { method: "POST", body: JSON.stringify({ email, otp }) }),
+  sendRegisterOtp: (email, type = "business") => apiClient("/auth/register-otp/send", { method: "POST", body: JSON.stringify({ email, type }) }),
+  verifyRegisterOtp: (email, otp, type = "business") => apiClient("/auth/register-otp/verify", { method: "POST", body: JSON.stringify({ email, otp, type }) }),
+  sendLoginOtp: (email) => apiClient("/auth/login-otp/send", { method: "POST", body: JSON.stringify({ email }) }),
+  verifyLoginOtp: (email, otp) => apiClient("/auth/login-otp/verify", { method: "POST", body: JSON.stringify({ email, otp }) }),
   checkEmail: (email) => apiClient("/auth/check-email", { method: "POST", body: JSON.stringify({ email }) }),
   uploadPhoto: (file) => {
     const formData = new FormData();

@@ -171,6 +171,30 @@ export function AuthProvider({ children }) {
     return loggedInUser;
   };
 
+  const loginWithOtp = async (email, otp) => {
+    const res = await authApi.verifyLoginOtp(email, otp);
+    const payload = res.data || res;
+    const loggedInUser = payload.user;
+    const accessToken = payload.accessToken || payload.tokens?.accessToken;
+    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
+    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
+    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (loggedInUser) {
+      requestIdRef.current++;
+      localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
+    }
+    try {
+      queryClient.clear();
+      await queryClient.invalidateQueries();
+    } catch (e) {}
+    return {
+      ...loggedInUser,
+      requiresRoleSelection: false,
+      availableRoles: [loggedInUser?.role],
+    };
+  };
+
   const completeOnboarding = async (data) => {
     const res = await authApi.completeOnboarding(data);
     const payload = res.data || res;
@@ -229,6 +253,7 @@ export function AuthProvider({ children }) {
         loading,
         token: typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null,
         login,
+        loginWithOtp,
         loginWithGoogle,
         completeOnboarding,
         register,

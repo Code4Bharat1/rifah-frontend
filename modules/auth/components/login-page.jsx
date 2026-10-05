@@ -598,7 +598,6 @@ export default function LoginPage() {
                 <span>{successMsg}</span>
               </div>
             )}
-
             {/* Form */}
             <form className="mt-4 space-y-3 relative z-10" onSubmit={handleSubmit}>
               {/* Email Field with Left Icon */}

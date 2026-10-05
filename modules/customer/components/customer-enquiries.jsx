@@ -249,10 +249,14 @@ export function CustomerEnquiries() {
                     {/* Meta Details */}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                       {e.targetBusiness?.name && (
-                        <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                        <Link
+                          href={`/business/${e.targetBusiness.slug || e.targetBusiness._id}`}
+                          className="inline-flex items-center gap-1 font-medium text-foreground hover:text-emerald-600 hover:underline transition-colors"
+                          title="View Business Profile"
+                        >
                           <Building2 className="h-3.5 w-3.5 text-slate-400" />
                           {e.targetBusiness.name}
-                        </span>
+                        </Link>
                       )}
                       {e.quantity && <span>Qty: <strong>{e.quantity}</strong></span>}
                       {e.location && (

@@ -50,38 +50,41 @@ function getEnquiryType(r) {
   const explicit = r.sourceType || r.enquiry?.sourceType;
   if (explicit === "b2b") return "b2b";
   if (explicit === "guest") return "guest";
-  if (explicit === "general") return "general";
+  if (explicit === "marketplace" || explicit === "general") return "marketplace";
+
+  const role = (
+    r.requesterRole ||
+    r.enquiry?.requesterRole ||
+    r.requester?.role ||
+    r.enquiry?.requester?.role ||
+    ""
+  ).toLowerCase();
+
+  // Any enquiry submitted by a Customer/Buyer is classified under Marketplace
+  if (role.includes("customer") || role.includes("buyer")) {
+    return "marketplace";
+  }
+
+  // If flagged as marketplace
+  if (r.isMarketplace || r.enquiry?.isMarketplace) {
+    return "marketplace";
+  }
 
   // Fallback heuristics for older records:
   const targetType = r.targetType || r.enquiry?.targetType;
-  // If it is a broadcast enquiry (targetType === "all" or "chamber") and has not been quoted / assigned yet
-  if (targetType === "all" || r.isMarketplace || (targetType === "chamber" && !r.leadId)) {
-    // If the business has already quoted or won, show it as their active B2B lead
-    if (r.leadId && (r.myQuotation?.amount || r.leadStatus === "Responded" || r.leadStatus === "Won")) {
-      return "b2b";
-    }
+  if (targetType === "all" || targetType === "chamber") {
     return "marketplace";
   }
-  const hasGuestInfo = Boolean(
-    r.guestName ||
-    r.guestEmail ||
-    r.guestPhone ||
-    r.enquiry?.guestName ||
-    r.enquiry?.guestEmail ||
-    r.enquiry?.guestPhone
-  );
-  const role = (r.requesterRole || r.enquiry?.requesterRole || "").toLowerCase();
-  const hasUserAccount = Boolean(r.requester || r.enquiry?.requester);
 
   if (role.includes("business") || role.includes("member")) {
     return "b2b";
   }
+
+  const hasUserAccount = Boolean(r.requester || r.enquiry?.requester);
   if (targetType === "business" && (!hasUserAccount || role.includes("guest"))) {
     return "guest";
   }
-  if (targetType === "all") {
-    return "general";
-  }
+
   return "b2b";
 }
 
@@ -283,6 +286,9 @@ export function BizEnquiries() {
           guestName: existing.guestName || gName,
           guestEmail: existing.guestEmail || gEmail,
           guestPhone: existing.guestPhone || gPhone,
+          sourceType: existing.sourceType || lead.enquiry?.sourceType || lead.sourceType,
+          isMarketplace: existing.isMarketplace ?? lead.enquiry?.isMarketplace ?? lead.isMarketplace,
+          targetBusiness: existing.targetBusiness || lead.enquiry?.targetBusiness || lead.targetBusiness,
         });
       } else {
         const key = String(lead._id);
@@ -299,6 +305,11 @@ export function BizEnquiries() {
           requiredBy: lead.enquiry?.requiredBy || lead.enquiry?.targetDate || lead.requiredBy,
           location: lead.enquiry?.city || lead.city || "Mumbai",
           targetType: lead.enquiry?.targetType || lead.targetType || "chamber",
+          sourceType: lead.enquiry?.sourceType || lead.sourceType,
+          isMarketplace: lead.enquiry?.isMarketplace || lead.isMarketplace,
+          targetBusiness: lead.enquiry?.targetBusiness || lead.targetBusiness,
+          targetState: lead.enquiry?.targetState || lead.targetState,
+          enquiry: lead.enquiry || lead,
           requesterName: buyerName,
           buyerName,
           requesterRole: lead.enquiry?.requesterRole || (gName ? "Guest Customer" : "Verified Customer"),
@@ -709,7 +720,7 @@ export function BizEnquiries() {
                         )}
                         {(type === "marketplace" || type === "general") && (
                           <span className="rounded px-1.5 py-0.2 text-[10px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20">
-                            Marketplace RFQ
+                            {r.targetBusiness || r.enquiry?.targetBusiness ? "Customer Order" : "Marketplace RFQ"}
                           </span>
                         )}
                         {type === "b2b" && (
@@ -722,7 +733,7 @@ export function BizEnquiries() {
                         {type === "guest"
                           ? "Direct Profile Enquiry"
                           : (type === "marketplace" || type === "general")
-                            ? "Open Chamber Broadcast"
+                            ? (r.targetBusiness || r.enquiry?.targetBusiness ? "Customer Marketplace Enquiry" : "Open Chamber Broadcast")
                             : getB2bSubScope(r) === "pan-chamber"
                               ? "Pan-Chamber Network"
                               : getB2bSubScope(r) === "state"
@@ -784,31 +795,29 @@ export function BizEnquiries() {
                 header: "STATUS / YOUR QUOTE",
                 cell: (r) => {
                   const type = getEnquiryType(r);
-                  if (type === "marketplace") {
+                  const hasQuote = Boolean(r.myQuotation?.amount && Number(r.myQuotation.amount) > 0);
+                  if (hasQuote) {
+                    return (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Quoted ₹{Number(r.myQuotation.amount).toLocaleString("en-IN")}
+                      </span>
+                    );
+                  }
+                  if (r.leadStatus === "In Progress" || r.status === "In Progress") {
+                    return (
+                      <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-400">
+                        Accepted
+                      </span>
+                    );
+                  }
+                  if (type === "marketplace" && !r.targetBusiness && !r.enquiry?.targetBusiness) {
                     return (
                       <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 px-2 py-0.5 text-xs font-semibold text-purple-700 dark:text-purple-300 border border-purple-500/20">
                         <Sparkles className="h-3 w-3" />
                         Open to Quote
                       </span>
                     );
-                  }
-                  if (type === "b2b") {
-                    const hasQuote = Boolean(r.myQuotation?.amount && Number(r.myQuotation.amount) > 0);
-                    if (hasQuote) {
-                      return (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Quoted ₹{Number(r.myQuotation.amount).toLocaleString("en-IN")}
-                        </span>
-                      );
-                    }
-                    if (r.leadStatus === "In Progress" || r.status === "In Progress") {
-                      return (
-                        <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-400">
-                          Accepted
-                        </span>
-                      );
-                    }
                   }
                   return <StatusBadge status={r.leadStatus || r.status || "New"} />;
                 },
@@ -838,22 +847,7 @@ export function BizEnquiries() {
                     );
                   }
 
-                  // MARKETPLACE (Broadcast): "Quote on RFQ"
-                  if (type === "marketplace") {
-                    return (
-                      <div className="flex items-center gap-1.5">
-                        <Button
-                          size="sm"
-                          className="h-8 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
-                          onClick={() => handleOpenDialog(r)}
-                        >
-                          Quote on RFQ
-                        </Button>
-                      </div>
-                    );
-                  }
-
-                  // B2B: Retains full "View & Quote" and "Message"
+                  // MARKETPLACE (Broadcast or Direct Customer Enquiry) & B2B:
                   return (
                     <div className="flex items-center gap-1.5">
                       <Button
@@ -862,7 +856,7 @@ export function BizEnquiries() {
                         className="h-8 text-xs font-semibold"
                         onClick={() => handleOpenDialog(r)}
                       >
-                        {isQuoted ? "View Details" : "View & Quote"}
+                        {isQuoted ? "View Details" : (type === "marketplace" && !r.targetBusiness && !r.enquiry?.targetBusiness) ? "Quote on RFQ" : "View & Quote"}
                       </Button>
                       {isQuoted ? (
                         <Button asChild size="sm" variant="outline" className="h-8 text-xs font-semibold">
@@ -897,9 +891,9 @@ export function BizEnquiries() {
                           Guest
                         </span>
                       )}
-                      {type === "marketplace" && (
+                      {(type === "marketplace" || type === "general") && (
                         <span className="rounded px-1.5 py-0.2 text-[10px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20">
-                          Marketplace RFQ
+                          {r.targetBusiness || r.enquiry?.targetBusiness ? "Customer Order" : "Marketplace RFQ"}
                         </span>
                       )}
                       {type === "b2b" && (
@@ -908,12 +902,12 @@ export function BizEnquiries() {
                         </span>
                       )}
                     </div>
-                    {type === "b2b" && isQuoted ? (
+                    {isQuoted ? (
                       <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                         <CheckCircle2 className="h-3 w-3" />
                         Quoted ₹{Number(r.myQuotation.amount).toLocaleString("en-IN")}
                       </span>
-                    ) : type === "marketplace" ? (
+                    ) : (type === "marketplace" && !r.targetBusiness && !r.enquiry?.targetBusiness) ? (
                       <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-700 dark:text-purple-300">
                         <Sparkles className="h-3 w-3" /> Open to Quote
                       </span>
@@ -926,7 +920,7 @@ export function BizEnquiries() {
                       {r.title || r.enquiry?.title || "Requirement"}
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {buyerName} · {type === "guest" ? "Guest Customer" : (type === "marketplace" || type === "general") ? "Marketplace Broadcast" : (r.requesterRole || "Business Member")}
+                      {buyerName} · {type === "guest" ? "Guest Customer" : (type === "marketplace" || type === "general") ? (r.targetBusiness || r.enquiry?.targetBusiness ? "Customer Order" : "Marketplace Broadcast") : (r.requesterRole || "Business Member")}
                       {type === "b2b" && ` · ${getB2bSubScope(r) === "pan-chamber" ? "Pan-Chamber" : getB2bSubScope(r) === "chamber" ? (r.chapter || "Chamber Specific") : "Direct"}`}
                     </p>
                   </div>
@@ -944,14 +938,6 @@ export function BizEnquiries() {
                       >
                         View Details
                       </Button>
-                    ) : type === "marketplace" ? (
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs bg-primary text-primary-foreground"
-                        onClick={() => handleOpenDialog(r)}
-                      >
-                        Quote on RFQ
-                      </Button>
                     ) : (
                       <>
                         <Button
@@ -960,7 +946,7 @@ export function BizEnquiries() {
                           className="h-7 text-xs"
                           onClick={() => handleOpenDialog(r)}
                         >
-                          {isQuoted ? "View Details" : "View & Quote"}
+                          {isQuoted ? "View Details" : (type === "marketplace" && !r.targetBusiness && !r.enquiry?.targetBusiness) ? "Quote on RFQ" : "View & Quote"}
                         </Button>
                         {isQuoted ? (
                           <Button asChild size="sm" variant="outline" className="h-7 text-xs">
@@ -997,7 +983,7 @@ export function BizEnquiries() {
                       <DialogTitle className="text-xl font-bold text-foreground">
                         {selectedEnquiry?.title || selectedEnquiry?.enquiry?.title || "Sourcing Enquiry"}
                       </DialogTitle>
-                      {enqType === "b2b" && Boolean(selectedEnquiry?.myQuotation?.amount && Number(selectedEnquiry.myQuotation.amount) > 0) ? (
+                      {Boolean(selectedEnquiry?.myQuotation?.amount && Number(selectedEnquiry.myQuotation.amount) > 0) ? (
                         <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                           <CheckCircle2 className="h-3.5 w-3.5" /> Quoted
                         </span>
@@ -1034,7 +1020,7 @@ export function BizEnquiries() {
                               "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20"
                             )}>
                               {enqType === "guest" ? "Guest Customer (Profile Enquiry)" :
-                               enqType === "marketplace" ? "Chamber Marketplace Broadcast RFQ" :
+                               enqType === "marketplace" ? (selectedEnquiry?.targetBusiness || selectedEnquiry?.enquiry?.targetBusiness ? "Customer Marketplace Enquiry" : "Chamber Marketplace Broadcast RFQ") :
                                "Verified B2B Direct Lead"}
                             </span>
                           </div>
@@ -1044,8 +1030,8 @@ export function BizEnquiries() {
                         </div>
                       </div>
 
-                      {/* GUEST CONTACT DETAILS (Phone & Email) for Direct Outreach */}
-                      {enqType === "guest" && (
+                      {/* CONTACT DETAILS (Phone & Email) for Direct Outreach */}
+                      {(enqType === "guest" || (enqType === "marketplace" && (guestPhone || guestEmail))) && (
                         <div className="rounded-lg border border-border/80 bg-surface p-3 space-y-2">
                           <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                             <Phone className="h-3.5 w-3.5 text-primary" />

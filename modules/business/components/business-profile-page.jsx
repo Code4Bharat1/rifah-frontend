@@ -362,6 +362,8 @@ function BusinessProfile() {
       await enquiryApi.create({
         targetType: "business",
         targetBusiness: business._id,
+        sourceType: user?.role === "customer" ? "marketplace" : (!user ? "guest" : "b2b"),
+        isMarketplace: user?.role === "customer",
         title: enquiryForm.title,
         category: business.industry || business.categories?.[0] || "General",
         quantity: enquiryForm.quantity || "As discussed",
