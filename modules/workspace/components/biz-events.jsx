@@ -372,9 +372,12 @@ export function BizEvents() {
                     
                     <div className="p-4 flex flex-col items-center bg-card">
                       <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest mb-3">Digital Entry Pass</p>
-                      <div className="p-1.5 bg-white rounded-xl border border-gray-200 shadow-xs mb-4">
+                      <div className="p-1.5 bg-white rounded-xl border border-gray-200 shadow-xs mb-2">
                         <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(verifyUrl)}`} alt="Entry Pass QR" className="w-[100px] h-[100px]" />
                       </div>
+                      <a href={verifyUrl.replace('https://rifah.nexcorealliance.com', '')} target="_blank" rel="noopener noreferrer" className="text-[10px] text-emerald-600 hover:underline mb-4 font-medium flex items-center gap-1">
+                        Preview Pass
+                      </a>
                       
                       <div className="w-full text-left space-y-2.5 px-1">
                         <div className="flex justify-between items-start gap-2">

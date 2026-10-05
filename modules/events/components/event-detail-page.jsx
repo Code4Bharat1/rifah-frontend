@@ -537,13 +537,16 @@ const loadRazorpayScript = () => {
                         return (
                           <div className="flex flex-col items-center">
                             <p className="text-[10px] text-emerald-600/80 font-bold uppercase tracking-widest mb-3">Digital Entry Pass</p>
-                            <div className="p-2 bg-white rounded-xl mb-4 border border-gray-100 shadow-sm">
+                            <div className="p-2 bg-white rounded-xl mb-1 border border-gray-100 shadow-sm">
                               <img 
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verifyUrl)}`} 
                                 alt="Registration QR Code" 
                                 className="w-32 h-32"
                               />
                             </div>
+                            <a href={verifyUrl.replace('https://rifah.nexcorealliance.com', '')} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline font-semibold mb-3">
+                              Preview Pass
+                            </a>
                             
                             {/* Dashed divider representing ticket tear */}
                             <div className="w-full border-t-2 border-dashed border-gray-200 my-2 relative">
