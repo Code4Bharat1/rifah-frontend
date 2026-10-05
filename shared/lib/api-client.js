@@ -251,7 +251,9 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
           "/presence",
           "/members",
           "/login",
+          "/register",
           "/register-business",
+          "/register-customer",
         ];
         const currentPath = window.location.pathname;
         const isPublicPath = publicPaths.some(
@@ -282,7 +284,9 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
         "/presence",
         "/members",
         "/login",
+        "/register",
         "/register-business",
+        "/register-customer",
       ];
       const currentPath = window.location.pathname;
       const isPublicPath = publicPaths.some(

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   Loader2,
@@ -20,6 +20,7 @@ import {
   Users,
   BarChart3,
   Calendar,
+  ShoppingBag,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
@@ -63,6 +64,11 @@ const quickDemoLogins = [
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const roleParam = searchParams?.get("role");
+  const redirectParam = searchParams?.get("redirect");
+  const isCustomerIntent = roleParam === "customer" || roleParam === "buyer";
+
   const { login, isAuthenticated, switchRole } = useAuth();
   const t = useTranslations("Login");
 
@@ -198,13 +204,65 @@ export default function LoginPage() {
   const navigateUser = (user) => {
     if (user.requirePasswordReset || user.forcePasswordChange) {
       router.push("/change-password");
-    } else if (user.role === "business_owner") {
+      return;
+    }
+
+    const redirect = searchParams?.get("redirect");
+    const role = user.role;
+    const isCustomer = role === "customer" || role === "buyer";
+    const isBiz = role === "business_owner";
+    const isChapterAdmin = role === "chapter_admin";
+    const isStateAdmin = role === "state_admin";
+    const isCentralAdmin = role === "central_admin";
+
+    // Validate redirect against user's actual role to prevent cross-panel redirection
+    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+      const isBizRoute = redirect.startsWith("/biz");
+      const isAdminRoute = redirect.startsWith("/admin");
+      const isStateRoute = redirect.startsWith("/state-admin");
+      const isChapterRoute = redirect.startsWith("/chapter-admin");
+      const isCustomerRoute = redirect.startsWith("/customer");
+
+      if (isCustomer) {
+        // Customer accounts must never be redirected to biz or admin panels
+        if (!isBizRoute && !isAdminRoute && !isStateRoute && !isChapterRoute) {
+          router.push(redirect);
+          return;
+        }
+      } else if (isBiz) {
+        // Business accounts must never be redirected to customer or admin panels
+        if (!isCustomerRoute && !isAdminRoute && !isStateRoute && !isChapterRoute) {
+          router.push(redirect);
+          return;
+        }
+      } else if (isChapterAdmin) {
+        if (!isCustomerRoute && !isAdminRoute && !isStateRoute) {
+          router.push(redirect);
+          return;
+        }
+      } else if (isStateAdmin) {
+        if (!isCustomerRoute && !isAdminRoute && !isChapterRoute) {
+          router.push(redirect);
+          return;
+        }
+      } else if (isCentralAdmin) {
+        if (!isCustomerRoute) {
+          router.push(redirect);
+          return;
+        }
+      }
+    }
+
+    // Default landing per role
+    if (isCustomer) {
+      router.push("/customer");
+    } else if (isBiz) {
       router.push("/biz");
-    } else if (user.role === "chapter_admin") {
+    } else if (isChapterAdmin) {
       router.push("/chapter-admin");
-    } else if (user.role === "state_admin") {
+    } else if (isStateAdmin) {
       router.push("/state-admin");
-    } else if (user.role === "central_admin") {
+    } else if (isCentralAdmin) {
       router.push("/admin");
     } else {
       router.push("/biz");
@@ -511,11 +569,19 @@ export default function LoginPage() {
 
             {/* Header */}
             <div className="relative z-10">
+              {isCustomerIntent && (
+                <div className="mb-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-bold tracking-wide">
+                  <ShoppingBag className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Customer Sign In</span>
+                </div>
+              )}
               <h1 className="text-2xl sm:text-[25px] font-bold tracking-tight text-slate-900">
-                {t("title")}
+                {isCustomerIntent ? "Sign in to send enquiry" : t("title")}
               </h1>
               <p className="mt-0.5 text-xs sm:text-sm text-slate-500">
-                {t("subtitle")}
+                {isCustomerIntent
+                  ? "Log in with your customer account to submit requirements and receive quotations."
+                  : t("subtitle")}
               </p>
             </div>
 
@@ -641,8 +707,8 @@ export default function LoginPage() {
             {/* Google Login Button */}
             <div className="relative z-10">
               <GoogleAuthButton
-                roleTarget="business_owner"
-                text="Continue with Google"
+                roleTarget={isCustomerIntent ? "customer" : "business_owner"}
+                text={isCustomerIntent ? "Continue as Customer with Google" : "Continue with Google"}
                 className="w-full h-10 sm:h-10.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm shadow-2xs transition-all flex items-center justify-center gap-2.5"
                 onError={(msg) => setError(msg)}
               />
@@ -652,6 +718,31 @@ export default function LoginPage() {
             <div className="mt-3.5 sm:mt-4 rounded-2xl border border-slate-100 bg-[#f8fafc] p-2.5 sm:p-3 space-y-1.5 relative z-10">
               <p className="text-xs font-bold text-slate-800 px-1">Don&apos;t have an account?</p>
               <div className="grid gap-1.5">
+                <Link
+                  href={isCustomerIntent && redirectParam ? `/register-customer?redirect=${encodeURIComponent(redirectParam)}` : "/register-customer"}
+                  className={`group flex items-center justify-between rounded-xl border p-2.5 transition-all hover:shadow-2xs ${
+                    isCustomerIntent
+                      ? "border-emerald-300 bg-emerald-50/50 hover:border-emerald-400 ring-2 ring-emerald-500/20"
+                      : "border-slate-100 bg-white hover:border-slate-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                      <ShoppingBag className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="block text-xs font-bold text-slate-800">Register as a Customer</span>
+                        {isCustomerIntent && (
+                          <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-emerald-600 text-white rounded-full">Recommended</span>
+                        )}
+                      </div>
+                      <span className="block text-[10px] text-slate-500">Discover businesses, send enquiries & get quotations</span>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 mr-1" />
+                </Link>
+
                 <Link
                   href="/register-business"
                   className="group flex items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 transition-all hover:border-slate-200 hover:shadow-2xs"
@@ -760,18 +851,24 @@ export default function LoginPage() {
                     ),
                   },
                   customer: {
-                    label: "Member Panel",
-                    badge: "MEMBER",
-                    desc: "Browse the chamber directory, network with members and post sourcing requirements",
-                    gradient: "from-violet-600 to-purple-700",
-                    bg: "bg-violet-50 hover:bg-violet-100/70 border-violet-200 hover:border-violet-400",
-                    badgeBg: "bg-violet-600 text-white",
-                    iconBg: "bg-violet-100 text-violet-700",
-                    icon: (
-                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                      </svg>
-                    ),
+                    label: "Customer Portal",
+                    badge: "BUYER",
+                    desc: "Discover businesses, send requirements, receive quotations & track orders",
+                    gradient: "from-emerald-500 to-teal-600",
+                    bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
+                    badgeBg: "bg-emerald-500 text-white",
+                    iconBg: "bg-emerald-100 text-emerald-700",
+                    icon: <ShoppingBag className="h-6 w-6" />,
+                  },
+                  buyer: {
+                    label: "Customer Portal",
+                    badge: "BUYER",
+                    desc: "Discover businesses, send requirements, receive quotations & track orders",
+                    gradient: "from-emerald-500 to-teal-600",
+                    bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
+                    badgeBg: "bg-emerald-500 text-white",
+                    iconBg: "bg-emerald-100 text-emerald-700",
+                    icon: <ShoppingBag className="h-6 w-6" />,
                   },
                 };
 

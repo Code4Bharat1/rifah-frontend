@@ -77,6 +77,17 @@ let globalSidebarScrollTop = typeof window !== "undefined"
   : 0;
 
 const navs = {
+  customer: {
+    title: "Customer Portal",
+    primary: [
+      { label: "Discover", to: "/customer", icon: Compass },
+      { label: "My Enquiry", to: "/customer/enquiries", icon: FileStack },
+      { label: "Messages", to: "/customer/messages", icon: MessageSquare },
+      { label: "Notifications", to: "/customer/notifications", icon: Bell },
+      { label: "Profile", to: "/customer/profile", icon: UserRound },
+    ],
+    more: [],
+  },
   business: {
     title: "Business workspace",
     primary: [
@@ -191,13 +202,16 @@ const roleNavs = {
 roleNavs.central_admin = navs.admin;
 roleNavs.business = navs.business;
 roleNavs.business_owner = navs.business;
-roleNavs.customer = navs.business;
+roleNavs.customer = navs.customer;
+roleNavs.buyer = navs.customer;
 
 navs.business_owner = navs.business;
-navs.customer = navs.business;
+navs.customer = navs.customer;
+navs.buyer = navs.customer;
 navs.central_admin = navs.admin;
 
 const navRoles = [
+  { role: "customer", label: "Customer Portal", to: "/customer" },
   { role: "business", label: "Business", to: "/biz" },
   { role: "admin", label: "Central Admin", to: "/admin" },
 ];
@@ -207,6 +221,9 @@ function useResolvedNav(role) {
   const pathname = usePathname();
 
   // 1. Explicit path and role overrides for dedicated panels (deterministic on both SSR & client)
+  if (pathname?.startsWith("/customer") || role === "customer" || role === "buyer") {
+    return navs.customer;
+  }
   if (pathname?.startsWith("/biz") || role === "business" || role === "business_owner") {
     return navs.business;
   }
@@ -217,7 +234,10 @@ function useResolvedNav(role) {
     return roleNavs.state_admin;
   }
   if (pathname?.startsWith("/admin") || role === "admin" || role === "central_admin") {
-    if (user && (user.role === "business_owner" || user.role === "customer")) {
+    if (user && (user.role === "customer" || user.role === "buyer")) {
+      return navs.customer;
+    }
+    if (user && (user.role === "business_owner" || user.role === "business")) {
       return navs.business;
     }
     return navs.admin;
@@ -225,7 +245,10 @@ function useResolvedNav(role) {
 
   // 2. Strict Role Segregation based on authenticated user's role (for non-prefixed routes like /)
   const userRole = user?.role;
-  if (userRole === "business_owner" || userRole === "customer" || userRole === "business") {
+  if (userRole === "customer" || userRole === "buyer") {
+    return navs.customer;
+  }
+  if (userRole === "business_owner" || userRole === "business") {
     return navs.business;
   }
   if (userRole === "chapter_admin") {
@@ -254,8 +277,16 @@ function toRoleAwarePath(path, role, user) {
     return path;
   }
 
+  // If in customer shell, map to customer paths
+  if (role === "customer" || role === "buyer") {
+    if (path.startsWith("/admin/notifications") || path.startsWith("/biz/notifications")) return "/customer/notifications";
+    if (path.startsWith("/admin/messages") || path.startsWith("/biz/messages")) return "/customer/messages";
+    if (path.startsWith("/admin/enquiries") || path.startsWith("/biz/enquiries") || path.startsWith("/biz/my-enquiries")) return "/customer/enquiries";
+    return path;
+  }
+
   // If in business shell, deterministically keep business paths across SSR & client
-  if (role === "business" || role === "business_owner" || role === "customer") {
+  if (role === "business" || role === "business_owner") {
     if (path.startsWith("/admin/notifications")) return "/biz/notifications";
     if (path.startsWith("/admin/messages")) return "/biz/messages";
     if (path.startsWith("/admin/")) return path.replace(/^\/admin/, "/biz");
@@ -263,7 +294,13 @@ function toRoleAwarePath(path, role, user) {
   }
 
   const effectiveRole = user?.role || role;
-  if (effectiveRole === "business_owner" || effectiveRole === "customer" || effectiveRole === "business") {
+  if (effectiveRole === "customer" || effectiveRole === "buyer") {
+    if (path.startsWith("/admin/notifications") || path.startsWith("/biz/notifications")) return "/customer/notifications";
+    if (path.startsWith("/admin/messages") || path.startsWith("/biz/messages")) return "/customer/messages";
+    if (path.startsWith("/admin/enquiries") || path.startsWith("/biz/enquiries") || path.startsWith("/biz/my-enquiries")) return "/customer/enquiries";
+    return path;
+  }
+  if (effectiveRole === "business_owner" || effectiveRole === "business") {
     if (path.startsWith("/admin/notifications")) return "/biz/notifications";
     if (path.startsWith("/admin/messages")) return "/biz/messages";
     if (path.startsWith("/admin/")) return path.replace(/^\/admin/, "/biz");
@@ -570,10 +607,11 @@ export function AppShell({
   // Boolean(businessData)=true and hasEverBeenVerified=false, which after a
   // background refetch would lock their sidebar items.
   const isBusinessRole =
-    role === "business" ||
-    user?.role === "business_owner" ||
-    user?.role === "customer" ||
-    user?.role === "business";
+    (role === "business" || user?.role === "business_owner" || user?.role === "business") &&
+    role !== "customer" &&
+    role !== "buyer" &&
+    user?.role !== "customer" &&
+    user?.role !== "buyer";
 
   const { data: rawBusinessData, isLoading: isBizLoading } = useMyBusiness();
   const { isRouteLocked, isExpired: isSubscriptionExpired, planName: currentPlanName } = useFeatureAccess();
@@ -681,14 +719,14 @@ export function AppShell({
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
+    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover", "/customer"];
     if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   const all = useMemo(() => {
@@ -793,7 +831,17 @@ export function AppShell({
               </div>
             </div>
           )}
-          {(effectiveUser?.role === "business_owner" || effectiveUser?.role === "customer" || effectiveUser?.role === "business") && (
+          {(effectiveUser?.role === "customer" || effectiveUser?.role === "buyer") && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-emerald-400 uppercase tracking-wider">CUSTOMER</span>
+                <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-bold uppercase truncate max-w-[120px]">
+                  BUYER
+                </span>
+              </div>
+            </div>
+          )}
+          {(effectiveUser?.role === "business_owner" || effectiveUser?.role === "business") && (
             <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="font-bold text-primary uppercase tracking-wider">BUSINESS</span>
@@ -1402,7 +1450,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
+    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover", "/customer"];
     if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };
@@ -1557,7 +1605,7 @@ function MobileLogoutButton() {
   const effectiveUser = mounted ? user : null;
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    window.location.href = "/login";
   };
   return (
     <>

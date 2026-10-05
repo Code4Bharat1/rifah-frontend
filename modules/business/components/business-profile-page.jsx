@@ -318,9 +318,34 @@ function BusinessProfile() {
     }
   }, [user]);
 
+  const handleOpenEnquiry = (defaultItem = null) => {
+    if (!user) {
+      toast.info("Please sign in as a customer to send your enquiry.");
+      const currentPath = typeof window !== "undefined" ? window.location.pathname : `/business/${business?.slug || business?._id || businessId}`;
+      router.push(`/login?role=customer&redirect=${encodeURIComponent(currentPath)}`);
+      return;
+    }
+    if (defaultItem) {
+      setEnquiryForm((prev) => ({
+        ...prev,
+        title: `Enquiry: ${defaultItem.name}`,
+        quantity: defaultItem.moq || prev.quantity || "",
+        description: `Hi, I am interested in "${defaultItem.name}" (${defaultItem.type || "Product"}). Please provide more details on pricing, availability, and ordering requirements.`,
+      }));
+    }
+    setEnquiryOpen(true);
+  };
+
   const handleEnquirySubmit = async (e) => {
     e.preventDefault();
     setEnquiryError("");
+
+    if (!user) {
+      toast.info("Please sign in as a customer to send your enquiry.");
+      const currentPath = typeof window !== "undefined" ? window.location.pathname : `/business/${business?.slug || business?._id || businessId}`;
+      router.push(`/login?role=customer&redirect=${encodeURIComponent(currentPath)}`);
+      return;
+    }
 
     if (!enquiryForm.guestPhone || !enquiryForm.guestPhone.trim()) {
       setEnquiryError("Mobile number is mandatory. Please enter your mobile number with country code.");
@@ -601,14 +626,8 @@ function BusinessProfile() {
   }, [selectedCatalogueItem]);
 
   const handleEnquireFromCatalogue = (item) => {
-    setEnquiryForm((prev) => ({
-      ...prev,
-      title: `Enquiry: ${item.name}`,
-      quantity: item.moq || prev.quantity || "",
-      description: `Hi, I am interested in "${item.name}" (${item.type || "Product"}). Please provide more details on pricing, availability, and ordering requirements.`,
-    }));
     handleCloseCatalogueItem();
-    setEnquiryOpen(true);
+    handleOpenEnquiry(item);
   };
 
   useEffect(() => {
@@ -879,7 +898,7 @@ function BusinessProfile() {
                 <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 sm:pt-0 w-full sm:w-auto">
                   <Button
                     size="sm"
-                    onClick={() => setEnquiryOpen(true)}
+                    onClick={() => handleOpenEnquiry()}
                     aria-label="Send enquiry to this business"
                     title="Send enquiry to this business"
                     className="rounded-xl h-9 px-3.5 font-semibold gap-1.5 shadow-2xs flex-1 sm:flex-initial justify-center"
@@ -1285,7 +1304,7 @@ function BusinessProfile() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setEnquiryOpen(true)}
+                      onClick={() => handleOpenEnquiry()}
                       className="rounded-xl gap-1.5 font-semibold"
                     >
                       <MessageSquarePlus className="h-4 w-4" /> Send Enquiry

@@ -387,7 +387,7 @@ function AttachmentItem({ url, isMe }) {
   );
 }
 
-function BizMessages() {
+function BizMessages({ role = "business" } = {}) {
   const searchParams = useSearchParams();
   const targetUserId = searchParams
     ? searchParams.get("userId") || searchParams.get("vendor") || searchParams.get("recipient") || searchParams.get("to") || searchParams.get("id")
@@ -640,7 +640,11 @@ function BizMessages() {
   }
 
   return (
-    <AppShell role="business" title="Messages" subtitle="Buyer enquiries & direct threads">
+    <AppShell
+      role={role}
+      title="Messages"
+      subtitle={role === "customer" ? "Direct communication with verified suppliers" : "Buyer enquiries & direct threads"}
+    >
       {/* Mobile: full-screen inbox OR full-screen chat, no grid */}
       <div className="relative">
         {/* ── Inbox Panel ── */}

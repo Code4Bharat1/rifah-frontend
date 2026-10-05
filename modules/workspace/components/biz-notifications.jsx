@@ -49,7 +49,7 @@ function safeText(val, fallback = "") {
   return fallback;
 }
 
-function BizNotifications() {
+function BizNotifications({ role = "business" } = {}) {
   const [viewNotif, setViewNotif] = useState(null);
   const { data: notifData, refetch } = useNotifications();
   const notifications = Array.isArray(notifData) ? notifData : (notifData?.notifications || []);
@@ -70,7 +70,7 @@ function BizNotifications() {
 
   return (
     <AppShell
-      role="business"
+      role={role}
       title="Notifications"
       subtitle={`${unreadCount} unread`}
     >

@@ -59,7 +59,7 @@ export function PublicHeader() {
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   const dashboardPath =
@@ -69,7 +69,9 @@ export function PublicHeader() {
         ? "/state-admin"
         : user?.role === "chapter_admin"
           ? "/chapter-admin"
-          : "/biz";
+          : user?.role === "customer" || user?.role === "buyer"
+            ? "/customer"
+            : "/biz";
 
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
@@ -183,7 +185,7 @@ export function PublicHeader() {
 
     const handleLogout = () => {
       logout();
-      router.push("/login");
+      window.location.href = "/login";
     };
 
     const dashboardPath =
@@ -193,7 +195,9 @@ export function PublicHeader() {
           ? "/state-admin"
           : user?.role === "chapter_admin"
             ? "/chapter-admin"
-            : "/biz";
+            : user?.role === "customer" || user?.role === "buyer"
+              ? "/customer"
+              : "/biz";
 
     return (
       <Sheet>
