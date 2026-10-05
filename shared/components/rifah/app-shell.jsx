@@ -1553,6 +1553,11 @@ export function BottomNav({ role, isBizVerified = true }) {
   const nav = useResolvedNav(role);
   const primary = nav.primary;
   const { isRouteLocked } = useFeatureAccess();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <nav
@@ -1562,7 +1567,7 @@ export function BottomNav({ role, isBizVerified = true }) {
       <ul className={cn("grid w-full", primary.length === 6 ? "grid-cols-6" : "grid-cols-5")}>
         {primary.map((item) => {
           const active = path === item.to;
-          const isLocked = role === "business" && (isRouteLocked(item.to) || (!isBizVerified && !isAccessibleUnverifiedPath(item.to)));
+          const isLocked = mounted && role === "business" && (isRouteLocked(item.to) || (!isBizVerified && !isAccessibleUnverifiedPath(item.to)));
           return (
             <li key={item.label} className="min-w-0">
               <Link

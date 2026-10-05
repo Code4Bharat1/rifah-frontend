@@ -93,6 +93,17 @@ function DiscoverPage() {
     setQuery(currentSearchTerm);
   }, [currentSearchTerm]);
 
+  // Auto-search (debounce) when user stops typing
+  useEffect(() => {
+    if (query === currentSearchTerm) return; // No change
+    
+    const timer = setTimeout(() => {
+      setParam({ search: query || undefined, q: undefined });
+    }, 500); // 500ms delay
+    
+    return () => clearTimeout(timer);
+  }, [query, currentSearchTerm]);
+
   // 1. Fetch Businesses (Discover directory strictly requires verified businesses)
   const { data: businessesData, isLoading: isBusinessesLoading } = useBusinesses(
     {
