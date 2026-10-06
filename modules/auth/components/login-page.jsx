@@ -20,7 +20,6 @@ import {
   Users,
   BarChart3,
   Calendar,
-  ShoppingBag,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
@@ -65,9 +64,7 @@ const quickDemoLogins = [
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const roleParam = searchParams?.get("role");
   const redirectParam = searchParams?.get("redirect");
-  const isCustomerIntent = roleParam === "customer" || roleParam === "buyer";
 
   const { login, isAuthenticated, switchRole } = useAuth();
   const t = useTranslations("Login");
@@ -209,7 +206,6 @@ export default function LoginPage() {
 
     const redirect = searchParams?.get("redirect");
     const role = user.role;
-    const isCustomer = role === "customer" || role === "buyer";
     const isBiz = role === "business_owner";
     const isChapterAdmin = role === "chapter_admin";
     const isStateAdmin = role === "state_admin";
@@ -217,46 +213,33 @@ export default function LoginPage() {
 
     // Validate redirect against user's actual role to prevent cross-panel redirection
     if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
-      const isBizRoute = redirect.startsWith("/biz");
       const isAdminRoute = redirect.startsWith("/admin");
       const isStateRoute = redirect.startsWith("/state-admin");
       const isChapterRoute = redirect.startsWith("/chapter-admin");
-      const isCustomerRoute = redirect.startsWith("/customer");
 
-      if (isCustomer) {
-        // Customer accounts must never be redirected to biz or admin panels
-        if (!isBizRoute && !isAdminRoute && !isStateRoute && !isChapterRoute) {
-          router.push(redirect);
-          return;
-        }
-      } else if (isBiz) {
-        // Business accounts must never be redirected to customer or admin panels
-        if (!isCustomerRoute && !isAdminRoute && !isStateRoute && !isChapterRoute) {
+      if (isBiz) {
+        if (!isAdminRoute && !isStateRoute && !isChapterRoute) {
           router.push(redirect);
           return;
         }
       } else if (isChapterAdmin) {
-        if (!isCustomerRoute && !isAdminRoute && !isStateRoute) {
+        if (!isAdminRoute && !isStateRoute) {
           router.push(redirect);
           return;
         }
       } else if (isStateAdmin) {
-        if (!isCustomerRoute && !isAdminRoute && !isChapterRoute) {
+        if (!isAdminRoute && !isChapterRoute) {
           router.push(redirect);
           return;
         }
       } else if (isCentralAdmin) {
-        if (!isCustomerRoute) {
-          router.push(redirect);
-          return;
-        }
+        router.push(redirect);
+        return;
       }
     }
 
     // Default landing per role
-    if (isCustomer) {
-      router.push("/customer");
-    } else if (isBiz) {
+    if (isBiz) {
       router.push("/biz");
     } else if (isChapterAdmin) {
       router.push("/chapter-admin");
@@ -706,8 +689,8 @@ export default function LoginPage() {
             {/* Google Login Button */}
             <div className="relative z-10">
               <GoogleAuthButton
-                roleTarget={isCustomerIntent ? "customer" : "business_owner"}
-                text={isCustomerIntent ? "Continue as Customer with Google" : "Continue with Google"}
+                roleTarget="business_owner"
+                text="Continue with Google"
                 className="w-full h-10 sm:h-10.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm shadow-2xs transition-all flex items-center justify-center gap-2.5"
                 onError={(msg) => setError(msg)}
               />
@@ -717,31 +700,6 @@ export default function LoginPage() {
             <div className="mt-3.5 sm:mt-4 rounded-2xl border border-slate-100 bg-[#f8fafc] p-2.5 sm:p-3 space-y-1.5 relative z-10">
               <p className="text-xs font-bold text-slate-800 px-1">Don&apos;t have an account?</p>
               <div className="grid gap-1.5">
-                <Link
-                  href={isCustomerIntent && redirectParam ? `/register-customer?redirect=${encodeURIComponent(redirectParam)}` : "/register-customer"}
-                  className={`group flex items-center justify-between rounded-xl border p-2.5 transition-all hover:shadow-2xs ${
-                    isCustomerIntent
-                      ? "border-emerald-300 bg-emerald-50/50 hover:border-emerald-400 ring-2 ring-emerald-500/20"
-                      : "border-slate-100 bg-white hover:border-slate-200"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                      <ShoppingBag className="h-3.5 w-3.5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="block text-xs font-bold text-slate-800">Register as a Customer</span>
-                        {isCustomerIntent && (
-                          <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-emerald-600 text-white rounded-full">Recommended</span>
-                        )}
-                      </div>
-                      <span className="block text-[10px] text-slate-500">Discover businesses, send enquiries & get quotations</span>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 mr-1" />
-                </Link>
-
                 <Link
                   href="/register-business"
                   className="group flex items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 transition-all hover:border-slate-200 hover:shadow-2xs"

@@ -125,8 +125,6 @@ export function GoogleAuthButton({
                   router.push("/state-admin");
                 } else if (loggedInUser.role === "central_admin") {
                   router.push("/admin");
-                } else if (loggedInUser.role === "customer" || loggedInUser.role === "buyer") {
-                  router.push("/customer");
                 } else {
                   router.push("/biz");
                 }
@@ -173,8 +171,6 @@ export function GoogleAuthButton({
                 router.push("/state-admin");
               } else if (loggedInUser.role === "central_admin") {
                 router.push("/admin");
-              } else if (loggedInUser.role === "customer" || loggedInUser.role === "buyer") {
-                router.push("/customer");
               } else {
                 router.push("/biz");
               }

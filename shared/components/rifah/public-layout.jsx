@@ -69,9 +69,7 @@ export function PublicHeader() {
         ? "/state-admin"
         : user?.role === "chapter_admin"
           ? "/chapter-admin"
-          : user?.role === "customer" || user?.role === "buyer"
-            ? "/customer"
-            : "/biz";
+          : "/biz";
 
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
@@ -195,9 +193,7 @@ export function PublicHeader() {
           ? "/state-admin"
           : user?.role === "chapter_admin"
             ? "/chapter-admin"
-            : user?.role === "customer" || user?.role === "buyer"
-              ? "/customer"
-              : "/biz";
+            : "/biz";
 
     return (
       <Sheet>

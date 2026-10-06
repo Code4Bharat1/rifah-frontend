@@ -77,18 +77,6 @@ let globalSidebarScrollTop = typeof window !== "undefined"
   : 0;
 
 const navs = {
-  customer: {
-    title: "Customer Portal",
-    primary: [
-      { label: "Discover", to: "/customer", icon: Compass },
-      { label: "My Enquiry", to: "/customer/enquiries", icon: FileStack },
-      { label: "Messages", to: "/customer/messages", icon: MessageSquare },
-      { label: "Notifications", to: "/customer/notifications", icon: Bell },
-      { label: "Events", to: "/customer/events", icon: CalendarDays },
-      { label: "Profile", to: "/customer/profile", icon: UserRound },
-    ],
-    more: [],
-  },
   business: {
     title: "Business workspace",
     primary: [
@@ -197,22 +185,16 @@ const roleNavs = {
   central_admin: null,
   business: null,
   business_owner: null,
-  customer: null,
 };
 
 roleNavs.central_admin = navs.admin;
 roleNavs.business = navs.business;
 roleNavs.business_owner = navs.business;
-roleNavs.customer = navs.customer;
-roleNavs.buyer = navs.customer;
 
 navs.business_owner = navs.business;
-navs.customer = navs.customer;
-navs.buyer = navs.customer;
 navs.central_admin = navs.admin;
 
 const navRoles = [
-  { role: "customer", label: "Customer Portal", to: "/customer" },
   { role: "business", label: "Business", to: "/biz" },
   { role: "admin", label: "Central Admin", to: "/admin" },
 ];
@@ -222,9 +204,6 @@ function useResolvedNav(role) {
   const pathname = usePathname();
 
   // 1. Explicit path and role overrides for dedicated panels (deterministic on both SSR & client)
-  if (pathname?.startsWith("/customer") || role === "customer" || role === "buyer") {
-    return navs.customer;
-  }
   if (pathname?.startsWith("/biz") || role === "business" || role === "business_owner") {
     return navs.business;
   }
@@ -235,9 +214,6 @@ function useResolvedNav(role) {
     return roleNavs.state_admin;
   }
   if (pathname?.startsWith("/admin") || role === "admin" || role === "central_admin") {
-    if (user && (user.role === "customer" || user.role === "buyer")) {
-      return navs.customer;
-    }
     if (user && (user.role === "business_owner" || user.role === "business")) {
       return navs.business;
     }
@@ -246,9 +222,6 @@ function useResolvedNav(role) {
 
   // 2. Strict Role Segregation based on authenticated user's role (for non-prefixed routes like /)
   const userRole = user?.role;
-  if (userRole === "customer" || userRole === "buyer") {
-    return navs.customer;
-  }
   if (userRole === "business_owner" || userRole === "business") {
     return navs.business;
   }
@@ -278,14 +251,6 @@ function toRoleAwarePath(path, role, user) {
     return path;
   }
 
-  // If in customer shell, map to customer paths
-  if (role === "customer" || role === "buyer") {
-    if (path.startsWith("/admin/notifications") || path.startsWith("/biz/notifications")) return "/customer/notifications";
-    if (path.startsWith("/admin/messages") || path.startsWith("/biz/messages")) return "/customer/messages";
-    if (path.startsWith("/admin/enquiries") || path.startsWith("/biz/enquiries") || path.startsWith("/biz/my-enquiries")) return "/customer/enquiries";
-    return path;
-  }
-
   // If in business shell, deterministically keep business paths across SSR & client
   if (role === "business" || role === "business_owner") {
     if (path.startsWith("/admin/notifications")) return "/biz/notifications";
@@ -295,12 +260,6 @@ function toRoleAwarePath(path, role, user) {
   }
 
   const effectiveRole = user?.role || role;
-  if (effectiveRole === "customer" || effectiveRole === "buyer") {
-    if (path.startsWith("/admin/notifications") || path.startsWith("/biz/notifications")) return "/customer/notifications";
-    if (path.startsWith("/admin/messages") || path.startsWith("/biz/messages")) return "/customer/messages";
-    if (path.startsWith("/admin/enquiries") || path.startsWith("/biz/enquiries") || path.startsWith("/biz/my-enquiries")) return "/customer/enquiries";
-    return path;
-  }
   if (effectiveRole === "business_owner" || effectiveRole === "business") {
     if (path.startsWith("/admin/notifications")) return "/biz/notifications";
     if (path.startsWith("/admin/messages")) return "/biz/messages";
@@ -720,7 +679,7 @@ export function AppShell({
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover", "/customer"];
+    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
     if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };
@@ -785,13 +744,11 @@ export function AppShell({
               href={
                 role === "business"
                   ? "/biz/profile"
-                  : role === "customer" || effectiveUser?.role === "customer" || effectiveUser?.role === "buyer"
-                    ? "/customer/profile"
-                    : effectiveUser?.role === "state_admin"
-                      ? "/state-admin/settings"
-                      : effectiveUser?.role === "chapter_admin"
-                        ? "/chapter-admin/settings"
-                        : "/admin/settings"
+                  : effectiveUser?.role === "state_admin"
+                    ? "/state-admin/settings"
+                    : effectiveUser?.role === "chapter_admin"
+                      ? "/chapter-admin/settings"
+                      : "/admin/settings"
               }
               onClick={recordScroll}
               className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50 transition-colors cursor-pointer group"
@@ -1453,7 +1410,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover", "/customer"];
+    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
     if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };
