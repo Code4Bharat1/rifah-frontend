@@ -556,19 +556,11 @@ export default function LoginPage() {
 
             {/* Header */}
             <div className="relative z-10">
-              {isCustomerIntent && (
-                <div className="mb-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-bold tracking-wide">
-                  <ShoppingBag className="h-3.5 w-3.5 text-emerald-600" />
-                  <span>Customer Sign In</span>
-                </div>
-              )}
               <h1 className="text-2xl sm:text-[25px] font-bold tracking-tight text-slate-900">
-                {isCustomerIntent ? "Sign in to send enquiry" : t("title")}
+                {t("title")}
               </h1>
               <p className="mt-0.5 text-xs sm:text-sm text-slate-500">
-                {isCustomerIntent
-                  ? "Log in with your customer account to submit requirements and receive quotations."
-                  : t("subtitle")}
+                {t("subtitle")}
               </p>
             </div>
 
