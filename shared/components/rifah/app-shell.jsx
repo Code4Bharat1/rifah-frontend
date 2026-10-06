@@ -283,10 +283,10 @@ function useResolvedNav(role) {
   if (userRole === "chapter_admin") {
     return roleNavs.chapter_admin;
   }
-  if (userRole === "business_owner" || accountType === "business") {
+  if (userRole === "business_owner" || userRole === "business" || accountType === "business" || Boolean(user?.businessId || user?.businessSlug)) {
     return navs.business;
   }
-  if (accountType === "user" || Boolean(user?.businessName || user?.organization)) {
+  if (accountType === "user" || Boolean(user?.subscriberTier)) {
     return navs.user;
   }
   if (userRole === "customer" || userRole === "buyer" || accountType === "customer") {

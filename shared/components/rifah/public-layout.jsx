@@ -69,9 +69,9 @@ export function PublicHeader() {
         ? "/state-admin"
         : user?.role === "chapter_admin"
           ? "/chapter-admin"
-          : user?.role === "business_owner" || user?.accountType === "business"
+          : user?.role === "business_owner" || user?.role === "business" || user?.accountType === "business" || Boolean(user?.businessId || user?.businessSlug)
             ? "/biz"
-            : user?.accountType === "user" || Boolean(user?.businessName || user?.organization)
+            : user?.accountType === "user" || Boolean(user?.subscriberTier)
               ? "/user"
               : "/customer";
 
@@ -197,9 +197,9 @@ export function PublicHeader() {
           ? "/state-admin"
           : user?.role === "chapter_admin"
             ? "/chapter-admin"
-            : user?.role === "business_owner" || user?.accountType === "business"
+            : user?.role === "business_owner" || user?.role === "business" || user?.accountType === "business" || Boolean(user?.businessId || user?.businessSlug)
               ? "/biz"
-              : user?.accountType === "user" || Boolean(user?.businessName || user?.organization)
+              : user?.accountType === "user" || Boolean(user?.subscriberTier)
                 ? "/user"
                 : "/customer";
 

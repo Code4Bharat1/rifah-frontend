@@ -125,9 +125,9 @@ export function GoogleAuthButton({
                   router.push("/state-admin");
                 } else if (loggedInUser.role === "chapter_admin") {
                   router.push("/chapter-admin");
-                } else if (loggedInUser.role === "business_owner" || loggedInUser.accountType === "business") {
+                } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || Boolean(loggedInUser.businessId || loggedInUser.businessSlug)) {
                   router.push("/biz");
-                } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.businessName || loggedInUser.organization)) {
+                } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.subscriberTier)) {
                   router.push("/user");
                 } else {
                   router.push("/customer");
@@ -175,9 +175,9 @@ export function GoogleAuthButton({
                 router.push("/state-admin");
               } else if (loggedInUser.role === "chapter_admin") {
                 router.push("/chapter-admin");
-              } else if (loggedInUser.role === "business_owner" || loggedInUser.accountType === "business") {
+              } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || Boolean(loggedInUser.businessId || loggedInUser.businessSlug)) {
                 router.push("/biz");
-              } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.businessName || loggedInUser.organization)) {
+              } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.subscriberTier)) {
                 router.push("/user");
               } else {
                 router.push("/customer");

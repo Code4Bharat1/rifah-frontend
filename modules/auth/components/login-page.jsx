@@ -212,13 +212,17 @@ export default function LoginPage() {
     const isCentralAdmin = ["central_admin", "super_admin", "admin", "secretariat"].includes(role);
     const isStateAdmin = role === "state_admin";
     const isChapterAdmin = role === "chapter_admin";
-    const isBiz = role === "business_owner" || accountType === "business";
+    const isBiz =
+      role === "business_owner" ||
+      role === "business" ||
+      accountType === "business" ||
+      Boolean(user.businessId || user.businessSlug);
     const isMemberUser =
       !isBiz &&
       !isCentralAdmin &&
       !isStateAdmin &&
       !isChapterAdmin &&
-      (accountType === "user" || Boolean(user.businessName || user.organization));
+      (accountType === "user" || Boolean(user.subscriberTier));
     const isPureCustomer = !isBiz && !isCentralAdmin && !isStateAdmin && !isChapterAdmin && !isMemberUser;
 
     // Strict validation of redirect query param:
