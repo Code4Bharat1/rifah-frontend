@@ -13,6 +13,12 @@ const ROUTE_FEATURE_MAP = {
   "/biz/lms": "lms",
   "/biz/advertisements": "featured_business",
   "/biz/events": "event_announcements",
+  // User portal routes mapped to SUBSCRIBER_TIERS
+  "/user/messages": "chat",
+  "/user/networking": "networking_groups",
+  "/user/power-networking": "meeting_request",
+  "/user/lms": "lms",
+  "/user/events": "event_announcements",
 };
 
 export function useFeatureAccess() {
@@ -20,15 +26,15 @@ export function useFeatureAccess() {
   const { data: business } = useMyBusiness();
   const { data: membershipData } = useMyMembership();
 
-  // Determine current tier from membership data, business or user subscription
+  // Determine current tier from business membership, membership data, or user subscription
   const planName =
+    business?.membership ||
+    membershipData?.planName ||
     membershipData?.subscriberTier ||
     business?.subscriberTier ||
     user?.subscriberTier ||
-    membershipData?.planName ||
     membershipData?.planId ||
     user?.membershipPlan ||
-    (business?.membership && String(business.membership).toLowerCase().includes("tier") ? business.membership : null) ||
     "Tier I (Free)";
   const tierId = normalizeUserTier(planName);
   const currentTier = SUBSCRIBER_TIERS.find((t) => t.id === tierId) || SUBSCRIBER_TIERS[0];
@@ -84,6 +90,19 @@ export function useFeatureAccess() {
 
     // Universal account management paths are never locked
     if (
+      clean === "/user" ||
+      clean === "/user/catalogue" ||
+      clean.startsWith("/user/catalogue/") ||
+      clean === "/user/membership" ||
+      clean.startsWith("/user/membership/") ||
+      clean === "/user/profile" ||
+      clean.startsWith("/user/profile/") ||
+      clean === "/user/notifications" ||
+      clean.startsWith("/user/notifications/") ||
+      clean === "/user/enquiries" ||
+      clean.startsWith("/user/enquiries/") ||
+      clean === "/user/my-enquiries" ||
+      clean.startsWith("/user/my-enquiries/") ||
       clean === "/biz/membership" ||
       clean.startsWith("/biz/membership/") ||
       clean === "/biz/payments" ||

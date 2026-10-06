@@ -56,13 +56,16 @@ import {
   DialogTitle,
 } from "@shared/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
 import { useMyBusiness, useBusinessCatalogue, useCategories } from "@shared/hooks/use-rifah-api";
 import { useFeatureAccess } from "@shared/hooks/use-feature-access";
 import { catalogueApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 
-export function BizCatalogueManager({ embedded = false }) {
+export function BizCatalogueManager({ embedded = false, role = undefined }) {
+  const pathname = usePathname();
+  const effectiveRole = role || (pathname?.startsWith("/user") ? "user" : "business");
   const queryClient = useQueryClient();
   const { data: business } = useMyBusiness();
   const { data: catalogueItems, refetch } = useBusinessCatalogue(business?._id);
@@ -93,6 +96,7 @@ export function BizCatalogueManager({ embedded = false }) {
 
   const syncCatalogueCache = () => {
     refetch();
+    queryClient.invalidateQueries({ queryKey: ["my-business"] });
     queryClient.invalidateQueries({ queryKey: ["catalogue"] });
     queryClient.invalidateQueries({ queryKey: ["catalogue-business"] });
     if (business?._id) {
@@ -1038,7 +1042,7 @@ export function BizCatalogueManager({ embedded = false }) {
 
   return (
     <AppShell
-      role="business"
+      role={effectiveRole}
       title="My catalogue"
       subtitle={`${items.length} published products & services`}
       actions={

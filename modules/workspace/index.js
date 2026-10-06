@@ -17,3 +17,6 @@ export { BizEvents } from "./components/biz-events.jsx";
 export { BizLms } from "./components/biz-lms.jsx";
 export { BizReviews } from "./components/biz-reviews.jsx";
 export { BizAdvertisements } from "./components/biz-advertisements.jsx";
+export { UserDashboard } from "./components/user-dashboard.jsx";
+export { UserMembership } from "./components/user-membership.jsx";
+export { UserProfile } from "./components/user-profile.jsx";
