@@ -84,6 +84,7 @@ const navs = {
       { label: "My Enquiry", to: "/customer/enquiries", icon: FileStack },
       { label: "Messages", to: "/customer/messages", icon: MessageSquare },
       { label: "Notifications", to: "/customer/notifications", icon: Bell },
+      { label: "Events", to: "/customer/events", icon: CalendarDays },
       { label: "Profile", to: "/customer/profile", icon: UserRound },
     ],
     more: [],

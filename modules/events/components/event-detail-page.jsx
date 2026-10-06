@@ -108,6 +108,7 @@ function EventDetail() {
   
   const guestPrice = Number(event?.ticketPrice) || (event?.fee ? parseInt(event.fee.replace(/\D/g, '')) || 0 : 0);
   const memberPrice = Number(event?.memberPrice) || 0;
+  const isCustomerUser = user && ["customer", "buyer"].includes(user.role);
 
 
 const loadRazorpayScript = () => {
@@ -170,7 +171,7 @@ const loadRazorpayScript = () => {
           return;
         }
       }
-      const finalAmount = (isEventPaid && regPath === "member" && event?.memberPrice !== undefined) 
+      const finalAmount = (isEventPaid && regPath === "member" && !isCustomerUser && event?.memberPrice !== undefined) 
         ? memberPrice 
         : guestPrice;
 
@@ -809,28 +810,37 @@ const loadRazorpayScript = () => {
                     ← Back
                   </Button>
                 )}
-                <h3 className="font-semibold">Member Checkout</h3>
+                <h3 className="font-semibold">{isCustomerUser ? "Guest Checkout" : "Member Checkout"}</h3>
               </div>
 
               {isEventPaid && (
                 <div className="mt-6 p-4 rounded-xl bg-muted/30 border space-y-2">
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Non-Member Price</span>
-                    <span><del>₹{guestPrice}</del></span>
-                  </div>
-                  <div className="flex justify-between text-sm text-emerald-600 font-medium">
-                    <span>Member Price Applied</span>
-                    <span>₹{memberPrice}</span>
-                  </div>
-                  <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                    <span>Total Payable</span>
-                    <span>₹{memberPrice}</span>
-                  </div>
+                  {!isCustomerUser ? (
+                    <>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Non-Member Price</span>
+                        <span><del>₹{guestPrice}</del></span>
+                      </div>
+                      <div className="flex justify-between text-sm text-emerald-600 font-medium">
+                        <span>Member Price Applied</span>
+                        <span>₹{memberPrice}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                        <span>Total Payable</span>
+                        <span>₹{memberPrice}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total Amount</span>
+                      <span>₹{guestPrice}</span>
+                    </div>
+                  )}
                 </div>
               )}
               
               <Button className="w-full mt-4" size="lg" onClick={handleFinalRegister} disabled={registering}>
-                {registering ? "Processing..." : (isEventPaid ? `Pay ₹${memberPrice} & Register` : "Register for Free")}
+                {registering ? "Processing..." : (isEventPaid ? `Pay ₹${!isCustomerUser ? memberPrice : guestPrice} & Register` : "Register for Free")}
               </Button>
             </div>
           )}
