@@ -10,7 +10,7 @@ export default function StateAdminLayout({ children }) {
 
   useEffect(() => {
     if (loading || !user) return;
-    if (user.role === "central_admin") {
+    if (user.role === "central_admin" || user.role === "secretariat") {
       // Central Admin has overview across both admin and state admin
       return;
     }
@@ -22,6 +22,8 @@ export default function StateAdminLayout({ children }) {
       router.replace("/biz");
     }
   }, [user, loading, router]);
+
+  if (!loading && user && !(["central_admin", "secretariat", "state_admin"]).includes(user.role)) return null; // redirect effect above handles navigation
 
   return children;
 }

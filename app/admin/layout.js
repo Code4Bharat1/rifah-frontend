@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@shared/providers/auth-provider";
 
-const ALLOWED_ROLES = ["central_admin"];
+// secretariat is central_admin's equal (see backend roles.js / login-page.jsx)
+const ALLOWED_ROLES = ["central_admin", "secretariat"];
 
 export default function AdminLayout({ children }) {
   const { user, loading } = useAuth();
@@ -20,6 +21,8 @@ export default function AdminLayout({ children }) {
       router.replace("/");
     }
   }, [user, loading, router]);
+
+  if (!loading && user && !ALLOWED_ROLES.includes(user.role)) return null; // redirect effect above handles navigation
 
   return children;
 }

@@ -21,10 +21,12 @@ export default function ChapterAdminLayout({ children }) {
         router.replace("/chapter-admin/enquiries");
       }
       // Other subroutes (/chapter-admin/businesses, /chapter-admin/users, /chapter-admin/audit, etc.) are allowed
-    } else if (user.role !== "chapter_admin" && user.role !== "central_admin") {
+    } else if (user.role !== "chapter_admin" && user.role !== "central_admin" && user.role !== "secretariat") {
       router.replace("/");
     }
   }, [user, loading, router, pathname]);
+
+  if (!loading && user && !["chapter_admin", "central_admin", "secretariat", "state_admin"].includes(user.role)) return null; // redirect effect above handles navigation
 
   return children;
 }

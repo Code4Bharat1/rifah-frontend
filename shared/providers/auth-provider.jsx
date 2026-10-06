@@ -229,6 +229,11 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     requestIdRef.current++;
+    // Revoke the session server-side. Must start before the token is cleared below (apiClient
+    // reads it synchronously); failure is harmless because local credentials are dropped anyway.
+    if (localStorage.getItem("rifah_access_token")) {
+      authApi.logout().catch(() => {});
+    }
     localStorage.removeItem("rifah_access_token");
     localStorage.removeItem("rifah_refresh_token");
     localStorage.removeItem("rifah_user");
