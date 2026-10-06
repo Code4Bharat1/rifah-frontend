@@ -207,52 +207,65 @@ export default function LoginPage() {
 
     const redirect = searchParams?.get("redirect");
     const role = user.role;
-    const isBiz = role === "business_owner";
-    const isChapterAdmin = role === "chapter_admin";
+    const accountType = user.accountType;
+
+    const isCentralAdmin = ["central_admin", "super_admin", "admin", "secretariat"].includes(role);
     const isStateAdmin = role === "state_admin";
-    const isCentralAdmin = role === "central_admin";
+    const isChapterAdmin = role === "chapter_admin";
+    const isBiz = role === "business_owner" || accountType === "business";
+    const isMemberUser =
+      !isBiz &&
+      !isCentralAdmin &&
+      !isStateAdmin &&
+      !isChapterAdmin &&
+      (accountType === "user" || Boolean(user.businessName || user.organization));
+    const isPureCustomer = !isBiz && !isCentralAdmin && !isStateAdmin && !isChapterAdmin && !isMemberUser;
 
-    // Validate redirect against user's actual role to prevent cross-panel redirection
+    // Strict validation of redirect query param:
+    // User can ONLY follow redirect if it belongs to their own designated workspace!
+    // Any cross-workspace redirect (e.g. admin has ?redirect=/biz from prior session) is rejected.
     if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
-      const isAdminRoute = redirect.startsWith("/admin");
-      const isStateRoute = redirect.startsWith("/state-admin");
-      const isChapterRoute = redirect.startsWith("/chapter-admin");
-
-      if (isBiz) {
-        if (!isAdminRoute && !isStateRoute && !isChapterRoute) {
-          router.push(redirect);
-          return;
-        }
-      } else if (isChapterAdmin) {
-        if (!isAdminRoute && !isStateRoute) {
-          router.push(redirect);
-          return;
-        }
-      } else if (isStateAdmin) {
-        if (!isAdminRoute && !isChapterRoute) {
-          router.push(redirect);
-          return;
-        }
-      } else if (isCentralAdmin) {
+      if (isCentralAdmin && redirect.startsWith("/admin")) {
+        router.push(redirect);
+        return;
+      }
+      if (isStateAdmin && redirect.startsWith("/state-admin")) {
+        router.push(redirect);
+        return;
+      }
+      if (isChapterAdmin && redirect.startsWith("/chapter-admin")) {
+        router.push(redirect);
+        return;
+      }
+      if (isBiz && redirect.startsWith("/biz")) {
+        router.push(redirect);
+        return;
+      }
+      if (isMemberUser && redirect.startsWith("/user")) {
+        router.push(redirect);
+        return;
+      }
+      if (isPureCustomer && redirect.startsWith("/customer")) {
         router.push(redirect);
         return;
       }
     }
 
-    // Default landing per role
-    const isCustomer = role === "customer" || role === "buyer" || role === "user";
-    if (isCustomer) {
-      router.push("/user");
-    } else if (isBiz) {
-      router.push("/biz");
-    } else if (isChapterAdmin) {
-      router.push("/chapter-admin");
+    // Default landing strictly per account identity
+    if (isCentralAdmin) {
+      router.push("/admin");
     } else if (isStateAdmin) {
       router.push("/state-admin");
-    } else if (isCentralAdmin) {
-      router.push("/admin");
-    } else {
+    } else if (isChapterAdmin) {
+      router.push("/chapter-admin");
+    } else if (isBiz) {
       router.push("/biz");
+    } else if (isMemberUser) {
+      router.push("/user");
+    } else if (isPureCustomer) {
+      router.push("/customer");
+    } else {
+      router.push("/customer");
     }
   };
 

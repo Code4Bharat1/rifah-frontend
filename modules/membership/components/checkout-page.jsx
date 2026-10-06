@@ -93,8 +93,9 @@ function Checkout() {
         if (!p.id) return false;
         if (p.isActive === false) return false;
         const idKey = String(p.id || p.planId || "").toLowerCase();
-        if (["basic", "premium", "enterprise"].includes(idKey)) return false;
-        if (idKey === "tier_1" || idKey === "free") return true;
+        // Exclude legacy alias plans: basic, premium, enterprise, and free
+        if (["basic", "premium", "enterprise", "free"].includes(idKey)) return false;
+        if (idKey.startsWith("tier_")) return true;
         return Number(p.price) >= 0;
       })
       .sort((a, b) => {
@@ -136,11 +137,16 @@ function Checkout() {
 
   const displayedPlans = useMemo(() => {
     return plans.filter((p) => {
-      const isUserTier = p.category === "user" || String(p.id || "").toLowerCase().startsWith("tier_");
+      const idKey = String(p.id || p.planId || "").toLowerCase();
+      // Never show legacy alias plans
+      if (["basic", "premium", "enterprise", "free"].includes(idKey)) return false;
+
+      const isUserTier = p.category === "user" || idKey.startsWith("tier_");
       if (category === "user") {
         return isUserTier;
       }
-      return !isUserTier;
+      // Business Chamber Plans: ONLY show official Chamber tiers (Silver, Gold, Platinum, Diamond)
+      return ["silver", "gold", "platinum", "diamond"].includes(idKey);
     });
   }, [plans, category]);
 

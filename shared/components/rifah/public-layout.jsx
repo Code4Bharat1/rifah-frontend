@@ -63,13 +63,17 @@ export function PublicHeader() {
   };
 
   const dashboardPath =
-    user?.role === "central_admin"
+    ["central_admin", "super_admin", "admin", "secretariat"].includes(user?.role)
       ? "/admin"
       : user?.role === "state_admin"
         ? "/state-admin"
         : user?.role === "chapter_admin"
           ? "/chapter-admin"
-          : "/biz";
+          : user?.role === "business_owner" || user?.accountType === "business"
+            ? "/biz"
+            : user?.accountType === "user" || Boolean(user?.businessName || user?.organization)
+              ? "/user"
+              : "/customer";
 
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
@@ -187,13 +191,17 @@ export function PublicHeader() {
     };
 
     const dashboardPath =
-      user?.role === "central_admin"
+      ["central_admin", "super_admin", "admin", "secretariat"].includes(user?.role)
         ? "/admin"
         : user?.role === "state_admin"
           ? "/state-admin"
           : user?.role === "chapter_admin"
             ? "/chapter-admin"
-            : "/biz";
+            : user?.role === "business_owner" || user?.accountType === "business"
+              ? "/biz"
+              : user?.accountType === "user" || Boolean(user?.businessName || user?.organization)
+                ? "/user"
+                : "/customer";
 
     return (
       <Sheet>

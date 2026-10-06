@@ -119,14 +119,18 @@ export function GoogleAuthButton({
                   onSuccess(loggedInUser);
                 } else if (loggedInUser.isProfileComplete === false) {
                   router.push("/onboarding");
-                } else if (loggedInUser.role === "chapter_admin") {
-                  router.push("/chapter-admin");
+                } else if (["central_admin", "super_admin", "admin", "secretariat"].includes(loggedInUser.role)) {
+                  router.push("/admin");
                 } else if (loggedInUser.role === "state_admin") {
                   router.push("/state-admin");
-                } else if (loggedInUser.role === "central_admin") {
-                  router.push("/admin");
-                } else {
+                } else if (loggedInUser.role === "chapter_admin") {
+                  router.push("/chapter-admin");
+                } else if (loggedInUser.role === "business_owner" || loggedInUser.accountType === "business") {
                   router.push("/biz");
+                } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.businessName || loggedInUser.organization)) {
+                  router.push("/user");
+                } else {
+                  router.push("/customer");
                 }
               } catch (err) {
                 const msg = err.message || "Google authentication failed on server.";
@@ -165,14 +169,18 @@ export function GoogleAuthButton({
                 onSuccess(loggedInUser);
               } else if (loggedInUser.isProfileComplete === false) {
                 router.push("/onboarding");
-              } else if (loggedInUser.role === "chapter_admin") {
-                router.push("/chapter-admin");
+              } else if (["central_admin", "super_admin", "admin", "secretariat"].includes(loggedInUser.role)) {
+                router.push("/admin");
               } else if (loggedInUser.role === "state_admin") {
                 router.push("/state-admin");
-              } else if (loggedInUser.role === "central_admin") {
-                router.push("/admin");
-              } else {
+              } else if (loggedInUser.role === "chapter_admin") {
+                router.push("/chapter-admin");
+              } else if (loggedInUser.role === "business_owner" || loggedInUser.accountType === "business") {
                 router.push("/biz");
+              } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.businessName || loggedInUser.organization)) {
+                router.push("/user");
+              } else {
+                router.push("/customer");
               }
             } catch (serverErr) {
               const msg = serverErr.message || "Failed to authenticate with Google.";

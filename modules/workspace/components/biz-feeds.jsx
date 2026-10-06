@@ -1195,11 +1195,19 @@ export function BizFeeds() {
   return (
     <AppShell
       role={
-        ["central_admin", "admin"].includes(userRole)
+        ["central_admin", "admin", "super_admin", "secretariat"].includes(userRole)
           ? "admin"
-          : ["state_admin", "chapter_admin"].includes(userRole)
-            ? userRole
-            : "business"
+          : userRole === "state_admin"
+            ? "state_admin"
+            : userRole === "chapter_admin"
+              ? "chapter_admin"
+              : userRole === "business_owner" || user?.accountType === "business"
+                ? "business"
+                : user?.accountType === "user" || Boolean(user?.businessName || user?.organization)
+                  ? "user"
+                  : userRole === "customer" || userRole === "buyer" || user?.accountType === "customer"
+                    ? "customer"
+                    : "business"
       }
       title="Feeds"
       subtitle="Connect, share business milestones, and explore updates from fellow members"

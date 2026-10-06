@@ -132,7 +132,7 @@ const navs = {
       { label: "More", to: "/admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Feeds", to: "/biz/feeds", icon: Compass },
+      { label: "Feeds", to: "/admin/feeds", icon: Compass },
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
       { label: "Memberships", to: "/admin/memberships", icon: Star },
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
@@ -169,7 +169,7 @@ const roleNavs = {
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Feeds", to: "/biz/feeds", icon: Compass },
+      { label: "Feeds", to: "/chapter-admin/feeds", icon: Compass },
       { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
 
@@ -192,7 +192,7 @@ const roleNavs = {
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
-      { label: "Feeds", to: "/biz/feeds", icon: Compass },
+      { label: "Feeds", to: "/state-admin/feeds", icon: Compass },
       { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
       { label: "Events", to: "/state-admin/events", icon: CalendarDays },
@@ -231,45 +231,66 @@ function useResolvedNav(role) {
   const { user } = useAuth();
   const pathname = usePathname();
 
-  // 1. Explicit path and role overrides for dedicated panels (deterministic on both SSR & client)
-  if (pathname?.startsWith("/user") || role === "user" || role === "customer" || role === "buyer") {
-    return navs.user;
-  }
-  if (pathname?.startsWith("/biz") || role === "business" || role === "business_owner") {
-    return navs.business;
-  }
-  if (pathname?.startsWith("/chapter-admin") || role === "chapter" || role === "chapter_admin") {
+  // 1. Explicit path prefix matching (each workspace strictly owns its URL tree)
+  if (pathname?.startsWith("/chapter-admin")) {
     return roleNavs.chapter_admin;
   }
-  if (pathname?.startsWith("/state-admin") || role === "state" || role === "state_admin") {
+  if (pathname?.startsWith("/state-admin")) {
     return roleNavs.state_admin;
   }
-  if (pathname?.startsWith("/admin") || role === "admin" || role === "central_admin") {
-    if (user && (user.role === "customer" || user.role === "buyer" || user.role === "user")) {
-      return navs.user;
-    }
-    if (user && (user.role === "business_owner" || user.role === "business")) {
-      return navs.business;
-    }
+  if (pathname?.startsWith("/admin")) {
     return navs.admin;
   }
-
-  // 2. Strict Role Segregation based on authenticated user's role (for non-prefixed routes like /)
-  const userRole = user?.role;
-  if (userRole === "user" || userRole === "customer" || userRole === "buyer") {
+  if (pathname?.startsWith("/user")) {
     return navs.user;
   }
-  if (userRole === "business_owner" || userRole === "business") {
+  if (pathname?.startsWith("/customer")) {
+    return navs.customer;
+  }
+  if (pathname?.startsWith("/biz")) {
     return navs.business;
   }
-  if (userRole === "chapter_admin") {
+
+  // 2. Explicit role prop passed directly to AppShell
+  if (role === "chapter_admin" || role === "chapter") {
     return roleNavs.chapter_admin;
+  }
+  if (role === "state_admin" || role === "state") {
+    return roleNavs.state_admin;
+  }
+  if (role === "admin" || role === "central_admin") {
+    return navs.admin;
+  }
+  if (role === "user") {
+    return navs.user;
+  }
+  if (role === "customer" || role === "buyer") {
+    return navs.customer;
+  }
+  if (role === "business" || role === "business_owner") {
+    return navs.business;
+  }
+
+  // 3. Authenticated user's persistent role / accountType
+  const userRole = user?.role;
+  const accountType = user?.accountType;
+  if (["central_admin", "super_admin", "admin", "secretariat"].includes(userRole)) {
+    return navs.admin;
   }
   if (userRole === "state_admin") {
     return roleNavs.state_admin;
   }
-  if (userRole === "central_admin") {
-    return navs.admin;
+  if (userRole === "chapter_admin") {
+    return roleNavs.chapter_admin;
+  }
+  if (userRole === "business_owner" || accountType === "business") {
+    return navs.business;
+  }
+  if (accountType === "user" || Boolean(user?.businessName || user?.organization)) {
+    return navs.user;
+  }
+  if (userRole === "customer" || userRole === "buyer" || accountType === "customer") {
+    return navs.customer;
   }
 
   return navs.business;

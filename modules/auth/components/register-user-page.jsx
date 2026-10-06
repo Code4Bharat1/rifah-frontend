@@ -347,12 +347,13 @@ export function RegisterUserPage() {
         category: form.category,
         subCategory: form.subCategory,
         subscriberTier: selectedPlanObj.name,
+        accountType: "user",
         verifiedToken,
       });
 
       toast.success("Account created successfully! Welcome to RIFAH User Portal.");
 
-      if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")) {
+      if (redirectParam && redirectParam.startsWith("/user") && !redirectParam.startsWith("//")) {
         router.push(redirectParam);
       } else {
         router.push("/user");
