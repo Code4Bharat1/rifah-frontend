@@ -353,7 +353,16 @@ export function RegisterUserPage() {
 
       toast.success("Account created successfully! Welcome to RIFAH User Portal.");
 
-      if (redirectParam && redirectParam.startsWith("/user") && !redirectParam.startsWith("//")) {
+      if (
+        redirectParam &&
+        !redirectParam.startsWith("//") &&
+        (redirectParam.startsWith("/user") ||
+          redirectParam.startsWith("/business") ||
+          redirectParam.startsWith("/discover") ||
+          redirectParam.startsWith("/events") ||
+          redirectParam.startsWith("/enquiry") ||
+          redirectParam.startsWith("/membership"))
+      ) {
         router.push(redirectParam);
       } else {
         router.push("/user");

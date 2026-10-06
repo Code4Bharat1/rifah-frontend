@@ -320,9 +320,8 @@ function BusinessProfile() {
 
   const handleOpenEnquiry = (defaultItem = null) => {
     if (!user) {
-      toast.info("Please sign in as a customer to send your enquiry.");
       const currentPath = typeof window !== "undefined" ? window.location.pathname : `/business/${business?.slug || business?._id || businessId}`;
-      router.push(`/login?role=customer&redirect=${encodeURIComponent(currentPath)}`);
+      router.push(`/register-user?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
     if (defaultItem) {
@@ -341,9 +340,8 @@ function BusinessProfile() {
     setEnquiryError("");
 
     if (!user) {
-      toast.info("Please sign in as a customer to send your enquiry.");
       const currentPath = typeof window !== "undefined" ? window.location.pathname : `/business/${business?.slug || business?._id || businessId}`;
-      router.push(`/login?role=customer&redirect=${encodeURIComponent(currentPath)}`);
+      router.push(`/register-user?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
 
