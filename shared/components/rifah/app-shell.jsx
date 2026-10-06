@@ -77,6 +77,27 @@ let globalSidebarScrollTop = typeof window !== "undefined"
   : 0;
 
 const navs = {
+  user: {
+    title: "Member Portal",
+    primary: [
+      { label: "Dashboard", to: "/user", icon: Gauge },
+      { label: "Catalogue", to: "/user/catalogue", icon: Package },
+      { label: "Feeds", to: "/user/feeds", icon: Compass },
+      { label: "Enquiries", to: "/user/enquiries", icon: FileStack },
+      { label: "My Asks", to: "/user/my-enquiries", icon: Send },
+      { label: "More", to: "/user/profile", icon: LayoutGrid },
+    ],
+    more: [
+      { label: "Networking", to: "/user/networking", icon: Handshake },
+      { label: "Power Networking", to: "/user/power-networking", icon: Zap },
+      { label: "Messages", to: "/user/messages", icon: MessageSquare },
+      { label: "Events", to: "/user/events", icon: CalendarDays },
+      { label: "LMS", to: "/user/lms", icon: GraduationCap },
+      { label: "Membership Tiers", to: "/user/membership", icon: Star },
+      { label: "My Profile", to: "/user/profile", icon: UserRound },
+      { label: "Notifications", to: "/user/notifications", icon: Bell },
+    ],
+  },
   customer: {
     title: "Customer Portal",
     primary: [
@@ -205,14 +226,15 @@ roleNavs.business = navs.business;
 roleNavs.business_owner = navs.business;
 roleNavs.customer = navs.customer;
 roleNavs.buyer = navs.customer;
+roleNavs.user = navs.user;
 
 navs.business_owner = navs.business;
-navs.customer = navs.customer;
 navs.buyer = navs.customer;
 navs.central_admin = navs.admin;
 
 const navRoles = [
   { role: "customer", label: "Customer Portal", to: "/customer" },
+  { role: "user", label: "Member Portal", to: "/user" },
   { role: "business", label: "Business", to: "/biz" },
   { role: "admin", label: "Central Admin", to: "/admin" },
 ];
@@ -222,8 +244,11 @@ function useResolvedNav(role) {
   const pathname = usePathname();
 
   // 1. Explicit path and role overrides for dedicated panels (deterministic on both SSR & client)
-  if (pathname?.startsWith("/customer") || role === "customer" || role === "buyer") {
+  if (pathname?.startsWith("/customer")) {
     return navs.customer;
+  }
+  if (pathname?.startsWith("/user") || role === "user") {
+    return navs.user;
   }
   if (pathname?.startsWith("/biz") || role === "business" || role === "business_owner") {
     return navs.business;
@@ -238,6 +263,9 @@ function useResolvedNav(role) {
     if (user && (user.role === "customer" || user.role === "buyer")) {
       return navs.customer;
     }
+    if (user && user.role === "user") {
+      return navs.user;
+    }
     if (user && (user.role === "business_owner" || user.role === "business")) {
       return navs.business;
     }
@@ -246,6 +274,9 @@ function useResolvedNav(role) {
 
   // 2. Strict Role Segregation based on authenticated user's role (for non-prefixed routes like /)
   const userRole = user?.role;
+  if (userRole === "user") {
+    return navs.user;
+  }
   if (userRole === "customer" || userRole === "buyer") {
     return navs.customer;
   }
@@ -561,6 +592,14 @@ export function AppShell({
   useEffect(() => {
     if (!loading && !user) {
       router.push(`/login?redirect=${encodeURIComponent(path)}`);
+      return;
+    }
+    if (!loading && user) {
+      const isCustomerUser = user.role === "customer" || user.role === "buyer";
+      if (isCustomerUser && path?.startsWith("/biz")) {
+        const target = path.replace(/^\/biz/, "/user");
+        router.replace(target || "/user");
+      }
     }
   }, [user, loading, path, router]);
 
@@ -637,7 +676,13 @@ export function AppShell({
     user?.previousRole === "state_admin" ||
     user?.previousRole === "chapter_admin";
 
-  const isRoutePlanLocked = isBusinessRole && !isBizLoading && !isAdminSwitchedToBusiness && isRouteLocked(path);
+  const isUserRole =
+    (role === "customer" || role === "user" || user?.role === "customer" || user?.role === "buyer") &&
+    !isBusinessRole;
+  const isUserRouteLocked = isUserRole && isRouteLocked(path);
+  const isRoutePlanLocked =
+    (isBusinessRole && !isBizLoading && !isAdminSwitchedToBusiness && isRouteLocked(path)) ||
+    isUserRouteLocked;
   const isVerificationLocked =
     isBusinessRole &&
     !isBizLoading &&
@@ -720,7 +765,7 @@ export function AppShell({
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover", "/customer"];
+    const rootRoutes = ["/user", "/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover", "/customer"];
     if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };
@@ -733,7 +778,13 @@ export function AppShell({
   const all = useMemo(() => {
     const primaryItems = (nav?.primary || []).filter((item) => item.label !== "More");
     const moreItems = nav?.more || [];
-    return [...primaryItems, ...moreItems];
+    const combined = [...primaryItems, ...moreItems];
+    const seen = new Set();
+    return combined.filter((item) => {
+      if (seen.has(item.to)) return false;
+      seen.add(item.to);
+      return true;
+    });
   }, [nav]);
 
   return (
@@ -762,9 +813,11 @@ export function AppShell({
             let badge = null;
             if (item.label === "Messages") badge = unreadMsgs;
             if (item.label === "Notifications") badge = unreadNotifs;
+            const isUserRole = role === "customer" || role === "user" || effectiveUser?.role === "customer" || effectiveUser?.role === "buyer";
             const isItemPlanLocked = isBusinessRole && !isBizLoading && !isAdminSwitchedToBusiness && isRouteLocked(item.to);
             const isItemUnverifiedLocked = isBusinessRole && !isBizLoading && Boolean(businessData) && !hasEverBeenVerified && !isAccessibleUnverifiedPath(item.to) && !isAdminSwitchedToBusiness;
-            const isItemLocked = isItemPlanLocked || isItemUnverifiedLocked;
+            const isItemUserLocked = isUserRole && isRouteLocked(item.to);
+            const isItemLocked = isItemPlanLocked || isItemUnverifiedLocked || isItemUserLocked;
             return (
               <SidebarLink
                 key={`sidebar-${item.to}-${item.label}-${index}`}
@@ -785,8 +838,8 @@ export function AppShell({
               href={
                 role === "business"
                   ? "/biz/profile"
-                  : role === "customer" || effectiveUser?.role === "customer" || effectiveUser?.role === "buyer"
-                    ? "/customer/profile"
+                  : role === "customer" || role === "user" || effectiveUser?.role === "customer" || effectiveUser?.role === "buyer"
+                    ? "/user/profile"
                     : effectiveUser?.role === "state_admin"
                       ? "/state-admin/settings"
                       : effectiveUser?.role === "chapter_admin"
@@ -834,12 +887,12 @@ export function AppShell({
               </div>
             </div>
           )}
-          {(effectiveUser?.role === "customer" || effectiveUser?.role === "buyer") && (
-            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+          {(effectiveUser?.role === "customer" || effectiveUser?.role === "buyer" || role === "user" || role === "customer") && (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
               <div className="flex items-center justify-between text-[10px]">
-                <span className="font-bold text-emerald-400 uppercase tracking-wider">CUSTOMER</span>
-                <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-bold uppercase truncate max-w-[120px]">
-                  BUYER
+                <span className="font-bold text-blue-500 uppercase tracking-wider">MEMBER TIER</span>
+                <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-bold uppercase truncate max-w-[120px]">
+                  {effectiveUser?.subscriberTier || effectiveUser?.membershipPlan || "Tier I (Free)"}
                 </span>
               </div>
             </div>
@@ -1133,13 +1186,13 @@ function UnderApprovalAccessGate({ business, path, isSubscriptionExpired, planNa
               </p>
               <div className="mt-4 flex flex-wrap gap-2.5">
                 <Button asChild size="sm" className="font-semibold shadow-xs gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
-                  <Link href="/biz/membership">
+                  <Link href={isUserRole ? "/user/membership" : "/biz/membership"}>
                     <Star className="h-4 w-4" />
                     <span>Upgrade Membership Plan</span>
                   </Link>
                 </Button>
                 <Button asChild size="sm" variant="outline" className="font-semibold gap-2 border-indigo-300 text-indigo-900 hover:bg-indigo-100 dark:border-indigo-800 dark:text-indigo-200">
-                  <Link href="/biz/profile">
+                  <Link href={isUserRole ? "/user/profile" : "/biz/profile"}>
                     <Building2 className="h-4 w-4" />
                     <span>View Profile</span>
                   </Link>
@@ -1453,7 +1506,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover", "/customer"];
+    const rootRoutes = ["/user", "/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover", "/customer"];
     if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };

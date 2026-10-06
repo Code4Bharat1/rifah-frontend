@@ -255,7 +255,7 @@ export default function LoginPage() {
 
     // Default landing per role
     if (isCustomer) {
-      router.push("/customer");
+      router.push("/user");
     } else if (isBiz) {
       router.push("/biz");
     } else if (isChapterAdmin) {
@@ -718,24 +718,31 @@ export default function LoginPage() {
               <p className="text-xs font-bold text-slate-800 px-1">Don&apos;t have an account?</p>
               <div className="grid gap-1.5">
                 <Link
-                  href={isCustomerIntent && redirectParam ? `/register-customer?redirect=${encodeURIComponent(redirectParam)}` : "/register-customer"}
-                  className={`group flex items-center justify-between rounded-xl border p-2.5 transition-all hover:shadow-2xs ${
-                    isCustomerIntent
-                      ? "border-emerald-300 bg-emerald-50/50 hover:border-emerald-400 ring-2 ring-emerald-500/20"
-                      : "border-slate-100 bg-white hover:border-slate-200"
-                  }`}
+                  href={redirectParam ? `/register-user?redirect=${encodeURIComponent(redirectParam)}` : "/register-user"}
+                  className="group flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50/40 p-2.5 transition-all hover:border-blue-300 hover:shadow-2xs"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                      <UserRound className="h-3.5 w-3.5" />
+                    </div>
+                      <div>
+                        <span className="block text-xs font-bold text-slate-800">Register as Member / User</span>
+                        <span className="block text-[10px] text-slate-500">Chamber networking, member tiers & business discovery</span>
+                      </div>
+                  </div>
+                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 mr-1" />
+                </Link>
+
+                <Link
+                  href={redirectParam ? `/register-customer?redirect=${encodeURIComponent(redirectParam)}` : "/register-customer"}
+                  className="group flex items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 transition-all hover:border-slate-200 hover:shadow-2xs"
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                       <ShoppingBag className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="block text-xs font-bold text-slate-800">Register as a Customer</span>
-                        {isCustomerIntent && (
-                          <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-emerald-600 text-white rounded-full">Recommended</span>
-                        )}
-                      </div>
+                      <span className="block text-xs font-bold text-slate-800">Register as a Customer</span>
                       <span className="block text-[10px] text-slate-500">Discover businesses, send enquiries & get quotations</span>
                     </div>
                   </div>
@@ -748,7 +755,7 @@ export default function LoginPage() {
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-[#0284c7]">
-                      <UserRound className="h-3.5 w-3.5" />
+                      <Building2 className="h-3.5 w-3.5" />
                     </div>
                     <div>
                       <span className="block text-xs font-bold text-slate-800">Register your business</span>
