@@ -98,18 +98,6 @@ const navs = {
       { label: "Notifications", to: "/user/notifications", icon: Bell },
     ],
   },
-  customer: {
-    title: "Customer Portal",
-    primary: [
-      { label: "Discover", to: "/customer", icon: Compass },
-      { label: "My Enquiry", to: "/customer/enquiries", icon: FileStack },
-      { label: "Messages", to: "/customer/messages", icon: MessageSquare },
-      { label: "Notifications", to: "/customer/notifications", icon: Bell },
-      { label: "Events", to: "/customer/events", icon: CalendarDays },
-      { label: "Profile", to: "/customer/profile", icon: UserRound },
-    ],
-    more: [],
-  },
   business: {
     title: "Business workspace",
     primary: [
@@ -223,18 +211,17 @@ const roleNavs = {
 roleNavs.central_admin = navs.admin;
 roleNavs.business = navs.business;
 roleNavs.business_owner = navs.business;
-roleNavs.customer = navs.customer;
-roleNavs.buyer = navs.customer;
+roleNavs.customer = navs.user;
+roleNavs.buyer = navs.user;
 roleNavs.user = navs.user;
 
 navs.business_owner = navs.business;
-navs.customer = navs.customer;
-navs.buyer = navs.customer;
+navs.customer = navs.user;
+navs.buyer = navs.user;
 navs.user = navs.user;
 navs.central_admin = navs.admin;
 
 const navRoles = [
-  { role: "customer", label: "Customer Portal", to: "/customer" },
   { role: "user", label: "Member Portal", to: "/user" },
   { role: "business", label: "Business", to: "/biz" },
   { role: "admin", label: "Central Admin", to: "/admin" },
@@ -245,10 +232,7 @@ function useResolvedNav(role) {
   const pathname = usePathname();
 
   // 1. Explicit path and role overrides for dedicated panels (deterministic on both SSR & client)
-  if (pathname?.startsWith("/customer")) {
-    return navs.customer;
-  }
-  if (pathname?.startsWith("/user") || role === "user") {
+  if (pathname?.startsWith("/user") || role === "user" || role === "customer" || role === "buyer") {
     return navs.user;
   }
   if (pathname?.startsWith("/biz") || role === "business" || role === "business_owner") {
@@ -261,10 +245,7 @@ function useResolvedNav(role) {
     return roleNavs.state_admin;
   }
   if (pathname?.startsWith("/admin") || role === "admin" || role === "central_admin") {
-    if (user && (user.role === "customer" || user.role === "buyer")) {
-      return navs.customer;
-    }
-    if (user && user.role === "user") {
+    if (user && (user.role === "customer" || user.role === "buyer" || user.role === "user")) {
       return navs.user;
     }
     if (user && (user.role === "business_owner" || user.role === "business")) {
@@ -275,11 +256,8 @@ function useResolvedNav(role) {
 
   // 2. Strict Role Segregation based on authenticated user's role (for non-prefixed routes like /)
   const userRole = user?.role;
-  if (userRole === "user") {
+  if (userRole === "user" || userRole === "customer" || userRole === "buyer") {
     return navs.user;
-  }
-  if (userRole === "customer" || userRole === "buyer") {
-    return navs.customer;
   }
   if (userRole === "business_owner" || userRole === "business") {
     return navs.business;
@@ -752,7 +730,7 @@ export function AppShell({
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/user", "/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover", "/customer"];
+    const rootRoutes = ["/user", "/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
     if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };
@@ -1493,7 +1471,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
 
   const isActive = (to) => {
     if (path === to) return true;
-    const rootRoutes = ["/user", "/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover", "/customer"];
+    const rootRoutes = ["/user", "/biz", "/admin", "/chapter-admin", "/state-admin", "/me", "/discover"];
     if (rootRoutes.includes(to)) return false;
     return to !== "/" && path.startsWith(to + "/");
   };

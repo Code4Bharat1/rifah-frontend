@@ -721,22 +721,6 @@ export default function LoginPage() {
                 </Link>
 
                 <Link
-                  href={redirectParam ? `/register-customer?redirect=${encodeURIComponent(redirectParam)}` : "/register-customer"}
-                  className="group flex items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 transition-all hover:border-slate-200 hover:shadow-2xs"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                      <ShoppingBag className="h-3.5 w-3.5" />
-                    </div>
-                    <div>
-                      <span className="block text-xs font-bold text-slate-800">Register as a Customer</span>
-                      <span className="block text-[10px] text-slate-500">Discover businesses, send enquiries & get quotations</span>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 mr-1" />
-                </Link>
-
-                <Link
                   href="/register-business"
                   className="group flex items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 transition-all hover:border-slate-200 hover:shadow-2xs"
                 >
