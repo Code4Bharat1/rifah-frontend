@@ -26,15 +26,15 @@ export function useFeatureAccess() {
   const { data: business } = useMyBusiness();
   const { data: membershipData } = useMyMembership();
 
-  // Determine current tier from membership data, business or user subscription
+  // Determine current tier from business membership, membership data, or user subscription
   const planName =
+    business?.membership ||
+    membershipData?.planName ||
     membershipData?.subscriberTier ||
     business?.subscriberTier ||
     user?.subscriberTier ||
-    membershipData?.planName ||
     membershipData?.planId ||
     user?.membershipPlan ||
-    (business?.membership && String(business.membership).toLowerCase().includes("tier") ? business.membership : null) ||
     "Tier I (Free)";
   const tierId = normalizeUserTier(planName);
   const currentTier = SUBSCRIBER_TIERS.find((t) => t.id === tierId) || SUBSCRIBER_TIERS[0];
