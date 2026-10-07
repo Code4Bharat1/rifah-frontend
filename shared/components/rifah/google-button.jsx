@@ -125,12 +125,12 @@ export function GoogleAuthButton({
                   router.push("/state-admin");
                 } else if (loggedInUser.role === "chapter_admin") {
                   router.push("/chapter-admin");
-                } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || Boolean(loggedInUser.businessId || loggedInUser.businessSlug)) {
+                } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || (loggedInUser.accountType !== "user" && Boolean(loggedInUser.businessId || loggedInUser.businessSlug))) {
                   router.push("/biz");
                 } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.subscriberTier)) {
                   router.push("/user");
                 } else {
-                  router.push("/customer");
+                  router.push("/user");
                 }
               } catch (err) {
                 const msg = err.message || "Google authentication failed on server.";
@@ -175,12 +175,12 @@ export function GoogleAuthButton({
                 router.push("/state-admin");
               } else if (loggedInUser.role === "chapter_admin") {
                 router.push("/chapter-admin");
-              } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || Boolean(loggedInUser.businessId || loggedInUser.businessSlug)) {
+              } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || (loggedInUser.accountType !== "user" && Boolean(loggedInUser.businessId || loggedInUser.businessSlug))) {
                 router.push("/biz");
               } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.subscriberTier)) {
                 router.push("/user");
               } else {
-                router.push("/customer");
+                router.push("/user");
               }
             } catch (serverErr) {
               const msg = serverErr.message || "Failed to authenticate with Google.";

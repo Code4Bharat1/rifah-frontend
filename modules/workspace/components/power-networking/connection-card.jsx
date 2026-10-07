@@ -14,8 +14,11 @@ import { Button } from "@shared/components/ui/button";
 import { Badge } from "@shared/components/ui/badge";
 import { VerificationBadge } from "@shared/components/rifah/badges";
 import { resolveMediaUrl } from "@shared/lib/media";
+import { workspacePrefix, homePath } from "@shared/lib/workspace";
+import { useAuth } from "@shared/providers/auth-provider";
 
 export function ConnectionCard({ connection }) {
+  const { user } = useAuth();
   const biz = connection.connectedBusiness || {};
   const user = connection.connectedUser || {};
   const req = connection.requirement;
@@ -110,7 +113,7 @@ export function ConnectionCard({ connection }) {
           </Link>
         </Button>
         <Button asChild size="sm" className="flex-1 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
-          <Link href={`/biz/messages`}>
+          <Link href={`${workspacePrefix(user)}/messages`}>
             <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
             Message
           </Link>

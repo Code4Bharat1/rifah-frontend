@@ -69,11 +69,11 @@ export function PublicHeader() {
         ? "/state-admin"
         : user?.role === "chapter_admin"
           ? "/chapter-admin"
-          : user?.role === "business_owner" || user?.role === "business" || user?.accountType === "business" || Boolean(user?.businessId || user?.businessSlug)
+          : user?.role === "business_owner" || user?.role === "business" || user?.accountType === "business" || (user?.accountType !== "user" && Boolean(user?.businessId || user?.businessSlug))
             ? "/biz"
             : user?.accountType === "user" || Boolean(user?.subscriberTier)
               ? "/user"
-              : "/customer";
+              : "/user";
 
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
@@ -197,11 +197,11 @@ export function PublicHeader() {
           ? "/state-admin"
           : user?.role === "chapter_admin"
             ? "/chapter-admin"
-            : user?.role === "business_owner" || user?.role === "business" || user?.accountType === "business" || Boolean(user?.businessId || user?.businessSlug)
+            : user?.role === "business_owner" || user?.role === "business" || user?.accountType === "business" || (user?.accountType !== "user" && Boolean(user?.businessId || user?.businessSlug))
               ? "/biz"
               : user?.accountType === "user" || Boolean(user?.subscriberTier)
                 ? "/user"
-                : "/customer";
+                : "/user";
 
     return (
       <Sheet>

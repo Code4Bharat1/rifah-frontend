@@ -71,6 +71,7 @@ import { getSocket } from "@shared/lib/socket";
 import { VerificationBadge } from "@shared/components/rifah/badges";
 import { RifahCopilotWidget } from "@shared/components/rifah/rifah-copilot-widget";
 import { UserAvatar } from "@shared/components/rifah/ui-bits";
+import { isBusinessAccount } from "@shared/lib/workspace";
 
 let globalSidebarScrollTop = typeof window !== "undefined"
   ? Number(sessionStorage.getItem("rifah_sidebar_scroll_top") || 0)
@@ -283,7 +284,7 @@ function useResolvedNav(role) {
   if (userRole === "chapter_admin") {
     return roleNavs.chapter_admin;
   }
-  if (userRole === "business_owner" || userRole === "business" || accountType === "business" || Boolean(user?.businessId || user?.businessSlug)) {
+  if (userRole === "business_owner" || userRole === "business" || accountType === "business" || (accountType !== "user" && Boolean(user?.businessId || user?.businessSlug))) {
     return navs.business;
   }
   if (accountType === "user" || Boolean(user?.subscriberTier)) {
@@ -307,6 +308,12 @@ function toRoleAwarePath(path, role, user) {
     role === "central_admin"
   ) {
     return path;
+  }
+
+  // Member (subscriber/customer) workspace: shared header links (bell, profile, messages) are
+  // authored as /biz/*; keep them inside /user so a member is never dropped into the business panel.
+  if (role === "user" || role === "customer" || role === "buyer") {
+    return path.replace(/^\/biz(?=\/|$)/, "/user");
   }
 
   // If in business shell, deterministically keep business paths across SSR & client
@@ -336,6 +343,9 @@ function toRoleAwarePath(path, role, user) {
     if (path === "/admin/leads" || path === "/chapter-admin/leads") return "/state-admin/enquiries";
     if (path.startsWith("/admin/")) return path.replace(/^\/admin/, "/state-admin");
     return path;
+  }
+  if (effectiveRole === "customer" || effectiveRole === "buyer") {
+    return path.replace(/^\/biz(?=\/|$)/, "/user");
   }
   return path;
 }
@@ -581,9 +591,13 @@ export function AppShell({
       return;
     }
     if (!loading && user) {
-      const isCustomerUser = user.role === "customer" || user.role === "buyer";
-      if (isCustomerUser && path?.startsWith("/biz")) {
-        const target = path.replace(/^\/biz/, "/user");
+      // Members (customers / subscriber "user" accounts) never belong in the business panel: any
+      // /biz/* link rendered by a shared component is bounced to its /user/* twin, query intact.
+      const isMemberUser =
+        user.role === "customer" || user.role === "buyer" ||
+        (user.accountType === "user" && !isBusinessAccount(user));
+      if (isMemberUser && (path === "/biz" || path?.startsWith("/biz/"))) {
+        const target = path.replace(/^\/biz/, "/user") + (typeof window !== "undefined" ? window.location.search : "");
         router.replace(target || "/user");
       }
     }
@@ -992,6 +1006,8 @@ export function AppShell({
                       ? "/chapter-admin/notifications"
                       : path?.startsWith("/admin") || role === "admin" || role === "central_admin"
                       ? "/admin/notifications"
+                      : role === "customer" || role === "user" || effectiveUser?.role === "customer" || effectiveUser?.role === "buyer"
+                      ? "/user/notifications"
                       : "/biz/notifications"
                   }
                   aria-label="Notifications"

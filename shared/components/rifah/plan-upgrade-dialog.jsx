@@ -25,6 +25,8 @@ import {
   SUBSCRIBER_TIERS,
   BUSINESS_CHAMBER_TIERS,
 } from "@shared/lib/subscription-models";
+import { workspacePrefix, homePath } from "@shared/lib/workspace";
+import { useAuth } from "@shared/providers/auth-provider";
 
 const formatNumber = (num) => {
   if (num === undefined || num === null) return "0";
@@ -92,6 +94,7 @@ export function PlanUpgradeDialog({
   requiredTier = "Tier II (Starter)",
   defaultCategory = "user",
 }) {
+  const { user } = useAuth();
   const [currency, setCurrency] = useState("INR"); // "INR" | "USD"
   const [activeCategory, setActiveCategory] = useState(defaultCategory); // "user" | "business"
   const isIntl = currency === "USD";
@@ -294,7 +297,7 @@ export function PlanUpgradeDialog({
                   <Link
                     href={
                       plan.id === "tier_1" || plan.costingInr === 0
-                        ? "/biz"
+                        ? homePath(user)
                         : `/membership/checkout?plan=${plan.id}&category=${activeCategory}&currency=${currency}`
                     }
                     onClick={onClose}

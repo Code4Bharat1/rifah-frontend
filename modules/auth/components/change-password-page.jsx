@@ -10,6 +10,7 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { useAuth } from "@shared/providers/auth-provider";
+import { workspacePrefix, homePath } from "@shared/lib/workspace";
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -50,7 +51,7 @@ export default function ChangePasswordPage() {
       } else if (updatedUser?.role === "central_admin") {
         router.push("/admin");
       } else {
-        router.push("/biz");
+        router.push(homePath(updatedUser));
       }
     } catch (err) {
       setError(err.message || "Failed to change password. Please try again.");

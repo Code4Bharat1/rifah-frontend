@@ -26,6 +26,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChamberMembershipTiers, DEFAULT_BUSINESS_PLANS, DEFAULT_USER_PLANS } from "@shared/components/rifah/chamber-membership-tiers";
 import { cn } from "@shared/lib/utils";
+import { workspacePrefix, homePath } from "@shared/lib/workspace";
 
 const steps = ["Plan", "Billing", "Payment", "Confirmation"];
 
@@ -1360,7 +1361,7 @@ function Checkout() {
                   {/* Actions */}
                   <div className="mt-6 flex flex-col gap-2.5">
                     <Button asChild size="lg" className="w-full shadow-sm">
-                      <Link href="/biz" className="flex items-center justify-center gap-2 font-semibold">
+                      <Link href={homePath(currentUser)} className="flex items-center justify-center gap-2 font-semibold">
                         <LayoutDashboard className="h-4 w-4" /> Go to Dashboard <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>

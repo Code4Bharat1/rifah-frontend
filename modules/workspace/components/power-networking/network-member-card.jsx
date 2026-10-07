@@ -31,6 +31,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@shared/components/ui/alert-dialog";
+import { workspacePrefix, homePath } from "@shared/lib/workspace";
+import { useAuth } from "@shared/providers/auth-provider";
 
 export function NetworkMemberCard({
   business,
@@ -38,6 +40,7 @@ export function NetworkMemberCard({
   onRemove,
   isRemoving = false,
 }) {
+  const { user } = useAuth();
   const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
 
   if (!business) return null;
@@ -193,7 +196,7 @@ export function NetworkMemberCard({
             className="px-2.5 text-xs text-foreground shrink-0"
             title="Open Chat"
           >
-            <Link href={`/biz/messages`}>
+            <Link href={`${workspacePrefix(user)}/messages`}>
               <MessageSquare className="h-3.5 w-3.5" />
             </Link>
           </Button>

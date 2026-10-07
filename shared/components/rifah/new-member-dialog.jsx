@@ -7,6 +7,7 @@ import { Button } from "@shared/components/ui/button";
 import { messageApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { toast } from "sonner";
+import { workspacePrefix, homePath } from "@shared/lib/workspace";
 
 function WhatsAppIcon({ className = "h-3.5 w-3.5" }) {
   return (
@@ -273,7 +274,7 @@ export function NewMemberDialog({ open, onOpenChange, newMembers = [], onMemberW
             size="sm"
             className="h-8 px-3.5 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-2xs gap-1.5 w-full sm:w-auto justify-center"
           >
-            <Link href="/biz/networking">
+            <Link href={`${workspacePrefix(user)}/networking`}>
               <span>Chapter Directory</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>

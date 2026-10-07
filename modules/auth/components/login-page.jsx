@@ -216,7 +216,7 @@ export default function LoginPage() {
       role === "business_owner" ||
       role === "business" ||
       accountType === "business" ||
-      Boolean(user.businessId || user.businessSlug);
+      (user.accountType !== "user" && Boolean(user.businessId || user.businessSlug));
     const isMemberUser =
       !isBiz &&
       !isCentralAdmin &&
@@ -249,7 +249,7 @@ export default function LoginPage() {
         router.push(redirect);
         return;
       }
-      if (isPureCustomer && redirect.startsWith("/customer")) {
+      if (isPureCustomer && redirect.startsWith("/user")) {
         router.push(redirect);
         return;
       }
@@ -267,9 +267,9 @@ export default function LoginPage() {
     } else if (isMemberUser) {
       router.push("/user");
     } else if (isPureCustomer) {
-      router.push("/customer");
+      router.push("/user");
     } else {
-      router.push("/customer");
+      router.push("/user");
     }
   };
 

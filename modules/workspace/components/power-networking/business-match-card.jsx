@@ -19,6 +19,8 @@ import { Button } from "@shared/components/ui/button";
 import { Badge } from "@shared/components/ui/badge";
 import { VerificationBadge } from "@shared/components/rifah/badges";
 import { resolveMediaUrl } from "@shared/lib/media";
+import { workspacePrefix, homePath } from "@shared/lib/workspace";
+import { useAuth } from "@shared/providers/auth-provider";
 
 export function BusinessMatchCard({
   business,
@@ -27,6 +29,7 @@ export function BusinessMatchCard({
   requirementTitle,
   isConnecting = false,
 }) {
+  const { user } = useAuth();
   const logoUrl = business?.logo ? resolveMediaUrl(business.logo) : "";
   const matchScore = business?.matchScore || 0;
   const relevanceTier = business?.relevanceTier || "Relevant";
@@ -205,7 +208,7 @@ export function BusinessMatchCard({
               className="px-2.5 text-xs shrink-0"
               title="Open Chat"
             >
-              <Link href={`/biz/messages`}>
+              <Link href={`${workspacePrefix(user)}/messages`}>
                 <MessageSquare className="h-3.5 w-3.5" />
               </Link>
             </Button>

@@ -23,8 +23,11 @@ const ROUTE_FEATURE_MAP = {
 
 export function useFeatureAccess() {
   const { user } = useAuth();
-  const { data: business } = useMyBusiness();
-  const { data: membershipData } = useMyMembership();
+  const { data: business, isLoading: bizLoading } = useMyBusiness();
+  const { data: membershipData, isLoading: memLoading } = useMyMembership();
+  // Until both lookups settle the plan is unknown (falls back to the free tier); locking on that
+  // placeholder made the same account look locked on one device and unlocked on another.
+  const planLoading = bizLoading || memLoading;
 
   // Determine current tier from business membership, membership data, or user subscription
   const planName =
@@ -63,6 +66,9 @@ export function useFeatureAccess() {
    */
   const canAccess = (featureKey) => {
     // Central Admin & Super Admin have universal bypass
+    if (planLoading) {
+      return { isAllowed: true, isExpired: false, value: "", tierName: "Loading" };
+    }
     if (user?.role === "central_admin" || user?.role === "super_admin" || user?.role === "admin") {
       return { isAllowed: true, isExpired: false, value: "Unlimited", tierName: "Admin Bypass" };
     }
@@ -74,7 +80,7 @@ export function useFeatureAccess() {
    * Check if a sidebar navigation path is locked
    */
   const isRouteLocked = (pathname) => {
-    if (!pathname) return false;
+    if (!pathname || planLoading) return false;
     const clean = pathname.split("?")[0].replace(/\/$/, "");
 
     // Central & Chapter Admins have route bypass

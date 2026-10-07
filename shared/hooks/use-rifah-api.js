@@ -423,6 +423,7 @@ export function useMyMembership() {
       const res = await membershipApi.getMyMembership();
       return res?.data || res;
     },
+    retry: false,
   });
 }
 

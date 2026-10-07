@@ -144,6 +144,7 @@ export function BirthdayBanner() {
   const cleanPath = (pathname || "").replace(/\/$/, "");
   const dashboardRoutes = [
     "/biz",
+    "/user",
     "/chapter-admin",
     "/admin",
     "/state-admin",

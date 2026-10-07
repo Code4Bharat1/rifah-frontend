@@ -29,6 +29,7 @@ import { isValidName } from "@shared/lib/validators";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
 import { EnquiryImageUpload } from "@shared/components/rifah/enquiry-image-upload";
 import { resolveMediaUrl } from "@shared/lib/api-client";
+import { workspacePrefix, homePath } from "@shared/lib/workspace";
 
 const steps = ["Requirement", "Details", "Contact", "Review"];
 
@@ -111,7 +112,7 @@ function NewEnquiry() {
             <div className="mt-6 grid gap-2">
               {user ? (
                 <Button asChild>
-                  <Link href="/biz/my-enquiries">Track my Ask</Link>
+                  <Link href={`${workspacePrefix(user)}/my-enquiries`}>Track my Ask</Link>
                 </Button>
               ) : null}
               <Button asChild variant={user ? "outline" : "default"}>
