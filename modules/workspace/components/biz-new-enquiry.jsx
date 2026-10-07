@@ -35,6 +35,7 @@ import {
 import { useAuth } from "@shared/providers/auth-provider";
 import { enquiryApi } from "@shared/lib/api-services";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
+import { EnquiryImageUpload } from "@shared/components/rifah/enquiry-image-upload";
 
 const B2B_CATEGORIES = [
   "Industrial Machinery & Tools",
@@ -77,6 +78,7 @@ export function BizNewEnquiry() {
     requiredBy: "",
     location: "",
     description: "",
+    images: [],
   });
 
   const [loading, setLoading] = useState(false);
@@ -207,6 +209,7 @@ export function BizNewEnquiry() {
         location: formData.location.trim(),
         requiredBy: formData.requiredBy,
         description: formData.description.trim(),
+        images: formData.images || [],
         targetType,
         sourceType: "b2b",
         guestName: senderName,
@@ -582,6 +585,16 @@ export function BizNewEnquiry() {
                 value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
                 className="mt-1"
+              />
+            </div>
+
+            <div className="pt-1">
+              <EnquiryImageUpload
+                images={formData.images}
+                onChange={(imgs) => handleInputChange("images", imgs)}
+                maxImages={3}
+                label="Technical Drawings & Sample Photos"
+                subLabel="Upload specification drawings, sample photos, or product requirements (Max 5MB each)"
               />
             </div>
           </div>

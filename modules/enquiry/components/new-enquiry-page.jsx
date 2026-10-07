@@ -27,6 +27,8 @@ import { enquiryApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { isValidName } from "@shared/lib/validators";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
+import { EnquiryImageUpload } from "@shared/components/rifah/enquiry-image-upload";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 
 const steps = ["Requirement", "Details", "Contact", "Review"];
 
@@ -58,6 +60,7 @@ function NewEnquiry() {
     title: "",
     category: categoryParam || "Manufacturing",
     description: "",
+    images: [],
     quantity: "100 Units",
     budget: "",
     requiredBy: "",
@@ -76,6 +79,7 @@ function NewEnquiry() {
         title: formData.title,
         category: formData.category,
         description: formData.description,
+        images: formData.images,
         quantity: formData.quantity,
         budget: formData.budget,
         requiredBy: formData.requiredBy ? new Date(formData.requiredBy).toISOString() : "Immediate",
@@ -200,6 +204,14 @@ function NewEnquiry() {
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Specifications, volume, tolerances, quality expectations, delivery terms."
+                    />
+                  </div>
+
+                  <div className="pt-1">
+                    <EnquiryImageUpload
+                      images={formData.images}
+                      onChange={(imgs) => setFormData({ ...formData, images: imgs })}
+                      maxImages={3}
                     />
                   </div>
                 </div>
@@ -338,6 +350,22 @@ function NewEnquiry() {
                       <dd className="text-right font-medium">{v}</dd>
                     </div>
                   ))}
+                  {formData.images.length > 0 && (
+                    <div className="flex items-center justify-between gap-3 py-2.5">
+                      <dt className="text-muted-foreground">Attached Photos</dt>
+                      <dd className="flex items-center gap-1.5">
+                        {formData.images.map((img, idx) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={idx}
+                            src={resolveMediaUrl(img)}
+                            alt="Attached specification"
+                            className="h-10 w-10 rounded-lg object-cover border border-border shadow-2xs"
+                          />
+                        ))}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
                 <label className="mt-4 flex items-start gap-2.5 text-sm">
                   <Checkbox required defaultChecked className="mt-0.5" />

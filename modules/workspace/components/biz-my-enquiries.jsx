@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MessageSquare, Send, CheckCircle, Clock } from "lucide-react";
+import { MessageSquare, Send, CheckCircle, Clock, Image as ImageIcon, Eye, Download } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, StatusBadge } from "@shared/components/rifah/badges";
@@ -11,6 +11,7 @@ import { Panel, ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { useMyEnquiries, useEnquiryResponses } from "@shared/hooks/use-rifah-api";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 
 const tabs = ["All", "Submitted", "Routed", "Responded", "Closed"];
 
@@ -18,6 +19,7 @@ export function BizMyEnquiries() {
   const router = useRouter();
   const [tab, setTab] = useState("All");
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const { data: enquiriesData, isLoading } = useMyEnquiries(
     tab === "All" ? {} : { status: tab === "Submitted" ? "New" : tab }
@@ -236,6 +238,41 @@ export function BizMyEnquiries() {
               </div>
             )}
 
+            {/* Attached Reference Photos */}
+            {Boolean(selectedEnquiry?.images?.length) && (
+              <div className="rounded-xl border border-border p-3.5 text-xs space-y-2 bg-surface-raised/40">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-foreground flex items-center gap-1.5">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    Attached Reference Photos ({selectedEnquiry.images.length})
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">Click photo to zoom</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {selectedEnquiry.images.map((img, idx) => {
+                    const resolved = resolveMediaUrl(img);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setPreviewImage(resolved)}
+                        className="group relative aspect-video sm:aspect-square rounded-lg overflow-hidden border border-border bg-black/5 hover:border-primary/50 transition-all text-left focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <img
+                          src={resolved}
+                          alt={`Attachment ${idx + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                          <Eye className="h-4 w-4" />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div>
               <h4 className="mb-2 text-sm font-semibold">Vendor Quotations & Responses</h4>
               {loadingResponses ? (
@@ -289,6 +326,32 @@ export function BizMyEnquiries() {
                   No businesses have submitted quotations for this requirement yet.
                 </div>
               )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Image Preview Lightbox */}
+      <Dialog open={Boolean(previewImage)} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent className="max-w-3xl p-2 bg-background/95 backdrop-blur-md">
+          <div className="relative flex flex-col items-center justify-center p-2">
+            {previewImage && (
+              <img
+                src={previewImage}
+                alt="Enquiry attachment full view"
+                className="max-h-[80vh] w-auto max-w-full rounded-lg object-contain shadow-2xl"
+              />
+            )}
+            <div className="mt-3 flex items-center justify-between w-full px-2 text-xs text-muted-foreground">
+              <span>Attachment Preview</span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1.5"
+                onClick={() => window.open(previewImage, "_blank")}
+              >
+                <Download className="h-3.5 w-3.5" /> Open in New Tab
+              </Button>
             </div>
           </div>
         </DialogContent>

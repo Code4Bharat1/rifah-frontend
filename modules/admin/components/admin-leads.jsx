@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Target, Download, Lock, Send, Megaphone, Route } from "lucide-react";
+import { Target, Download, Lock, Send, Megaphone, Route, Image as ImageIcon, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -9,6 +9,7 @@ import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { useAllEnquiries, useBusinesses, useChapters } from "@shared/hooks/use-rifah-api";
 import { leadApi, enquiryApi } from "@shared/lib/api-services";
+import { resolveMediaUrl } from "@shared/lib/api-client";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
@@ -38,6 +39,7 @@ function AdminLeads() {
   const [isRouting, setIsRouting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [routingSearch, setRoutingSearch] = useState("");
+  const [previewImage, setPreviewImage] = useState(null);
 
   // Fetch businesses for routing (in a real app, you'd filter by category or allow search)
   const { data: businessesData } = useBusinesses();
@@ -323,6 +325,48 @@ function AdminLeads() {
                    <p className="text-xs font-medium text-muted-foreground mb-2">Current Routing Status</p>
                    <StatusBadge status={selectedLead?.status} />
                 </div>
+
+                {/* Attached Reference Photos */}
+                {(() => {
+                  const attachedImages = selectedLead?.images?.length
+                    ? selectedLead.images
+                    : selectedLead?.enquiry?.images || [];
+                  if (!attachedImages || attachedImages.length === 0) return null;
+
+                  return (
+                    <div className="rounded-xl border border-border p-3.5 text-xs space-y-2 bg-muted/30">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          <ImageIcon className="h-4 w-4 text-primary" />
+                          Attached Reference Photos ({attachedImages.length})
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">Click photo to zoom</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {attachedImages.map((img, idx) => {
+                          const resolved = resolveMediaUrl(img);
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setPreviewImage(resolved)}
+                              className="group relative aspect-video rounded-lg overflow-hidden border border-border bg-black/5 hover:border-primary/50 transition-all text-left focus:outline-none focus:ring-2 focus:ring-primary"
+                            >
+                              <img
+                                src={resolved}
+                                alt={`Attachment ${idx + 1}`}
+                                className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                <Eye className="h-4 w-4" />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -420,6 +464,32 @@ function AdminLeads() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Image Preview Lightbox */}
+      <Dialog open={Boolean(previewImage)} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent className="max-w-3xl p-2 bg-background/95 backdrop-blur-md">
+          <div className="relative flex flex-col items-center justify-center p-2">
+            {previewImage && (
+              <img
+                src={previewImage}
+                alt="Enquiry attachment full view"
+                className="max-h-[80vh] w-auto max-w-full rounded-lg object-contain shadow-2xl"
+              />
+            )}
+            <div className="mt-3 flex items-center justify-between w-full px-2 text-xs text-muted-foreground">
+              <span>Attachment Preview</span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1.5"
+                onClick={() => window.open(previewImage, "_blank")}
+              >
+                <Download className="h-3.5 w-3.5" /> Open in New Tab
+              </Button>
             </div>
           </div>
         </DialogContent>

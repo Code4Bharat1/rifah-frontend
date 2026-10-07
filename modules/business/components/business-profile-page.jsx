@@ -93,6 +93,7 @@ import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rif
 import { BusinessCard } from "@shared/components/rifah/business-card";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { FieldRow, Panel, SectionHeader } from "@shared/components/rifah/ui-bits";
+import { EnquiryImageUpload } from "@shared/components/rifah/enquiry-image-upload";
 import { Button } from "@shared/components/ui/button";
 import { PhoneInput } from "@shared/components/ui/phone-input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
@@ -303,6 +304,7 @@ function BusinessProfile() {
     guestPhone: user?.phone || "",
     title: "",
     description: "",
+    images: [],
     quantity: "",
     location: "",
   });
@@ -368,6 +370,7 @@ function BusinessProfile() {
         location: enquiryForm.location || business.city || "Not specified",
         requiredBy: "Flexible",
         description: enquiryForm.description,
+        images: enquiryForm.images,
         guestName: enquiryForm.guestName,
         guestEmail: enquiryForm.guestEmail,
         guestPhone: enquiryForm.guestPhone,
@@ -379,6 +382,7 @@ function BusinessProfile() {
         guestPhone: user?.phone || "",
         title: "",
         description: "",
+        images: [],
         quantity: "",
         location: "",
       });
@@ -1917,6 +1921,17 @@ function BusinessProfile() {
                   rows={2}
                   placeholder="Specifications, delivery expectations, any other details..."
                   className="w-full rounded-lg sm:rounded-xl border border-border bg-transparent px-3 py-2 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors resize-none"
+                />
+              </div>
+
+              <div className="pt-0.5">
+                <EnquiryImageUpload
+                  images={enquiryForm.images}
+                  onChange={(imgs) => setEnquiryForm({ ...enquiryForm, images: imgs })}
+                  maxImages={3}
+                  compact
+                  label="Reference Photos"
+                  subLabel="Attach product sample or drawing"
                 />
               </div>
 

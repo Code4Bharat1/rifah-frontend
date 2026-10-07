@@ -49,6 +49,7 @@ import {
   DialogTitle,
 } from "@shared/components/ui/dialog";
 import { enquiryApi } from "@shared/lib/api-services";
+import { EnquiryImageUpload } from "@shared/components/rifah/enquiry-image-upload";
 import { eventImage, resolveMediaUrl } from "@shared/lib/media";
 import { cn } from "@shared/lib/utils";
 import { withAssetPrefix } from "@shared/lib/asset-prefix";
@@ -189,6 +190,7 @@ function HomePage() {
     quantity: "",
     location: "",
     description: "",
+    images: [],
   });
 
   const [isHeroMounted, setIsHeroMounted] = useState(false);
@@ -215,6 +217,7 @@ function HomePage() {
         guestName: rfqForm.guestName.trim(),
         guestEmail: rfqForm.guestEmail.trim(),
         guestPhone: rfqForm.guestPhone.trim(),
+        images: rfqForm.images || [],
       });
       setRfqSuccess(true);
       setRfqForm({
@@ -226,6 +229,7 @@ function HomePage() {
         quantity: "",
         location: "",
         description: "",
+        images: [],
       });
       toast.success("RFQ broadcasted to verified chamber businesses!");
     } catch (err) {
@@ -770,6 +774,18 @@ function HomePage() {
                     value={rfqForm.description}
                     onChange={(e) => setRfqForm((prev) => ({ ...prev, description: e.target.value }))}
                     className="w-full rounded-lg border border-border bg-surface p-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
+                    Reference Photos / Drawings <span className="text-muted-foreground font-normal">(Optional)</span>
+                  </label>
+                  <EnquiryImageUpload
+                    images={rfqForm.images}
+                    onChange={(imgs) => setRfqForm((prev) => ({ ...prev, images: imgs }))}
+                    maxImages={3}
+                    compact
                   />
                 </div>
               </div>

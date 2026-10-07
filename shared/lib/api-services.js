@@ -191,6 +191,11 @@ export const catalogueApi = {
 
 export const enquiryApi = {
   create: (data) => apiClient("/enquiries", { method: "POST", body: JSON.stringify(data) }),
+  uploadPhoto: (file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    return apiClient("/enquiries/upload", { method: "POST", body: formData });
+  },
   getMyEnquiries: (params = {}) => apiClient(`/enquiries/me${toQueryString(params)}`),
   getMyBusinessEnquiries: (params = {}) => apiClient(`/enquiries/business/me${toQueryString(params)}`),
   getAllEnquiries: (params = {}) => apiClient(`/enquiries/admin/all${toQueryString(params)}`),
@@ -220,6 +225,7 @@ export const membershipApi = {
 export const paymentApi = {
   getMyPayments: () => apiClient("/payments/me"),
   getAllPayments: (params = {}) => apiClient(`/payments/admin/all${toQueryString(params)}`),
+  getAll: (params = {}) => apiClient(`/payments/admin/all${toQueryString(params)}`),
   createOrder: (data) => apiClient("/payments/order", { method: "POST", body: JSON.stringify(data) }),
   verifyPayment: (data) => apiClient("/payments/verify", { method: "POST", body: JSON.stringify(data) }),
   verifyByAdmin: (id) => apiClient(`/payments/${id}/verify-by-admin`, { method: "POST" }),

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, ShieldCheck, MapPinned, Mail, Phone, ExternalLink, FileCheck2, Download, AlertTriangle, CheckCircle2, Loader2, Edit2 } from "lucide-react";
+import { Building2, ShieldCheck, MapPinned, Mail, Phone, ExternalLink, FileCheck2, Download, AlertTriangle, CheckCircle2, Loader2, Edit2, Award, FileText, Receipt, Eye, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -24,8 +24,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@shared/components/ui/alert-dialog";
-import { businessApi, verificationApi } from "@shared/lib/api-services";
+import { businessApi, verificationApi, paymentApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
+import { downloadInvoicePdf, generateInvoiceHtml } from "@shared/lib/invoice-generator";
+import { downloadCertificatePdf, generateCertificateHtml } from "@shared/lib/certificate-generator";
 import { useAuth } from "@shared/providers/auth-provider";
 
 export function AdminBusinessDetail({ id }) {
@@ -43,6 +45,9 @@ export function AdminBusinessDetail({ id }) {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editData, setEditData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [payments, setPayments] = useState([]);
+  const [loadingPayments, setLoadingPayments] = useState(true);
+  const [docPreviewModal, setDocPreviewModal] = useState({ open: false, title: "", html: "" });
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -60,6 +65,17 @@ export function AdminBusinessDetail({ id }) {
           }
         } catch (e) {
           // Ignore if no verification record found
+        }
+
+        // Fetch membership payment invoices for this business
+        try {
+          const payRes = await paymentApi.getAllPayments({ business: businessData._id });
+          const payList = Array.isArray(payRes?.data) ? payRes.data : Array.isArray(payRes) ? payRes : [];
+          setPayments(payList);
+        } catch (payErr) {
+          console.warn("Could not load invoices:", payErr);
+        } finally {
+          setLoadingPayments(false);
         }
       } catch (error) {
         toast.error("Failed to load business details");
@@ -259,6 +275,120 @@ export function AdminBusinessDetail({ id }) {
               </div>
             </Panel>
           )}
+
+          {/* Business Invoices & Payment Receipts Panel */}
+          <Panel className="p-4 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border">
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+                  <Receipt className="h-5 w-5 text-primary" />
+                  Business Invoices & Payment Receipts ({payments.length})
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Official membership transactions, GST tax breakdown, and downloadable PDF invoices
+                </p>
+              </div>
+            </div>
+
+            {loadingPayments ? (
+              <div className="py-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                Loading invoice records...
+              </div>
+            ) : payments.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border/80 p-6 text-center text-xs text-muted-foreground space-y-2 bg-muted/20">
+                <FileText className="h-8 w-8 mx-auto text-muted-foreground/60" />
+                <p className="font-semibold text-foreground text-sm">No payment invoices found</p>
+                <p className="max-w-md mx-auto text-muted-foreground">
+                  No online transactions or membership renewals have been recorded yet for this business. Once payment is processed, official invoices are automatically generated here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/50 border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                      <tr>
+                        <th className="p-3">Invoice #</th>
+                        <th className="p-3">Purpose / Plan</th>
+                        <th className="p-3">Date</th>
+                        <th className="p-3">Amount</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {payments.map((p) => {
+                        const isUsd = (p.currency || "").toUpperCase() === "USD";
+                        const currSymbol = isUsd ? "$" : "₹";
+                        const amt = Number(p.amount) || 0;
+                        const invNo = p.invoiceNumber || `INV-${String(p._id).slice(-4).toUpperCase()}`;
+
+                        return (
+                          <tr key={p._id} className="hover:bg-muted/30 transition-colors">
+                            <td className="p-3 font-mono font-bold text-primary whitespace-nowrap">
+                              {invNo}
+                            </td>
+                            <td className="p-3">
+                              <span className="font-semibold text-foreground block">
+                                {p.description || p.purpose || p.itemType || "Membership Fee"}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {p.method || "Online"} · {p.transactionId ? `${p.transactionId.slice(0, 14)}...` : "Confirmed"}
+                              </span>
+                            </td>
+                            <td className="p-3 text-muted-foreground whitespace-nowrap">
+                              {new Date(p.paidAt || p.createdAt).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </td>
+                            <td className="p-3 font-bold text-foreground whitespace-nowrap">
+                              {currSymbol} {amt.toLocaleString(isUsd ? "en-US" : "en-IN")}
+                            </td>
+                            <td className="p-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                                (p.status || "").toLowerCase() === "paid"
+                                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                                  : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+                              }`}>
+                                {p.status || "Paid"}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                  onClick={() => setDocPreviewModal({
+                                    open: true,
+                                    title: `Tax Invoice #${invNo}`,
+                                    html: generateInvoiceHtml(p, business),
+                                  })}
+                                >
+                                  <Eye className="h-3.5 w-3.5 mr-1" /> Preview
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2.5 text-xs font-semibold gap-1 text-primary hover:text-primary hover:bg-primary/10 border-primary/30"
+                                  onClick={() => downloadInvoicePdf(p, business)}
+                                >
+                                  <Download className="h-3.5 w-3.5" /> PDF
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </Panel>
         </div>
 
         <div className="space-y-6">
@@ -273,6 +403,70 @@ export function AdminBusinessDetail({ id }) {
                 <p className="text-xs text-muted-foreground mb-1">Membership</p>
                 <MembershipBadge tier={business.membershipTier || "Free member"} />
               </div>
+            </div>
+          </Panel>
+
+          {/* Official Chamber Membership Certificate Card */}
+          <Panel className="p-4 sm:p-6 border-amber-500/30 bg-gradient-to-b from-amber-500/5 via-surface to-background space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+                  Membership Certificate
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 font-bold">
+                Official Credential
+              </span>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Accredited Tier</span>
+                <span className="font-bold text-foreground capitalize">
+                  {business.membership || "Enterprise Member"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Membership ID</span>
+                <span className="font-mono font-bold text-primary">
+                  {business.membershipId || `RIFAH-MEM-${business._id?.slice(-6).toUpperCase()}`}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Allocated Chapter</span>
+                <span className="font-medium text-foreground">
+                  {business.chapter || "Chamber Central"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Accredited Validity</span>
+                <span className="font-medium text-foreground">
+                  {new Date(business.createdAt || Date.now()).getFullYear()} – {new Date(business.createdAt || Date.now()).getFullYear() + 1}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-border/80 flex flex-col gap-2">
+              <Button
+                size="sm"
+                className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold gap-1.5 shadow-sm"
+                onClick={() => downloadCertificatePdf(business)}
+              >
+                <Download className="h-4 w-4" /> Download Certificate (PDF / Print)
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full text-xs font-semibold gap-1.5 border-border"
+                onClick={() => setDocPreviewModal({
+                  open: true,
+                  title: `Membership Certificate - ${business.name}`,
+                  html: generateCertificateHtml(business),
+                })}
+              >
+                <Eye className="h-3.5 w-3.5 text-muted-foreground" /> Preview Certificate
+              </Button>
             </div>
           </Panel>
 
@@ -561,6 +755,54 @@ export function AdminBusinessDetail({ id }) {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* On-screen Document Preview Modal (Invoice & Certificate) */}
+      <Dialog open={docPreviewModal.open} onOpenChange={(open) => setDocPreviewModal((prev) => ({ ...prev, open }))}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b bg-muted/20 flex flex-row items-center justify-between">
+            <DialogTitle className="truncate text-base font-bold text-foreground">
+              {docPreviewModal.title}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-hidden p-2 bg-slate-900/10">
+            <iframe
+              srcDoc={docPreviewModal.html}
+              title={docPreviewModal.title}
+              className="w-full h-full border rounded-lg bg-white shadow-md"
+            />
+          </div>
+
+          <div className="p-3 border-t bg-background flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              Official RIFAH Chamber Document
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="gap-1.5 h-8 text-xs font-semibold"
+                onClick={() => {
+                  const printWin = window.open("", "_blank");
+                  if (printWin) {
+                    printWin.document.write(docPreviewModal.html);
+                    printWin.document.close();
+                  }
+                }}
+              >
+                <Download className="h-3.5 w-3.5" /> Open / Print in New Tab
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                onClick={() => setDocPreviewModal((prev) => ({ ...prev, open: false }))}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </AppShell>
