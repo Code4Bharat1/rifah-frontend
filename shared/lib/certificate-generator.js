@@ -1,8 +1,65 @@
 // Official RIFAH Chamber of Commerce Membership Certificate Generator
 
-export function generateCertificateHtml(business, membershipData = null) {
+export function printDocumentInPage(html) {
+  if (typeof window === "undefined") return;
+
+  // Clean up any existing print iframe to prevent duplicate elements
+  const existingFrame = document.getElementById("rifah-hidden-print-frame");
+  if (existingFrame) {
+    try {
+      existingFrame.remove();
+    } catch (e) {
+      // Ignore removal error
+    }
+  }
+
+  const iframe = document.createElement("iframe");
+  iframe.id = "rifah-hidden-print-frame";
+  iframe.style.position = "fixed";
+  iframe.style.top = "-9999px";
+  iframe.style.left = "-9999px";
+  iframe.style.width = "10px";
+  iframe.style.height = "10px";
+  iframe.style.border = "none";
+  iframe.style.opacity = "0";
+  iframe.style.pointerEvents = "none";
+  document.body.appendChild(iframe);
+
+  try {
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    const triggerPrint = () => {
+      try {
+        if (iframe.contentWindow) {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        }
+      } catch (e) {
+        console.error("In-page printing error:", e);
+      }
+    };
+
+    if (doc.fonts && doc.fonts.ready) {
+      doc.fonts.ready.then(() => {
+        setTimeout(triggerPrint, 250);
+      }).catch(() => {
+        setTimeout(triggerPrint, 350);
+      });
+    } else {
+      setTimeout(triggerPrint, 350);
+    }
+  } catch (err) {
+    console.error("Failed to prepare print iframe:", err);
+  }
+}
+
+export function generateCertificateHtml(business, membershipData = null, options = {}) {
   if (!business) return "";
 
+  const { isPreview = false, autoprint = false, isExport = false } = options;
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const logoUrl = `${origin}/rifah-logo.png`;
 
@@ -30,23 +87,53 @@ export function generateCertificateHtml(business, membershipData = null) {
       <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&family=Montserrat:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-          background-color: #0f172a;
-          background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
+        @page {
+          size: A4 landscape;
+          margin: 0;
+        }
+        html, body {
+          background-color: ${isPreview ? "transparent" : isExport ? "#ffffff" : "#0f172a"};
+          background-image: ${isPreview || isExport ? "none" : "radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%)"};
           font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 30px 15px 50px;
-          min-height: 100vh;
+          justify-content: center;
+          padding: ${isPreview || isExport ? "0" : "30px 15px 50px"};
+          margin: 0;
+          min-height: ${isExport ? "650px" : "100vh"};
+          width: ${isExport ? "940px" : "100vw"};
+          overflow: ${isPreview || isExport ? "hidden" : "auto"};
           color: #0b1f33;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
 
+        @media print {
+          html, body {
+            background: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+          }
+          .toolbar {
+            display: none !important;
+          }
+          .cert-outer-wrapper {
+            transform: scale(0.96) !important;
+            transform-origin: center center !important;
+            box-shadow: none !important;
+            margin: auto !important;
+            page-break-inside: avoid !important;
+          }
+        }
+
         .toolbar {
           width: 940px;
-          display: flex;
+          display: ${isPreview || isExport ? "none" : "flex"};
           justify-content: space-between;
           align-items: center;
           margin-bottom: 20px;
@@ -97,14 +184,17 @@ export function generateCertificateHtml(business, membershipData = null) {
 
         .cert-outer-wrapper {
           position: relative;
-          box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+          box-shadow: ${isExport ? "none" : "0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1)"};
           border-radius: 2px;
+          flex-shrink: 0;
+          transform-origin: center center;
+          ${isExport ? "margin: 0; padding: 0;" : ""}
         }
         .certificate-container {
           width: 940px;
           height: 650px;
-          background: #ffffff;
-          background-image: radial-gradient(ellipse at 50% 45%, #ffffff 0%, #fdfbf7 65%, #f7f1e4 100%);
+          background-color: #fdfbf7;
+          background-image: ${isExport ? "none" : "radial-gradient(ellipse at 50% 45%, #ffffff 0%, #fdfbf7 65%, #f7f1e4 100%)"};
           border: 12px solid #081729;
           outline: 3px solid #c59b27;
           outline-offset: -7px;
@@ -151,10 +241,16 @@ export function generateCertificateHtml(business, membershipData = null) {
           height: 320px;
           opacity: 0.038;
           pointer-events: none;
-          background: url('${logoUrl}') no-repeat center center;
-          background-size: contain;
-          filter: grayscale(100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
           z-index: 1;
+        }
+        .cert-watermark-img {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+          filter: grayscale(100%);
         }
 
         .cert-header {
@@ -200,7 +296,8 @@ export function generateCertificateHtml(business, membershipData = null) {
         .ornament-divider .line {
           flex: 1;
           height: 1px;
-          background: linear-gradient(90deg, transparent, #c59b27, transparent);
+          background-color: #c59b27;
+          opacity: 0.45;
         }
         .ornament-divider .diamond {
           color: #c59b27;
@@ -244,17 +341,20 @@ export function generateCertificateHtml(business, membershipData = null) {
         }
         .name-accent-rule {
           width: 280px;
-          height: 1.5px;
-          background: linear-gradient(90deg, transparent, #c59b27 25%, #c59b27 75%, transparent);
+          height: 2px;
+          background-color: #c59b27;
+          opacity: 0.65;
           margin-bottom: 8px;
+          border-radius: 1px;
         }
         .tier-badge {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          background: linear-gradient(135deg, #fffef7 0%, #fef3c7 50%, #fde68a 100%);
+          background-color: #fef3c7;
+          background-image: ${isExport ? "none" : "linear-gradient(135deg, #fffef7 0%, #fef3c7 50%, #fde68a 100%)"};
           border: 1px solid #d4af37;
-          box-shadow: 0 2px 6px rgba(180, 130, 30, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+          box-shadow: 0 2px 6px rgba(180, 130, 30, 0.16);
           padding: 3.5px 18px;
           border-radius: 50px;
           font-family: 'Montserrat', sans-serif;
@@ -404,7 +504,10 @@ export function generateCertificateHtml(business, membershipData = null) {
             print-color-adjust: exact !important;
           }
           .toolbar { display: none !important; }
-          .cert-outer-wrapper { box-shadow: none !important; }
+          .cert-outer-wrapper {
+            box-shadow: none !important;
+            transform: none !important;
+          }
           .certificate-container {
             width: 100vw !important;
             height: 100vh !important;
@@ -447,14 +550,16 @@ export function generateCertificateHtml(business, membershipData = null) {
             <circle cx="4" cy="4" r="2.5" fill="#c59b27"/>
           </svg>
           <svg class="corner-filigree filigree-br" viewBox="0 0 52 52" fill="none">
-            <path d="M4 4 L4 38 M4 4 L38 4 M12 12 L12 28 M12 12 L28 12 M20 20 L20 24 M20 20 L24 20" stroke="#c59b27" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M4 4 L4 38 M4 4 L38 4 M12 12 L12 28 M12 12 L28 12 M20 20 L24 20" stroke="#c59b27" stroke-width="1.8" stroke-linecap="round"/>
             <circle cx="4" cy="4" r="2.5" fill="#c59b27"/>
           </svg>
 
-          <div class="cert-watermark"></div>
+          <div class="cert-watermark">
+            <img src="${logoUrl}" class="cert-watermark-img" alt="" crossOrigin="anonymous" />
+          </div>
 
           <div class="cert-header">
-            <img src="${logoUrl}" alt="RIFAH Logo" class="cert-logo" />
+            <img src="${logoUrl}" alt="RIFAH Logo" class="cert-logo" crossOrigin="anonymous" />
             <div class="cert-chamber-tag">Chamber of Commerce & Business Network</div>
             <h1 class="cert-title">CERTIFICATE OF MEMBERSHIP</h1>
             <div class="ornament-divider">
@@ -547,27 +652,141 @@ export function generateCertificateHtml(business, membershipData = null) {
         </div>
       </div>
 
-      <script>
-        window.onload = function() {
-          setTimeout(function() {
-            window.print();
-          }, 450);
-        };
-      </script>
+      ${isPreview ? `
+        <script>
+          function fitCert() {
+            var wrapper = document.querySelector('.cert-outer-wrapper');
+            if (!wrapper) return;
+            var pad = 24;
+            var availW = window.innerWidth - pad;
+            var availH = window.innerHeight - pad;
+            var scale = Math.min(availW / 940, availH / 650);
+            wrapper.style.transform = 'scale(' + scale + ')';
+            wrapper.style.transformOrigin = 'center center';
+          }
+          window.addEventListener('resize', fitCert);
+          window.addEventListener('load', fitCert);
+          document.addEventListener('DOMContentLoaded', fitCert);
+          setTimeout(fitCert, 20);
+          setTimeout(fitCert, 100);
+          setTimeout(fitCert, 300);
+        </script>
+      ` : ""}
+      ${autoprint ? `
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      ` : ""}
     </body>
     </html>
   `;
 }
 
-export function downloadCertificatePdf(business, membershipData = null) {
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    if (typeof window !== "undefined") {
-      alert("Pop-up blocked. Please allow pop-ups in your browser to view and download certificates.");
+export async function downloadCertificatePdf(business, membershipData = null) {
+  if (typeof window === "undefined" || !business) return;
+
+  const { jsPDF } = await import("jspdf");
+  const html2canvas = (await import("html2canvas")).default;
+
+  const businessName = business.name || "Business Enterprise";
+  const cleanName = businessName.replace(/[^a-zA-Z0-9_\-\s]/g, "").trim().replace(/\s+/g, "_");
+  const fileName = `${cleanName}_RIFAH_Membership_Certificate.pdf`;
+
+  // Position in viewport flow behind other content so layout and image dimensions are properly computed
+  const iframe = document.createElement("iframe");
+  iframe.id = "rifah-cert-export-frame";
+  iframe.style.position = "fixed";
+  iframe.style.left = "0";
+  iframe.style.top = "0";
+  iframe.style.width = "940px";
+  iframe.style.height = "650px";
+  iframe.style.border = "none";
+  iframe.style.zIndex = "-9999";
+  iframe.style.opacity = "0.01";
+  iframe.style.pointerEvents = "none";
+  document.body.appendChild(iframe);
+
+  // Defensive interceptor on createPattern to prevent browser InvalidStateError if any 0-dimension canvas is passed
+  const origCreatePattern = window.CanvasRenderingContext2D.prototype.createPattern;
+  const safeCreatePattern = function (image, repetition) {
+    if (image && (image.width === 0 || image.height === 0)) {
+      const fallbackCanvas = document.createElement("canvas");
+      fallbackCanvas.width = 1;
+      fallbackCanvas.height = 1;
+      return origCreatePattern.call(this, fallbackCanvas, repetition || "repeat");
     }
-    return;
+    return origCreatePattern.call(this, image, repetition);
+  };
+  window.CanvasRenderingContext2D.prototype.createPattern = safeCreatePattern;
+
+  try {
+    const rawHtml = generateCertificateHtml(business, membershipData, { isPreview: false, isExport: true });
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(rawHtml);
+    doc.close();
+
+    if (iframe.contentWindow && iframe.contentWindow.CanvasRenderingContext2D) {
+      iframe.contentWindow.CanvasRenderingContext2D.prototype.createPattern = safeCreatePattern;
+    }
+
+    if (doc.fonts && doc.fonts.ready) {
+      await doc.fonts.ready;
+    }
+
+    // Wait for all images inside the iframe to finish loading
+    const images = Array.from(doc.images || []);
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          setTimeout(resolve, 2500);
+        });
+      })
+    );
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const certContainer = doc.querySelector(".certificate-container") || doc.querySelector(".cert-outer-wrapper") || doc.body;
+
+    const canvas = await html2canvas(certContainer, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#fdfbf7",
+      width: 940,
+      height: 650,
+      windowWidth: 940,
+      windowHeight: 650,
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0,
+      logging: false,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
+    });
+
+    // A4 Landscape: 297mm x 210mm
+    pdf.addImage(imgData, "PNG", 0, 0, 297, 210, undefined, "FAST");
+    pdf.save(fileName);
+  } catch (err) {
+    console.error("Direct certificate PDF download failed:", err);
+    throw err;
+  } finally {
+    window.CanvasRenderingContext2D.prototype.createPattern = origCreatePattern;
+    try {
+      iframe.remove();
+    } catch (e) {}
   }
-  const html = generateCertificateHtml(business, membershipData);
-  printWindow.document.write(html);
-  printWindow.document.close();
 }

@@ -74,6 +74,7 @@ import { verificationApi, businessApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { cn } from "@shared/lib/utils";
 import { SUBSCRIBER_TIERS, normalizeUserTier } from "@shared/lib/subscription-models";
+import { downloadCertificatePdf } from "@shared/lib/certificate-generator";
 
 const docTemplates = [
   {
@@ -310,11 +311,17 @@ function handleDownloadCertificate(business, membershipData) {
     return;
   }
 
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    toast.error("Pop-up blocked. Please allow pop-ups to generate certificate.");
-    return;
-  }
+  (async () => {
+    try {
+      toast.loading("Downloading certificate PDF...", { id: "cert-dl" });
+      await downloadCertificatePdf(business, membershipData);
+      toast.success("Certificate downloaded successfully", { id: "cert-dl" });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to download certificate", { id: "cert-dl" });
+    }
+  })();
+  return;
 
   const businessName = business?.name || "Business Enterprise";
   const tierName = (membershipData?.planName || business?.membership || "Enterprise").toUpperCase();

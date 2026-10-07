@@ -67,24 +67,25 @@ export function VerificationBadge({ status, level, compact = false }) {
 export function MembershipBadge({ tier }) {
   if (!tier) return <Pill tone="neutral">Free member</Pill>;
   
-  const normalized = tier.toString().toLowerCase();
+  const rawStr = tier.toString().trim();
+  const cleanTier = rawStr.replace(/\s+member$/i, "").trim().toLowerCase();
 
   // New tiers — Silver / Gold / Platinum / Diamond
-  if (normalized === "silver")
+  if (cleanTier === "silver")
     return <Pill tone="neutral" icon={<Star className="h-3.5 w-3.5" />}>Silver member</Pill>;
-  if (normalized === "gold")
+  if (cleanTier === "gold")
     return (
       <Pill tone="warning" icon={<Star className="h-3.5 w-3.5" />}>
         Gold member
       </Pill>
     );
-  if (normalized === "platinum")
+  if (cleanTier === "platinum")
     return (
       <Pill tone="brand" icon={<Crown className="h-3.5 w-3.5" />}>
         Platinum member
       </Pill>
     );
-  if (normalized === "diamond")
+  if (cleanTier === "diamond")
     return (
       <Pill tone="navy" icon={<Crown className="h-3.5 w-3.5" />}>
         Diamond member
@@ -92,15 +93,15 @@ export function MembershipBadge({ tier }) {
     );
 
   // Legacy tiers — backwards compat
-  if (normalized === "free") return <Pill tone="neutral">Free member</Pill>;
-  if (normalized === "basic") return <Pill tone="primary">Basic member</Pill>;
-  if (normalized === "premium")
+  if (cleanTier === "free") return <Pill tone="neutral">Free member</Pill>;
+  if (cleanTier === "basic") return <Pill tone="primary">Basic member</Pill>;
+  if (cleanTier === "premium")
     return (
       <Pill tone="brand" icon={<Star className="h-3.5 w-3.5" />}>
         Premium member
       </Pill>
     );
-  if (normalized === "enterprise")
+  if (cleanTier === "enterprise")
     return (
       <Pill tone="navy" icon={<Crown className="h-3.5 w-3.5" />}>
         Enterprise member
@@ -108,9 +109,10 @@ export function MembershipBadge({ tier }) {
     );
   
   // Fallback for custom dynamic plans
+  const capitalized = rawStr.replace(/\s+member$/i, "").trim();
   return (
     <Pill tone="primary" icon={<Star className="h-3.5 w-3.5" />}>
-      {tier} member
+      {capitalized} member
     </Pill>
   );
 }

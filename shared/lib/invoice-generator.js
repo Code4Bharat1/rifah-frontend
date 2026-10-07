@@ -1,8 +1,10 @@
 // Official RIFAH Tax Invoice Generator for Members and Admin Consoles
+import { printDocumentInPage } from "./certificate-generator";
 
-export function generateInvoiceHtml(payment, business = null) {
+export function generateInvoiceHtml(payment, business = null, options = {}) {
   if (!payment) return "";
 
+  const { isPreview = false, autoprint = false, isExport = false } = options;
   const isUsd = (payment.currency || "").toUpperCase() === "USD" || (payment.description && payment.description.includes("(USD)"));
   const currSymbol = isUsd ? "$" : "₹";
   const currSuffix = isUsd ? " USD" : "";
@@ -43,13 +45,17 @@ export function generateInvoiceHtml(payment, business = null) {
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
-          body { background-color: #f8fafc; color: #0b1f33; padding: 25px 15px; }
-          .print-toolbar { max-width: 780px; margin: 0 auto 16px auto; display: flex; justify-content: space-between; align-items: center; }
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          body { background-color: #f8fafc; color: #0b1f33; padding: ${isPreview ? "15px" : isExport ? "0" : "25px 15px"}; }
+          .print-toolbar { max-width: 780px; margin: 0 auto 16px auto; display: ${isPreview || isExport ? "none" : "flex"}; justify-content: space-between; align-items: center; }
           .back-note { font-size: 12px; color: #64748b; }
           .print-btn { background: #0088d1; color: #fff; border: none; padding: 9px 22px; font-size: 13px; font-weight: 700; border-radius: 7px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,136,209,0.25); transition: background 0.15s; }
           .print-btn:hover { background: #0277bd; }
-          .invoice-card { max-width: 780px; margin: 0 auto; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06); }
-          .brand-stripe { height: 6px; background: linear-gradient(90deg, #c90000 0%, #0088d1 50%, #0b1f33 100%); }
+          .invoice-card { max-width: 780px; margin: 0 auto; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: ${isExport ? "none" : "0 10px 25px -5px rgba(0,0,0,0.06)"}; }
+          .brand-stripe { height: 6px; background: ${isExport ? "#0088d1" : "linear-gradient(90deg, #c90000 0%, #0088d1 50%, #0b1f33 100%)"}; }
           .invoice-body { padding: 36px 40px; }
           .header-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #f1f5f9; padding-bottom: 24px; margin-bottom: 24px; }
           .logo-img { height: 44px; object-fit: contain; }
@@ -172,6 +178,7 @@ export function generateInvoiceHtml(payment, business = null) {
             </div>
           </div>
         </div>
+        ${autoprint ? `
         <script>
           window.onload = function() {
             setTimeout(function() {
@@ -179,20 +186,107 @@ export function generateInvoiceHtml(payment, business = null) {
             }, 350);
           };
         </script>
+        ` : ""}
       </body>
     </html>
   `;
 }
 
-export function downloadInvoicePdf(payment, business = null) {
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    if (typeof window !== "undefined") {
-      alert("Pop-up blocked. Please allow pop-ups in your browser to view and download invoices.");
+export async function downloadInvoicePdf(payment, business = null) {
+  if (typeof window === "undefined" || !payment) return;
+
+  const { jsPDF } = await import("jspdf");
+  const html2canvas = (await import("html2canvas")).default;
+
+  const invNo = payment.invoiceNumber || `INV-${String(payment._id || "").slice(-6).toUpperCase() || "0000"}`;
+  const fileName = `RIFAH_Invoice_${invNo}.pdf`;
+
+  const iframe = document.createElement("iframe");
+  iframe.id = "rifah-invoice-export-frame";
+  iframe.style.position = "fixed";
+  iframe.style.left = "0";
+  iframe.style.top = "0";
+  iframe.style.width = "780px";
+  iframe.style.height = "1200px";
+  iframe.style.border = "none";
+  iframe.style.zIndex = "-9999";
+  iframe.style.opacity = "0.01";
+  iframe.style.pointerEvents = "none";
+  document.body.appendChild(iframe);
+
+  const origCreatePattern = window.CanvasRenderingContext2D.prototype.createPattern;
+  const safeCreatePattern = function (image, repetition) {
+    if (image && (image.width === 0 || image.height === 0)) {
+      const fallbackCanvas = document.createElement("canvas");
+      fallbackCanvas.width = 1;
+      fallbackCanvas.height = 1;
+      return origCreatePattern.call(this, fallbackCanvas, repetition || "repeat");
     }
-    return;
+    return origCreatePattern.call(this, image, repetition);
+  };
+  window.CanvasRenderingContext2D.prototype.createPattern = safeCreatePattern;
+
+  try {
+    const rawHtml = generateInvoiceHtml(payment, business, { isPreview: false, isExport: true });
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(rawHtml);
+    doc.close();
+
+    if (iframe.contentWindow && iframe.contentWindow.CanvasRenderingContext2D) {
+      iframe.contentWindow.CanvasRenderingContext2D.prototype.createPattern = safeCreatePattern;
+    }
+
+    if (doc.fonts && doc.fonts.ready) {
+      await doc.fonts.ready;
+    }
+
+    const images = Array.from(doc.images || []);
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          setTimeout(resolve, 2500);
+        });
+      })
+    );
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const invoiceCard = doc.querySelector(".invoice-card") || doc.body;
+
+    const canvas = await html2canvas(invoiceCard, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0,
+      logging: false,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    // A4 portrait is 210mm x 297mm
+    const pdfWidth = 210;
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, Math.min(pdfHeight, 297), undefined, "FAST");
+    pdf.save(fileName);
+  } catch (err) {
+    console.error("Direct invoice PDF download failed:", err);
+    throw err;
+  } finally {
+    window.CanvasRenderingContext2D.prototype.createPattern = origCreatePattern;
+    try {
+      iframe.remove();
+    } catch (e) {}
   }
-  const html = generateInvoiceHtml(payment, business);
-  printWindow.document.write(html);
-  printWindow.document.close();
 }

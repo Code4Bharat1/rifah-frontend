@@ -47,7 +47,34 @@ export function AdminBusinessDetail({ id }) {
   const [isSaving, setIsSaving] = useState(false);
   const [payments, setPayments] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(true);
-  const [docPreviewModal, setDocPreviewModal] = useState({ open: false, title: "", html: "" });
+  const [docPreviewModal, setDocPreviewModal] = useState({ open: false, title: "", html: "", onDownload: null });
+  const [downloadingDoc, setDownloadingDoc] = useState(false);
+
+  const handleDownloadCert = async () => {
+    try {
+      setDownloadingDoc(true);
+      toast.loading("Downloading certificate PDF...", { id: "cert-dl" });
+      await downloadCertificatePdf(business);
+      toast.success("Certificate downloaded successfully", { id: "cert-dl" });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to download certificate", { id: "cert-dl" });
+    } finally {
+      setDownloadingDoc(false);
+    }
+  };
+
+  const handleDownloadInv = async (payment) => {
+    const invId = payment._id || "inv";
+    try {
+      toast.loading("Downloading invoice PDF...", { id: `inv-${invId}` });
+      await downloadInvoicePdf(payment, business);
+      toast.success("Invoice downloaded successfully", { id: `inv-${invId}` });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to download invoice", { id: `inv-${invId}` });
+    }
+  };
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -365,7 +392,8 @@ export function AdminBusinessDetail({ id }) {
                                   onClick={() => setDocPreviewModal({
                                     open: true,
                                     title: `Tax Invoice #${invNo}`,
-                                    html: generateInvoiceHtml(p, business),
+                                    html: generateInvoiceHtml(p, business, { isPreview: true }),
+                                    onDownload: () => handleDownloadInv(p),
                                   })}
                                 >
                                   <Eye className="h-3.5 w-3.5 mr-1" /> Preview
@@ -374,7 +402,7 @@ export function AdminBusinessDetail({ id }) {
                                   size="sm"
                                   variant="outline"
                                   className="h-7 px-2.5 text-xs font-semibold gap-1 text-primary hover:text-primary hover:bg-primary/10 border-primary/30"
-                                  onClick={() => downloadInvoicePdf(p, business)}
+                                  onClick={() => handleDownloadInv(p)}
                                 >
                                   <Download className="h-3.5 w-3.5" /> PDF
                                 </Button>
@@ -401,7 +429,7 @@ export function AdminBusinessDetail({ id }) {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Membership</p>
-                <MembershipBadge tier={business.membershipTier || "Free member"} />
+                <MembershipBadge tier={business.membership || business.membershipTier || "Free"} />
               </div>
             </div>
           </Panel>
@@ -450,10 +478,12 @@ export function AdminBusinessDetail({ id }) {
             <div className="pt-2 border-t border-border/80 flex flex-col gap-2">
               <Button
                 size="sm"
+                disabled={downloadingDoc}
                 className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold gap-1.5 shadow-sm"
-                onClick={() => downloadCertificatePdf(business)}
+                onClick={handleDownloadCert}
               >
-                <Download className="h-4 w-4" /> Download Certificate (PDF / Print)
+                {downloadingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Download Certificate
               </Button>
               <Button
                 size="sm"
@@ -462,7 +492,8 @@ export function AdminBusinessDetail({ id }) {
                 onClick={() => setDocPreviewModal({
                   open: true,
                   title: `Membership Certificate - ${business.name}`,
-                  html: generateCertificateHtml(business),
+                  html: generateCertificateHtml(business, null, { isPreview: true }),
+                  onDownload: handleDownloadCert,
                 })}
               >
                 <Eye className="h-3.5 w-3.5 text-muted-foreground" /> Preview Certificate
@@ -782,16 +813,21 @@ export function AdminBusinessDetail({ id }) {
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                className="gap-1.5 h-8 text-xs font-semibold"
-                onClick={() => {
-                  const printWin = window.open("", "_blank");
-                  if (printWin) {
-                    printWin.document.write(docPreviewModal.html);
-                    printWin.document.close();
+                disabled={downloadingDoc}
+                className="gap-1.5 h-8 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={async () => {
+                  if (typeof docPreviewModal.onDownload === "function") {
+                    try {
+                      setDownloadingDoc(true);
+                      await docPreviewModal.onDownload();
+                    } finally {
+                      setDownloadingDoc(false);
+                    }
                   }
                 }}
               >
-                <Download className="h-3.5 w-3.5" /> Open / Print in New Tab
+                {downloadingDoc ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                Download PDF
               </Button>
               <Button
                 size="sm"
