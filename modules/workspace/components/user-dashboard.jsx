@@ -109,22 +109,22 @@ export function UserDashboard() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <Button asChild className="h-11 px-5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-md">
+              <Button asChild className="h-11 px-5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 hover:text-slate-950 font-bold text-xs shadow-md transition-all">
                 <Link href="/user/catalogue">
                   <Package className="h-4 w-4 mr-1.5" />
                   <span>My Catalogue</span>
                 </Link>
               </Button>
-              <Button asChild className="h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md">
+              <Button asChild className="h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white hover:text-white font-bold text-xs shadow-md transition-all">
                 <Link href="/user/enquiries">
                   <Compass className="h-4 w-4 mr-1.5" />
                   <span>Explore Enquiries</span>
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-11 px-5 rounded-xl border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-white font-semibold text-xs">
-                <Link href="/user/membership">
-                  <Sparkles className="h-4 w-4 mr-1.5 text-amber-400" />
-                  <span>View Member Tiers</span>
+              <Button asChild className="h-11 px-5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/40 text-white hover:text-white font-bold text-xs shadow-sm backdrop-blur-sm transition-all">
+                <Link href="/user/membership" className="text-white hover:text-white">
+                  <Sparkles className="h-4 w-4 mr-1.5 text-amber-300" />
+                  <span className="text-white hover:text-white">View Member Tiers</span>
                 </Link>
               </Button>
             </div>

@@ -2855,7 +2855,9 @@ function RegisterBusiness({ isAdmin = false }) {
                       </Label>
                       <FastInput
                         id="reg-pass"
+                        name="new-password"
                         type="password"
+                        autoComplete="new-password"
                         required
                         value={formData.password}
                         onValueChange={(val) => {

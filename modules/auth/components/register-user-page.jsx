@@ -428,6 +428,8 @@ export function RegisterUserPage() {
                       <UserRound className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input
                         id="user-name"
+                        name="name"
+                        autoComplete="name"
                         type="text"
                         placeholder="e.g. Mohd Tariq"
                         value={form.name}
@@ -447,6 +449,8 @@ export function RegisterUserPage() {
                       <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input
                         id="user-email"
+                        name="email"
+                        autoComplete="email"
                         type="email"
                         placeholder="you@domain.com"
                         value={form.email}
@@ -543,12 +547,14 @@ export function RegisterUserPage() {
 
                   {/* Phone with Country Code Dropdown */}
                   <div>
-                    <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                    <Label htmlFor="user-phone" className="text-xs font-semibold text-slate-700 mb-1.5 block">
                       Mobile Phone Number *
                     </Label>
                     <div className="grid grid-cols-12 gap-2">
                       <div className="col-span-5 sm:col-span-4 relative">
                         <select
+                          id="user-phone-country"
+                          name="phone-country-code"
                           value={form.phoneCountryCode}
                           onChange={(e) => handleChange("phoneCountryCode", e.target.value)}
                           className="w-full h-11 pl-2.5 pr-6 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer"
@@ -564,10 +570,19 @@ export function RegisterUserPage() {
                       <div className="col-span-7 sm:col-span-8 relative">
                         <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
+                          id="user-phone"
+                          name="tel"
                           type="tel"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          autoComplete="tel"
                           placeholder="e.g. 9876543210"
                           value={form.phoneNumber}
-                          onChange={(e) => handleChange("phoneNumber", e.target.value)}
+                          onChange={(e) => {
+                            // Only allow numeric digits — prevents email addresses, symbols or browser autofill mismatch
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 15);
+                            handleChange("phoneNumber", digits);
+                          }}
                           className="pl-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20"
                           required
                         />
@@ -585,7 +600,9 @@ export function RegisterUserPage() {
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
                           id="user-pass"
+                          name="new-password"
                           type={showPassword ? "text" : "password"}
+                          autoComplete="new-password"
                           placeholder="Min. 6 chars"
                           value={form.password}
                           onChange={(e) => handleChange("password", e.target.value)}
@@ -609,7 +626,9 @@ export function RegisterUserPage() {
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
                           id="user-confirm-pass"
+                          name="confirm-new-password"
                           type={showConfirmPassword ? "text" : "password"}
+                          autoComplete="new-password"
                           placeholder="Repeat password"
                           value={form.confirmPassword}
                           onChange={(e) => handleChange("confirmPassword", e.target.value)}
