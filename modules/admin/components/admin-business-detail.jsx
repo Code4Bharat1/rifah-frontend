@@ -791,7 +791,7 @@ export function AdminBusinessDetail({ id }) {
 
       {/* On-screen Document Preview Modal (Invoice & Certificate) */}
       <Dialog open={docPreviewModal.open} onOpenChange={(open) => setDocPreviewModal((prev) => ({ ...prev, open }))}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-4 border-b bg-muted/20 flex flex-row items-center justify-between">
             <DialogTitle className="truncate text-base font-bold text-foreground">
               {docPreviewModal.title}

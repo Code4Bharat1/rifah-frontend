@@ -92,18 +92,28 @@ export function generateCertificateHtml(business, membershipData = null, options
           margin: 0;
         }
         html, body {
-          background-color: ${isPreview ? "transparent" : isExport ? "#ffffff" : "#0f172a"};
+          background-color: ${isPreview ? "#f8fafc" : isExport ? "#ffffff" : "#0f172a"};
           background-image: ${isPreview || isExport ? "none" : "radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%)"};
           font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: ${isPreview || isExport ? "0" : "30px 15px 50px"};
-          margin: 0;
-          min-height: ${isExport ? "650px" : "100vh"};
-          width: ${isExport ? "940px" : "100vw"};
-          overflow: ${isPreview || isExport ? "hidden" : "auto"};
+          ${isPreview ? `
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            display: block;
+          ` : `
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: ${isExport ? "0" : "30px 15px 50px"};
+            margin: 0;
+            min-height: ${isExport ? "650px" : "100vh"};
+            width: ${isExport ? "940px" : "100vw"};
+            overflow: ${isExport ? "hidden" : "auto"};
+          `}
           color: #0b1f33;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
@@ -123,6 +133,9 @@ export function generateCertificateHtml(business, membershipData = null, options
             display: none !important;
           }
           .cert-outer-wrapper {
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
             transform: scale(0.96) !important;
             transform-origin: center center !important;
             box-shadow: none !important;
@@ -183,12 +196,26 @@ export function generateCertificateHtml(business, membershipData = null, options
         }
 
         .cert-outer-wrapper {
-          position: relative;
-          box-shadow: ${isExport ? "none" : "0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1)"};
-          border-radius: 2px;
-          flex-shrink: 0;
-          transform-origin: center center;
-          ${isExport ? "margin: 0; padding: 0;" : ""}
+          ${isPreview ? `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            transform-origin: center center;
+            width: 940px;
+            height: 650px;
+            margin: 0;
+            padding: 0;
+            box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+          ` : `
+            position: relative;
+            box-shadow: ${isExport ? "none" : "0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1)"};
+            border-radius: 2px;
+            flex-shrink: 0;
+            transform-origin: center center;
+            ${isExport ? "margin: 0; padding: 0;" : ""}
+          `}
         }
         .certificate-container {
           width: 940px;
@@ -657,19 +684,31 @@ export function generateCertificateHtml(business, membershipData = null, options
           function fitCert() {
             var wrapper = document.querySelector('.cert-outer-wrapper');
             if (!wrapper) return;
+            var w = window.innerWidth || document.documentElement.clientWidth || (document.body && document.body.clientWidth) || 940;
+            var h = window.innerHeight || document.documentElement.clientHeight || (document.body && document.body.clientHeight) || 650;
+            if (!w || !h || w < 50 || h < 50) return;
             var pad = 24;
-            var availW = window.innerWidth - pad;
-            var availH = window.innerHeight - pad;
+            var availW = Math.max(10, w - pad);
+            var availH = Math.max(10, h - pad);
             var scale = Math.min(availW / 940, availH / 650);
-            wrapper.style.transform = 'scale(' + scale + ')';
-            wrapper.style.transformOrigin = 'center center';
+            wrapper.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
           }
           window.addEventListener('resize', fitCert);
           window.addEventListener('load', fitCert);
           document.addEventListener('DOMContentLoaded', fitCert);
-          setTimeout(fitCert, 20);
-          setTimeout(fitCert, 100);
+          if (typeof ResizeObserver !== 'undefined') {
+            try {
+              new ResizeObserver(function() {
+                fitCert();
+              }).observe(document.documentElement);
+            } catch (e) {}
+          }
+          setTimeout(fitCert, 10);
+          setTimeout(fitCert, 50);
+          setTimeout(fitCert, 150);
           setTimeout(fitCert, 300);
+          setTimeout(fitCert, 500);
+          setTimeout(fitCert, 800);
         </script>
       ` : ""}
       ${autoprint ? `
