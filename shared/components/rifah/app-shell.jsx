@@ -598,9 +598,12 @@ export function AppShell({
     if (!loading && user) {
       // Members (customers / subscriber "user" accounts) never belong in the business panel: any
       // /biz/* link rendered by a shared component is bounced to its /user/* twin, query intact.
+      // Admin accounts must never be treated as member users.
+      const isAdminRole = ["central_admin", "super_admin", "admin", "secretariat", "state_admin", "chapter_admin"].includes(user.role);
       const isMemberUser =
-        user.role === "customer" || user.role === "buyer" ||
-        (user.accountType === "user" && !isBusinessAccount(user));
+        !isAdminRole &&
+        (user.role === "customer" || user.role === "buyer" ||
+        (user.accountType === "user" && !isBusinessAccount(user)));
       if (isMemberUser && (path === "/biz" || path?.startsWith("/biz/"))) {
         const target = path.replace(/^\/biz/, "/user") + (typeof window !== "undefined" ? window.location.search : "");
         router.replace(target || "/user");
@@ -917,14 +920,15 @@ export function AppShell({
               onClick={async () => {
                 try {
                   const targetRole = effectiveUser.previousRole;
-                  await switchRole(targetRole);
-                  if (targetRole === "central_admin") {
+                  const res = await switchRole(targetRole);
+                  const resultingRole = res?.role || targetRole;
+                  if (["central_admin", "admin", "super_admin", "secretariat"].includes(resultingRole)) {
                     router.push("/admin");
-                  } else if (targetRole === "state_admin") {
+                  } else if (resultingRole === "state_admin") {
                     router.push("/state-admin");
-                  } else if (targetRole === "chapter_admin") {
+                  } else if (resultingRole === "chapter_admin") {
                     router.push("/chapter-admin");
-                  } else if (targetRole === "business_owner") {
+                  } else if (resultingRole === "business_owner") {
                     router.push("/biz");
                   } else {
                     router.push("/biz");
@@ -937,7 +941,7 @@ export function AppShell({
             >
               <RotateCcw className="h-[18px] w-[18px] shrink-0" />
               <span>
-                {effectiveUser.previousRole === "central_admin"
+                {["central_admin", "admin", "super_admin", "secretariat"].includes(effectiveUser.previousRole)
                   ? "Switch to Admin Panel"
                   : effectiveUser.previousRole === "state_admin"
                     ? "Switch to State Admin Panel"
@@ -1495,15 +1499,16 @@ export function MoreSheet({ role, isBizVerified = true }) {
   const handleSwitchBack = async () => {
     const targetRole = effectiveUser?.previousRole;
     if (!targetRole) return;
-    await switchRole(targetRole);
+    const res = await switchRole(targetRole);
     setOpen(false);
-    if (targetRole === "central_admin") router.push("/admin");
-    else if (targetRole === "state_admin") router.push("/state-admin");
-    else if (targetRole === "chapter_admin") router.push("/chapter-admin");
+    const resultingRole = res?.role || targetRole;
+    if (["central_admin", "admin", "super_admin", "secretariat"].includes(resultingRole)) router.push("/admin");
+    else if (resultingRole === "state_admin") router.push("/state-admin");
+    else if (resultingRole === "chapter_admin") router.push("/chapter-admin");
     else router.push("/biz");
   };
   const switchBackLabel =
-    effectiveUser?.previousRole === "central_admin"
+    ["central_admin", "admin", "super_admin", "secretariat"].includes(effectiveUser?.previousRole)
       ? "Switch to Admin Panel"
       : effectiveUser?.previousRole === "state_admin"
         ? "Switch to State Admin Panel"

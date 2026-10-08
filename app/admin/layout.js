@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@shared/providers/auth-provider";
 
 // secretariat is central_admin's equal (see backend roles.js / login-page.jsx)
-const ALLOWED_ROLES = ["central_admin", "secretariat"];
+const ALLOWED_ROLES = ["central_admin", "secretariat", "admin", "super_admin"];
 
 export default function AdminLayout({ children }) {
   const { user, loading } = useAuth();
