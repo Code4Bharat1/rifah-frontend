@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Building2, ShieldCheck, MapPinned, Mail, Phone, ExternalLink, FileCheck2, Download, AlertTriangle, CheckCircle2, Loader2, Edit2, Award, FileText, Receipt, Eye, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -32,9 +32,12 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 export function AdminBusinessDetail({ id }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
-  const basePath = user?.role === "chapter_admin" ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
-  const shellRole = user?.role === "state_admin" ? "state_admin" : "admin";
+  const isChapterAdmin = pathname?.startsWith("/chapter-admin") || user?.role === "chapter_admin";
+  const basePath = isChapterAdmin ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
+  const shellRole = isChapterAdmin ? "chapter_admin" : user?.role === "state_admin" ? "state_admin" : "admin";
+  const canManageStatus = !isChapterAdmin && user?.role !== "chapter_admin";
 
   const [business, setBusiness] = useState(null);
   const [verificationRecord, setVerificationRecord] = useState(null);
@@ -115,6 +118,11 @@ export function AdminBusinessDetail({ id }) {
   }, [id, router, basePath]);
 
   const handleToggleStatus = async () => {
+    if (!canManageStatus) {
+      toast.error("You do not have permission to modify business status.");
+      setConfirmOpen(false);
+      return;
+    }
     try {
       setStatusUpdating(true);
       const newStatus = business.status === "active" ? "suspended" : "active";
@@ -540,18 +548,20 @@ export function AdminBusinessDetail({ id }) {
             </div>
           </Panel>
 
-          <Panel className="p-4 sm:p-6 bg-muted/30">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Admin Actions</h3>
-            <div className="space-y-3">
-              <Button 
-                className="w-full" 
-                variant={business.status === "active" ? "destructive" : "default"}
-                onClick={() => setConfirmOpen(true)}
-              >
-                {business.status === "active" ? "Suspend Business" : "Activate Business"}
-              </Button>
-            </div>
-          </Panel>
+          {canManageStatus && (
+            <Panel className="p-4 sm:p-6 bg-muted/30">
+              <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Admin Actions</h3>
+              <div className="space-y-3">
+                <Button 
+                  className="w-full" 
+                  variant={business.status === "active" ? "destructive" : "default"}
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  {business.status === "active" ? "Suspend Business" : "Activate Business"}
+                </Button>
+              </div>
+            </Panel>
+          )}
         </div>
       </div>
 
@@ -683,20 +693,30 @@ export function AdminBusinessDetail({ id }) {
                   value={editData.chapter} 
                   onChange={(e) => setEditData({...editData, chapter: e.target.value})} 
                   placeholder="e.g. Pune Chapter"
+                  disabled={!canManageStatus}
+                  className={!canManageStatus ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}
                 />
               </div>
               <div className="space-y-1.5 sm:space-y-2">
                 <Label>Membership Plan</Label>
-                <Select value={editData.membershipTier} onValueChange={(val) => setEditData({...editData, membershipTier: val})}>
-                  <SelectTrigger><SelectValue placeholder="Select Plan" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Free member">Free Member</SelectItem>
-                    <SelectItem value="Silver">Silver</SelectItem>
-                    <SelectItem value="Gold">Gold</SelectItem>
-                    <SelectItem value="Platinum">Platinum</SelectItem>
-                    <SelectItem value="Diamond">Diamond</SelectItem>
-                  </SelectContent>
-                </Select>
+                {canManageStatus ? (
+                  <Select value={editData.membershipTier} onValueChange={(val) => setEditData({...editData, membershipTier: val})}>
+                    <SelectTrigger><SelectValue placeholder="Select Plan" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Free member">Free Member</SelectItem>
+                      <SelectItem value="Silver">Silver</SelectItem>
+                      <SelectItem value="Gold">Gold</SelectItem>
+                      <SelectItem value="Platinum">Platinum</SelectItem>
+                      <SelectItem value="Diamond">Diamond</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input 
+                    value={editData.membershipTier || "Free member"} 
+                    disabled 
+                    className="bg-muted text-muted-foreground cursor-not-allowed" 
+                  />
+                )}
               </div>
               <div className="space-y-1.5 sm:space-y-2 col-span-1 sm:col-span-2">
                 <Label>Registration Type</Label>

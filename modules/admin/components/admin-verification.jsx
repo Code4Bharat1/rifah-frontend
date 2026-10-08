@@ -21,6 +21,9 @@ import {
   ShieldAlert,
   UserCheck,
   Eye,
+  MessageSquare,
+  Edit3,
+  Plus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -57,7 +60,13 @@ import { cn } from "@shared/lib/utils";
 
 function AdminVerification() {
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isCentralAdmin = user?.role === "central_admin";
   const [chapterFilter, setChapterFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
@@ -73,6 +82,7 @@ function AdminVerification() {
 
   // Document Inspection State
   const [selectedDoc, setSelectedDoc] = useState(null);
+  const [inspectingItem, setInspectingItem] = useState(null);
   const [secureDocUrl, setSecureDocUrl] = useState(null);
   const [verifiedDocs, setVerifiedDocs] = useState([]);
 
@@ -82,6 +92,14 @@ function AdminVerification() {
     type: null, // "approve" | "changes_required" | "reject"
     item: null,
     reason: "",
+    submitting: false,
+  });
+
+  // Dedicated Remark Modal State
+  const [remarkModal, setRemarkModal] = useState({
+    open: false,
+    item: null,
+    remark: "",
     submitting: false,
   });
 
@@ -179,9 +197,46 @@ function AdminVerification() {
       open: true,
       type,
       item,
-      reason: "",
+      reason: item?.remarks || "",
       submitting: false,
     });
+  };
+
+  const openRemarkModal = (item) => {
+    setRemarkModal({
+      open: true,
+      item,
+      remark: item?.remarks || "",
+      submitting: false,
+    });
+  };
+
+  const handleSaveRemark = async (e) => {
+    if (e) e.preventDefault();
+    const { item, remark } = remarkModal;
+    if (!item?._id) return;
+    if (!remark.trim()) {
+      toast.error("Please enter a remark against the uploaded documents.");
+      return;
+    }
+
+    setRemarkModal((prev) => ({ ...prev, submitting: true }));
+    try {
+      if (typeof verificationApi.updateRemarks === "function") {
+        await verificationApi.updateRemarks(item._id, remark.trim());
+      } else {
+        await verificationApi.review(item._id, {
+          status: item.status || "under_review",
+          remarks: remark.trim(),
+        });
+      }
+      toast.success("Remark on uploaded documents saved successfully");
+      setRemarkModal({ open: false, item: null, remark: "", submitting: false });
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to save remark.");
+      setRemarkModal((prev) => ({ ...prev, submitting: false }));
+    }
   };
 
   const handleExecuteDecision = async () => {
@@ -363,16 +418,35 @@ function AdminVerification() {
               </div>
             </div>
 
-            {item.remarks && (
-              <div className="mt-2 pt-2 border-t border-border/50">
-                <span className="block text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400">
-                  Central Admin Remarks / Changes Requested
+            <div className="mt-2 pt-2 border-t border-border/50">
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <span className="block text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                  <MessageSquare className="h-3 w-3" />
+                  {isCentralAdmin ? "Admin Remarks / Notes" : "Remarks on Uploaded Documents"}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => openRemarkModal(item)}
+                  className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Edit3 className="h-3 w-3" />
+                  {item.remarks ? "Edit Remark" : "Add Remark"}
+                </button>
+              </div>
+              {item.remarks ? (
                 <p className="mt-0.5 text-xs text-foreground font-medium bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
                   {item.remarks}
                 </p>
-              </div>
-            )}
+              ) : (
+                <div 
+                  onClick={() => openRemarkModal(item)}
+                  className="mt-0.5 text-xs text-muted-foreground italic bg-muted/30 hover:bg-muted/60 p-2 rounded-lg border border-dashed border-border/80 cursor-pointer flex items-center justify-between transition-colors"
+                >
+                  <span>Click to add remark against uploaded documents...</span>
+                  <Plus className="h-3.5 w-3.5 text-primary shrink-0" />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Verification Documents */}
@@ -419,7 +493,10 @@ function AdminVerification() {
                               "h-7 px-2 text-xs font-semibold",
                               isVerified ? "text-slate-600 hover:bg-slate-100" : "text-primary hover:bg-primary/10"
                             )}
-                            onClick={() => setSelectedDoc(d)}
+                            onClick={() => {
+                              setSelectedDoc(d);
+                              setInspectingItem(item);
+                            }}
                           >
                             {isVerified ? "View" : "Inspect"}
                           </Button>
@@ -500,6 +577,18 @@ function AdminVerification() {
                 </div>
               );
             })()}
+
+            {user?.role === "chapter_admin" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-amber-300 text-amber-800 dark:border-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 font-semibold gap-1.5"
+                onClick={() => openRemarkModal(item)}
+              >
+                <MessageSquare className="h-3.5 w-3.5 text-amber-600" />
+                <span>{item.remarks ? "Update Remark" : "Make Remark"}</span>
+              </Button>
+            )}
 
             {!isChangesReq && !isApproved && user?.role === "chapter_admin" && (
               <Button
@@ -586,8 +675,11 @@ function AdminVerification() {
               </SelectContent>
             </Select>
           ) : (
-            <div className="flex h-10 items-center justify-between rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-primary font-medium sm:max-w-[220px] truncate">
-              {user?.chapter
+            <div
+              suppressHydrationWarning
+              className="flex h-10 items-center justify-between rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-primary font-medium sm:max-w-[220px] truncate"
+            >
+              {mounted && user?.chapter
                 ? `${user.chapter.replace(/\s*[Cc]hapter\s*/g, "")}'s Queue`
                 : "Your Chapter Queue"}
             </div>
@@ -756,6 +848,20 @@ function AdminVerification() {
               <span />
             )}
             <div className="flex items-center gap-2">
+              {inspectingItem && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const it = inspectingItem;
+                    setSelectedDoc(null);
+                    openRemarkModal(it);
+                  }}
+                  className="gap-1.5 text-xs font-semibold border-amber-300 text-amber-800 dark:border-amber-800 dark:text-amber-300 hover:bg-amber-50"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  <span>Make Remark</span>
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setSelectedDoc(null)}>
                 Close
               </Button>
@@ -806,13 +912,28 @@ function AdminVerification() {
 
           <div className="space-y-3 py-2">
             {decisionModal.type === "approve" ? (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20 p-3.5 text-xs text-emerald-900 dark:text-emerald-300 space-y-2">
-                <p className="font-semibold">Summary of Approval Action:</p>
-                <ul className="list-disc list-inside space-y-1 text-slate-700 dark:text-slate-300">
-                  <li>Sets verification status to <strong className="text-emerald-600">VERIFIED</strong></li>
-                  <li>Publishes profile to RIFAH Public Directory</li>
-                  <li>Dispatches official verification email to applicant</li>
-                </ul>
+              <div className="space-y-3">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20 p-3.5 text-xs text-emerald-900 dark:text-emerald-300 space-y-2">
+                  <p className="font-semibold">Summary of Approval Action:</p>
+                  <ul className="list-disc list-inside space-y-1 text-slate-700 dark:text-slate-300">
+                    <li>Sets verification status to <strong className="text-emerald-600">VERIFIED</strong></li>
+                    <li>Publishes profile to RIFAH Public Directory</li>
+                    <li>Dispatches official verification email to applicant</li>
+                  </ul>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="admin-approve-reason" className="text-xs font-semibold">
+                    Remark on Uploaded Documents (Optional / Recorded in Audit)
+                  </Label>
+                  <Textarea
+                    id="admin-approve-reason"
+                    rows={3}
+                    value={decisionModal.reason}
+                    onChange={(e) => setDecisionModal((p) => ({ ...p, reason: e.target.value }))}
+                    placeholder="e.g. All uploaded verification documents checked and verified against chamber standards."
+                    className="text-xs"
+                  />
+                </div>
               </div>
             ) : (
               <div className="space-y-1.5">
@@ -919,6 +1040,71 @@ function AdminVerification() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 4. Dedicated Remark on Uploaded Documents Modal */}
+      <Dialog
+        open={remarkModal.open}
+        onOpenChange={(open) => !open && setRemarkModal((p) => ({ ...p, open: false }))}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+              <MessageSquare className="h-5 w-5 text-amber-600" />
+              <span>Remark on Uploaded Documents</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Add verification remarks, compliance findings, or observations against the documents uploaded by{" "}
+              <strong className="text-foreground">{remarkModal.item?.business?.name || "the applicant"}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveRemark} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="chapter-document-remark" className="text-xs font-semibold">
+                Remark / Audit Note *
+              </Label>
+              <Textarea
+                id="chapter-document-remark"
+                rows={4}
+                required
+                value={remarkModal.remark}
+                onChange={(e) => setRemarkModal((p) => ({ ...p, remark: e.target.value }))}
+                placeholder="e.g. Verified PAN, GST and Udyam certificates. Document numbers match official company registry records."
+                className="text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                This remark will be recorded in the official verification audit notes for this business.
+              </p>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={remarkModal.submitting}
+                onClick={() => setRemarkModal((p) => ({ ...p, open: false }))}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={remarkModal.submitting || !remarkModal.remark.trim()}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-1.5"
+              >
+                {remarkModal.submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" /> Save Remark
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </AppShell>

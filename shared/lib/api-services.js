@@ -169,6 +169,7 @@ export const verificationApi = {
     return apiClient("/verification/upload", { method: "POST", body: formData });
   },
   review: (id, data) => apiClient(`/verification/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateRemarks: (id, remarks) => apiClient(`/verification/${id}/remarks`, { method: "PATCH", body: JSON.stringify({ remarks }) }),
   delete: (id) => apiClient(`/verification/${id}`, { method: "DELETE" }),
 };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Building2,
   Search,
@@ -158,8 +159,11 @@ const PLAN_OPTIONS = [
 
 function AdminBusinesses() {
   const { user } = useAuth();
+  const pathname = usePathname();
+  const isChapterAdmin = pathname?.startsWith("/chapter-admin") || user?.role === "chapter_admin";
+  const canManageStatus = !isChapterAdmin && user?.role !== "chapter_admin";
   const basePath =
-    user?.role === "chapter_admin"
+    isChapterAdmin
       ? "/chapter-admin"
       : user?.role === "state_admin"
       ? "/state-admin"
@@ -316,6 +320,11 @@ function AdminBusinesses() {
 
   const handleConfirmToggleStatus = async () => {
     if (!statusTargetBusiness) return;
+    if (!canManageStatus) {
+      toast.error("You do not have permission to modify business status.");
+      setStatusTargetBusiness(null);
+      return;
+    }
     const b = statusTargetBusiness;
     const newStatus = b.status === "active" ? "suspended" : "active";
     try {
@@ -781,13 +790,15 @@ function AdminBusinesses() {
                   <Button asChild size="sm" variant="outline">
                     <Link href={`${basePath}/businesses/${r._id}`}>View Details</Link>
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setStatusTargetBusiness(r)}
-                  >
-                    {r.status === "active" ? "Suspend" : "Activate"}
-                  </Button>
+                  {canManageStatus && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setStatusTargetBusiness(r)}
+                    >
+                      {r.status === "active" ? "Suspend" : "Activate"}
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

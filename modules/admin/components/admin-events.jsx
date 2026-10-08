@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { CalendarDays, Plus, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, CalendarPlus, History, Ticket, CalendarCheck, Radio } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { CalendarDays, Plus, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, CalendarPlus, History, Ticket, CalendarCheck, Radio, Search, ArrowUpDown, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -127,16 +127,99 @@ function CalendarView({ events, onEventClick }) {
   );
 }
 
+function matchesEventDate(event, query) {
+  if (!query) return false;
+  const q = query.trim().toLowerCase();
+  if (!q) return false;
+
+  const datesToCheck = [];
+  if (event.date) {
+    const d = new Date(event.date);
+    if (!isNaN(d.getTime())) datesToCheck.push(d);
+  }
+  if (event.scheduledAt) {
+    const sd = new Date(event.scheduledAt);
+    if (!isNaN(sd.getTime())) datesToCheck.push(sd);
+  }
+
+  for (const d of datesToCheck) {
+    const year = d.getFullYear().toString();
+    const monthNum = (d.getMonth() + 1).toString();
+    const monthPad = monthNum.padStart(2, "0");
+    const dayNum = d.getDate().toString();
+    const dayPad = dayNum.padStart(2, "0");
+
+    const monthLong = d.toLocaleString("en-US", { month: "long" }).toLowerCase();
+    const monthShort = d.toLocaleString("en-US", { month: "short" }).toLowerCase();
+    const localeDate = d.toLocaleDateString().toLowerCase();
+
+    const dateFormats = [
+      localeDate,
+      `${monthNum}/${dayNum}/${year}`,
+      `${monthPad}/${dayPad}/${year}`,
+      `${dayNum}/${monthNum}/${year}`,
+      `${dayPad}/${monthPad}/${year}`,
+      `${year}-${monthPad}-${dayPad}`,
+      `${year}/${monthPad}/${dayPad}`,
+      `${dayNum}-${monthNum}-${year}`,
+      `${dayPad}-${monthPad}-${year}`,
+      `${dayNum} ${monthShort}`,
+      `${dayNum} ${monthLong}`,
+      `${monthShort} ${dayNum}`,
+      `${monthLong} ${dayNum}`,
+      `${dayNum} ${monthShort} ${year}`,
+      `${dayNum} ${monthLong} ${year}`,
+      `${monthShort} ${dayNum}, ${year}`,
+      `${monthLong} ${dayNum}, ${year}`,
+      `${monthNum}/${dayNum}`,
+      `${dayNum}/${monthNum}`,
+      monthLong,
+      monthShort,
+      year,
+    ];
+
+    if (dateFormats.some((df) => df.includes(q))) return true;
+  }
+
+  if (typeof event.date === "string" && event.date.toLowerCase().includes(q)) return true;
+  if (typeof event.time === "string" && event.time.toLowerCase().includes(q)) return true;
+
+  return false;
+}
+
+function matchesEventSearch(event, query) {
+  if (!query || !query.trim()) return true;
+  const q = query.trim().toLowerCase();
+
+  // 1. Search by name/title
+  if (event.title && event.title.toLowerCase().includes(q)) return true;
+
+  // 2. Search by date
+  if (matchesEventDate(event, q)) return true;
+
+  // 3. Search by location/city, mode, category, sector as extra convenience
+  if (event.city && event.city.toLowerCase().includes(q)) return true;
+  if (event.mode && event.mode.toLowerCase().includes(q)) return true;
+  if (event.eventCategory && event.eventCategory.toLowerCase().includes(q)) return true;
+  if (event.industrySector && event.industrySector.toLowerCase().includes(q)) return true;
+
+  return false;
+}
+
 function AdminEvents() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
   const isCentralAdmin = user?.role === "central_admin";
+  const isChapterAdmin = pathname?.startsWith("/chapter-admin") || user?.role === "chapter_admin";
   const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
   const { data: eventsData, refetch } = useEvents();
   const events = Array.isArray(eventsData) ? eventsData : [];
 
   const [filterMode, setFilterMode] = useState("all");
   const [viewMode, setViewMode] = useState("table");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("date-desc");
 
   const now = new Date();
   const liveEvents = events.filter((e) => getEventStatus(e, now) === "Live");
@@ -171,6 +254,30 @@ function AdminEvents() {
   } else if (filterMode === "Paid") {
     displayEvents = paidEvents;
   }
+
+  // Filter by search query (name / date)
+  if (searchQuery.trim()) {
+    displayEvents = displayEvents.filter((e) => matchesEventSearch(e, searchQuery));
+  }
+
+  // Sort events (Date Newest/Oldest, A-Z, Z-A)
+  displayEvents = [...displayEvents].sort((a, b) => {
+    if (sortBy === "name-asc") {
+      return (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" });
+    }
+    if (sortBy === "name-desc") {
+      return (b.title || "").localeCompare(a.title || "", undefined, { sensitivity: "base" });
+    }
+    if (sortBy === "date-asc") {
+      const timeA = new Date(a.date || a.scheduledAt || 0).getTime();
+      const timeB = new Date(b.date || b.scheduledAt || 0).getTime();
+      return timeA - timeB;
+    }
+    // "date-desc" (default)
+    const timeA = new Date(a.date || a.scheduledAt || 0).getTime();
+    const timeB = new Date(b.date || b.scheduledAt || 0).getTime();
+    return timeB - timeA;
+  });
 
   const [deleteId, setDeleteId] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -210,7 +317,7 @@ function AdminEvents() {
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
           <StatCard
-            label="All Events"
+            label={isChapterAdmin ? "My Chapters Event" : "All Events"}
             value={String(totalCount)}
             icon={CalendarDays}
             tone="primary"
@@ -258,9 +365,29 @@ function AdminEvents() {
             onClick={() => setFilterMode("Scheduled")}
           />
         </div>
-        <div className="flex items-center justify-between mb-2">
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-1">
           <h2 className="text-xl font-semibold tracking-tight">
-            {filterMode === "live" ? "Live Events Now" : filterMode === "today" ? "Today's Events" : filterMode === "upcoming" ? "Upcoming Events" : (filterMode === "past" || filterMode === "ended") ? "Ended Events" : filterMode === "Scheduled" ? "Scheduled Events" : filterMode === "Paid" ? "Paid Events" : "All Events"}
+            {filterMode === "live"
+              ? "Live Events Now"
+              : filterMode === "today"
+              ? "Today's Events"
+              : filterMode === "upcoming"
+              ? "Upcoming Events"
+              : filterMode === "past" || filterMode === "ended"
+              ? "Ended Events"
+              : filterMode === "Scheduled"
+              ? "Scheduled Events"
+              : filterMode === "Paid"
+              ? "Paid Events"
+              : isChapterAdmin
+              ? "My Chapters Event"
+              : "All Events"}
+            {searchQuery.trim() && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                ({displayEvents.length} {displayEvents.length === 1 ? "result" : "results"})
+              </span>
+            )}
           </h2>
           <div className="bg-muted p-1 flex items-center gap-1 rounded-lg">
             <button onClick={() => setViewMode("table")} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === "table" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
@@ -272,17 +399,61 @@ function AdminEvents() {
           </div>
         </div>
 
+        {/* Search & Sort Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search event by name or date (e.g. 26/09/2026, September)..."
+              className="h-10 pl-10 pr-9 bg-white"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full"
+                title="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[195px] h-10 bg-white">
+                <ArrowUpDown className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
+                <SelectValue placeholder="Sort By" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date-desc">Sort by Date (Newest)</SelectItem>
+                <SelectItem value="date-asc">Sort by Date (Oldest)</SelectItem>
+                <SelectItem value="name-asc">Sort A - Z (Name)</SelectItem>
+                <SelectItem value="name-desc">Sort Z - A (Name)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         {viewMode === "calendar" ? (
           <CalendarView events={displayEvents} onEventClick={(e) => router.push(`${basePath}/${e._id}`)} />
         ) : (
         <Panel>
           <ResponsiveTable
             rows={displayEvents}
+            empty={
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                {searchQuery
+                  ? `No events found matching "${searchQuery}".`
+                  : "No events available."}
+              </div>
+            }
             onRowClick={(r) => router.push(`${basePath}/${r._id}`)}
             columns={[
               { 
                 key: "title", 
-                header: "Event", 
+                header: "Event",  
                 cell: (r) => {
                   const status = getEventStatus(r);
                   const cfg = getEventStatusConfig(status);
@@ -296,7 +467,9 @@ function AdminEvents() {
                           {cfg.dot && <span className="w-2 h-2 rounded-full bg-white inline-block shadow-xs" />}
                           {cfg.label}
                         </Pill>
-                        {r.eventCategory === "Sports" && <Pill tone="warning">Sports</Pill>}
+                        {r.eventCategory && r.eventCategory !== "Meet" && <Pill tone={r.eventCategory === "Sports" ? "warning" : "info"}>{r.eventCategory}</Pill>}
+                        {r.industrySector && <Pill tone="neutral" className="text-xs">{r.industrySector}</Pill>}
+                        {(r.isRegistrationClosed || r.seatsFull) && <Pill tone="danger">Closed</Pill>}
                         {timing.isToday && status !== "Live" && status !== "Ended" && <Pill tone="success">Today</Pill>}
                         {r.isPaid ? <Pill tone="warning">Paid (₹{r.ticketPrice})</Pill> : <Pill tone="neutral">Free</Pill>}
                       </div>

@@ -106,8 +106,16 @@ function EventDetail() {
     (event?.fee && event.fee !== "Free" && event.fee !== "Complimentary for Members")
   );
   
-  const guestPrice = Number(event?.ticketPrice) || (event?.fee ? parseInt(event.fee.replace(/\D/g, '')) || 0 : 0);
-  const memberPrice = Number(event?.memberPrice) || 0;
+  const guestBase = Number(event?.ticketPrice) || (event?.fee ? parseInt(event.fee.replace(/\D/g, '')) || 0 : 0);
+  const guestPrice = guestBase;
+  const guestGst = Math.round(guestBase * 0.18);
+  const guestTotal = guestBase + guestGst;
+
+  const memberBase = Number(event?.memberPrice) || 0;
+  const memberPrice = memberBase;
+  const memberGst = Math.round(memberBase * 0.18);
+  const memberTotal = memberBase + memberGst;
+
   const isCustomerUser = user && ["customer", "buyer"].includes(user.role);
 
 
@@ -171,9 +179,11 @@ const loadRazorpayScript = () => {
           return;
         }
       }
-      const finalAmount = (isEventPaid && regPath === "member" && !isCustomerUser && event?.memberPrice !== undefined) 
-        ? memberPrice 
-        : guestPrice;
+      const baseAmount = (isEventPaid && regPath === "member" && !isCustomerUser && event?.memberPrice !== undefined) 
+        ? memberBase 
+        : guestBase;
+      const gstAmount = Math.round(baseAmount * 0.18);
+      const finalAmount = baseAmount + gstAmount;
 
       if (isEventPaid && finalAmount > 0) {
         const scriptLoaded = await loadRazorpayScript();
@@ -182,10 +192,13 @@ const loadRazorpayScript = () => {
         // Use any backend endpoint that creates an order
         const orderRes = await paymentApi.createOrder({
           amount: finalAmount,
+          baseAmount,
+          gstAmount,
+          gstRate: 18,
           currency: "INR",
           eventId: event?._id,
           itemType: "Event Pass",
-          description: `Pass for ${event?.title}`,
+          description: `Pass for ${event?.title} (Incl. 18% GST)`,
         });
 
         const orderData = orderRes?.data || orderRes;
@@ -195,7 +208,7 @@ const loadRazorpayScript = () => {
           amount: orderData.amount,
           currency: orderData.currency || "INR",
           name: "RIFAH Events",
-          description: `Pass for ${event?.title}`,
+          description: `Pass for ${event?.title} (Incl. 18% GST)`,
           order_id: orderData.orderId,
           handler: async function (response) {
             try {
@@ -209,16 +222,22 @@ const loadRazorpayScript = () => {
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_signature: response.razorpay_signature,
                   amount: finalAmount,
+                  baseAmount,
+                  gstAmount,
+                  gstRate: 18,
                   currency: "INR",
                   itemType: "Event Pass",
                   eventId: event?._id,
-                  description: `Event Pass: ${event?.title}`,
+                  description: `Event Pass: ${event?.title} (Incl. 18% GST)`,
                   guest: regPath === "guest" ? guestForm : undefined,
                 }),
                 // Registers user on the event
                 eventApi.registerPaid(event?._id, {
                   paymentId: response.razorpay_payment_id,
                   transactionId: response.razorpay_order_id,
+                  amount: finalAmount,
+                  baseAmount,
+                  gstAmount,
                   guest: regPath === "guest" ? guestForm : undefined,
                 }),
               ]);
@@ -316,6 +335,9 @@ const loadRazorpayScript = () => {
   const totalSeats = event.totalSeats || 0;
   const registeredCount = event.registeredCount || 0;
   const isFull = totalSeats > 0 && registeredCount >= totalSeats;
+  const isRegistrationClosedManually = Boolean(event.isRegistrationClosed || event.seatsFull);
+  const isRegistrationPastDeadline = Boolean(event.registrationClosingDate && new Date() > new Date(event.registrationClosingDate));
+  const isRegistrationClosed = isFull || isRegistrationClosedManually || isRegistrationPastDeadline;
   const seatsRemaining = totalSeats > 0 ? totalSeats - registeredCount : null;
   const seatsPercentage = totalSeats > 0 ? Math.min(100, Math.round((registeredCount / totalSeats) * 100)) : 0;
 
@@ -435,6 +457,8 @@ const loadRazorpayScript = () => {
                 <dl>
                   <FieldRow label="Organiser" value={event.organizer} />
                   <FieldRow label="Chapter" value={event.chapter} />
+                  {event.eventCategory && <FieldRow label="Category" value={event.eventCategory} />}
+                  {event.industrySector && <FieldRow label="Industry Sector" value={event.industrySector} />}
                   <FieldRow label="Mode" value={event.mode} />
                   <FieldRow label="Location" value={`${event.venue || ""}${event.city ? `, ${event.city}` : ""}`} />
                   {totalSeats > 0 ? (
@@ -640,18 +664,30 @@ const loadRazorpayScript = () => {
                 <div className="space-y-5">
                   <div className="flex flex-col border-b border-border pb-4 gap-3">
                     {isEventPaid ? (
-                      <div className="flex justify-between items-end">
-                        <div>
-                          <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Member Price</p>
-                          <p className="text-2xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">
-                            ₹{memberPrice}
-                          </p>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-end">
+                          <div>
+                            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Member Price</p>
+                            <p className="text-2xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">
+                              ₹{memberTotal}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground font-medium">
+                              (₹{memberBase} + 18% GST)
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Guest Price</p>
+                            <p className="text-xl font-bold tracking-tight text-foreground">
+                              ₹{guestTotal}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground font-medium">
+                              (₹{guestBase} + 18% GST)
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Guest Price</p>
-                          <p className="text-xl font-bold tracking-tight text-muted-foreground">
-                            ₹{guestPrice}
-                          </p>
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-md border border-border/50">
+                          <span className="font-semibold text-foreground">Note:</span>
+                          <span>18% GST is added to pass payments at checkout.</span>
                         </div>
                       </div>
                     ) : (
@@ -678,13 +714,18 @@ const loadRazorpayScript = () => {
                     </div>
                   )}
                   <Button
-                    className={`w-full text-base font-bold shadow-md transition-all ${isFull ? 'bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/10 cursor-not-allowed' : 'hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]'}`}
+                    className={`w-full text-base font-bold shadow-md transition-all ${isRegistrationClosed ? 'bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/10 cursor-not-allowed' : 'hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]'}`}
                     size="lg"
-                    disabled={registering || isFull}
-                    onClick={isFull ? undefined : handleRegisterClick}
+                    disabled={registering || isRegistrationClosed}
+                    onClick={isRegistrationClosed ? undefined : handleRegisterClick}
                   >
-                    {registering ? "Processing..." : isFull ? "Registration Full" : "RSVP / Register Now"}
+                    {registering ? "Processing..." : (isFull || event?.seatsFull) ? "Seats Full" : isRegistrationClosed ? "Registration Closed" : "RSVP / Register Now"}
                   </Button>
+                  {isRegistrationClosed && (
+                    <p className="text-xs text-center font-medium text-destructive mt-1">
+                      {isRegistrationPastDeadline ? "Registration deadline has passed." : "Registrations are currently closed / seats full."}
+                    </p>
+                  )}
                   <Button
                     type="button"
                     variant="outline"
@@ -789,15 +830,23 @@ const loadRazorpayScript = () => {
               </div>
               
               {isEventPaid && (
-                <div className="mt-6 p-4 rounded-xl bg-muted/30 border">
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>Total Amount</span>
-                    <span>₹{guestPrice}</span>
+                <div className="mt-6 p-4 rounded-xl bg-muted/30 border space-y-2">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Pass Base Price</span>
+                    <span>₹{guestBase}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>GST (18%)</span>
+                    <span>₹{guestGst}</span>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between font-bold text-lg text-foreground">
+                    <span>Total Payable</span>
+                    <span>₹{guestTotal}</span>
                   </div>
                 </div>
               )}
               <Button className="w-full mt-4" size="lg" onClick={handleFinalRegister} disabled={registering}>
-                {registering ? "Processing..." : (isEventPaid ? `Pay ₹${guestPrice} & Register` : "Register Now")}
+                {registering ? "Processing..." : (isEventPaid ? `Pay ₹${guestTotal} & Register` : "Register Now")}
               </Button>
             </div>
           )}
@@ -818,29 +867,43 @@ const loadRazorpayScript = () => {
                   {!isCustomerUser ? (
                     <>
                       <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Non-Member Price</span>
-                        <span><del>₹{guestPrice}</del></span>
+                        <span>Guest Price</span>
+                        <span><del>₹{guestTotal}</del></span>
                       </div>
                       <div className="flex justify-between text-sm text-emerald-600 font-medium">
-                        <span>Member Price Applied</span>
-                        <span>₹{memberPrice}</span>
+                        <span>Member Base Price</span>
+                        <span>₹{memberBase}</span>
                       </div>
-                      <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>GST (18%)</span>
+                        <span>₹{memberGst}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between font-bold text-lg text-foreground">
                         <span>Total Payable</span>
-                        <span>₹{memberPrice}</span>
+                        <span>₹{memberTotal}</span>
                       </div>
                     </>
                   ) : (
-                    <div className="flex justify-between font-bold text-lg">
-                      <span>Total Amount</span>
-                      <span>₹{guestPrice}</span>
-                    </div>
+                    <>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Pass Base Price</span>
+                        <span>₹{guestBase}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>GST (18%)</span>
+                        <span>₹{guestGst}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between font-bold text-lg text-foreground">
+                        <span>Total Payable</span>
+                        <span>₹{guestTotal}</span>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
               
               <Button className="w-full mt-4" size="lg" onClick={handleFinalRegister} disabled={registering}>
-                {registering ? "Processing..." : (isEventPaid ? `Pay ₹${!isCustomerUser ? memberPrice : guestPrice} & Register` : "Register for Free")}
+                {registering ? "Processing..." : (isEventPaid ? `Pay ₹${!isCustomerUser ? memberTotal : guestTotal} & Register` : "Register for Free")}
               </Button>
             </div>
           )}

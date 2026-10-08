@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Image as ImageIcon, X, Check, ChevronsUpDown, Video, Sparkles, Copy, ExternalLink } from "lucide-react";
+import { Loader2, ArrowLeft, Image as ImageIcon, X, Check, ChevronsUpDown, Video, Sparkles, Copy, ExternalLink, Lock } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
@@ -98,11 +98,39 @@ function MultiSelectDropdown({ options, selected, toggleOption, placeholder = "S
   );
 }
 
+const EVENT_CATEGORIES = [
+  "Meet",
+  "Workshop",
+  "Seminar",
+  "Delegation Tour",
+  "Sports",
+  "Other Activity",
+];
+
+const INDUSTRY_SECTORS = [
+  "Networking",
+  "Business Growth",
+  "IT & Digital Services",
+  "Finance & Taxation",
+  "Import & Export",
+  "Women Empowerment",
+  "Entrepreneurship Development Program",
+  "Start-Up",
+  "Skill Development",
+  "Delegation Tour/Visit",
+  "Government Scheme & Supports",
+  "Other",
+];
+
 export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
-  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
+  const isChapterAdmin = pathname?.startsWith("/chapter-admin") || user?.role === "chapter_admin";
+  const isStateAdmin = pathname?.startsWith("/state-admin") || user?.role === "state_admin";
+  const isCentralAdmin = !isChapterAdmin && !isStateAdmin && (pathname?.startsWith("/admin") || user?.role === "central_admin");
+  const basePath = isChapterAdmin ? "/chapter-admin/events" : isStateAdmin ? "/state-admin/events" : "/admin/events";
+  const role = isChapterAdmin ? "chapter_admin" : isStateAdmin ? "state_admin" : (user?.role || "admin");
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [generatingMeet, setGeneratingMeet] = useState(false);
@@ -125,6 +153,41 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   } else {
     chapterOptions = Array.from(new Set(["All", ...(chaptersData || []).map(c => c.name || c.city || c)]));
   }
+
+  const chapterSelectionList = Array.from(
+    new Set(
+      (chaptersData || [])
+        .map((c) => c.name || c.city || c)
+        .filter(Boolean)
+    )
+  );
+
+  const handleChapterChange = (selectedChapter) => {
+    const matched = (chaptersData || []).find(
+      (c) =>
+        (c.name && c.name.toLowerCase() === selectedChapter.toLowerCase()) ||
+        (c.city && c.city.toLowerCase() === selectedChapter.toLowerCase())
+    );
+    const autoCity = matched?.city || selectedChapter.replace(/\s*[Cc]hapter\s*/gi, "").trim();
+
+    setFormData((prev) => ({
+      ...prev,
+      chapter: selectedChapter,
+      city: autoCity || prev.city,
+      targetChapters: selectedChapter === "All" ? ["All"] : [selectedChapter],
+    }));
+  };
+
+  // Helper to ensure 4-digit year input
+  const sanitizeDateInput = (val) => {
+    if (!val) return "";
+    const parts = val.split("-");
+    if (parts[0] && parts[0].length > 4) {
+      parts[0] = parts[0].slice(0, 4);
+      return parts.join("-");
+    }
+    return val;
+  };
 
   // Helper to parse "10:00 AM - 01:00 PM" into { start: "10:00", end: "13:00" }
   const parseTimeString = (timeStr) => {
@@ -164,12 +227,13 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     mode: "In-person",
     meetingLink: "",
     eventCategory: "Meet",
+    industrySector: "Networking",
     sportName: "",
     sportVenue: "",
     teamsAllowed: "",
-    location: "Chamber Conference Hall",
-    city: "Mumbai",
-    chapter: "Mumbai Chapter",
+    location: "",
+    city: "",
+    chapter: "",
     targetAudience: ["All"],
     targetStates: ["All"],
     targetChapters: ["All"],
@@ -180,6 +244,10 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     ticketPrice: "",
     memberPrice: "",
     totalSeats: "",
+    isRegistrationClosed: false,
+    seatsFull: false,
+    registrationClosingDate: "",
+    registrationClosingTime: "23:59",
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -196,9 +264,21 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         initialSchTime = `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
       }
 
+      let initialRegCloseDate = "";
+      let initialRegCloseTime = "23:59";
+      if (initialData.registrationClosingDate) {
+        const rc = new Date(initialData.registrationClosingDate);
+        if (!isNaN(rc.getTime())) {
+          initialRegCloseDate = rc.toISOString().split("T")[0];
+          initialRegCloseTime = `${rc.getHours().toString().padStart(2, "0")}:${rc.getMinutes().toString().padStart(2, "0")}`;
+        }
+      }
+
       setFormData({
         ...initialFormState,
         ...initialData,
+        chapter: initialData.chapter || "",
+        city: initialData.city || "",
         isPaid: Boolean(initialData.isPaid),
         ticketPrice: initialData.isPaid ? (initialData.ticketPrice ?? "") : "",
         memberPrice: initialData.memberPrice || "",
@@ -210,6 +290,11 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         scheduledDate: initialSchDate,
         scheduledTime: initialSchTime,
         eventCategory: initialData.eventCategory || "Meet",
+        industrySector: initialData.industrySector || "Networking",
+        isRegistrationClosed: Boolean(initialData.isRegistrationClosed || initialData.seatsFull),
+        seatsFull: Boolean(initialData.isRegistrationClosed || initialData.seatsFull),
+        registrationClosingDate: initialRegCloseDate,
+        registrationClosingTime: initialRegCloseTime,
         sportName: initialData.sportDetails?.sportName || "",
         sportVenue: initialData.sportDetails?.venue || "",
         teamsAllowed: initialData.sportDetails?.teamsAllowed || "",
@@ -217,23 +302,45 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         poster: null,
       });
     } else if (!initialData && user) {
-      if (user.role === "state_admin" && user.state) {
+      const userChapter = user?.chapter || "";
+      const matchedChapter = (chaptersData || []).find(
+        (c) =>
+          (c.name && userChapter && c.name.toLowerCase() === userChapter.toLowerCase()) ||
+          (c.city && userChapter && c.city.toLowerCase() === userChapter.toLowerCase())
+      );
+
+      const resolvedChapter = userChapter || matchedChapter?.name || "";
+      const cleanChapterCity = userChapter.replace(/\s*[Cc]hapter\s*/gi, "").trim();
+      const resolvedCity = user?.city || matchedChapter?.city || cleanChapterCity || "";
+      const resolvedState = user?.state || matchedChapter?.state || "";
+
+      if (isChapterAdmin || user.role === "chapter_admin") {
         setFormData((prev) => ({
           ...prev,
-          state: user.state,
-          targetStates: [user.state],
+          chapter: resolvedChapter || prev.chapter,
+          city: prev.city || resolvedCity,
+          targetChapters: resolvedChapter ? [resolvedChapter] : prev.targetChapters,
+          state: resolvedState || prev.state,
+          targetStates: resolvedState ? [resolvedState] : prev.targetStates,
         }));
-      } else if (user.role === "chapter_admin" && user.chapter) {
+      } else if (isStateAdmin || user.role === "state_admin") {
         setFormData((prev) => ({
           ...prev,
-          chapter: user.chapter,
-          targetChapters: [user.chapter],
-          state: user.state || prev.state,
-          targetStates: user.state ? [user.state] : prev.targetStates,
+          chapter: prev.chapter || resolvedChapter,
+          city: prev.city || resolvedCity,
+          state: resolvedState || prev.state,
+          targetStates: resolvedState ? [resolvedState] : prev.targetStates,
+        }));
+      } else {
+        // Central Admin
+        setFormData((prev) => ({
+          ...prev,
+          chapter: prev.chapter || resolvedChapter,
+          city: prev.city || resolvedCity,
         }));
       }
     }
-  }, [initialData, user]);
+  }, [initialData, user, chaptersData, isChapterAdmin, isStateAdmin]);
 
   const toggleAudience = (audience) => {
     setFormData((prev) => {
@@ -343,9 +450,31 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     let newErrors = {};
 
     if (!formData.title) newErrors.title = "Event Title is required";
-    if (!formData.date) newErrors.date = "Event Date is required";
+
+    const currentChapter = (formData.chapter || user?.chapter || (isChapterAdmin ? "Bengaluru Chapter" : "")).trim();
+    if (!currentChapter) {
+      newErrors.chapter = "Chapter Name is required";
+    }
+
+    const currentCity = (formData.city || (currentChapter ? currentChapter.replace(/\s*[Cc]hapter\s*/gi, "").trim() : "")).trim();
+    if (!currentCity) {
+      newErrors.city = "City is required";
+    }
+
+    if (!formData.date) {
+      newErrors.date = "Event Date is required";
+    } else {
+      const y = formData.date.split("-")[0];
+      if (!y || y.length !== 4) {
+        newErrors.date = "Year must be exactly 4 digits (e.g. 2026)";
+      }
+    }
     if (!formData.startTime) newErrors.startTime = "Start Time is required";
     if (!formData.endTime) newErrors.endTime = "End Time is required";
+
+    if (formData.isPaid === undefined || formData.isPaid === null) {
+      newErrors.isPaid = "Event Fee selection is required";
+    }
     
     if (!isEditMode && formData.date) {
       const selectedDate = new Date(formData.date);
@@ -353,6 +482,16 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       today.setHours(0, 0, 0, 0);
       if (selectedDate < today) {
         newErrors.date = "You cannot create an event in the past. Please select today's date or a future date.";
+      }
+    }
+
+    if (formData.registrationClosingDate) {
+      const regYear = formData.registrationClosingDate.split("-")[0];
+      if (!regYear || regYear.length !== 4) {
+        newErrors.registrationClosingDate = "Year must be exactly 4 digits (e.g. 2026)";
+      }
+      if (formData.date && formData.registrationClosingDate > formData.date) {
+        newErrors.registrationClosingDate = "Registration closing date cannot be after the event date.";
       }
     }
 
@@ -402,20 +541,35 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         scheduledAt = new Date(`${formData.scheduledDate}T${formData.scheduledTime}:00`);
       }
 
+      let registrationClosingDate = null;
+      if (formData.registrationClosingDate) {
+        registrationClosingDate = new Date(`${formData.registrationClosingDate}T${formData.registrationClosingTime || "23:59"}:00`);
+      }
+
       const isPaid = Boolean(formData.isPaid);
       const ticketPrice = isPaid ? Number(formData.ticketPrice) : 0;
       const fee = isPaid ? `₹${ticketPrice}` : "Free";
 
+      const chapterVal = currentChapter;
+      const cityVal = currentCity;
+
       const payload = {
         ...formData,
+        chapter: chapterVal,
+        city: cityVal,
         isPaid,
         ticketPrice,
         memberPrice: isPaid ? (Number(formData.memberPrice) || 0) : 0,
+        gstRate: isPaid ? 18 : 0,
         fee,
         time: formatTimeStr(formData.startTime, formData.endTime),
         venue: formData.location,
         status: targetStatus,
         scheduledAt,
+        industrySector: formData.industrySector || "Networking",
+        isRegistrationClosed: Boolean(formData.isRegistrationClosed),
+        seatsFull: Boolean(formData.isRegistrationClosed),
+        registrationClosingDate,
         sportDetails: formData.eventCategory === "Sports" ? {
           sportName: formData.sportName,
           venue: formData.sportVenue,
@@ -426,6 +580,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       delete payload.endTime;
       delete payload.scheduledDate;
       delete payload.scheduledTime;
+      delete payload.registrationClosingTime;
       delete payload.cover;
       delete payload.poster;
       delete payload.sportName;
@@ -467,7 +622,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
 
   return (
     <AppShell
-      role={user?.role === "state_admin" ? "state_admin" : user?.role === "chapter_admin" ? "chapter_admin" : "admin"}
+      role={role}
       title={isEditMode ? "Edit Event" : "Create New Event"}
       subtitle={isEditMode ? "Update event details and manage publishing." : "Draft a new chamber event or workshop."}
       actions={
@@ -501,10 +656,10 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   id="date"
                   type="date"
                   required
-                  max="9999-12-31"
-                  min={!isEditMode ? new Date().toISOString().split("T")[0] : undefined}
+                  min="2020-01-01"
+                  max="2099-12-31"
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, date: sanitizeDateInput(e.target.value) })}
                   className={errors.date ? 'border-destructive' : ''}
                 />
                 {errors.date && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.date}</p>}
@@ -535,7 +690,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className={`grid grid-cols-1 ${(formData.mode === "Online" || formData.mode === "Hybrid") ? "md:grid-cols-2" : "md:grid-cols-2"} gap-6`}>
               <div className="space-y-2">
                 <Label htmlFor="mode">Mode</Label>
                 <Select value={formData.mode} onValueChange={handleModeChange}>
@@ -635,26 +790,104 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   </div>
                 </div>
               )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="chapter">
+                    Chapter Name <span className="text-destructive">*</span>
+                  </Label>
+                  {isChapterAdmin && (
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">
+                      Auto-filled
+                    </span>
+                  )}
+                </div>
+                {isChapterAdmin ? (
+                  <div className="relative flex items-center">
+                    <Input
+                      id="chapter"
+                      value={formData.chapter || user?.chapter || ""}
+                      readOnly
+                      disabled
+                      className="bg-muted/50 cursor-not-allowed font-medium text-foreground pr-24 border-emerald-500/30"
+                    />
+                    <div className="absolute right-2.5 flex items-center gap-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>Locked</span>
+                    </div>
+                  </div>
+                ) : (
+                  <Select
+                    value={formData.chapter || ""}
+                    onValueChange={handleChapterChange}
+                  >
+                    <SelectTrigger id="chapter" className={errors.chapter ? 'border-destructive' : ''}>
+                      <SelectValue placeholder="Select Chapter..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chapterSelectionList.map((chap) => (
+                        <SelectItem key={chap} value={chap}>
+                          {chap}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <p className="text-[12px] text-muted-foreground">
+                  {isChapterAdmin
+                    ? `Auto-assigned to your chapter (${formData.chapter || user?.chapter || "Bengaluru Chapter"}).`
+                    : "Select the chapter creating or hosting this event."}
+                </p>
+                {errors.chapter && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.chapter}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
                 <Input
                   id="city"
+                  placeholder="e.g. Bengaluru"
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  className={errors.city ? 'border-destructive' : ''}
                 />
+                <p className="text-[12px] text-muted-foreground">
+                  Auto-filled based on chapter. You can edit if the venue is in another city.
+                </p>
+                {errors.city && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.city}</p>}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="eventCategory">Event Category</Label>
+                <Label htmlFor="eventCategory">Event Category <span className="text-destructive">*</span></Label>
                 <Select value={formData.eventCategory} onValueChange={(val) => setFormData({ ...formData, eventCategory: val })}>
                   <SelectTrigger id="eventCategory">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Meet">Meet</SelectItem>
-                    <SelectItem value="Sports">Sports</SelectItem>
+                    {EVENT_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="industrySector">Industry Sector <span className="text-destructive">*</span></Label>
+                <Select value={formData.industrySector} onValueChange={(val) => setFormData({ ...formData, industrySector: val })}>
+                  <SelectTrigger id="industrySector">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INDUSTRY_SECTORS.map((sec) => (
+                      <SelectItem key={sec} value={sec}>
+                        {sec}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -696,9 +929,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="isPaid">Event Type</Label>
+                <Label htmlFor="isPaid">Event Fee <span className="text-destructive">*</span></Label>
                 <Select value={formData.isPaid ? "Paid" : "Free"} onValueChange={(val) => setFormData({ ...formData, isPaid: val === "Paid", ticketPrice: val === "Free" ? "" : formData.ticketPrice })}>
-                  <SelectTrigger id="isPaid">
+                  <SelectTrigger id="isPaid" className={errors.isPaid ? "border-destructive" : ""}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -706,9 +939,10 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     <SelectItem value="Paid">Paid Event</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.isPaid && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.isPaid}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="totalSeats">Total Seats / Capacity</Label>
+                <Label htmlFor="totalSeats">Capacity / Max Registration Allowed</Label>
                 <Input
                   id="totalSeats"
                   type="number"
@@ -719,40 +953,176 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 />
                 <p className="text-[10px] text-muted-foreground mt-1 font-medium">Leave 0 if seats are unlimited.</p>
               </div>
-              {formData.isPaid && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-full border border-border rounded-xl p-5 bg-muted/10 shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-primary/50" />
-                  <div className="space-y-2">
-                    <Label htmlFor="ticketPrice">Non-Member Price (₹) <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="ticketPrice"
-                      type="number"
-                      min="0"
-                      required
-                      value={formData.ticketPrice}
-                      onChange={(e) => setFormData({ ...formData, ticketPrice: e.target.value ? Number(e.target.value) : "" })}
-                      placeholder="e.g. 500"
-                      className={errors.ticketPrice ? 'border-destructive' : ''}
-                    />
-                    {errors.ticketPrice && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.ticketPrice}</p>}
-                    <p className="text-[10px] text-muted-foreground mt-1 font-medium">Standard price for Guests.</p>
+              {formData.isPaid && (() => {
+                const nonMemberBase = Number(formData.ticketPrice) || 0;
+                const nonMemberGst = Math.round(nonMemberBase * 0.18);
+                const nonMemberTotal = nonMemberBase + nonMemberGst;
+
+                const memberBase = Number(formData.memberPrice) || 0;
+                const memberGst = Math.round(memberBase * 0.18);
+                const memberTotal = memberBase + memberGst;
+
+                return (
+                  <div className="col-span-full border border-border rounded-xl p-5 bg-muted/10 shadow-sm relative overflow-hidden space-y-4">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-primary/50" />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="ticketPrice">Non-Member Price (₹) <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="ticketPrice"
+                          type="number"
+                          min="0"
+                          required
+                          value={formData.ticketPrice}
+                          onChange={(e) => setFormData({ ...formData, ticketPrice: e.target.value ? Number(e.target.value) : "" })}
+                          placeholder="e.g. 500"
+                          className={errors.ticketPrice ? 'border-destructive' : ''}
+                        />
+                        {errors.ticketPrice && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.ticketPrice}</p>}
+                        <div className="flex flex-wrap items-center justify-between text-[11px] gap-1 pt-0.5">
+                          <span className="text-muted-foreground">Standard price for Guests.</span>
+                          {nonMemberBase > 0 && (
+                            <span className="text-primary font-medium">
+                              + 18% GST (₹{nonMemberGst}) = <strong className="text-foreground">₹{nonMemberTotal}</strong>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="memberPrice">Member Price (₹)</Label>
+                        <Input
+                          id="memberPrice"
+                          type="number"
+                          min="0"
+                          value={formData.memberPrice}
+                          onChange={(e) => setFormData({ ...formData, memberPrice: e.target.value ? Number(e.target.value) : "" })}
+                          placeholder="e.g. 200"
+                          className={errors.memberPrice ? 'border-destructive' : ''}
+                        />
+                        {errors.memberPrice && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.memberPrice}</p>}
+                        <div className="flex flex-wrap items-center justify-between text-[11px] gap-1 pt-0.5">
+                          <span className="text-muted-foreground">Special price for verified Members.</span>
+                          {memberBase > 0 && (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                              + 18% GST (₹{memberGst}) = <strong className="text-foreground">₹{memberTotal}</strong>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* GST Charges Breakdown Box */}
+                    <div className="p-3.5 rounded-lg bg-card border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-7 w-7 rounded-md bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                          %
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-foreground">GST Charges: 18% Applicable</span>
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-medium border border-emerald-500/20">
+                              Auto-added on payment
+                            </span>
+                          </div>
+                          <p className="text-muted-foreground text-[11px] mt-0.5">
+                            When users register, 18% GST is added to the base price and charged via payment gateway.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                        <div className="bg-muted px-2.5 py-1 rounded border">
+                          Guest Total: <span className="font-bold text-foreground">₹{nonMemberTotal}</span> <span className="text-[10px] text-muted-foreground">(₹{nonMemberBase} + ₹{nonMemberGst})</span>
+                        </div>
+                        {memberBase > 0 && (
+                          <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded border border-emerald-500/20">
+                            Member Total: <span className="font-bold">₹{memberTotal}</span> <span className="text-[10px] text-emerald-600/80">(₹{memberBase} + ₹{memberGst})</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="memberPrice">Member Price (₹)</Label>
-                    <Input
-                      id="memberPrice"
-                      type="number"
-                      min="0"
-                      value={formData.memberPrice}
-                      onChange={(e) => setFormData({ ...formData, memberPrice: e.target.value ? Number(e.target.value) : "" })}
-                      placeholder="e.g. 200"
-                      className={errors.memberPrice ? 'border-destructive' : ''}
-                    />
-                    {errors.memberPrice && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.memberPrice}</p>}
-                    <p className="text-[10px] text-muted-foreground mt-1 font-medium">Special price for verified Members.</p>
+                );
+              })()}
+            </div>
+
+            {/* Registration Controls & Scheduling */}
+            <div className="border border-border rounded-xl p-5 bg-muted/10 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Registration Controls & Scheduling</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Manage seat availability and schedule automated cutoff for event registration.
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+                <div className="flex items-start justify-between p-4 rounded-xl border border-border bg-card shadow-2xs">
+                  <div className="space-y-0.5 pr-4">
+                    <Label htmlFor="isRegistrationClosed" className="text-sm font-semibold cursor-pointer">
+                      Registration Closed / Seats Full
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Manually close new registrations or mark event seats as full.
+                    </p>
                   </div>
+                  <Checkbox
+                    id="isRegistrationClosed"
+                    checked={formData.isRegistrationClosed}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        isRegistrationClosed: Boolean(checked),
+                        seatsFull: Boolean(checked),
+                      }))
+                    }
+                    className="mt-1"
+                  />
                 </div>
-              )}
+
+                <div className="p-4 rounded-xl border border-border bg-card shadow-2xs space-y-2">
+                  <Label htmlFor="registrationClosingDate" className="text-sm font-semibold">
+                    Schedule Registration Closing Date
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically close registrations at this date and time prior to the event.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Input
+                      id="registrationClosingDate"
+                      type="date"
+                      min="2020-01-01"
+                      max="2099-12-31"
+                      value={formData.registrationClosingDate}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          registrationClosingDate: sanitizeDateInput(e.target.value),
+                        }))
+                      }
+                      className={`flex-1 min-w-[130px] ${errors.registrationClosingDate ? "border-destructive" : ""}`}
+                    />
+                    <Input
+                      id="registrationClosingTime"
+                      type="time"
+                      value={formData.registrationClosingTime}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          registrationClosingTime: e.target.value,
+                        }))
+                      }
+                      className="w-28"
+                    />
+                  </div>
+                  {errors.registrationClosingDate && (
+                    <p className="text-[13px] text-destructive mt-1 font-medium">
+                      {errors.registrationClosingDate}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -957,7 +1327,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               </div>
             )}
 
-            {mounted && !["chapter_admin"].includes(user?.role) && (
+            {mounted && !isChapterAdmin && (
               <div className="space-y-3 pt-6 border-t">
                 <div>
                   <Label className="text-base">Target Chapters</Label>
@@ -989,9 +1359,10 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   <Input
                     id="scheduledDate"
                     type="date"
-                    max="9999-12-31"
+                    min="2020-01-01"
+                    max="2099-12-31"
                     value={formData.scheduledDate}
-                    onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, scheduledDate: sanitizeDateInput(e.target.value) })}
                     className={`w-40 ${errors.scheduledDate ? 'border-destructive' : ''}`}
                   />
                   {errors.scheduledDate && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.scheduledDate}</p>}

@@ -151,21 +151,26 @@ function EventsPage() {
                         Number(ev?.memberPrice) > 0 || 
                         (ev?.fee && ev.fee !== "Free" && ev.fee !== "Complimentary for Members")
                       );
-                      const guestPrice = Number(ev?.ticketPrice) || (ev?.fee ? parseInt(ev.fee.replace(/\D/g, '')) || 0 : 0);
-                      const memberPrice = Number(ev?.memberPrice) || 0;
+                      const guestBase = Number(ev?.ticketPrice) || (ev?.fee ? parseInt(ev.fee.replace(/\D/g, '')) || 0 : 0);
+                      const memberBase = Number(ev?.memberPrice) || 0;
+                      const guestTotal = guestBase + Math.round(guestBase * 0.18);
+                      const memberTotal = memberBase + Math.round(memberBase * 0.18);
                       
                       return isEventPaid ? (
                         <div className="col-span-2 flex items-center gap-2 mt-1 p-1.5 px-2 bg-emerald-500/10 rounded-md border border-emerald-500/20">
                           <Ticket className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                          <div className="flex items-center gap-3 w-full">
-                            <div className="flex items-center gap-1 text-emerald-700">
-                              <span className="text-[9px] font-bold uppercase tracking-wider">Member:</span>
-                              <span className="font-bold text-sm leading-none">₹{memberPrice}</span>
+                          <div className="flex items-center justify-between gap-3 w-full">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1 text-emerald-700">
+                                <span className="text-[9px] font-bold uppercase tracking-wider">Member:</span>
+                                <span className="font-bold text-sm leading-none">₹{memberTotal}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-muted-foreground border-l border-emerald-500/30 pl-3">
+                                <span className="text-[9px] font-semibold uppercase tracking-wider">Guest:</span>
+                                <span className="font-semibold text-sm leading-none">₹{guestTotal}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1 text-muted-foreground border-l border-emerald-500/30 pl-3">
-                              <span className="text-[9px] font-semibold uppercase tracking-wider">Guest:</span>
-                              <span className="font-semibold text-sm leading-none">₹{guestPrice}</span>
-                            </div>
+                            <span className="text-[9px] text-muted-foreground font-medium shrink-0">incl. 18% GST</span>
                           </div>
                         </div>
                       ) : (
