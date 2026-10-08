@@ -233,6 +233,17 @@ export const paymentApi = {
   refund: (id) => apiClient(`/payments/${id}/refund`, { method: "POST" }),
 };
 
+export const invoiceApi = {
+  verify: (invoiceNumber, token = "") =>
+    apiClient(`/invoices/verify/${encodeURIComponent(invoiceNumber)}${token ? `?token=${encodeURIComponent(token)}` : ""}`),
+  downloadPdfUrl: (invoiceNumber, token = "") => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    return `${baseUrl}/invoices/download/${encodeURIComponent(invoiceNumber)}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  },
+  revoke: (invoiceNumber, reason) =>
+    apiClient(`/invoices/${encodeURIComponent(invoiceNumber)}/revoke`, { method: "PATCH", body: JSON.stringify({ reason }) }),
+};
+
 export const messageApi = {
   getConversations: () => apiClient("/messages/conversations"),
   getMessages: (otherUserId) => apiClient(`/messages/conversation/${otherUserId}`),
@@ -350,6 +361,22 @@ export const eventApi = {
   getScripts: (id) => apiClient(`/events/${id}/scripts`),
   updateScript: (id, segmentId, data) => 
     apiClient(`/events/${id}/scripts/${segmentId}`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  // ─── Event Ticket Verification & Digital Entry Pass ─────────────────────────
+  verifyTicket: (ticketId, token = "") =>
+    apiClient(`/events/tickets/verify/${encodeURIComponent(ticketId)}${token ? `?token=${encodeURIComponent(token)}` : ""}`),
+  checkInTicket: (ticketId, staffName = "Event Staff") =>
+    apiClient(`/events/tickets/check-in/${encodeURIComponent(ticketId)}`, {
+      method: "POST",
+      body: JSON.stringify({ staffName }),
+    }),
+  getTicketPass: (ticketId, token = "") =>
+    apiClient(`/events/tickets/${encodeURIComponent(ticketId)}/pass${token ? `?token=${encodeURIComponent(token)}` : ""}`),
+  updateTicketStatus: (ticketId, status, reason = "") =>
+    apiClient(`/events/tickets/${encodeURIComponent(ticketId)}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, reason }),
+    }),
 };
 
 export const followupApi = {

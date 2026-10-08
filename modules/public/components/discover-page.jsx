@@ -14,10 +14,12 @@ import {
   ArrowRight,
   CheckCircle2,
   BadgeCheck,
+  Globe,
 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { CATEGORIES_DATA, getMainCategories, getSubCategoriesFor } from "@shared/lib/categories-data";
+import { INTERNATIONAL_COUNTRIES_AND_CITIES } from "@shared/lib/international-countries-cities";
 
 import { BusinessCard, CompactBusinessCard } from "@shared/components/rifah/business-card";
 import { EmptyState, SkeletonCard } from "@shared/components/rifah/empty-state";
@@ -47,7 +49,7 @@ import { useBusinesses, useChapters, useCategories, useCatalogue } from "@shared
 import { cn } from "@shared/lib/utils";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
-const membershipLevels = ["Free", "Basic", "Premium", "Enterprise"];
+const membershipLevels = ["Silver", "Gold", "Platinum", "Diamond"];
 
 function DiscoverPage() {
   const searchParams = useSearchParams();
@@ -115,6 +117,8 @@ function DiscoverPage() {
       membership: search.membership,
       verified: "true",
       sort: search.sort,
+      region: search.region,
+      country: search.country,
     },
     { enabled: !isOfferingsView }
   );
@@ -127,8 +131,15 @@ function DiscoverPage() {
       subCategory: search.subCategory,
       state: search.state,
       chapter: search.chapter,
+      region: search.region,
+      country: search.country,
     },
     { enabled: isOfferingsView }
+  );
+
+  const internationalCountries = React.useMemo(
+    () => Object.keys(INTERNATIONAL_COUNTRIES_AND_CITIES).sort(),
+    []
   );
 
   const { data: chaptersData } = useChapters();
@@ -188,7 +199,44 @@ function DiscoverPage() {
       s === "pending_verification" ||
       s === "suspended" ||
       s === "draft";
-    return isVerified && !isPendingOrRejected;
+    if (!isVerified || isPendingOrRejected) return false;
+
+    // Region filter
+    if (search.region === "international") {
+      const isIntl =
+        b.region === "international" ||
+        b.currency === "USD" ||
+        (b.country && b.country.toLowerCase() !== "india") ||
+        (b.state && b.state.toLowerCase() === "international");
+      if (!isIntl) return false;
+    } else if (search.region === "national") {
+      const isIntl =
+        b.region === "international" ||
+        b.currency === "USD" ||
+        (b.country && b.country.toLowerCase() !== "india") ||
+        (b.state && b.state.toLowerCase() === "international");
+      if (isIntl) return false;
+    }
+
+    // Country filter
+    if (search.country && search.country !== "all") {
+      const c = `${b.country || ""} ${b.state || ""}`.toLowerCase();
+      if (!c.includes(search.country.toLowerCase())) return false;
+    }
+
+    // Membership level filter (with legacy alias mapping)
+    if (search.membership && search.membership !== "all") {
+      const bMem = String(b.membership || "free").toLowerCase();
+      const targetMem = search.membership.toLowerCase();
+      const directMatch = bMem.includes(targetMem);
+      const aliasMatch =
+        (targetMem === "silver" && bMem.includes("basic")) ||
+        (targetMem === "gold" && bMem.includes("premium")) ||
+        (targetMem === "diamond" && bMem.includes("enterprise"));
+      if (!directMatch && !aliasMatch) return false;
+    }
+
+    return true;
   });
 
   // Filter catalogue items: only from active and verified businesses
@@ -211,6 +259,30 @@ function DiscoverPage() {
     ) {
       return false;
     }
+
+    // Region filter for catalogue item
+    if (search.region === "international") {
+      const isIntl =
+        b.region === "international" ||
+        b.currency === "USD" ||
+        (b.country && b.country.toLowerCase() !== "india") ||
+        (b.state && b.state.toLowerCase() === "international");
+      if (!isIntl) return false;
+    } else if (search.region === "national") {
+      const isIntl =
+        b.region === "international" ||
+        b.currency === "USD" ||
+        (b.country && b.country.toLowerCase() !== "india") ||
+        (b.state && b.state.toLowerCase() === "international");
+      if (isIntl) return false;
+    }
+
+    // Country filter
+    if (search.country && search.country !== "all") {
+      const c = `${b.country || ""} ${b.state || ""}`.toLowerCase();
+      if (!c.includes(search.country.toLowerCase())) return false;
+    }
+
     return true;
   });
 
@@ -291,6 +363,14 @@ function DiscoverPage() {
     isOfferingsView && {
       label: "Listing: Products & Services",
       clear: () => setParam({ type: undefined }),
+    },
+    search.region && {
+      label: search.region === "international" ? "Region: International (Global)" : "Region: National (India)",
+      clear: () => setParam({ region: undefined, country: undefined }),
+    },
+    search.country && {
+      label: `Country: ${search.country}`,
+      clear: () => setParam({ country: undefined }),
     },
     search.industry && {
       label: `Industry: ${search.industry}`,
@@ -403,61 +483,120 @@ function DiscoverPage() {
         )}
       </div>
 
-      {/* 6. State */}
+      {/* 6. Region (National vs International Scope) */}
       <div>
-        <Label htmlFor="f-state" className="font-semibold text-xs text-foreground uppercase tracking-wider">
-          {t("state")}
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="f-region" className="font-semibold text-xs text-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Globe className="h-3.5 w-3.5 text-primary" />
+            Region / Scope
+          </Label>
+          {search.region === "international" && (
+            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 px-1.5 py-0.5 rounded-md">
+              Global
+            </span>
+          )}
+        </div>
         <Select
-          value={search.state || "all"}
+          value={search.region || "all"}
           onValueChange={(v) => {
-            const nextState = v === "all" ? undefined : v;
-            const chapterStillValid =
-              !search.chapter ||
-              chaptersList.some(
-                (ch) =>
-                  ch.name === search.chapter &&
-                  (!nextState || (ch.state || "").trim().toLowerCase() === nextState.trim().toLowerCase())
-              );
-            setParam({ state: nextState, chapter: chapterStillValid ? search.chapter : undefined });
+            const nextReg = v === "all" ? undefined : v;
+            setParam({
+              region: nextReg,
+              country: undefined,
+              state: nextReg === "international" ? undefined : search.state,
+              chapter: nextReg === "international" ? undefined : search.chapter,
+            });
           }}
         >
-          <SelectTrigger id="f-state" className="mt-1.5 h-10 rounded-xl bg-background">
-            <SelectValue placeholder={t("allStates")} />
+          <SelectTrigger id="f-region" className="mt-1.5 h-10 rounded-xl bg-background font-medium">
+            <SelectValue placeholder="All Regions (India & Global)" />
           </SelectTrigger>
-          <SelectContent className="max-h-72">
-            <SelectItem value="all">{t("allStates")}</SelectItem>
-            {states.map((state) => (
-              <SelectItem key={state} value={state}>
-                {state}
-              </SelectItem>
-            ))}
+          <SelectContent>
+            <SelectItem value="all">All Regions (National &amp; Global)</SelectItem>
+            <SelectItem value="national">National (India)</SelectItem>
+            <SelectItem value="international">International (Global) 🌐</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* 7. Chapter */}
-      <div>
-        <Label htmlFor="f-chapter" className="font-semibold text-xs text-foreground uppercase tracking-wider">
-          {t("chapter")}
-        </Label>
-        <Select
-          value={search.chapter || "all"}
-          onValueChange={(v) => setParam({ chapter: v === "all" ? undefined : v })}
-        >
-          <SelectTrigger id="f-chapter" className="mt-1.5 h-10 rounded-xl bg-background">
-            <SelectValue placeholder={t("allChapters")} />
-          </SelectTrigger>
-          <SelectContent className="max-h-72">
-            <SelectItem value="all">{t("allChapters")}</SelectItem>
-            {chaptersForSelectedState.map((ch) => (
-              <SelectItem key={ch._id || ch.name} value={ch.name}>
-                {ch.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* 6.1. International Country Filter (Shown when International Region is selected) */}
+      {search.region === "international" && (
+        <div className="animate-in fade-in slide-in-from-top-1">
+          <Label htmlFor="f-country" className="font-semibold text-xs text-foreground uppercase tracking-wider">
+            International Country
+          </Label>
+          <SearchableFilterSelect
+            id="f-country"
+            value={search.country || "all"}
+            onValueChange={(v) => setParam({ country: v === "all" ? undefined : v })}
+            placeholder="All International Countries"
+            searchPlaceholder="Search country (e.g. UAE, UK, USA)..."
+            allLabel="All International Countries"
+            options={internationalCountries}
+            className="mt-1.5 h-10 rounded-xl bg-background font-medium"
+          />
+        </div>
+      )}
+
+      {/* 7. State (Shown for National or All Regions) */}
+      {search.region !== "international" && (
+        <div>
+          <Label htmlFor="f-state" className="font-semibold text-xs text-foreground uppercase tracking-wider">
+            {t("state")}
+          </Label>
+          <Select
+            value={search.state || "all"}
+            onValueChange={(v) => {
+              const nextState = v === "all" ? undefined : v;
+              const chapterStillValid =
+                !search.chapter ||
+                chaptersList.some(
+                  (ch) =>
+                    ch.name === search.chapter &&
+                    (!nextState || (ch.state || "").trim().toLowerCase() === nextState.trim().toLowerCase())
+                );
+              setParam({ state: nextState, chapter: chapterStillValid ? search.chapter : undefined });
+            }}
+          >
+            <SelectTrigger id="f-state" className="mt-1.5 h-10 rounded-xl bg-background">
+              <SelectValue placeholder={t("allStates")} />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="all">{t("allStates")}</SelectItem>
+              {states.map((state) => (
+                <SelectItem key={state} value={state}>
+                  {state}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* 8. Chapter (Shown for National or All Regions) */}
+      {search.region !== "international" && (
+        <div>
+          <Label htmlFor="f-chapter" className="font-semibold text-xs text-foreground uppercase tracking-wider">
+            {t("chapter")}
+          </Label>
+          <Select
+            value={search.chapter || "all"}
+            onValueChange={(v) => setParam({ chapter: v === "all" ? undefined : v })}
+          >
+            <SelectTrigger id="f-chapter" className="mt-1.5 h-10 rounded-xl bg-background">
+              <SelectValue placeholder={t("allChapters")} />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="all">{t("allChapters")}</SelectItem>
+              {chaptersForSelectedState.map((ch) => (
+                <SelectItem key={ch._id || ch.name} value={ch.name}>
+                  {ch.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* 8. Verified Directory Badge */}
       {!isOfferingsView && (

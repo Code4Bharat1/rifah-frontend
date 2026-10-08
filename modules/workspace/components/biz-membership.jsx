@@ -51,6 +51,7 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { ChamberMembershipTiers } from "@shared/components/rifah/chamber-membership-tiers";
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { ResponsiveTable } from "@shared/components/rifah/ui-bits";
+import { downloadInvoicePdf, generateInvoiceHtml } from "@shared/lib/invoice-generator";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
@@ -161,11 +162,18 @@ const isMatchingDoc = (docType, templateType) => {
 };
 
 function handleDownloadInvoicePDF(payment) {
+  downloadInvoicePdf(payment, null)
+    .then(() => toast.success("Invoice PDF downloaded!"))
+    .catch((err) => {
+      console.error("PDF download error:", err);
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(generateInvoiceHtml(payment, null, { autoprint: true }));
+        printWindow.document.close();
+      }
+    });
+  return;
   const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    toast.error("Pop-up blocked. Please allow pop-ups to generate PDF.");
-    return;
-  }
 
   const isUsd = (payment.currency || "").toUpperCase() === "USD" || (payment.description && payment.description.includes("(USD)"));
   const currSymbol = isUsd ? "$" : "₹";

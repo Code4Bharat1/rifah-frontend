@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users, Video } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users, Video, Download } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
 import { cn } from "@shared/lib/utils";
+import { downloadTicketPdf } from "@shared/lib/ticket-pdf-generator";
 import dynamic from "next/dynamic";
 
 const StaticMap = dynamic(
@@ -552,25 +553,61 @@ const loadRazorpayScript = () => {
                   <div className="mt-5 flex flex-col items-center justify-center space-y-4">
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-500/20 w-full relative overflow-hidden">
                       {(() => {
+                        const myUserId = String(user?._id || user?.id || "");
+                        const userReg = (event?.registeredUsers || []).find((reg) => {
+                          const regUserId = String(reg?.user?._id || reg?.user || reg?._id || reg);
+                          return regUserId === myUserId;
+                        });
+
                         const qrUserName = user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member') : (guestForm.name || 'Attendee');
                         const qrUserEmail = user ? user.email : (guestForm.email || 'N/A');
                         const qrUserBusiness = user?.businessName || guestForm.businessName || '';
                         const qrEventName = event?.title || '';
-                        
-                        const verifyUrl = `https://rifah.nexcorealliance.com/verify-pass?name=${encodeURIComponent(qrUserName)}&email=${encodeURIComponent(qrUserEmail)}&business=${encodeURIComponent(qrUserBusiness)}&event=${encodeURIComponent(qrEventName)}`;
+                        const ticketId = userReg?.ticketId || `RIFAH-EVT-${new Date().getFullYear()}-${String(event?._id || '').slice(-4).toUpperCase()}`;
+                        const verificationToken = userReg?.verificationToken || '';
+                        const ticketType = userReg?.ticketType || (isEventPaid ? "Paid Pass" : "Member Pass");
+                        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                        const tokenQuery = verificationToken ? `?token=${encodeURIComponent(verificationToken)}` : '';
+                        const secureVerifyUrl = `${origin}/verify/ticket/${encodeURIComponent(ticketId)}${tokenQuery}`;
+
+                        const handleDownloadPass = async () => {
+                          try {
+                            await downloadTicketPdf({
+                              ticketId,
+                              attendeeName: qrUserName,
+                              attendeeEmail: qrUserEmail,
+                              attendeeCompany: qrUserBusiness,
+                              eventTitle: qrEventName,
+                              eventDate: formatEventDate(event.date),
+                              eventTime: event.time,
+                              eventVenue: event.venue || event.location || "Chamber Main Hall",
+                              eventCity: event.city || "",
+                              ticketType,
+                              paymentStatus: userReg?.paymentStatus || (isEventPaid ? "PAID" : "COMPLIMENTARY"),
+                              amountPaid: userReg?.amountPaid || (isEventPaid ? event.ticketPrice : 0),
+                              verificationUrl: secureVerifyUrl,
+                            });
+                            toast.success("Ticket PDF downloaded!");
+                          } catch (e) {
+                            toast.error("Could not download ticket PDF");
+                          }
+                        };
                         
                         return (
                           <div className="flex flex-col items-center">
-                            <p className="text-[10px] text-emerald-600/80 font-bold uppercase tracking-widest mb-3">Digital Entry Pass</p>
+                            <div className="flex items-center justify-between w-full mb-2">
+                              <p className="text-[10px] text-emerald-600/90 font-bold uppercase tracking-widest">Digital Entry Pass</p>
+                              <span className="text-[10px] font-mono text-muted-foreground font-semibold">{ticketId}</span>
+                            </div>
                             <div className="p-2 bg-white rounded-xl mb-1 border border-gray-100 shadow-sm">
                               <img 
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verifyUrl)}`} 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(secureVerifyUrl)}`} 
                                 alt="Registration QR Code" 
                                 className="w-32 h-32"
                               />
                             </div>
-                            <a href={verifyUrl.replace('https://rifah.nexcorealliance.com', '')} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline font-semibold mb-3">
-                              Preview Pass
+                            <a href={`/verify/ticket/${ticketId}${tokenQuery}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline font-semibold mb-3">
+                              View Verification Link
                             </a>
                             
                             {/* Dashed divider representing ticket tear */}
@@ -580,7 +617,7 @@ const loadRazorpayScript = () => {
                             </div>
                             
                             {/* Ticket Details */}
-                            <div className="w-full text-left space-y-3 mt-3 px-2">
+                            <div className="w-full text-left space-y-2.5 mt-2 px-1">
                               <div className="flex justify-between items-start gap-2">
                                 <div className="min-w-0">
                                   <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Attendee</p>
@@ -603,6 +640,18 @@ const loadRazorpayScript = () => {
                                     <p className="font-semibold text-gray-600 text-[11px] truncate">{qrUserBusiness}</p>
                                   </div>
                                 )}
+                              </div>
+
+                              <div className="pt-2">
+                                <Button
+                                  type="button"
+                                  onClick={handleDownloadPass}
+                                  variant="outline"
+                                  className="w-full h-9 rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 font-semibold text-xs gap-1.5"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  <span>Download Ticket PDF</span>
+                                </Button>
                               </div>
                             </div>
                           </div>

@@ -9,6 +9,7 @@ import { Pill } from "@shared/components/rifah/badges";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { useMyPayments, useMyMembership } from "@shared/hooks/use-rifah-api";
+import { downloadInvoicePdf, generateInvoiceHtml } from "@shared/lib/invoice-generator";
 
 const tone = (s) =>
   s === "completed" || s === "Paid"
@@ -62,11 +63,18 @@ function escapeHtml(str) {
 }
 
 function handleDownloadPDF(payment) {
+  downloadInvoicePdf(payment, null)
+    .then(() => toast.success("Invoice PDF downloaded!"))
+    .catch((err) => {
+      console.error("PDF download error:", err);
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(generateInvoiceHtml(payment, null, { autoprint: true }));
+        printWindow.document.close();
+      }
+    });
+  return;
   const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    toast.error("Pop-up blocked. Please allow pop-ups to generate PDF.");
-    return;
-  }
 
   const isUsd = (payment.currency || "").toUpperCase() === "USD" || (payment.description && payment.description.includes("(USD)"));
   const currSymbol = isUsd ? "$" : "₹";

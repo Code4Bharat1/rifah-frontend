@@ -12,6 +12,7 @@ import {
   Laptop,
   ArrowRight,
   Share2,
+  Download,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -24,6 +25,8 @@ import { useEvents } from "@shared/hooks/use-rifah-api";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { eventImage } from "@shared/lib/media";
 import { EventShareModal } from "@shared/components/rifah/event-share-modal";
+import { downloadTicketPdf } from "@shared/lib/ticket-pdf-generator";
+import { toast } from "sonner";
 import { cn } from "@shared/lib/utils";
 import { getEventStatus, getEventStatusConfig, formatEventDate } from "@shared/lib/event-utils";
 
@@ -346,12 +349,44 @@ export function BizEvents() {
               const registered = isRegistered(ev);
 
               if (activeView === "my-passes") {
+                const userReg = (ev.registeredUsers || []).find((reg) => {
+                  const regUserId = String(reg?.user?._id || reg?.user || reg?._id || reg);
+                  return regUserId === String(user?._id || user?.id);
+                });
+
                 const qrUserName = user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member') : 'Attendee';
                 const qrUserEmail = user ? user.email : 'N/A';
                 const qrUserBusiness = user?.businessName || '';
                 const qrEventName = ev?.title || '';
-                
-                const verifyUrl = `https://rifah.nexcorealliance.com/verify-pass?name=${encodeURIComponent(qrUserName)}&email=${encodeURIComponent(qrUserEmail)}&business=${encodeURIComponent(qrUserBusiness)}&event=${encodeURIComponent(qrEventName)}`;
+                const ticketId = userReg?.ticketId || `RIFAH-EVT-${new Date().getFullYear()}-${String(ev._id || '').slice(-4).toUpperCase()}`;
+                const verificationToken = userReg?.verificationToken || '';
+                const ticketType = userReg?.ticketType || (ev.isPaid ? "Member Pass" : "General Pass");
+                const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                const tokenQuery = verificationToken ? `?token=${encodeURIComponent(verificationToken)}` : '';
+                const secureVerifyUrl = `${origin}/verify/ticket/${encodeURIComponent(ticketId)}${tokenQuery}`;
+
+                const handleDownloadPass = async () => {
+                  try {
+                    await downloadTicketPdf({
+                      ticketId,
+                      attendeeName: qrUserName,
+                      attendeeEmail: qrUserEmail,
+                      attendeeCompany: qrUserBusiness,
+                      eventTitle: qrEventName,
+                      eventDate: formatEventDate(ev.date),
+                      eventTime: ev.time,
+                      eventVenue: ev.venue || ev.location || "Chamber Main Hall",
+                      eventCity: ev.city || "",
+                      ticketType,
+                      paymentStatus: userReg?.paymentStatus || (ev.isPaid ? "PAID" : "COMPLIMENTARY"),
+                      amountPaid: userReg?.amountPaid || (ev.isPaid ? ev.ticketPrice : 0),
+                      verificationUrl: secureVerifyUrl,
+                    });
+                    toast.success("Ticket PDF downloaded!");
+                  } catch (e) {
+                    toast.error("Could not download ticket PDF");
+                  }
+                };
                 
                 return (
                   <article key={ev._id || ev.slug} className="flex flex-col bg-card rounded-2xl shadow-sm border border-emerald-500/20 relative overflow-hidden transition-all hover:shadow-md hover:border-emerald-500/40">
@@ -371,15 +406,18 @@ export function BizEvents() {
                     </div>
                     
                     <div className="p-4 flex flex-col items-center bg-card">
-                      <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest mb-3">Digital Entry Pass</p>
-                      <div className="p-1.5 bg-white rounded-xl border border-gray-200 shadow-xs mb-2">
-                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(verifyUrl)}`} alt="Entry Pass QR" className="w-[100px] h-[100px]" />
+                      <div className="flex items-center justify-between w-full mb-2">
+                        <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest">Digital Entry Pass</p>
+                        <span className="text-[9px] font-mono text-muted-foreground font-semibold">{ticketId}</span>
                       </div>
-                      <a href={verifyUrl.replace('https://rifah.nexcorealliance.com', '')} target="_blank" rel="noopener noreferrer" className="text-[10px] text-emerald-600 hover:underline mb-4 font-medium flex items-center gap-1">
-                        Preview Pass
+                      <div className="p-1.5 bg-white rounded-xl border border-gray-200 shadow-xs mb-2">
+                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(secureVerifyUrl)}`} alt="Entry Pass QR" className="w-[100px] h-[100px]" />
+                      </div>
+                      <a href={`/verify/ticket/${ticketId}${tokenQuery}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-emerald-600 hover:underline mb-3 font-semibold flex items-center gap-1">
+                        Open Verification Link
                       </a>
                       
-                      <div className="w-full text-left space-y-2.5 px-1">
+                      <div className="w-full text-left space-y-2 px-1">
                         <div className="flex justify-between items-start gap-2">
                           <div className="min-w-0">
                             <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Attendee</p>
@@ -392,15 +430,27 @@ export function BizEvents() {
                             </div>
                           )}
                         </div>
-                        <div className="min-w-0">
-                           <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">Email</p>
-                           <p className="font-semibold text-muted-foreground text-[10px] truncate">{qrUserEmail}</p>
+                        <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+                           <span className="truncate">{qrUserEmail}</span>
+                           <span className="font-semibold text-emerald-600">{ticketType}</span>
                         </div>
                       </div>
                       
-                      <Button asChild size="sm" variant="outline" className="w-full mt-4 rounded-xl text-xs h-8 border-emerald-200 text-emerald-700 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950">
-                        <Link href={`/events/${ev._id || ev.slug}`}>View Event Details</Link>
-                      </Button>
+                      <div className="w-full grid grid-cols-2 gap-2 mt-4">
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={handleDownloadPass}
+                          className="w-full rounded-xl text-xs h-8 gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 font-semibold"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>PDF</span>
+                        </Button>
+                        <Button asChild size="sm" variant="default" className="w-full rounded-xl text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+                          <Link href={`/events/${ev._id || ev.slug}`}>Details</Link>
+                        </Button>
+                      </div>
                     </div>
                   </article>
                 );

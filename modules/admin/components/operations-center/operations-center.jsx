@@ -147,6 +147,11 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       ? "/state-admin"
       : "/chapter-admin";
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Active Tab: synchronized with URL param or prop + instant state update
   const [activeTabState, setActiveTabState] = useState(initialTab || "event-setup");
   useEffect(() => {
@@ -173,21 +178,29 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   const currentTab = activeTabState;
 
   // Context-Aware UI Strings
-  const isCentralAdmin = user?.role === "central_admin";
-  const isStateAdmin = user?.role === "state_admin";
+  const isCentralAdmin = basePath === "/admin" || user?.role === "central_admin";
+  const isStateAdmin = basePath === "/state-admin" || user?.role === "state_admin";
+
+  const defaultChapterScope = isCentralAdmin
+    ? "Global Operations"
+    : isStateAdmin
+      ? `${user?.state || "State"} State Operations`
+      : "Chapter Operations";
 
   const chapterName = isCentralAdmin
     ? "Global Operations"
     : isStateAdmin
       ? `${user?.state || "State"} State Operations`
-      : (user?.chapter || "Mumbai Chapter");
+      : (user?.chapter || "Chapter Operations");
+
+  const displayChapterName = mounted ? chapterName : defaultChapterScope;
 
   const roleLabel = isCentralAdmin ? "CENTRAL ADMIN" : isStateAdmin ? "STATE ADMIN" : "CHAPTER ADMIN";
-  const chapterSlug = (user?.chapter || "central-mumbai")
+  const chapterSlug = ((user?.chapter || (isCentralAdmin ? "global" : "chapter")))
     .toLowerCase()
     .replace(/\s*[Cc]hapter\s*/g, "")
     .trim()
-    .replace(/\s+/g, "-") || "central-mumbai";
+    .replace(/\s+/g, "-") || "chapter";
 
   // Socket & Live Sync State
   const [socketConnected, setSocketConnected] = useState(false);
@@ -1450,9 +1463,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
   };
 
   // Base URLs
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const origin = mounted ? window.location.origin : "";
+  const origin = mounted ? (typeof window !== "undefined" ? window.location.origin : "") : "";
   const publicVisitorUrl = mounted ? `${origin}/events/${activeEvent?.slug || activeEvent?._id || "mumbai"}` : `/events/${activeEvent?.slug || activeEvent?._id || "mumbai"}`;
   // presentation.html is a static file (no Next.js env injection), so the backend socket
   // origin is passed explicitly via query param rather than guessed from window.location.
@@ -2131,7 +2142,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               ) : (
                 <Pill tone="brand">LOADING ROLE</Pill>
               )}
-              <Pill tone="neutral">{mounted ? chapterName.toUpperCase() : "LOADING CHAPTER"}</Pill>
+              <Pill tone="neutral" suppressHydrationWarning>{mounted ? chapterName.toUpperCase() : "LOADING CHAPTER"}</Pill>
               <Pill tone={socketConnected ? "success" : "warning"}>
                 <span
                   className={cn(
@@ -2143,11 +2154,12 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </Pill>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight mt-2 flex items-center gap-2">
-              RIFAH Operations Center {mounted ? (isCentralAdmin ? "Central" : isStateAdmin ? "State" : "Chapter") : "..."} Admin Panel
+              RIFAH Operations Center <span suppressHydrationWarning>{mounted ? (isCentralAdmin ? "Central" : isStateAdmin ? "State" : "Chapter") : (basePath === "/admin" ? "Central" : basePath === "/state-admin" ? "State" : "Chapter")}</span> Admin Panel
             </h1>
             <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground mt-1">
               <span>
-                <span className="font-semibold text-foreground">Current Scope:</span> {chapterName}
+                <span className="font-semibold text-foreground">Current Scope:</span>{" "}
+                <span suppressHydrationWarning>{displayChapterName}</span>
               </span>
               <span className="text-border">|</span>
               <span>
@@ -2155,7 +2167,8 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               </span>
               <span className="text-border">|</span>
               <span>
-                <span className="font-semibold text-foreground">Current Admin:</span> {mounted ? (user?.name || user?.email || roleLabel) : "Loading..."}
+                <span className="font-semibold text-foreground">Current Admin:</span>{" "}
+                <span suppressHydrationWarning>{mounted ? (user?.name || user?.email || roleLabel) : "Loading..."}</span>
               </span>
             </div>
           </div>
@@ -2302,7 +2315,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                     EXECUTIVE OPERATIONS DESK
                   </Pill>
                   <span className="text-xs text-muted-foreground">·</span>
-                  <span className="text-xs font-semibold text-foreground">{chapterName}</span>
+                  <span className="text-xs font-semibold text-foreground" suppressHydrationWarning>{displayChapterName}</span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                   {activeEvent ? activeEvent.title : "RIFAH Operations Command Center"}
@@ -2718,7 +2731,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 </div>
                 <div>
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Chapter</Label>
-                  <div className="mt-2 px-3 py-2 rounded-lg border border-border bg-muted/40 text-sm font-medium text-foreground">{user?.chapter || chapterName}</div>
+                  <div className="mt-2 px-3 py-2 rounded-lg border border-border bg-muted/40 text-sm font-medium text-foreground" suppressHydrationWarning>{mounted ? (user?.chapter || chapterName) : defaultChapterScope}</div>
                   <p className="text-[10px] text-primary mt-1">From your login. State office can rename under Central Admin.</p>
                 </div>
               </div>
