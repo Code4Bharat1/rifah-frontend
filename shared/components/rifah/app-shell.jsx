@@ -19,6 +19,7 @@ import {
   FileStack,
   Gauge,
   LayoutGrid,
+  LifeBuoy,
   LogOut,
   Mail,
   MapPin,
@@ -117,6 +118,7 @@ const navs = {
       { label: "Events", to: "/biz/events", icon: CalendarDays },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
       { label: "My Profile", to: "/biz/profile", icon: UserRound },
+      { label: "Support", to: "/biz/tickets", icon: LifeBuoy },
       { label: "Membership", to: "/biz/membership", icon: Star },
       { label: "Notifications", to: "/biz/notifications", icon: Bell },
       { label: "LMS", to: "/biz/lms", icon: GraduationCap },
@@ -139,6 +141,7 @@ const navs = {
       { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
       { label: "Advertisements", to: "/admin/advertisements", icon: Megaphone },
       { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
+      { label: "Support", to: "/admin/tickets", icon: LifeBuoy },
       { label: "States", to: "/admin/states", icon: MapPin },
       { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
       { label: "Units", to: "/admin/units", icon: Users },
@@ -166,6 +169,7 @@ const roleNavs = {
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
       { label: "Advertisements", to: "/chapter-admin/advertisements", icon: Megaphone },
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
+      { label: "Support", to: "/chapter-admin/tickets", icon: LifeBuoy },
       { label: "Queries", to: "/chapter-admin/queries", icon: MessageSquareText },
       { label: "More", to: "/chapter-admin/settings", icon: LayoutGrid },
     ],
@@ -189,6 +193,7 @@ const roleNavs = {
       { label: "Chapters", to: "/state-admin/chapters", icon: MapPinned },
       { label: "Members", to: "/state-admin/members", icon: Users },
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
+      { label: "Support", to: "/state-admin/tickets", icon: LifeBuoy },
       { label: "Advertisements", to: "/state-admin/advertisements", icon: Megaphone },
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
@@ -988,8 +993,8 @@ export function AppShell({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-sm sm:text-base font-semibold md:text-lg">{finalTitle}</h1>
-              {finalSubtitle && <p className="truncate text-[11px] sm:text-xs text-muted-foreground md:text-sm">{finalSubtitle}</p>}
+              <h1 suppressHydrationWarning className="truncate text-sm sm:text-base font-semibold md:text-lg">{finalTitle}</h1>
+              {finalSubtitle && <p suppressHydrationWarning className="truncate text-[11px] sm:text-xs text-muted-foreground md:text-sm">{finalSubtitle}</p>}
             </div>
             <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">

@@ -565,3 +565,18 @@ export const advertisementApi = {
   delete: (id) => apiClient(`/advertisements/${id}`, { method: "DELETE" }),
 };
 
+export const ticketApi = {
+  create: (data) => apiClient("/tickets", { method: "POST", body: JSON.stringify(data) }),
+  list: (params = {}) => apiClient(`/tickets${toQueryString(params)}`),
+  getById: (id) => apiClient(`/tickets/${id}`),
+  addMessage: (id, data) => apiClient(`/tickets/${id}/messages`, { method: "POST", body: JSON.stringify(data) }),
+  escalate: (id, data) => apiClient(`/tickets/${id}/escalate`, { method: "POST", body: JSON.stringify(data) }),
+  resolve: (id, data) => apiClient(`/tickets/${id}/resolve`, { method: "POST", body: JSON.stringify(data) }),
+  close: (id) => apiClient(`/tickets/${id}/close`, { method: "POST" }),
+  uploadPhoto: (file) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    return apiClient("/tickets/upload", { method: "POST", body: formData });
+  },
+};
+
