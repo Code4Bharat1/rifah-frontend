@@ -74,6 +74,15 @@ function EventDetail() {
     // All admins can see the button
     if (["central_admin", "state_admin", "chapter_admin"].includes(user.role)) return true;
     
+    const access = event?.registrationAccess || "All";
+    if (access === "Registered Businesses Only" && user.role !== "business_owner") return false;
+    if (access === "Paid Members Only") {
+      if (user.role !== "business_owner") return false;
+      // Note: Full backend check will block if not actually verified, this hides button for non-businesses.
+    }
+    if (access === "Chapter Admins Only" && user.role !== "chapter_admin" && !["central_admin", "state_admin"].includes(user.role)) return false;
+    if (access === "State Secretaries Only" && !["state_admin", "central_admin"].includes(user.role)) return false;
+
     const roleDisplay = user.role === "business_owner" ? "Businesses" : "Consumers";
     
     const audiences = (event?.targetAudience || []).map(a => (typeof a === "string" ? a.trim().toLowerCase() : ""));

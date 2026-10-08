@@ -13,6 +13,7 @@ import { useEvents } from "@shared/hooks/use-rifah-api";
 import { EventShareModal } from "@shared/components/rifah/event-share-modal";
 import { cn } from "@shared/lib/utils";
 import { getEventStatus, getEventStatusConfig } from "@shared/lib/event-utils";
+import { useAuth } from "@shared/providers/auth-provider";
 
 function EventsPage() {
   const [tab, setTab] = useState("All");
@@ -25,7 +26,41 @@ function EventsPage() {
     ? eventsData
     : (eventsData?.events || eventsData?.data || []);
 
+  const { user } = useAuth();
+
+  const canSeeEvent = (ev) => {
+    if (!ev) return true;
+    if (["central_admin", "state_admin", "chapter_admin"].includes(user?.role)) return true;
+    
+    const access = ev.registrationAccess || "All";
+    if (access === "Chapter Admins Only" || access === "State Secretaries Only") {
+      if (!user) return false;
+    }
+    
+    if (ev.targetAudience && ev.targetAudience.length > 0 && !ev.targetAudience.includes("All")) {
+      const roleDisplay = user?.role === "business_owner" ? "Businesses" : "Consumers";
+      const audiences = ev.targetAudience.map(a => (typeof a === "string" ? a.trim().toLowerCase() : ""));
+      if (!audiences.includes("all") && (!user || !audiences.includes(roleDisplay.toLowerCase()))) return false;
+    }
+
+    if (ev.targetStates && ev.targetStates.length > 0) {
+      const states = ev.targetStates.map(s => (typeof s === "string" ? s.trim().toLowerCase() : ""));
+      if (!states.includes("all")) {
+        if (!user || !user.state || !states.includes(user.state.trim().toLowerCase())) return false;
+      }
+    }
+
+    if (ev.targetChapters && ev.targetChapters.length > 0) {
+      const chapters = ev.targetChapters.map(c => (typeof c === "string" ? c.trim().toLowerCase() : ""));
+      if (!chapters.includes("all")) {
+        if (!user || !user.chapter || !chapters.includes(user.chapter.trim().toLowerCase())) return false;
+      }
+    }
+    return true;
+  };
+
   const list = rawList.filter((ev) => {
+    if (!canSeeEvent(ev)) return false;
     const status = getEventStatus(ev);
     if (tab === "Upcoming") return status === "Upcoming";
     if (tab === "Live") return status === "Live";

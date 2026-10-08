@@ -154,13 +154,26 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     chapterOptions = Array.from(new Set(["All", ...(chaptersData || []).map(c => c.name || c.city || c)]));
   }
 
-  const chapterSelectionList = Array.from(
-    new Set(
-      (chaptersData || [])
-        .map((c) => c.name || c.city || c)
-        .filter(Boolean)
-    )
-  );
+  let chapterSelectionList = [];
+  if (isStateAdmin && user?.state) {
+    const userState = user.state.toLowerCase();
+    chapterSelectionList = Array.from(
+      new Set(
+        (chaptersData || [])
+          .filter(c => c.state?.toLowerCase() === userState)
+          .map((c) => c.name || c.city || c)
+          .filter(Boolean)
+      )
+    );
+  } else {
+    chapterSelectionList = Array.from(
+      new Set(
+        (chaptersData || [])
+          .map((c) => c.name || c.city || c)
+          .filter(Boolean)
+      )
+    );
+  }
 
   const handleChapterChange = (selectedChapter) => {
     const matched = (chaptersData || []).find(
@@ -224,7 +237,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     date: "",
     startTime: "10:00",
     endTime: "13:00",
-    mode: "In-person",
+    mode: "Offline",
     meetingLink: "",
     eventCategory: "Meet",
     industrySector: "Networking",
@@ -237,6 +250,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     targetAudience: ["All"],
     targetStates: ["All"],
     targetChapters: ["All"],
+    registrationAccess: "All",
     cover: null,
     scheduledDate: "",
     scheduledTime: "08:00",
@@ -451,13 +465,13 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
 
     if (!formData.title) newErrors.title = "Event Title is required";
 
-    const currentChapter = (formData.chapter || user?.chapter || (isChapterAdmin ? "Bengaluru Chapter" : "")).trim();
-    if (!currentChapter) {
+    const currentChapter = (formData.chapter || user?.chapter || (isChapterAdmin ? "Bengaluru Chapter" : (isCentralAdmin ? "Global" : ""))).trim();
+    if (!currentChapter && !isCentralAdmin) {
       newErrors.chapter = "Chapter Name is required";
     }
 
-    const currentCity = (formData.city || (currentChapter ? currentChapter.replace(/\s*[Cc]hapter\s*/gi, "").trim() : "")).trim();
-    if (!currentCity) {
+    const currentCity = (formData.city || (currentChapter && currentChapter !== "Global" ? currentChapter.replace(/\s*[Cc]hapter\s*/gi, "").trim() : (isCentralAdmin ? "Global" : ""))).trim();
+    if (!currentCity && !isCentralAdmin) {
       newErrors.city = "City is required";
     }
 
@@ -557,6 +571,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         ...formData,
         chapter: chapterVal,
         city: cityVal,
+        targetStates: isCentralAdmin ? formData.targetStates : (user?.state ? [user.state] : ["All"]),
+        targetChapters: isChapterAdmin ? [chapterVal] : formData.targetChapters,
         isPaid,
         ticketPrice,
         memberPrice: isPaid ? (Number(formData.memberPrice) || 0) : 0,
@@ -568,7 +584,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         scheduledAt,
         industrySector: formData.industrySector || "Networking",
         isRegistrationClosed: Boolean(formData.isRegistrationClosed),
-        seatsFull: Boolean(formData.isRegistrationClosed),
+        seatsFull: Boolean(formData.seatsFull),
         registrationClosingDate,
         sportDetails: formData.eventCategory === "Sports" ? {
           sportName: formData.sportName,
@@ -698,7 +714,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="In-person">In-person</SelectItem>
+                    <SelectItem value="Offline">Offline</SelectItem>
                     <SelectItem value="Online">Online</SelectItem>
                     <SelectItem value="Hybrid">Hybrid</SelectItem>
                   </SelectContent>
@@ -792,72 +808,74 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="chapter">
-                    Chapter Name <span className="text-destructive">*</span>
-                  </Label>
-                  {isChapterAdmin && (
-                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">
-                      Auto-filled
-                    </span>
-                  )}
-                </div>
-                {isChapterAdmin ? (
-                  <div className="relative flex items-center">
-                    <Input
-                      id="chapter"
-                      value={formData.chapter || user?.chapter || ""}
-                      readOnly
-                      disabled
-                      className="bg-muted/50 cursor-not-allowed font-medium text-foreground pr-24 border-emerald-500/30"
-                    />
-                    <div className="absolute right-2.5 flex items-center gap-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                      <Lock className="h-3.5 w-3.5" />
-                      <span>Locked</span>
-                    </div>
+            {!isCentralAdmin && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="chapter">
+                      Chapter Name <span className="text-destructive">*</span>
+                    </Label>
+                    {isChapterAdmin && (
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">
+                        Auto-filled
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  <Select
-                    value={formData.chapter || ""}
-                    onValueChange={handleChapterChange}
-                  >
-                    <SelectTrigger id="chapter" className={errors.chapter ? 'border-destructive' : ''}>
-                      <SelectValue placeholder="Select Chapter..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {chapterSelectionList.map((chap) => (
-                        <SelectItem key={chap} value={chap}>
-                          {chap}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                <p className="text-[12px] text-muted-foreground">
-                  {isChapterAdmin
-                    ? `Auto-assigned to your chapter (${formData.chapter || user?.chapter || "Bengaluru Chapter"}).`
-                    : "Select the chapter creating or hosting this event."}
-                </p>
-                {errors.chapter && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.chapter}</p>}
-              </div>
+                  {isChapterAdmin ? (
+                    <div className="relative flex items-center">
+                      <Input
+                        id="chapter"
+                        value={formData.chapter || user?.chapter || ""}
+                        readOnly
+                        disabled
+                        className="bg-muted/50 cursor-not-allowed font-medium text-foreground pr-24 border-emerald-500/30"
+                      />
+                      <div className="absolute right-2.5 flex items-center gap-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                        <Lock className="h-3.5 w-3.5" />
+                        <span>Locked</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.chapter || ""}
+                      onValueChange={handleChapterChange}
+                    >
+                      <SelectTrigger id="chapter" className={errors.chapter ? 'border-destructive' : ''}>
+                        <SelectValue placeholder="Select Chapter..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {chapterSelectionList.map((chap) => (
+                          <SelectItem key={chap} value={chap}>
+                            {chap}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <p className="text-[12px] text-muted-foreground">
+                    {isChapterAdmin
+                      ? `Auto-assigned to your chapter (${mounted ? (formData.chapter || user?.chapter || "Bengaluru Chapter") : "..."}).`
+                      : "Select the chapter creating or hosting this event."}
+                  </p>
+                  {errors.chapter && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.chapter}</p>}
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
-                <Input
-                  id="city"
-                  placeholder="e.g. Bengaluru"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className={errors.city ? 'border-destructive' : ''}
-                />
-                <p className="text-[12px] text-muted-foreground">
-                  Auto-filled based on chapter. You can edit if the venue is in another city.
-                </p>
-                {errors.city && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.city}</p>}
+                <div className="space-y-2">
+                  <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="city"
+                    placeholder="e.g. Bengaluru"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    className={errors.city ? 'border-destructive' : ''}
+                  />
+                  <p className="text-[12px] text-muted-foreground">
+                    Auto-filled based on chapter. You can edit if the venue is in another city.
+                  </p>
+                  {errors.city && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.city}</p>}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -1046,6 +1064,25 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   </div>
                 );
               })()}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="registrationAccess">Limit Registrations</Label>
+                <Select value={formData.registrationAccess} onValueChange={(val) => setFormData({ ...formData, registrationAccess: val })}>
+                  <SelectTrigger id="registrationAccess">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All (Everyone)</SelectItem>
+                    <SelectItem value="Registered Businesses Only">Registered Businesses Only</SelectItem>
+                    <SelectItem value="Paid Members Only">Paid Members Only</SelectItem>
+                    {!isChapterAdmin && <SelectItem value="Chapter Admins Only">Chapter Admins Only</SelectItem>}
+                    {isCentralAdmin && <SelectItem value="State Secretaries Only">State Secretaries Only</SelectItem>}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1 font-medium">Select who can register for this event.</p>
+              </div>
             </div>
 
             {/* Registration Controls & Scheduling */}
@@ -1298,7 +1335,13 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               </div>
               <div className="flex flex-wrap gap-6 mt-4">
                 <MultiSelectDropdown 
-                  options={["All", "Businesses", "Chapter Admins"]} 
+                  options={
+                    isCentralAdmin 
+                      ? ["All", "Registered Businesses Only", "Paid Members Only", "Chapter Admins Only", "State Secretaries Only"] 
+                      : (isStateAdmin 
+                          ? ["All", "Registered Businesses Only", "Paid Members Only", "Chapter Admins Only"] 
+                          : ["All", "Registered Businesses Only", "Paid Members Only"])
+                  } 
                   selected={formData.targetAudience || []} 
                   toggleOption={toggleAudience} 
                   placeholder="Select Target Audience..." 
@@ -1394,7 +1437,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   disabled={loading || savingDraft}
                   className="w-48 bg-primary"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (mounted && isCentralAdmin ? "Publish Now & Broadcast" : "Submit for Approval")}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publish Event"}
                 </Button>
               </div>
             </div>

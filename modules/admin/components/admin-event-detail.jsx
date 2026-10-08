@@ -133,7 +133,7 @@ export function AdminEventDetail() {
           />
           <StatCard label="Registered" value={String(event.registeredCount || 0)} icon={Users} tone="primary" />
           <StatCard label="Seats Remaining" value={String(seatsRemaining)} />
-          <StatCard label="Mode" value={event.mode || "In-person"} />
+          <StatCard label="Mode" value={event.mode || "Offline"} />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
