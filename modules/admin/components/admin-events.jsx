@@ -219,7 +219,7 @@ function AdminEvents() {
   const [filterMode, setFilterMode] = useState("all");
   const [viewMode, setViewMode] = useState("table");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("date-desc");
+  const [sortBy, setSortBy] = useState("created-desc");
 
   const now = new Date();
   const liveEvents = events.filter((e) => getEventStatus(e, now) === "Live");
@@ -230,7 +230,7 @@ function AdminEvents() {
   const paidEvents = events.filter((e) => e.isPaid);
 
   const totalCount = events.length;
-  const inPersonCount = events.filter((e) => e.mode === "In-person").length;
+  const inPersonCount = events.filter((e) => e.mode === "Offline").length;
   const onlineCount = events.filter((e) => e.mode === "Online").length;
   const pendingCount = events.filter((e) => e.status === "Pending Approval").length;
 
@@ -243,8 +243,8 @@ function AdminEvents() {
     displayEvents = endedEvents;
   } else if (filterMode === "today") {
     displayEvents = todayEvents;
-  } else if (filterMode === "In-person") {
-    displayEvents = events.filter((e) => e.mode === "In-person");
+  } else if (filterMode === "Offline") {
+    displayEvents = events.filter((e) => e.mode === "Offline");
   } else if (filterMode === "Online") {
     displayEvents = events.filter((e) => e.mode === "Online");
   } else if (filterMode === "Pending") {
@@ -273,7 +273,12 @@ function AdminEvents() {
       const timeB = new Date(b.date || b.scheduledAt || 0).getTime();
       return timeA - timeB;
     }
-    // "date-desc" (default)
+    if (sortBy === "created-desc") {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeB - timeA;
+    }
+    // "date-desc" (Event Date)
     const timeA = new Date(a.date || a.scheduledAt || 0).getTime();
     const timeB = new Date(b.date || b.scheduledAt || 0).getTime();
     return timeB - timeA;
@@ -427,8 +432,9 @@ function AdminEvents() {
                 <SelectValue placeholder="Sort By" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="date-desc">Sort by Date (Newest)</SelectItem>
-                <SelectItem value="date-asc">Sort by Date (Oldest)</SelectItem>
+                <SelectItem value="created-desc">Recently Created</SelectItem>
+                <SelectItem value="date-desc">Event Date (Newest)</SelectItem>
+                <SelectItem value="date-asc">Event Date (Oldest)</SelectItem>
                 <SelectItem value="name-asc">Sort A - Z (Name)</SelectItem>
                 <SelectItem value="name-desc">Sort Z - A (Name)</SelectItem>
               </SelectContent>
@@ -545,14 +551,14 @@ function AdminEvents() {
                           <>
                             <DropdownMenuItem onClick={async () => {
                               try {
-                                await eventApi.update(r._id, { mode: r.mode === "In-person" ? "Online" : "In-person" });
+                                await eventApi.update(r._id, { mode: r.mode === "Offline" ? "Online" : "Offline" });
                                 toast.success("Event mode updated");
                                 refetch();
                               } catch(e) {
                                 toast.error("Failed to update event");
                               }
                             }}>
-                              Toggle Mode (Online/In-person)
+                              Toggle Mode (Online/Offline)
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <Link href={`${basePath}/${r._id}/edit`}>Edit Event Details</Link>

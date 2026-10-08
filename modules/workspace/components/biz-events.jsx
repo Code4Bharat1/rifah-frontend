@@ -34,7 +34,7 @@ export function BizEvents() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [activeView, setActiveView] = useState("all"); // "all" | "my-passes" | "in-person" | "webinar"
+  const [activeView, setActiveView] = useState("all"); // "all" | "my-passes" | "offline" | "webinar"
   const [searchQuery, setSearchQuery] = useState("");
   const [sharingEvent, setSharingEvent] = useState(null);
 
@@ -62,7 +62,7 @@ export function BizEvents() {
 
   const inPersonMeetsCount = useMemo(() => {
     return rawList.filter(
-      (e) => (e.mode || "").toLowerCase() === "in-person"
+      (e) => (e.mode || "").toLowerCase() === "offline"
     ).length;
   }, [rawList]);
 
@@ -78,8 +78,8 @@ export function BizEvents() {
 
     if (activeView === "my-passes") {
       list = list.filter(isRegistered);
-    } else if (activeView === "in-person") {
-      list = list.filter((e) => (e.mode || "").toLowerCase() === "in-person");
+    } else if (activeView === "offline") {
+      list = list.filter((e) => (e.mode || "").toLowerCase() === "offline");
     } else if (activeView === "webinar") {
       list = list.filter((e) => ["online", "hybrid"].includes((e.mode || "").toLowerCase()));
     }
@@ -162,17 +162,17 @@ export function BizEvents() {
 
           <button
             type="button"
-            onClick={() => setActiveView("in-person")}
+            onClick={() => setActiveView("offline")}
             className={cn(
               "text-left rounded-2xl border bg-card p-4 shadow-xs transition-all hover:border-blue-500/60 cursor-pointer",
-              activeView === "in-person"
+              activeView === "offline"
                 ? "border-blue-500 bg-blue-50/40 dark:bg-blue-950/20 ring-2 ring-blue-500/30"
                 : "border-border"
             )}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                In-Person Meets
+                Offline Meets
               </span>
               <div className="grid h-8 w-8 place-items-center rounded-xl bg-blue-500/10 text-blue-600">
                 <Building2 className="h-4 w-4" />
@@ -392,7 +392,7 @@ export function BizEvents() {
                   <article key={ev._id || ev.slug} className="flex flex-col bg-card rounded-2xl shadow-sm border border-emerald-500/20 relative overflow-hidden transition-all hover:shadow-md hover:border-emerald-500/40">
                     <div className="p-4 bg-emerald-600 text-white">
                       <div className="flex justify-between items-start mb-2">
-                        <Pill className="bg-white/20 text-white border-none text-[9px] uppercase tracking-wider px-2 py-0.5 font-bold shadow-none">{ev.mode || "In-Person"}</Pill>
+                        <Pill className="bg-white/20 text-white border-none text-[9px] uppercase tracking-wider px-2 py-0.5 font-bold shadow-none">{ev.mode || "Offline"}</Pill>
                         <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold backdrop-blur-sm tracking-wider">RSVP CONFIRMED</span>
                       </div>
                       <h3 className="font-bold text-sm leading-snug line-clamp-2">{ev.title}</h3>
@@ -486,7 +486,7 @@ export function BizEvents() {
                           );
                         })()}
                         <Pill tone="navy" className="bg-navy text-white text-[10px] font-semibold">
-                          {ev.mode || "In-person"}
+                          {ev.mode || "Offline"}
                         </Pill>
                         {ev.chapter && (
                           <span className="rounded-full bg-black/60 backdrop-blur-md px-2 py-0.5 text-[10px] font-semibold text-white border border-white/10">
