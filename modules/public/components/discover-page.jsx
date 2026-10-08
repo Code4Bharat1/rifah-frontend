@@ -61,7 +61,16 @@ function DiscoverPage() {
   const searchContainerRef = useRef(null);
   const filterScrollRef = useRef(null);
   const scrollPositionRef = useRef(0);
+  const windowScrollPosRef = useRef(0);
+  const isNavigatingFilterRef = useRef(false);
   const t = useTranslations("Discover");
+
+  // Prevent automatic browser scroll-to-top on route query updates
+  useEffect(() => {
+    if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+  }, []);
 
   // Listing Type: "businesses" (default) | "offerings" (Products & Services merged)
   const isOfferingsView = search.type === "offerings" || search.type === "Product" || search.type === "Service";
@@ -69,12 +78,32 @@ function DiscoverPage() {
   // Restore scroll position and reset pagination on parameter change
   useEffect(() => {
     setDisplayCount(18);
+
+    // If a filter navigation just occurred, lock the window scroll position
+    if (isNavigatingFilterRef.current && typeof window !== "undefined") {
+      const targetY = windowScrollPosRef.current;
+      window.scrollTo({ top: targetY, behavior: "instant" });
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: targetY, behavior: "instant" });
+      });
+      setTimeout(() => {
+        window.scrollTo({ top: targetY, behavior: "instant" });
+        isNavigatingFilterRef.current = false;
+      }, 60);
+    }
+
     if (filterScrollRef.current && scrollPositionRef.current > 0) {
+      const targetSidebarY = scrollPositionRef.current;
       requestAnimationFrame(() => {
         if (filterScrollRef.current) {
-          filterScrollRef.current.scrollTop = scrollPositionRef.current;
+          filterScrollRef.current.scrollTop = targetSidebarY;
         }
       });
+      setTimeout(() => {
+        if (filterScrollRef.current) {
+          filterScrollRef.current.scrollTop = targetSidebarY;
+        }
+      }, 50);
     }
   }, [searchParams]);
 
@@ -344,6 +373,11 @@ function DiscoverPage() {
   }, [query, allMainCategories, businessResults, catalogueResults]);
 
   const setParam = (patch) => {
+    if (typeof window !== "undefined") {
+      const currentWinY = window.scrollY || window.pageYOffset || 0;
+      windowScrollPosRef.current = currentWinY;
+      isNavigatingFilterRef.current = true;
+    }
     if (filterScrollRef.current) {
       scrollPositionRef.current = filterScrollRef.current.scrollTop;
     }
@@ -356,7 +390,45 @@ function DiscoverPage() {
       }
     });
     const qs = current.toString();
-    router.replace(qs ? `/discover?${qs}` : "/discover", { scroll: false });
+    const newUrl = qs ? `/discover?${qs}` : "/discover";
+
+    router.replace(newUrl, { scroll: false });
+
+    if (typeof window !== "undefined" && windowScrollPosRef.current > 0) {
+      const lockY = windowScrollPosRef.current;
+      window.scrollTo({ top: lockY, behavior: "instant" });
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: lockY, behavior: "instant" });
+      });
+      setTimeout(() => {
+        window.scrollTo({ top: lockY, behavior: "instant" });
+      }, 30);
+      setTimeout(() => {
+        window.scrollTo({ top: lockY, behavior: "instant" });
+      }, 100);
+    }
+  };
+
+  const resetFilters = () => {
+    if (typeof window !== "undefined") {
+      const currentWinY = window.scrollY || window.pageYOffset || 0;
+      windowScrollPosRef.current = currentWinY;
+      isNavigatingFilterRef.current = true;
+    }
+    if (filterScrollRef.current) {
+      scrollPositionRef.current = filterScrollRef.current.scrollTop;
+    }
+    router.replace("/discover", { scroll: false });
+    if (typeof window !== "undefined" && windowScrollPosRef.current > 0) {
+      const lockY = windowScrollPosRef.current;
+      window.scrollTo({ top: lockY, behavior: "instant" });
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: lockY, behavior: "instant" });
+      });
+      setTimeout(() => {
+        window.scrollTo({ top: lockY, behavior: "instant" });
+      }, 30);
+    }
   };
 
   const activeChips = [
@@ -393,7 +465,7 @@ function DiscoverPage() {
         <Button
           variant="outline"
           className="w-full h-8.5 rounded-xl text-xs font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
-          onClick={() => router.replace("/discover", { scroll: false })}
+          onClick={resetFilters}
         >
           {t("clearAllFilters")}
         </Button>
@@ -901,7 +973,7 @@ function DiscoverPage() {
               {activeChips.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => router.replace("/discover", { scroll: false })}
+                  onClick={resetFilters}
                   className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer"
                 >
                   Reset ({activeChips.length})
@@ -1029,7 +1101,7 @@ function DiscoverPage() {
                     : "Try widening the location or industry filter, or search for a product or service instead."
                 }
                 action={
-                  <Button variant="outline" onClick={() => router.push("/discover")} className="rounded-xl">
+                  <Button variant="outline" onClick={resetFilters} className="rounded-xl">
                     Reset filters
                   </Button>
                 }
