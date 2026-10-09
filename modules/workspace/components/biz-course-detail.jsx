@@ -1,7 +1,8 @@
 "use client";
 import {
   ArrowLeft, PlayCircle, Play, FileText, CheckCircle2, Download,
-  Video, Loader2, ChevronLeft, ChevronRight, Award, BookOpen, Trophy, X, ExternalLink, Star
+  Video, Loader2, ChevronLeft, ChevronRight, Award, BookOpen, Trophy, X, ExternalLink, Star,
+  Lock, ShieldCheck, CreditCard, Sparkles, Check
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -11,10 +12,24 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Progress } from "@shared/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
 import { useCourse } from "@shared/hooks/use-rifah-api";
-import { courseApi } from "@shared/lib/api-services";
+import { courseApi, paymentApi } from "@shared/lib/api-services";
+import { useAuth } from "@shared/providers/auth-provider";
 import { resolveMediaUrl } from "@shared/lib/media";
 import { cn } from "@shared/lib/utils";
+
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 const SCOPE_LABELS = {
   central: { label: "🏛️ Central HQ", color: "bg-violet-100 text-violet-700 border-violet-200" },
@@ -228,18 +243,103 @@ function PdfModalViewer({ activeContent, onClose }) {
   );
 }
 
+// ── Premium Paywall Card for Locked / Paid Courses
+function CoursePaywallCard({ course, totalContents, chaptersCount, price, onEnroll, isEnrolling }) {
+  return (
+    <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-violet-500/30 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 p-6 sm:p-8 flex flex-col justify-between shadow-2xl text-white">
+      {/* Ambient background decoration */}
+      <div className="absolute top-0 right-0 w-80 h-80 bg-violet-600/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-60 h-60 bg-emerald-600/15 rounded-full blur-2xl pointer-events-none" />
+
+      {/* Top Header Badge */}
+      <div className="relative z-10 flex items-center justify-between gap-3 flex-wrap">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 backdrop-blur-sm">
+          <Lock className="h-3.5 w-3.5 text-amber-400" /> Premium Paid Course
+        </span>
+        <div className="flex items-baseline gap-1">
+          <span className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm">
+            ₹{price.toLocaleString("en-IN")}
+          </span>
+          <span className="text-xs font-medium text-slate-300">one-time</span>
+        </div>
+      </div>
+
+      {/* Center Body */}
+      <div className="relative z-10 my-auto py-2 space-y-2">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-white leading-tight line-clamp-1 drop-shadow-xs">
+          Unlock Full Course Access
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 max-w-xl">
+          {course.description || "Enroll today to get lifetime access to all lessons, curriculum resources, and earn a verified completion certificate."}
+        </p>
+
+        {/* Feature badges row */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 text-xs text-slate-200">
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 backdrop-blur-xs">
+            <Video className="h-4 w-4 text-violet-400 shrink-0" />
+            <span className="truncate">{totalContents} Lessons ({chaptersCount} Modules)</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 backdrop-blur-xs">
+            <Award className="h-4 w-4 text-emerald-400 shrink-0" />
+            <span className="truncate">Official Certificate</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 backdrop-blur-xs col-span-2 sm:col-span-1">
+            <ShieldCheck className="h-4 w-4 text-blue-400 shrink-0" />
+            <span className="truncate">Lifetime Access</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom CTA & Trust strip */}
+      <div className="relative z-10 pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="text-[11px] text-slate-300 flex items-center gap-1.5">
+          <ShieldCheck className="h-4 w-4 text-emerald-400" />
+          <span>Secured via Razorpay • UPI, Cards & NetBanking</span>
+        </div>
+
+        <Button
+          onClick={onEnroll}
+          disabled={isEnrolling}
+          className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm gap-2"
+        >
+          {isEnrolling ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Processing…
+            </>
+          ) : (
+            <>
+              <CreditCard className="h-4 w-4" /> Enroll Now • ₹{price.toLocaleString("en-IN")}
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function BizCourseDetail() {
   const { id } = useParams();
   const { data: courseResp, isLoading, refetch } = useCourse(id);
+  const { user } = useAuth();
   const [activeContent, setActiveContent] = useState(null);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [marking, setMarking] = useState(false);
   const [downloadingCert, setDownloadingCert] = useState(false);
 
+  // ── Checkout & Enrollment States
+  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+
   // ── Correct data unwrapping: API returns { success, data: { course, progress, certificate } }
   const course = courseResp?.data?.course || courseResp?.course || courseResp?.data || courseResp;
   const progressData = courseResp?.data?.progress || courseResp?.progress;
   const certificate = courseResp?.data?.certificate || courseResp?.certificate;
+
+  // ── Paid & Enrollment calculations
+  const isPaid = Boolean(course?.isPaid);
+  const price = Number(course?.price || 0);
+  const isEnrolled = Boolean(course?.isEnrolled);
+  const isPaywallActive = isPaid && !isEnrolled;
 
   // ── Aggregate all lessons
   const chapters = course?.chapters || [];
@@ -292,13 +392,13 @@ export function BizCourseDetail() {
     } catch (err) {}
   };
 
-  // ── Auto-select first content
+  // ── Auto-select first content if course is accessible
   useEffect(() => {
-    if (allContents.length > 0 && !activeContent) {
+    if (allContents.length > 0 && !activeContent && !isPaywallActive) {
       setActiveContent(allContents[0]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [course]);
+  }, [course, isPaywallActive]);
 
   const activeIndex = activeContent
     ? allContents.findIndex(c => String(c._id) === String(activeContent._id))
@@ -306,7 +406,98 @@ export function BizCourseDetail() {
   const hasPrev = activeIndex > 0;
   const hasNext = activeIndex < allContents.length - 1;
 
+  // ── Initiate Razorpay Checkout Flow
+  const handleStartPayment = async () => {
+    if (isEnrolling) return;
+    const scriptLoaded = await loadRazorpayScript();
+    if (!scriptLoaded) {
+      toast.error("Failed to load Razorpay payment gateway. Please check your internet connection.");
+      return;
+    }
+
+    setIsEnrolling(true);
+    try {
+      const orderRes = await paymentApi.createOrder({
+        courseId: course._id,
+        amount: price,
+        currency: "INR",
+        itemType: "Course",
+        description: `Course Enrollment: ${course.title}`,
+      });
+
+      const orderData = orderRes?.data || orderRes;
+      if (!orderData?.orderId) {
+        throw new Error(orderRes?.message || "Failed to initialize payment order.");
+      }
+
+      const options = {
+        key: orderData.keyId || "rzp_test_TTykh9OVkLKNHl",
+        amount: orderData.amount,
+        currency: orderData.currency || "INR",
+        name: "RIFAH LMS",
+        description: `Course: ${course.title}`,
+        order_id: orderData.orderId,
+        prefill: {
+          name: user?.name || user?.ownerName || "",
+          email: user?.email || "",
+          contact: user?.phone || user?.mobile || "",
+        },
+        theme: {
+          color: "#7c3aed",
+        },
+        handler: async function (response) {
+          try {
+            toast.loading("Verifying enrollment payment...", { id: "course-enroll" });
+            await paymentApi.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              amount: price,
+              currency: "INR",
+              itemType: "Course",
+              courseId: course._id,
+              description: `Course Enrollment: ${course.title}`,
+            });
+
+            toast.dismiss("course-enroll");
+            toast.success("🎉 Enrollment successful! Course content is now unlocked.", { duration: 6000 });
+            setEnrollModalOpen(false);
+            const refetched = await refetch();
+            const refetchedCourse = refetched?.data?.course || refetched?.data;
+            const updatedContents = [];
+            (refetchedCourse?.chapters || []).forEach(ch => {
+              if (Array.isArray(ch.contents)) updatedContents.push(...ch.contents);
+            });
+            if (updatedContents.length > 0) {
+              setActiveContent(updatedContents[0]);
+            }
+          } catch (vErr) {
+            toast.dismiss("course-enroll");
+            toast.error(vErr.message || "Payment verification failed. Please contact support.");
+          } finally {
+            setIsEnrolling(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setIsEnrolling(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      toast.error(err.message || "Failed to start payment.");
+      setIsEnrolling(false);
+    }
+  };
+
   const handleMarkWatched = async (contentId) => {
+    if (isPaywallActive) {
+      toast.error("Please enroll in this course to track progress.");
+      return;
+    }
     if (!contentId || completedIds.includes(String(contentId))) return;
     setMarking(true);
     try {
@@ -449,13 +640,42 @@ export function BizCourseDetail() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Courses
           </Link>
         </Button>
+
         <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${scopeTag.color}`}>
           {scopeTag.label}
         </span>
+
+        {/* Pricing & Enrollment Status */}
+        {isPaid ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:border-violet-800 dark:text-violet-300 px-2.5 py-0.5 text-xs font-bold shadow-2xs">
+            💳 Paid Course • ₹{price.toLocaleString("en-IN")}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 text-xs font-semibold">
+            🎁 Free Course
+          </span>
+        )}
+
+        {isPaid && isEnrolled && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300 px-2.5 py-0.5 text-xs font-semibold">
+            <CheckCircle2 className="h-3 w-3" /> Enrolled
+          </span>
+        )}
+
         {isCompleted && (
           <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700">
             <Trophy className="h-3 w-3" /> Completed
           </span>
+        )}
+
+        {isPaywallActive && (
+          <Button
+            size="sm"
+            onClick={() => setEnrollModalOpen(true)}
+            className="h-8 text-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-xs px-3.5 gap-1.5"
+          >
+            <Lock className="h-3.5 w-3.5" /> Enroll Now (₹{price.toLocaleString("en-IN")})
+          </Button>
         )}
 
         <Button
@@ -479,8 +699,21 @@ export function BizCourseDetail() {
         {/* ── LEFT: Player + Info */}
         <div className="lg:col-span-2 space-y-4">
 
-          {/* Video / PDF Player */}
+          {/* Paywall or Video / PDF Player */}
           {(() => {
+            if (isPaywallActive) {
+              return (
+                <CoursePaywallCard
+                  course={course}
+                  totalContents={totalContents}
+                  chaptersCount={chapters.length}
+                  price={price}
+                  onEnroll={() => setEnrollModalOpen(true)}
+                  isEnrolling={isEnrolling}
+                />
+              );
+            }
+
             const isPdf = activeContent && (activeContent.type === "pdf" || activeContent.contentType === "pdf");
             const contentType = activeContent ? (activeContent.type || activeContent.contentType || "video") : null;
             const mediaUrl = activeContent ? (activeContent.url || activeContent.fileUrl || "") : "";
@@ -530,7 +763,7 @@ export function BizCourseDetail() {
           })()}
 
           {/* Prev / Next navigation */}
-          {allContents.length > 1 && (
+          {!isPaywallActive && allContents.length > 1 && (
             <div className="flex items-center justify-between gap-4">
               <Button
                 variant="outline"
@@ -560,8 +793,8 @@ export function BizCourseDetail() {
             </div>
           )}
 
-          {/* Active content info */}
-          {activeContent && (
+          {/* Active content info or Paywall description */}
+          {activeContent && !isPaywallActive ? (
             <Panel>
               <div className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -581,7 +814,27 @@ export function BizCourseDetail() {
                 </div>
               </div>
             </Panel>
-          )}
+          ) : isPaywallActive ? (
+            <Panel>
+              <div className="p-4 sm:p-5 flex items-center justify-between gap-4 flex-wrap">
+                <div className="space-y-1">
+                  <h3 className="font-bold text-base flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-amber-500" />
+                    <span>Course Content Locked</span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Enroll now for ₹{price.toLocaleString("en-IN")} to unlock full access to all {totalContents} lessons and download your verified completion certificate.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setEnrollModalOpen(true)}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-9"
+                >
+                  <CreditCard className="h-3.5 w-3.5 mr-1.5" /> Enroll for ₹{price.toLocaleString("en-IN")}
+                </Button>
+              </div>
+            </Panel>
+          ) : null}
 
           {/* 🎓 Certificate celebration card */}
           {(isCompleted || certificate) && (
@@ -638,24 +891,33 @@ export function BizCourseDetail() {
                 <span className="font-semibold text-sm">Course Progress</span>
               </div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-2xl font-bold text-primary">{progressPercent}%</span>
-                <span className="text-xs text-muted-foreground">{completedCount} / {totalContents} lessons</span>
+                <span className="text-2xl font-bold text-primary">{isPaywallActive ? "0%" : `${progressPercent}%`}</span>
+                <span className="text-xs text-muted-foreground">
+                  {isPaywallActive ? "Locked" : `${completedCount} / ${totalContents} lessons`}
+                </span>
               </div>
-              <Progress value={progressPercent} className="h-2.5 rounded-full" />
+              <Progress value={isPaywallActive ? 0 : progressPercent} className="h-2.5 rounded-full" />
 
-              {isCompleted && !certificate && (
+              {isPaywallActive ? (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 p-3 text-center">
+                  <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 flex items-center justify-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5" /> Enrollment Required
+                  </p>
+                  <p className="text-[11px] text-amber-700/80 dark:text-amber-400 mt-0.5">
+                    Enroll to track lesson progress & earn your certificate.
+                  </p>
+                </div>
+              ) : isCompleted && !certificate ? (
                 <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center">
                   <p className="text-xs font-medium text-emerald-700">
                     🎓 Certificate earned! Download it above.
                   </p>
                 </div>
-              )}
-
-              {!isCompleted && totalContents > 0 && (
+              ) : !isCompleted && totalContents > 0 ? (
                 <p className="text-xs text-muted-foreground text-center mt-3">
                   {totalContents - completedCount} lesson{totalContents - completedCount !== 1 ? "s" : ""} remaining
                 </p>
-              )}
+              ) : null}
             </div>
           </Panel>
 
@@ -683,15 +945,20 @@ export function BizCourseDetail() {
                           {chapterContents.map((item, index) => {
                             const isDone = completedIds.includes(String(item._id));
                             const isActive = String(activeContent?._id) === String(item._id);
+                            const isLocked = isPaywallActive || Boolean(item.isLocked);
                             return (
                               <button
                                 key={item._id || index}
                                 onClick={() => {
+                                  if (isLocked) {
+                                    setEnrollModalOpen(true);
+                                    return;
+                                  }
                                   setActiveContent(item);
                                   setShowPdfModal(false);
                                 }}
                                 className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
-                                  isActive
+                                  isActive && !isLocked
                                     ? "bg-primary/8 border-l-2 border-primary"
                                     : "border-l-2 border-transparent hover:bg-muted/50"
                                 }`}
@@ -699,25 +966,42 @@ export function BizCourseDetail() {
                                 <div className={`shrink-0 rounded-full flex items-center justify-center w-6 h-6 text-xs font-bold ${
                                   isDone
                                     ? "bg-emerald-100 text-emerald-600"
+                                    : isLocked
+                                    ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
                                     : isActive
                                     ? "bg-primary/15 text-primary"
                                     : "bg-muted text-muted-foreground"
                                 }`}>
                                   {isDone ? (
                                     <CheckCircle2 className="h-3.5 w-3.5" />
+                                  ) : isLocked ? (
+                                    <Lock className="h-3 w-3" />
                                   ) : (
                                     <Play className="h-2.5 w-2.5 fill-current ml-0.5" />
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className={`text-xs font-medium leading-tight truncate ${isActive ? "text-primary" : "text-foreground"}`}>
+                                  <p className={`text-xs font-medium leading-tight truncate ${isActive && !isLocked ? "text-primary" : "text-foreground"}`}>
                                     {chapIdx + 1}.{index + 1} {item.title}
                                   </p>
-                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
-                                    <PlayCircle className="h-2.5 w-2.5" />
-                                    <span>Lesson</span>
+                                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
+                                    {isLocked ? (
+                                      <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                                        <Lock className="h-2.5 w-2.5" /> Locked
+                                      </span>
+                                    ) : (
+                                      <>
+                                        <PlayCircle className="h-2.5 w-2.5" />
+                                        <span>Lesson</span>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
+                                {isLocked && (
+                                  <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded px-1.5 py-0.5">
+                                    Locked
+                                  </span>
+                                )}
                               </button>
                             );
                           })}
@@ -731,15 +1015,20 @@ export function BizCourseDetail() {
                   {allContents.map((item, index) => {
                     const isDone = completedIds.includes(String(item._id));
                     const isActive = String(activeContent?._id) === String(item._id);
+                    const isLocked = isPaywallActive || Boolean(item.isLocked);
                     return (
                       <button
                         key={item._id || index}
                         onClick={() => {
+                          if (isLocked) {
+                            setEnrollModalOpen(true);
+                            return;
+                          }
                           setActiveContent(item);
                           setShowPdfModal(false);
                         }}
                         className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
-                          isActive
+                          isActive && !isLocked
                             ? "bg-primary/8 border-l-2 border-primary"
                             : "border-l-2 border-transparent hover:bg-muted/50"
                         }`}
@@ -747,25 +1036,42 @@ export function BizCourseDetail() {
                         <div className={`shrink-0 rounded-full flex items-center justify-center w-6 h-6 text-xs ${
                           isDone
                             ? "bg-emerald-100 text-emerald-600"
+                            : isLocked
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
                             : isActive
                             ? "bg-primary/15 text-primary"
                             : "bg-muted text-muted-foreground"
                         }`}>
                           {isDone ? (
                             <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : isLocked ? (
+                            <Lock className="h-3 w-3" />
                           ) : (
                             <Play className="h-2.5 w-2.5 fill-current ml-0.5" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-medium leading-tight truncate ${isActive ? "text-primary" : "text-foreground"}`}>
+                          <p className={`text-xs font-medium leading-tight truncate ${isActive && !isLocked ? "text-primary" : "text-foreground"}`}>
                             {index + 1}. {item.title}
                           </p>
-                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
-                            <PlayCircle className="h-2.5 w-2.5" />
-                            <span>Lesson</span>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
+                            {isLocked ? (
+                              <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                                <Lock className="h-2.5 w-2.5" /> Locked
+                              </span>
+                            ) : (
+                              <>
+                                <PlayCircle className="h-2.5 w-2.5" />
+                                <span>Lesson</span>
+                              </>
+                            )}
                           </div>
                         </div>
+                        {isLocked && (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded px-1.5 py-0.5">
+                            Locked
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -788,6 +1094,89 @@ export function BizCourseDetail() {
           onClose={() => setShowPdfModal(false)}
         />
       )}
+
+      {/* ── MODAL: Course Enrollment Checkout ── */}
+      <Dialog open={enrollModalOpen} onOpenChange={setEnrollModalOpen}>
+        <DialogContent className="max-w-md sm:max-w-lg p-0 overflow-hidden rounded-2xl">
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-6 text-white border-b border-white/10">
+            <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-2">
+              <Lock className="h-3.5 w-3.5" /> Course Enrollment
+            </div>
+            <h3 className="text-xl font-bold leading-snug">{course.title}</h3>
+            <p className="text-xs text-slate-300 mt-1 line-clamp-2">{course.description}</p>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* What's included */}
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">What's included in your enrollment:</h4>
+              <div className="space-y-2 text-sm text-foreground">
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                  <span>Full curriculum: <strong>{totalContents} lessons</strong> across <strong>{chapters.length} chapters</strong></span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                  <span>High-definition video lessons and downloadable course materials</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                  <span>Verified <strong>RIFAH Certificate of Completion</strong> upon graduation</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                  <span>Full lifetime access for your business profile</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing summary box */}
+            <div className="rounded-xl border bg-muted/40 p-4 space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Course Fee</span>
+                <span>₹{price.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Taxes & Gateway Fee</span>
+                <span className="text-emerald-600 font-medium">Included</span>
+              </div>
+              <div className="pt-2 border-t flex justify-between font-bold text-base text-foreground">
+                <span>Total Amount</span>
+                <span className="text-primary font-black text-lg">₹{price.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+
+            {/* Learner Info */}
+            <div className="text-xs text-muted-foreground bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
+              <div>
+                Enrolling as <strong className="text-foreground">{user?.name || "Business Member"}</strong> ({user?.email || "Account Holder"})
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-6 pt-0 flex gap-2 sm:gap-3">
+            <Button variant="outline" onClick={() => setEnrollModalOpen(false)} disabled={isEnrolling}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStartPayment}
+              disabled={isEnrolling}
+              className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold gap-2 shadow-md"
+            >
+              {isEnrolling ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Preparing Payment…
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-4 w-4" /> Pay & Unlock Now (₹{price.toLocaleString("en-IN")})
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

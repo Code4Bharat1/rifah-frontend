@@ -42,6 +42,12 @@ const STATUS_FILTERS = [
   { key: "saved", label: "⭐ Starred / Saved" },
 ];
 
+const FEE_FILTERS = [
+  { key: "all", label: "All Pricing" },
+  { key: "free", label: "🎁 Free Only" },
+  { key: "paid", label: "💳 Paid Only" },
+];
+
 const SCOPE_BADGE = {
   central: "bg-violet-100 text-violet-700 border-violet-200",
   centre: "bg-violet-100 text-violet-700 border-violet-200",
@@ -140,6 +146,9 @@ function CourseCard({ course, isSaved, onToggleSave }) {
   const chapters = course?.chapters || [];
   const isCompleted = status === "completed";
   const isStarted = status === "inprogress";
+  const isPaid = Boolean(course?.isPaid);
+  const price = Number(course?.price || 0);
+  const isEnrolled = Boolean(course?.isEnrolled);
 
   return (
     <div className="group flex flex-col rounded-2xl border bg-card overflow-hidden shadow-xs hover:shadow-md hover:border-primary/30 transition-all duration-200">
@@ -149,6 +158,8 @@ function CourseCard({ course, isSaved, onToggleSave }) {
           ? "bg-gradient-to-r from-emerald-400 to-teal-500"
           : isStarted
           ? "bg-gradient-to-r from-blue-400 to-indigo-500"
+          : isPaid
+          ? "bg-gradient-to-r from-violet-500 to-purple-600"
           : "bg-gradient-to-r from-slate-200 to-slate-300"
       }`} />
 
@@ -162,6 +173,24 @@ function CourseCard({ course, isSaved, onToggleSave }) {
             >
               {scopeLabel}
             </span>
+
+            {/* Fee badge */}
+            {isPaid ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:border-violet-800 dark:text-violet-300 px-2 py-0.5 text-[11px] font-bold shadow-2xs">
+                💳 ₹{price.toLocaleString("en-IN")}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-semibold">
+                🎁 Free
+              </span>
+            )}
+
+            {isPaid && isEnrolled && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300 px-2 py-0.5 text-[11px] font-semibold">
+                <CheckCircle2 className="h-3 w-3" /> Enrolled
+              </span>
+            )}
+
             {course.category && (
               <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-semibold max-w-[140px] truncate" title={course.category}>
                 {course.category}
@@ -257,6 +286,13 @@ function CourseCard({ course, isSaved, onToggleSave }) {
               Certificate
             </Button>
           </>
+        ) : isPaid && !isEnrolled ? (
+          <Button asChild className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm font-semibold" size="sm">
+            <Link href={`/biz/lms/${course._id}`}>
+              Enroll for ₹{price.toLocaleString("en-IN")}
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Link>
+          </Button>
         ) : (
           <Button asChild className="w-full" size="sm">
             <Link href={`/biz/lms/${course._id}`}>
@@ -346,6 +382,7 @@ export function BizLms() {
   const [searchTerm, setSearchTerm] = useState("");
   const [scopeFilter, setScopeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [feeFilter, setFeeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [subcategoryFilter, setSubcategoryFilter] = useState("all");
 
@@ -1022,6 +1059,10 @@ export function BizLms() {
         if (status !== statusFilter) return false;
       }
     }
+    if (feeFilter !== "all") {
+      if (feeFilter === "free" && course.isPaid) return false;
+      if (feeFilter === "paid" && !course.isPaid) return false;
+    }
     if (categoryFilter !== "all") {
       if ((course.category || "").trim().toLowerCase() !== categoryFilter.trim().toLowerCase()) return false;
     }
@@ -1173,8 +1214,8 @@ export function BizLms() {
                 </div>
               </div>
 
-              {/* Scope & Status Pills */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              {/* Scope, Fee & Status Pills */}
+              <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
                 <div className="flex gap-1.5 flex-wrap items-center">
                   <span className="text-[11px] font-semibold text-muted-foreground mr-1">Scope:</span>
                   {SCOPES.map(s => (
@@ -1188,6 +1229,23 @@ export function BizLms() {
                       }`}
                     >
                       {s.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-1.5 flex-wrap items-center">
+                  <span className="text-[11px] font-semibold text-muted-foreground mr-1">Pricing:</span>
+                  {FEE_FILTERS.map(f => (
+                    <button
+                      key={f.key}
+                      onClick={() => setFeeFilter(f.key)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                        feeFilter === f.key
+                          ? "bg-violet-600 text-white border-violet-600 shadow-2xs"
+                          : "bg-background text-muted-foreground border-border hover:border-violet-300"
+                      }`}
+                    >
+                      {f.label}
                     </button>
                   ))}
                 </div>
@@ -1218,7 +1276,7 @@ export function BizLms() {
                     );
                   })}
 
-                  {(categoryFilter !== "all" || subcategoryFilter !== "all" || scopeFilter !== "all" || statusFilter !== "all" || searchTerm) && (
+                  {(categoryFilter !== "all" || subcategoryFilter !== "all" || scopeFilter !== "all" || statusFilter !== "all" || feeFilter !== "all" || searchTerm) && (
                     <button
                       type="button"
                       onClick={() => {
@@ -1226,6 +1284,7 @@ export function BizLms() {
                         setSubcategoryFilter("all");
                         setScopeFilter("all");
                         setStatusFilter("all");
+                        setFeeFilter("all");
                         setSearchTerm("");
                       }}
                       className="ml-2 text-xs text-primary hover:underline font-medium inline-flex items-center gap-1"
@@ -1264,9 +1323,9 @@ export function BizLms() {
                     ? "Click the star icon on any course card to bookmark it for later."
                     : "Try adjusting your search or filters."}
                 </p>
-                {(courses.length > 0 || statusFilter !== "all") && (
+                {(courses.length > 0 || statusFilter !== "all" || feeFilter !== "all") && (
                   <Button variant="outline" size="sm" className="mt-4" onClick={() => {
-                    setSearchTerm(""); setScopeFilter("all"); setStatusFilter("all");
+                    setSearchTerm(""); setScopeFilter("all"); setStatusFilter("all"); setFeeFilter("all");
                   }}>
                     Clear Filters
                   </Button>

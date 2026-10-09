@@ -17,7 +17,10 @@ import {
   Layers, 
   BookOpen,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Users,
+  CreditCard,
+  IndianRupee
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -71,9 +74,16 @@ export function AdminCourseBuilder({ role = "admin" }) {
   const [editScope, setEditScope] = useState("centre");
   const [editCategory, setEditCategory] = useState("all");
   const [editSubcategory, setEditSubcategory] = useState("all");
+  const [editIsPaid, setEditIsPaid] = useState(false);
+  const [editPrice, setEditPrice] = useState("");
   const [savingCourse, setSavingCourse] = useState(false);
   const [isDeleteCourseOpen, setIsDeleteCourseOpen] = useState(false);
   const [deletingCourse, setDeletingCourse] = useState(false);
+
+  // Enrollments Modal
+  const [isEnrollmentsOpen, setIsEnrollmentsOpen] = useState(false);
+  const [enrollmentsData, setEnrollmentsData] = useState(null);
+  const [loadingEnrollments, setLoadingEnrollments] = useState(false);
 
   // Robust subcategory extractor matching parent name or parent id with trimming and case-insensitivity
   const getSubcategories = (catNameOrId) => {
@@ -150,22 +160,35 @@ export function AdminCourseBuilder({ role = "admin" }) {
     setEditScope(courseData.scope || courseData.visibilityScope || "centre");
     setEditCategory(courseData.category || "all");
     setEditSubcategory(courseData.subcategory || "all");
+    setEditIsPaid(Boolean(courseData.isPaid));
+    setEditPrice(courseData.price ? String(courseData.price) : "");
     setIsEditCourseOpen(true);
   };
 
   const handleSaveCourseMetadata = async (e) => {
     if (e) e.preventDefault();
     if (!editTitle.trim()) return toast.error("Course title is required.");
+    if (role === "admin" && editIsPaid) {
+      const priceNum = Number(editPrice);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        return toast.error("Paid courses must have a valid price greater than ₹0.");
+      }
+    }
     setSavingCourse(true);
     try {
-      await courseApi.update(courseData._id, {
+      const payload = {
         title: editTitle.trim(),
         description: editDescription.trim(),
         category: editCategory === "all" ? "" : editCategory,
         subcategory: editSubcategory === "all" ? "" : editSubcategory,
         scope: editScope,
         visibilityScope: editScope,
-      });
+      };
+      if (role === "admin") {
+        payload.isPaid = Boolean(editIsPaid);
+        payload.price = editIsPaid ? Math.round(Number(editPrice)) : 0;
+      }
+      await courseApi.update(courseData._id, payload);
       toast.success("Course details updated");
       setIsEditCourseOpen(false);
       refetch();
@@ -173,6 +196,19 @@ export function AdminCourseBuilder({ role = "admin" }) {
       toast.error(err.message || "Failed to update course");
     } finally {
       setSavingCourse(false);
+    }
+  };
+
+  const handleOpenEnrollments = async () => {
+    setIsEnrollmentsOpen(true);
+    setLoadingEnrollments(true);
+    try {
+      const res = await courseApi.getEnrollments(courseData._id);
+      setEnrollmentsData(res?.data || res);
+    } catch (err) {
+      toast.error(err.message || "Failed to load enrollments");
+    } finally {
+      setLoadingEnrollments(false);
     }
   };
 
@@ -369,6 +405,15 @@ export function AdminCourseBuilder({ role = "admin" }) {
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${isPublished ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning-foreground'}`}>
                 {isPublished ? 'Published' : 'Draft'}
               </span>
+              {courseData.isPaid ? (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                  💳 Paid • ₹{courseData.price}
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground">
+                  🎁 Free Course
+                </span>
+              )}
               {courseData.category && (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
                   {courseData.category}
@@ -385,6 +430,12 @@ export function AdminCourseBuilder({ role = "admin" }) {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {courseData.isPaid && (
+              <Button variant="outline" size="sm" onClick={handleOpenEnrollments}>
+                <Users className="h-4 w-4 mr-1.5 text-emerald-600" />
+                Learners ({courseData.enrollments?.length || courseData.enrollmentCount || 0})
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handleOpenEditCourse}>
               <Edit className="h-4 w-4 mr-1.5" /> Edit Info
             </Button>
@@ -406,11 +457,17 @@ export function AdminCourseBuilder({ role = "admin" }) {
         </div>
 
         {/* Stats Strip */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className={`grid grid-cols-2 gap-3 sm:grid-cols-4 ${courseData.isPaid ? 'lg:grid-cols-6' : ''}`}>
           <StatCard label="Total Chapters" value={String(chapters.length)} icon={Layers} tone="primary" />
           <StatCard label="Total Lessons" value={String(totalLessons)} icon={BookOpen} tone="neutral" />
           <StatCard label="Video Lessons" value={String(totalVideos)} icon={Video} tone="info" />
           <StatCard label="PDF Handouts" value={String(totalPdfs)} icon={FileText} tone="warning" />
+          {courseData.isPaid && (
+            <>
+              <StatCard label="Enrolled Learners" value={String(courseData.enrollments?.length || courseData.enrollmentCount || 0)} icon={Users} tone="success" />
+              <StatCard label="Gross Revenue" value={`₹${((courseData.enrollments?.length || courseData.enrollmentCount || 0) * (courseData.price || 0)).toLocaleString()}`} icon={IndianRupee} tone="primary" />
+            </>
+          )}
         </div>
 
         {/* Chapters & Curriculum Section */}
@@ -789,6 +846,58 @@ export function AdminCourseBuilder({ role = "admin" }) {
                   </Select>
                 </div>
               </div>
+
+              {/* Course Pricing (Central Admin Only) */}
+              {role === "admin" && (
+                <div className="pt-2 border-t space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <CreditCard className="h-3.5 w-3.5 text-primary" /> Course Fee & Access Type
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
+                      Central Admin
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Select 
+                        value={editIsPaid ? "paid" : "free"} 
+                        onValueChange={(val) => {
+                          const isP = val === "paid";
+                          setEditIsPaid(isP);
+                          if (!isP) setEditPrice("");
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">🎁 Free Course</SelectItem>
+                          <SelectItem value="paid">💳 Paid Course</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {editIsPaid && (
+                      <div className="space-y-1">
+                        <div className="relative">
+                          <IndianRupee className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                          <Input 
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(e.target.value)}
+                            placeholder="Price (INR)"
+                            className="h-9 text-xs pl-8 font-semibold"
+                            required={editIsPaid}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsEditCourseOpen(false)}>Cancel</Button>
@@ -816,6 +925,94 @@ export function AdminCourseBuilder({ role = "admin" }) {
             <Button variant="outline" onClick={() => setIsDeleteCourseOpen(false)} disabled={deletingCourse}>Cancel</Button>
             <Button variant="destructive" onClick={handleDeleteCourse} disabled={deletingCourse}>
               {deletingCourse ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Delete Course
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- MODAL: Course Enrollments (Central Admin) --- */}
+      <Dialog open={isEnrollmentsOpen} onOpenChange={setIsEnrollmentsOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col no-scrollbar">
+          <DialogHeader className="shrink-0 border-b pb-3">
+            <DialogTitle className="text-lg flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <span>Enrolled Learners & Transactions</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              Course: <span className="font-semibold text-foreground">{courseData.title}</span> • Fee: <span className="font-bold text-primary">{courseData.isPaid ? `₹${courseData.price}` : "Free"}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-3 shrink-0">
+            <div className="rounded-xl border bg-muted/20 p-3">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Total Learners</span>
+              <p className="text-xl font-bold text-foreground mt-0.5">
+                {enrollmentsData?.totalLearners ?? courseData.enrollments?.length ?? 0}
+              </p>
+            </div>
+            <div className="rounded-xl border bg-muted/20 p-3">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Price per Learner</span>
+              <p className="text-xl font-bold text-primary mt-0.5">
+                {courseData.isPaid ? `₹${courseData.price}` : "Free"}
+              </p>
+            </div>
+            <div className="rounded-xl border bg-muted/20 p-3 col-span-2 sm:col-span-1">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Revenue</span>
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                ₹{(enrollmentsData?.totalRevenue ?? ((courseData.enrollments?.length || 0) * (courseData.price || 0))).toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          {/* List */}
+          <div className="flex-1 overflow-y-auto no-scrollbar space-y-2 py-1">
+            {loadingEnrollments ? (
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : !enrollmentsData?.enrollments || enrollmentsData.enrollments.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-8 text-center bg-card">
+                <Users className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-sm font-semibold text-foreground">No Learners Enrolled Yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Members who purchase this course will be listed here with transaction details.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y rounded-xl border bg-card overflow-hidden">
+                {enrollmentsData.enrollments.map((enr, idx) => (
+                  <div key={enr._id || idx} className="p-3.5 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors text-xs">
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="font-bold text-foreground truncate">
+                        {enr.user?.name || enr.business?.name || "Enrolled Member"}
+                      </p>
+                      <p className="text-muted-foreground text-[11px] truncate">
+                        {enr.user?.email || "No email"} {enr.business?.name && `• ${enr.business.name}`}
+                      </p>
+                      {enr.payment?.invoiceNumber && (
+                        <p className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+                          Invoice #{enr.payment.invoiceNumber}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0 space-y-0.5">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                        {enr.payment ? `Paid ₹${enr.payment.amount}` : "Admin Enrolled"}
+                      </span>
+                      <p className="text-[10px] text-muted-foreground">
+                        {enr.enrolledAt ? new Date(enr.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Active"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="shrink-0 border-t pt-3">
+            <Button variant="outline" size="sm" onClick={() => setIsEnrollmentsOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

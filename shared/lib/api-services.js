@@ -509,6 +509,10 @@ export const courseApi = {
   markWatched: (id, contentId, data = {}) => apiClient(`/courses/${id}/contents/${contentId}/watch`, { method: "POST", body: JSON.stringify(data) }),
   getCertificates: (params = {}) => apiClient(`/courses/certificates${toQueryString(params)}`),
   toggleStar: (id) => apiClient(`/courses/${id}/toggle-star`, { method: "PATCH" }),
+  getEnrollments: (id) => apiClient(`/courses/${id}/enrollments`),
+  manualEnroll: (id, data) => apiClient(`/courses/${id}/manual-enroll`, { method: "POST", body: JSON.stringify(data) }),
+  approve: (id) => apiClient(`/courses/${id}/approve`, { method: "POST" }),
+  reject: (id, remark) => apiClient(`/courses/${id}/reject`, { method: "POST", body: JSON.stringify({ remark }) }),
 };
 
 export const birthdayApi = {

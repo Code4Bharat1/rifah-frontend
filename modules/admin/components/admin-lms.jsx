@@ -18,7 +18,14 @@ import {
   AlertTriangle,
   ExternalLink,
   FolderPlus,
-  X
+  X,
+  Users,
+  CreditCard,
+  IndianRupee,
+  Clock,
+  Send,
+  XCircle,
+  Check
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -82,14 +89,36 @@ function AdminLms({ role = "admin" }) {
   // Category states for Creator Modal
   const [newCategory, setNewCategory] = useState("all");
   const [newSubcategory, setNewSubcategory] = useState("all");
+  const [newIsPaid, setNewIsPaid] = useState(false);
+  const [newPrice, setNewPrice] = useState("");
 
-  // Category states for Edit Modal
+  // Category & Pricing states for Edit Modal
   const [editCategory, setEditCategory] = useState("all");
   const [editSubcategory, setEditSubcategory] = useState("all");
+  const [editIsPaid, setEditIsPaid] = useState(false);
+  const [editPrice, setEditPrice] = useState("");
 
   // Filter state for Admin Course Library
   const [adminCategoryFilter, setAdminCategoryFilter] = useState("all");
   const [adminSubcategoryFilter, setAdminSubcategoryFilter] = useState("all");
+  const [adminFeeFilter, setAdminFeeFilter] = useState("all");
+  const [adminApprovalFilter, setAdminApprovalFilter] = useState("all");
+  const [adminScopeFilter, setAdminScopeFilter] = useState("all");
+
+  // Approval Moderation Modal states (Central Admin & Creator Feedback)
+  const [courseToReject, setCourseToReject] = useState(null);
+  const [rejectionRemark, setRejectionRemark] = useState("");
+  const [submittingModeration, setSubmittingModeration] = useState(false);
+  const [viewRemarkCourse, setViewRemarkCourse] = useState(null);
+
+  // Enrollments Modal states
+  const [activeEnrollmentCourse, setActiveEnrollmentCourse] = useState(null);
+  const [enrollmentsData, setEnrollmentsData] = useState(null);
+  const [loadingEnrollments, setLoadingEnrollments] = useState(false);
+  const [manualEnrollOpen, setManualEnrollOpen] = useState(false);
+  const [manualUserId, setManualUserId] = useState("");
+  const [manualRemark, setManualRemark] = useState("");
+  const [submittingManualEnroll, setSubmittingManualEnroll] = useState(false);
 
   // Delete Course Confirmation
   const [courseToDelete, setCourseToDelete] = useState(null);
@@ -136,6 +165,8 @@ function AdminLms({ role = "admin" }) {
     setNewDescription("");
     setNewCategory("all");
     setNewSubcategory("all");
+    setNewIsPaid(false);
+    setNewPrice("");
     setStagedChapters([
       { title: "Chapter 1: Introduction & Fundamentals", description: "", order: 1, contents: [] }
     ]);
@@ -240,11 +271,19 @@ function AdminLms({ role = "admin" }) {
     });
 
     if (shouldPublish && totalLessonsCount === 0) {
-      return toast.error("Please add at least 1 lesson before publishing the course.");
+      return toast.error("Please add at least 1 lesson before submitting or publishing the course.");
+    }
+
+    if (role === "admin" && newIsPaid) {
+      const priceNum = Number(newPrice);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        return toast.error("Paid courses must have a valid price greater than ₹0.");
+      }
     }
 
     setSavingCourse(true);
     try {
+      const isCentral = role === "admin";
       const payload = {
         title: newTitle.trim(),
         description: newDescription.trim(),
@@ -252,19 +291,63 @@ function AdminLms({ role = "admin" }) {
         subcategory: newSubcategory === "all" ? "" : newSubcategory,
         scope: derivedScope,
         visibilityScope: derivedScope,
+        isPaid: isCentral ? Boolean(newIsPaid) : false,
+        price: isCentral && newIsPaid ? Math.round(Number(newPrice)) : 0,
         chapters: stagedChapters,
-        status: shouldPublish ? "published" : "draft",
-        isActive: shouldPublish,
+        status: (isCentral && shouldPublish) ? "published" : "draft",
+        isActive: isCentral ? Boolean(shouldPublish) : false,
       };
 
       await courseApi.create(payload);
-      toast.success(shouldPublish ? "Course published successfully!" : "Course saved as draft!");
+      if (isCentral) {
+        toast.success(shouldPublish ? "Course published successfully!" : "Course saved as draft!");
+      } else {
+        toast.success(
+          shouldPublish 
+            ? "Course submitted for Central Admin approval! It will go live once approved." 
+            : "Course draft saved successfully!"
+        );
+      }
       setIsCreating(false);
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to create course.");
     } finally {
       setSavingCourse(false);
+    }
+  };
+
+  // --- Handlers: Central Admin Course Approval & Moderation ---
+  const handleApproveCourse = async (courseId) => {
+    setSubmittingModeration(true);
+    try {
+      await courseApi.approve(courseId);
+      toast.success("Course approved and published successfully!");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to approve course");
+    } finally {
+      setSubmittingModeration(false);
+    }
+  };
+
+  const handleRejectCourse = async (e) => {
+    if (e) e.preventDefault();
+    if (!courseToReject) return;
+    if (!rejectionRemark.trim()) {
+      return toast.error("Please provide constructive feedback explaining the rejection.");
+    }
+    setSubmittingModeration(true);
+    try {
+      await courseApi.reject(courseToReject._id, rejectionRemark.trim());
+      toast.success("Course rejected. Feedback sent to the creator.");
+      setCourseToReject(null);
+      setRejectionRemark("");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to reject course");
+    } finally {
+      setSubmittingModeration(false);
     }
   };
 
@@ -419,19 +502,32 @@ function AdminLms({ role = "admin" }) {
     setEditDescription(course.description || "");
     setEditCategory(course.category || "all");
     setEditSubcategory(course.subcategory || "all");
+    setEditIsPaid(Boolean(course.isPaid));
+    setEditPrice(course.price ? String(course.price) : "");
   };
 
   const handleSaveCourseInfo = async (e) => {
     if (e) e.preventDefault();
     if (!editTitle.trim()) return toast.error("Course title is required.");
+    if (role === "admin" && editIsPaid) {
+      const priceNum = Number(editPrice);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        return toast.error("Paid courses must have a valid price greater than ₹0.");
+      }
+    }
     setSavingEditInfo(true);
     try {
-      await courseApi.update(courseToEdit._id, {
+      const payload = {
         title: editTitle.trim(),
         description: editDescription.trim(),
         category: editCategory === "all" ? "" : editCategory,
         subcategory: editSubcategory === "all" ? "" : editSubcategory,
-      });
+      };
+      if (role === "admin") {
+        payload.isPaid = Boolean(editIsPaid);
+        payload.price = editIsPaid ? Math.round(Number(editPrice)) : 0;
+      }
+      await courseApi.update(courseToEdit._id, payload);
       toast.success("Course details updated");
       setCourseToEdit(null);
       refetch();
@@ -439,6 +535,45 @@ function AdminLms({ role = "admin" }) {
       toast.error(err.message || "Failed to update course");
     } finally {
       setSavingEditInfo(false);
+    }
+  };
+
+  // --- Handlers: Course Enrollments (Central Admin) ---
+  const handleOpenEnrollments = async (course) => {
+    setActiveEnrollmentCourse(course);
+    setLoadingEnrollments(true);
+    setManualEnrollOpen(false);
+    try {
+      const res = await courseApi.getEnrollments(course._id);
+      setEnrollmentsData(res?.data || res);
+    } catch (err) {
+      toast.error(err.message || "Failed to load course enrollments");
+    } finally {
+      setLoadingEnrollments(false);
+    }
+  };
+
+  const handleManualEnroll = async (e) => {
+    if (e) e.preventDefault();
+    if (!manualUserId.trim()) return toast.error("User ID or Business ID is required");
+    setSubmittingManualEnroll(true);
+    try {
+      await courseApi.manualEnroll(activeEnrollmentCourse._id, {
+        userId: manualUserId.trim(),
+        remark: manualRemark.trim() || "Enrolled via Admin Console",
+      });
+      toast.success("Learner enrolled successfully!");
+      setManualEnrollOpen(false);
+      setManualUserId("");
+      setManualRemark("");
+      // reload enrollments
+      const res = await courseApi.getEnrollments(activeEnrollmentCourse._id);
+      setEnrollmentsData(res?.data || res);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to manually enroll user");
+    } finally {
+      setSubmittingManualEnroll(false);
     }
   };
 
@@ -466,6 +601,11 @@ function AdminLms({ role = "admin" }) {
       const currentIsActive = course.isActive || course.status === "published";
       const nextActive = !currentIsActive;
 
+      if (nextActive && role !== "admin" && course.approvalStatus !== "approved" && course.approvalStatus !== "not_required") {
+        toast.error("This course cannot go live until approved by Central Admin.");
+        return;
+      }
+
       // Validate: don't allow publish if 0 lessons
       let totalItems = 0;
       (course.chapters || []).forEach(ch => {
@@ -485,7 +625,7 @@ function AdminLms({ role = "admin" }) {
       toast.success(nextActive ? "Course published" : "Course moved to draft");
       refetch();
     } catch (err) {
-      toast.error("Failed to update status");
+      toast.error(err.message || "Failed to update status");
     }
   };
 
@@ -527,26 +667,71 @@ function AdminLms({ role = "admin" }) {
         {/* ========================================================================= */}
         {/* LEVEL 1: COURSE LIBRARY (CARD GRID)                                       */}
         {/* ========================================================================= */}
+        {/* ========================================================================= */}
+        {/* LEVEL 1: COURSE LIBRARY (CARD GRID)                                       */}
+        {/* ========================================================================= */}
         {activeCourseId === null && (
           <div className="space-y-6">
             {/* Stat Cards */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <StatCard label="Total Courses" value={String(courses.length)} icon={GraduationCap} tone="primary" />
-              <StatCard label="Published" value={String(courses.filter(c => c.isActive || c.status === 'published').length)} tone="success" />
-              <StatCard label="Drafts" value={String(courses.filter(c => !c.isActive && c.status !== 'published').length)} tone="warning" />
-              <StatCard label="In Progress" value={String(courses.filter(c => (c.chapters?.length || 0) === 0).length)} tone="neutral" />
+              <StatCard label="Published / Live" value={String(courses.filter(c => c.isActive || c.status === 'published').length)} icon={CheckCircle2} tone="success" />
+              <StatCard label="Pending Approval" value={String(courses.filter(c => c.approvalStatus === 'pending').length)} icon={Clock} tone="warning" />
+              <StatCard label="Drafts & Revisions" value={String(courses.filter(c => (!c.isActive && c.status !== 'published' && c.approvalStatus !== 'pending') || c.approvalStatus === 'rejected').length)} tone="neutral" />
             </div>
 
-            {/* Header & Create Button */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Header & Filter Controls */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-bold text-foreground">Course Library</h2>
-                <p className="text-xs text-muted-foreground">Click on any course card to explore chapters, videos, and study materials.</p>
+                <p className="text-xs text-muted-foreground">Manage courses, review chapter submissions, and organize study materials.</p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 self-stretch sm:self-auto flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Central Admin Scope Filter */}
+                {role === "admin" && (
+                  <Select value={adminScopeFilter} onValueChange={setAdminScopeFilter}>
+                    <SelectTrigger className="h-9 text-xs w-[130px]">
+                      <SelectValue placeholder="All Scopes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">🌐 All Scopes</SelectItem>
+                      <SelectItem value="centre">🏛️ Centre</SelectItem>
+                      <SelectItem value="state">🗺️ State</SelectItem>
+                      <SelectItem value="chapter">📍 Chapter</SelectItem>
+                      <SelectItem value="business">💼 Business</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {/* Approval Moderation Status Filter */}
+                <Select value={adminApprovalFilter} onValueChange={setAdminApprovalFilter}>
+                  <SelectTrigger className="h-9 text-xs w-[145px]">
+                    <SelectValue placeholder="All Approvals" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">🛡️ All Approvals</SelectItem>
+                    <SelectItem value="pending">⏳ Pending Review</SelectItem>
+                    <SelectItem value="approved">✓ Approved</SelectItem>
+                    <SelectItem value="rejected">❌ Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Pricing / Access Filter */}
+                <Select value={adminFeeFilter} onValueChange={setAdminFeeFilter}>
+                  <SelectTrigger className="h-9 text-xs w-[120px]">
+                    <SelectValue placeholder="All Pricing" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Pricing</SelectItem>
+                    <SelectItem value="free">🎁 Free Only</SelectItem>
+                    <SelectItem value="paid">💳 Paid Only</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Categories & Subcategories Filter */}
                 {mainCategories.length > 0 && (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 sm:flex-initial">
+                  <>
                     <SearchableFilterSelect
                       value={adminCategoryFilter}
                       onValueChange={(val) => {
@@ -555,9 +740,9 @@ function AdminLms({ role = "admin" }) {
                       }}
                       placeholder="All Categories"
                       searchPlaceholder="Search category..."
-                      allLabel="🌐 All Categories"
+                      allLabel="All Categories"
                       options={mainCategories.map((c) => ({ value: c.name, label: c.name }))}
-                      className="h-9 text-xs w-full sm:w-[180px]"
+                      className="h-9 text-xs w-[150px]"
                     />
 
                     {adminCategoryFilter !== "all" && availableSubcategoriesForFilter.length > 0 && (
@@ -568,20 +753,24 @@ function AdminLms({ role = "admin" }) {
                         searchPlaceholder="Search subcategory..."
                         allLabel="All Subcategories"
                         options={availableSubcategoriesForFilter.map((sc) => ({ value: sc.name, label: sc.name }))}
-                        className="h-9 text-xs w-full sm:w-[180px]"
+                        className="h-9 text-xs w-[150px]"
                       />
                     )}
-                  </div>
+                  </>
                 )}
 
-                <Button onClick={handleOpenCreateModal} className="w-full sm:w-auto">
-                  <Plus className="mr-2 h-4 w-4" /> Create Course
+                <Button onClick={handleOpenCreateModal} className="h-9">
+                  <Plus className="mr-1.5 h-4 w-4" /> Create Course
                 </Button>
               </div>
             </div>
 
             {/* Courses Card Grid */}
             {courses.filter(c => {
+              if (adminFeeFilter === "free" && c.isPaid) return false;
+              if (adminFeeFilter === "paid" && !c.isPaid) return false;
+              if (adminApprovalFilter !== "all" && c.approvalStatus !== adminApprovalFilter) return false;
+              if (adminScopeFilter !== "all" && (c.scope || c.visibilityScope || "centre") !== adminScopeFilter) return false;
               if (adminCategoryFilter !== "all") {
                 if ((c.category || "").trim().toLowerCase() !== adminCategoryFilter.trim().toLowerCase()) return false;
               }
@@ -596,7 +785,9 @@ function AdminLms({ role = "admin" }) {
                 </div>
                 <h3 className="text-base font-semibold text-foreground">No Courses Found</h3>
                 <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
-                  {adminCategoryFilter !== "all" 
+                  {adminApprovalFilter !== "all"
+                    ? `No courses matching the "${adminApprovalFilter}" approval status.`
+                    : adminCategoryFilter !== "all" 
                     ? `No courses found under "${adminCategoryFilter}${adminSubcategoryFilter !== "all" ? ` → ${adminSubcategoryFilter}` : ""}".`
                     : "Click the button below to create your course, set up chapters, and upload video lectures and PDFs."}
                 </p>
@@ -608,6 +799,10 @@ function AdminLms({ role = "admin" }) {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {courses
                   .filter(c => {
+                    if (adminFeeFilter === "free" && c.isPaid) return false;
+                    if (adminFeeFilter === "paid" && !c.isPaid) return false;
+                    if (adminApprovalFilter !== "all" && c.approvalStatus !== adminApprovalFilter) return false;
+                    if (adminScopeFilter !== "all" && (c.scope || c.visibilityScope || "centre") !== adminScopeFilter) return false;
                     if (adminCategoryFilter !== "all") {
                       if ((c.category || "").trim().toLowerCase() !== adminCategoryFilter.trim().toLowerCase()) return false;
                     }
@@ -632,28 +827,56 @@ function AdminLms({ role = "admin" }) {
                     if (item.type === "pdf") pdfs++;
                   });
 
+                  const isPending = course.approvalStatus === "pending";
+                  const isRejected = course.approvalStatus === "rejected";
+                  const isApproved = course.approvalStatus === "approved";
+
                   return (
                     <div 
                       key={course._id} 
-                      className="group relative flex flex-col rounded-xl border bg-card hover:border-primary/50 hover:shadow-md transition-all duration-200 overflow-hidden"
+                      className={`group relative flex flex-col rounded-xl border bg-card hover:border-primary/50 hover:shadow-md transition-all duration-200 overflow-hidden ${isPending ? 'border-amber-500/40' : isRejected ? 'border-red-500/30' : ''}`}
                     >
                       {/* Top Bar of Card */}
-                      <div className="p-4 pb-3 flex items-center justify-between gap-2 border-b bg-muted/10">
+                      <div className="p-3.5 pb-2.5 flex items-center justify-between gap-2 border-b bg-muted/10">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="capitalize px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                          <span className="capitalize px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary">
                             {course.scope || course.visibilityScope || "Centre"}
                           </span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isPub ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning-foreground'}`}>
-                            {isPub ? 'Published' : 'Draft'}
-                          </span>
-                          {course.category && (
-                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 max-w-[130px] truncate" title={course.category}>
-                              {course.category}
+
+                          {/* Approval Status Badge */}
+                          {isPending && (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                              <Clock className="h-3 w-3" /> Pending Review
                             </span>
                           )}
-                          {course.subcategory && (
-                            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground max-w-[110px] truncate" title={course.subcategory}>
-                              {course.subcategory}
+                          {isRejected && (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30 flex items-center gap-1">
+                              <XCircle className="h-3 w-3" /> Rejected
+                            </span>
+                          )}
+                          {isApproved && (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" /> Approved
+                            </span>
+                          )}
+
+                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${isPub ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground'}`}>
+                            {isPub ? 'Live' : 'Draft'}
+                          </span>
+
+                          {course.isPaid ? (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                              💳 Paid • ₹{course.price}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                              🎁 Free
+                            </span>
+                          )}
+
+                          {course.category && (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 max-w-[120px] truncate" title={course.category}>
+                              {course.category}
                             </span>
                           )}
                         </div>
@@ -665,12 +888,33 @@ function AdminLms({ role = "admin" }) {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuContent align="end" className="w-56">
+                            {role === "admin" && isPending && (
+                              <>
+                                <DropdownMenuItem onClick={() => handleApproveCourse(course._id)} className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30">
+                                  <CheckCircle2 className="mr-2 h-4 w-4" /> Approve & Go Live
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setCourseToReject(course); setRejectionRemark(""); }} className="text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-950/30">
+                                  <XCircle className="mr-2 h-4 w-4" /> Reject Submission
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
+
+                            {isRejected && (
+                              <DropdownMenuItem onClick={() => setViewRemarkCourse(course)} className="text-amber-600 focus:text-amber-700">
+                                <FileText className="mr-2 h-4 w-4" /> View Admin Feedback
+                              </DropdownMenuItem>
+                            )}
+
                             <DropdownMenuItem onClick={() => { setActiveCourseId(course._id); setActiveChapterIdx(null); }}>
                               <Layers className="mr-2 h-4 w-4 text-primary" /> View Chapters ({chapters.length})
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleOpenEditCourse(course)}>
                               <Edit className="mr-2 h-4 w-4" /> Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenEnrollments(course)}>
+                              <Users className="mr-2 h-4 w-4 text-emerald-600" /> View Enrollments ({course.enrollments?.length || course.enrollmentCount || 0})
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => toggleCourseStatus(course)}>
                               {isPub ? (
@@ -693,19 +937,50 @@ function AdminLms({ role = "admin" }) {
                       {/* Card Body (Click drills down to Chapters) */}
                       <div 
                         onClick={() => { setActiveCourseId(course._id); setActiveChapterIdx(null); }}
-                        className="p-5 flex-1 flex flex-col justify-between cursor-pointer space-y-4"
+                        className="p-4 flex-1 flex flex-col justify-between cursor-pointer space-y-3"
                       >
                         <div className="space-y-1.5">
-                          <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                          <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                             {course.title}
                           </h3>
                           <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                             {course.description || "No overview description provided."}
                           </p>
+                          {course.createdBy?.name && (
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-0.5">
+                              <Users className="h-3 w-3 text-primary/70 shrink-0" />
+                              <span>By {course.createdBy.name}</span>
+                              <span className="capitalize text-[10px] bg-muted px-1.5 py-0.2 rounded font-medium">
+                                {course.scope}
+                              </span>
+                            </p>
+                          )}
                         </div>
 
+                        {/* Rejection Feedback Note on Card */}
+                        {isRejected && (
+                          <div 
+                            onClick={(e) => { e.stopPropagation(); setViewRemarkCourse(course); }}
+                            className="p-2.5 rounded-lg border border-red-500/25 bg-red-500/5 text-xs text-red-700 dark:text-red-400 flex items-start gap-2 hover:bg-red-500/10 transition-colors"
+                          >
+                            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
+                            <div className="min-w-0">
+                              <p className="font-semibold text-[11px]">Rejection Feedback:</p>
+                              <p className="line-clamp-2 text-[11px] text-foreground/80">{course.approvalRemark || "Review requirements."}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Non-Admin Pending Notification on Card */}
+                        {isPending && role !== "admin" && (
+                          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">Awaiting Central Admin approval before going live</span>
+                          </div>
+                        )}
+
                         {/* Stats Badges */}
-                        <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground pt-2">
+                        <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground pt-1">
                           <span className="inline-flex items-center gap-1 bg-muted px-2 py-0.5 rounded font-medium text-foreground">
                             <Layers className="h-3.5 w-3.5 text-primary" /> {chapters.length} Chapters
                           </span>
@@ -715,11 +990,39 @@ function AdminLms({ role = "admin" }) {
                           <span className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded font-medium">
                             <FileText className="h-3.5 w-3.5" /> {pdfs} PDFs
                           </span>
+                          {course.isPaid && (
+                            <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded font-medium">
+                              <Users className="h-3.5 w-3.5 text-emerald-600" /> {course.enrollments?.length || course.enrollmentCount || 0} Enrolled
+                            </span>
+                          )}
                         </div>
                       </div>
 
+                      {/* Central Admin Quick Moderation Buttons Strip */}
+                      {role === "admin" && isPending && (
+                        <div className="px-4 pb-2 pt-0 flex items-center gap-2">
+                          <Button 
+                            size="sm" 
+                            onClick={(e) => { e.stopPropagation(); handleApproveCourse(course._id); }}
+                            disabled={submittingModeration}
+                            className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                          >
+                            <Check className="h-3.5 w-3.5 mr-1" /> Approve
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={(e) => { e.stopPropagation(); setCourseToReject(course); setRejectionRemark(""); }}
+                            disabled={submittingModeration}
+                            className="flex-1 h-8 text-xs border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700 font-semibold"
+                          >
+                            <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                          </Button>
+                        </div>
+                      )}
+
                       {/* Card Footer Button */}
-                      <div className="p-4 pt-0">
+                      <div className="p-4 pt-1">
                         <Button 
                           onClick={() => { setActiveCourseId(course._id); setActiveChapterIdx(null); }}
                           variant="outline" 
@@ -1100,6 +1403,80 @@ function AdminLms({ role = "admin" }) {
                   </Select>
                 </div>
               </div>
+
+              {/* Course Pricing (Central Admin Only) / Free Policy Notice (Chapter & State Admins) */}
+              {role === "admin" ? (
+                <div className="pt-2 border-t space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <CreditCard className="h-3.5 w-3.5 text-primary" /> Course Fee & Access Type
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
+                      Central Admin Feature
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                    <div className="space-y-1">
+                      <Select 
+                        value={newIsPaid ? "paid" : "free"} 
+                        onValueChange={(val) => {
+                          const isP = val === "paid";
+                          setNewIsPaid(isP);
+                          if (!isP) setNewPrice("");
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">🎁 Free Course (Open to all members)</SelectItem>
+                          <SelectItem value="paid">💳 Paid Course (Requires payment)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {newIsPaid && (
+                      <div className="space-y-1 animate-in fade-in duration-200">
+                        <div className="relative">
+                          <IndianRupee className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                          <Input 
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={newPrice}
+                            onChange={(e) => setNewPrice(e.target.value)}
+                            placeholder="Course Price (e.g. 999)"
+                            className="h-9 text-xs pl-8 font-semibold"
+                            required={newIsPaid}
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          One-time price in INR. Learners must pay to unlock lessons.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="pt-2 border-t space-y-2">
+                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 flex items-start gap-2.5">
+                    <div className="p-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <div className="space-y-0.5 text-xs">
+                      <p className="font-semibold text-foreground flex items-center gap-1.5">
+                        <span>Free Course Policy & Central Admin Approval</span>
+                        <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
+                          Mandatory
+                        </span>
+                      </p>
+                      <p className="text-muted-foreground text-[11px] leading-relaxed">
+                        Courses created by {role === "chapter_admin" ? "Chapter" : "State"} Admins are strictly <strong>Free</strong> for all members and will be submitted for <strong>Central Admin approval</strong> before going live.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Section 2: Chapters & Content Builder */}
@@ -1300,8 +1677,18 @@ function AdminLms({ role = "admin" }) {
                 disabled={savingCourse || isUploadingStaged}
               >
                 {savingCourse ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-                <span className="sm:hidden truncate">Publish</span>
-                <span className="hidden sm:inline truncate">Create & Publish</span>
+                {role === "admin" ? (
+                  <>
+                    <span className="sm:hidden truncate">Publish</span>
+                    <span className="hidden sm:inline truncate">Create & Publish</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3.5 w-3.5 mr-1" />
+                    <span className="sm:hidden truncate">Submit</span>
+                    <span className="hidden sm:inline truncate">Submit for Approval</span>
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -1445,6 +1832,28 @@ function AdminLms({ role = "admin" }) {
               <DialogTitle>Edit Course Info</DialogTitle>
             </DialogHeader>
             <div className="py-4 space-y-3">
+              {courseToEdit?.approvalStatus === "rejected" && (
+                <div className="p-3 rounded-lg border border-red-500/25 bg-red-500/5 text-xs text-red-700 dark:text-red-400 space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+                    <span>Submission Previously Rejected</span>
+                  </div>
+                  <p className="text-[11px] text-foreground/80 pl-5 leading-relaxed">
+                    <strong>Admin Feedback:</strong> {courseToEdit?.approvalRemark || "Review requirements."}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground pl-5 pt-0.5">
+                    Saving your updates will automatically resubmit this course for Central Admin review.
+                  </p>
+                </div>
+              )}
+
+              {courseToEdit?.approvalStatus === "pending" && role !== "admin" && (
+                <div className="p-2.5 rounded-lg border border-amber-500/25 bg-amber-500/5 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <Clock className="h-4 w-4 shrink-0" />
+                  <span>This course is currently pending Central Admin approval. Updates will be reflected in the review.</span>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label>Course Title</Label>
                 <Input required value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-10" />
@@ -1499,6 +1908,57 @@ function AdminLms({ role = "admin" }) {
                   </Select>
                 </div>
               </div>
+              {/* Course Pricing (Central Admin Only) */}
+              {role === "admin" && (
+                <div className="pt-2 border-t space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <CreditCard className="h-3.5 w-3.5 text-primary" /> Course Fee & Access Type
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
+                      Central Admin
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Select 
+                        value={editIsPaid ? "paid" : "free"} 
+                        onValueChange={(val) => {
+                          const isP = val === "paid";
+                          setEditIsPaid(isP);
+                          if (!isP) setEditPrice("");
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">🎁 Free Course</SelectItem>
+                          <SelectItem value="paid">💳 Paid Course</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {editIsPaid && (
+                      <div className="space-y-1">
+                        <div className="relative">
+                          <IndianRupee className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                          <Input 
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(e.target.value)}
+                            placeholder="Price (INR)"
+                            className="h-9 text-xs pl-8 font-semibold"
+                            required={editIsPaid}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setCourseToEdit(null)}>Cancel</Button>
@@ -1526,6 +1986,249 @@ function AdminLms({ role = "admin" }) {
             <Button variant="outline" onClick={() => setCourseToDelete(null)} disabled={deletingCourse}>Cancel</Button>
             <Button variant="destructive" onClick={handleDeleteCourse} disabled={deletingCourse}>
               {deletingCourse ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Delete Course
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- MODAL: Course Enrollments (Central Admin) --- */}
+      <Dialog open={Boolean(activeEnrollmentCourse)} onOpenChange={(open) => !open && setActiveEnrollmentCourse(null)}>
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <DialogHeader className="shrink-0 border-b pb-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <DialogTitle className="text-lg flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  <span>Enrolled Learners & Transactions</span>
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Course: <span className="font-semibold text-foreground">{activeEnrollmentCourse?.title}</span>
+                  {activeEnrollmentCourse?.isPaid && (
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                      ₹{activeEnrollmentCourse?.price}
+                    </span>
+                  )}
+                </DialogDescription>
+              </div>
+
+              {role === "admin" && (
+                <Button size="sm" onClick={() => setManualEnrollOpen(true)} className="gap-1.5 text-xs h-8">
+                  <Plus className="h-3.5 w-3.5" /> Manual Enroll
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
+
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-3 shrink-0">
+            <div className="rounded-xl border bg-muted/20 p-3">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Total Enrolled</span>
+              <p className="text-xl font-bold text-foreground mt-0.5">
+                {enrollmentsData?.totalLearners ?? activeEnrollmentCourse?.enrollments?.length ?? activeEnrollmentCourse?.enrollmentCount ?? 0}
+              </p>
+            </div>
+            <div className="rounded-xl border bg-muted/20 p-3">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Course Price</span>
+              <p className="text-xl font-bold text-primary mt-0.5">
+                {activeEnrollmentCourse?.isPaid ? `₹${activeEnrollmentCourse?.price}` : "Free"}
+              </p>
+            </div>
+            <div className="rounded-xl border bg-muted/20 p-3 col-span-2 sm:col-span-1">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Gross Revenue</span>
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                ₹{(enrollmentsData?.totalRevenue ?? ((activeEnrollmentCourse?.enrollments?.length || activeEnrollmentCourse?.enrollmentCount || 0) * (activeEnrollmentCourse?.price || 0))).toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          {/* Enrolled Students Table / List */}
+          <div className="flex-1 overflow-y-auto no-scrollbar space-y-2 py-1">
+            {loadingEnrollments ? (
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : !enrollmentsData?.enrollments || enrollmentsData.enrollments.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-8 text-center bg-card">
+                <Users className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-sm font-semibold text-foreground">No Learners Enrolled Yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  When members pay or enroll in this course, their transactions and access records will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y rounded-xl border bg-card overflow-hidden">
+                {enrollmentsData.enrollments.map((enr, idx) => (
+                  <div key={enr._id || idx} className="p-3.5 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors text-xs">
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="font-bold text-foreground truncate">
+                        {enr.user?.name || enr.business?.name || "Enrolled Member"}
+                      </p>
+                      <p className="text-muted-foreground text-[11px] truncate">
+                        {enr.user?.email || "No email"} {enr.business?.name && `• ${enr.business.name}`}
+                      </p>
+                      {enr.payment?.invoiceNumber && (
+                        <p className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+                          Invoice #{enr.payment.invoiceNumber}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0 space-y-0.5">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                        {enr.payment ? `Paid ₹${enr.payment.amount}` : "Admin Enrolled"}
+                      </span>
+                      <p className="text-[10px] text-muted-foreground">
+                        {enr.enrolledAt ? new Date(enr.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Active"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="shrink-0 border-t pt-3">
+            <Button variant="outline" size="sm" onClick={() => setActiveEnrollmentCourse(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- MODAL: Manual Enroll Member (Central Admin) --- */}
+      <Dialog open={manualEnrollOpen} onOpenChange={setManualEnrollOpen}>
+        <DialogContent className="sm:max-w-[420px] no-scrollbar">
+          <form onSubmit={handleManualEnroll}>
+            <DialogHeader>
+              <DialogTitle className="text-base">Manually Enroll Learner</DialogTitle>
+              <DialogDescription className="text-xs">
+                Grant access to this course for offline payment, scholarship, or administrative comping.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4 space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">User ID or Email</Label>
+                <Input
+                  required
+                  value={manualUserId}
+                  onChange={(e) => setManualUserId(e.target.value)}
+                  placeholder="Enter User ObjectId or User ID"
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Admin Remark / Reason</Label>
+                <Input
+                  value={manualRemark}
+                  onChange={(e) => setManualRemark(e.target.value)}
+                  placeholder="e.g. Offline cash payment received / Comped"
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={() => setManualEnrollOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" disabled={submittingManualEnroll}>
+                {submittingManualEnroll ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                Enroll Learner
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- MODAL: Reject Course with Feedback (Central Admin) --- */}
+      <Dialog open={Boolean(courseToReject)} onOpenChange={(open) => !open && setCourseToReject(null)}>
+        <DialogContent className="sm:max-w-[460px] no-scrollbar">
+          <form onSubmit={handleRejectCourse}>
+            <DialogHeader>
+              <div className="flex items-center gap-2 text-destructive">
+                <XCircle className="h-5 w-5" />
+                <DialogTitle>Reject Course Submission</DialogTitle>
+              </div>
+              <DialogDescription className="text-xs pt-1">
+                Provide constructive feedback to the creator so they can revise curriculum or lessons.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4 space-y-3">
+              <div className="p-3 rounded-lg border bg-muted/20 text-xs space-y-1">
+                <p className="font-semibold text-foreground truncate">{courseToReject?.title}</p>
+                <p className="text-muted-foreground text-[11px]">
+                  Submitted by: {courseToReject?.createdBy?.name || "Member"} ({courseToReject?.scope || "chapter"} Scope)
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Feedback / Reason for Rejection</Label>
+                <Textarea 
+                  required
+                  rows={4}
+                  value={rejectionRemark}
+                  onChange={(e) => setRejectionRemark(e.target.value)}
+                  placeholder="e.g. Please add detailed descriptions for chapters and upload clear audio videos before resubmitting."
+                  className="text-xs"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={() => setCourseToReject(null)} disabled={submittingModeration}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="destructive" size="sm" disabled={submittingModeration}>
+                {submittingModeration ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                Confirm Rejection
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- MODAL: View Rejection Remark (Creator or Admin) --- */}
+      <Dialog open={Boolean(viewRemarkCourse)} onOpenChange={(open) => !open && setViewRemarkCourse(null)}>
+        <DialogContent className="sm:max-w-[460px] no-scrollbar">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="h-5 w-5" />
+              <DialogTitle className="text-base">Admin Feedback & Revision Guidance</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs">
+              Course: <span className="font-semibold text-foreground">{viewRemarkCourse?.title}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-3">
+            <div className="p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/5 text-xs space-y-2">
+              <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300 tracking-wider">
+                Feedback from Central Admin
+              </span>
+              <p className="text-foreground leading-relaxed whitespace-pre-wrap text-xs">
+                {viewRemarkCourse?.approvalRemark || "No specific feedback provided."}
+              </p>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              💡 <strong>Tip:</strong> Edit your course curriculum, upload updated videos or documents, and save your changes to automatically resubmit for Central Admin review.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setViewRemarkCourse(null)}>
+              Close
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => {
+                const c = viewRemarkCourse;
+                setViewRemarkCourse(null);
+                handleOpenEditCourse(c);
+              }}
+            >
+              <Edit className="h-3.5 w-3.5 mr-1.5" /> Edit & Resubmit
             </Button>
           </DialogFooter>
         </DialogContent>
