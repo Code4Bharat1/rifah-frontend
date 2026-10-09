@@ -14,7 +14,12 @@ export const authApi = {
   registerBusiness: (data) => apiClient("/auth/register-business", { method: "POST", body: JSON.stringify(data) }),
   getMe: () => apiClient("/auth/me"),
   logout: () => apiClient("/auth/logout", { method: "POST" }),
-  switchRole: (targetRole) => apiClient("/auth/switch-role", { method: "POST", body: JSON.stringify({ targetRole }) }),
+  switchRole: (targetRole, targetWorkspaceId = null) => {
+    const body = typeof targetRole === "object" && targetRole !== null
+      ? targetRole
+      : { targetRole, targetWorkspaceId };
+    return apiClient("/auth/switch-role", { method: "POST", body: JSON.stringify(body) });
+  },
   refreshToken: (refreshToken) => apiClient("/auth/refresh-token", { method: "POST", body: JSON.stringify({ refreshToken }) }),
   changePassword: (data) => apiClient("/auth/change-password", { method: "PATCH", body: JSON.stringify(data) }),
   forgotPassword: (email) => apiClient("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
@@ -231,6 +236,7 @@ export const paymentApi = {
   verifyPayment: (data) => apiClient("/payments/verify", { method: "POST", body: JSON.stringify(data) }),
   verifyByAdmin: (id) => apiClient(`/payments/${id}/verify-by-admin`, { method: "POST" }),
   refund: (id) => apiClient(`/payments/${id}/refund`, { method: "POST" }),
+  createAdminInvoice: (data) => apiClient("/payments/admin/create-invoice", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const invoiceApi = {
@@ -282,6 +288,15 @@ export const eventApi = {
   getGoogleMeetAuthUrl: () => apiClient("/events/google/auth-url"),
   register: (id) => apiClient(`/events/${id}/register`, { method: "POST", body: JSON.stringify({}) }),
   registerPaid: (id, data) => apiClient(`/events/${id}/register-paid`, { method: "POST", body: JSON.stringify(data) }),
+  payDelegationInstallment: (id, data) =>
+    apiClient(`/events/${id}/delegation/pay-installment`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  triggerDelegationReminders: () =>
+    apiClient("/events/delegation/trigger-reminders", {
+      method: "POST",
+    }),
   markAttendance: (id) => apiClient(`/events/${id}/attend`, { method: "POST", body: JSON.stringify({}) }),
   create: (data) => apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
@@ -529,6 +544,14 @@ export const roleApi = {
   create: (data) => apiClient("/roles", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => apiClient(`/roles/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/roles/${id}`, { method: "DELETE" }),
+};
+
+export const rolePermissionTemplateApi = {
+  getAll: (params = {}) => apiClient(`/role-permission-templates${toQueryString(params)}`),
+  getById: (id) => apiClient(`/role-permission-templates/${id}`),
+  create: (data) => apiClient("/role-permission-templates", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) => apiClient(`/role-permission-templates/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/role-permission-templates/${id}`, { method: "DELETE" }),
 };
 
 export const documentApi = {

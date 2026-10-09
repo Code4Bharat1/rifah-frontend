@@ -91,7 +91,19 @@ export function EventRegistrationsModal({ eventId, eventTitle, open, onOpenChang
                 }},
                 { key: "chapter", header: "Chapter", cell: r => r.user?.chapter || "N/A" },
                 { key: "attendance", header: "Attendance", cell: r => <Pill tone={r.attendanceStatus === "Present" ? "success" : "neutral"}>{r.attendanceStatus || "Pending"}</Pill> },
-                { key: "amount", header: "Amount", cell: r => <span className="font-semibold text-emerald-600">{r.amountPaid ? `₹${r.amountPaid}` : "Free"}</span> },
+                { key: "amount", header: "Amount / Status", cell: r => (
+                  <div>
+                    <span className="font-semibold text-emerald-600">{r.amountPaid ? `₹${r.amountPaid}` : "Free"}</span>
+                    {Array.isArray(r.installments) && r.installments.length > 0 && (
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        <span className={`font-semibold ${r.paymentStatus === "Paid" ? "text-emerald-600" : "text-amber-600"}`}>
+                          {r.paymentStatus || "Partially Paid"}
+                        </span>{" "}
+                        ({r.installments.filter(i => i.status === "Paid").length}/{r.installments.length} Inst.)
+                      </div>
+                    )}
+                  </div>
+                )},
                 { key: "date", header: "Registered At", cell: r => new Date(r.registeredAt).toLocaleString() },
               ]} />
           )}

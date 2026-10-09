@@ -151,7 +151,7 @@ const navs = {
       { label: "Notifications", to: "/admin/notifications", icon: Bell },
       { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
-      { label: "Roles", to: "/admin/roles", icon: Award },
+      { label: "Roles & RBAC", to: "/admin/roles", icon: Award },
       { label: "Settings", to: "/admin/settings", icon: Settings },
       { label: "LMS", to: "/admin/lms", icon: GraduationCap },
     ],
@@ -177,7 +177,8 @@ const roleNavs = {
       { label: "Feeds", to: "/chapter-admin/feeds", icon: Compass },
       { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
-
+      { label: "Roles & RBAC", to: "/chapter-admin/roles", icon: Award },
+      { label: "Live Event Control", to: "/chapter-admin/live-control", icon: Sparkles },
       { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
       { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
@@ -202,6 +203,7 @@ const roleNavs = {
       { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
       { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
       { label: "Events", to: "/state-admin/events", icon: CalendarDays },
+      { label: "Roles & RBAC", to: "/state-admin/roles", icon: Award },
       { label: "Notifications", to: "/state-admin/notifications", icon: Bell },
       { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
@@ -237,69 +239,125 @@ function useResolvedNav(role) {
   const { user } = useAuth();
   const pathname = usePathname();
 
-  // 1. Explicit path prefix matching (each workspace strictly owns its URL tree)
-  if (pathname?.startsWith("/chapter-admin")) {
-    return roleNavs.chapter_admin;
-  }
-  if (pathname?.startsWith("/state-admin")) {
-    return roleNavs.state_admin;
-  }
-  if (pathname?.startsWith("/admin")) {
-    return navs.admin;
-  }
-  if (pathname?.startsWith("/user")) {
-    return navs.user;
-  }
-  if (pathname?.startsWith("/customer")) {
-    return navs.customer;
-  }
-  if (pathname?.startsWith("/biz")) {
+  const getBaseNav = () => {
+    // If active in org_role workspace, route to corresponding panel nav
+    if (user?.activeWorkspace?.type === "org_role") {
+      const panel = user.activeWorkspace.panelType;
+      if (panel === "chapter-admin") return roleNavs.chapter_admin;
+      if (panel === "state-admin") return roleNavs.state_admin;
+      if (panel === "central-admin") return navs.admin;
+    }
+
+    // 1. Explicit path prefix matching (each workspace strictly owns its URL tree)
+    if (pathname?.startsWith("/chapter-admin")) {
+      return roleNavs.chapter_admin;
+    }
+    if (pathname?.startsWith("/state-admin")) {
+      return roleNavs.state_admin;
+    }
+    if (pathname?.startsWith("/admin")) {
+      return navs.admin;
+    }
+    if (pathname?.startsWith("/user")) {
+      return navs.user;
+    }
+    if (pathname?.startsWith("/customer")) {
+      return navs.customer;
+    }
+    if (pathname?.startsWith("/biz")) {
+      return navs.business;
+    }
+
+    // 2. Explicit role prop passed directly to AppShell
+    if (role === "chapter_admin" || role === "chapter") {
+      return roleNavs.chapter_admin;
+    }
+    if (role === "state_admin" || role === "state") {
+      return roleNavs.state_admin;
+    }
+    if (role === "admin" || role === "central_admin") {
+      return navs.admin;
+    }
+    if (role === "user") {
+      return navs.user;
+    }
+    if (role === "customer" || role === "buyer") {
+      return navs.customer;
+    }
+    if (role === "business" || role === "business_owner") {
+      return navs.business;
+    }
+
+    // 3. Authenticated user's persistent role / accountType
+    const userRole = user?.role;
+    const accountType = user?.accountType;
+    if (["central_admin", "super_admin", "admin", "secretariat"].includes(userRole)) {
+      return navs.admin;
+    }
+    if (userRole === "state_admin") {
+      return roleNavs.state_admin;
+    }
+    if (userRole === "chapter_admin") {
+      return roleNavs.chapter_admin;
+    }
+    if (userRole === "business_owner" || userRole === "business" || accountType === "business" || (accountType !== "user" && Boolean(user?.businessId || user?.businessSlug))) {
+      return navs.business;
+    }
+    if (accountType === "user" || Boolean(user?.subscriberTier)) {
+      return navs.user;
+    }
+    if (userRole === "customer" || userRole === "buyer" || accountType === "customer") {
+      return navs.customer;
+    }
+
     return navs.business;
+  };
+
+  const baseNav = getBaseNav();
+
+  // 4. Dynamic Sidebar Filtering for org-role members
+  if (user?.activeWorkspace?.type === "org_role") {
+    const allowedList = user.activeWorkspace.allowedNavRoutes || [];
+    const panelDefault =
+      user.activeWorkspace.panelType === "chapter-admin"
+        ? "/chapter-admin"
+        : user.activeWorkspace.panelType === "state-admin"
+        ? "/state-admin"
+        : "/admin";
+
+    // If allowedNavRoutes is empty, strictly default to the panel's root overview
+    const allowedRoutes = allowedList.length > 0 ? allowedList : [panelDefault];
+    const allowed = new Set(allowedRoutes.map((r) => (r || "").replace(/\/$/, "")));
+
+    const isItemAllowed = (item) => {
+      if (!item?.to) return false;
+      const cleanTo = item.to.replace(/\/$/, "");
+      return allowed.has(cleanTo);
+    };
+
+    const filteredMore = (baseNav.more || []).filter((item) => isItemAllowed(item));
+    const filteredPrimary = (baseNav.primary || []).filter((item) => {
+      if (!item?.to) return false;
+      if (item.label === "More") {
+        return filteredMore.length > 0;
+      }
+      return isItemAllowed(item);
+    });
+
+    let finalPrimary = [...filteredPrimary];
+    const regularPrimary = finalPrimary.filter((i) => i.label !== "More");
+    if (regularPrimary.length === 0 && filteredMore.length > 0) {
+      finalPrimary = filteredMore.slice(0, 4);
+    }
+
+    return {
+      title: user.activeWorkspace.roleName || baseNav.title,
+      primary: finalPrimary,
+      more: filteredMore,
+    };
   }
 
-  // 2. Explicit role prop passed directly to AppShell
-  if (role === "chapter_admin" || role === "chapter") {
-    return roleNavs.chapter_admin;
-  }
-  if (role === "state_admin" || role === "state") {
-    return roleNavs.state_admin;
-  }
-  if (role === "admin" || role === "central_admin") {
-    return navs.admin;
-  }
-  if (role === "user") {
-    return navs.user;
-  }
-  if (role === "customer" || role === "buyer") {
-    return navs.customer;
-  }
-  if (role === "business" || role === "business_owner") {
-    return navs.business;
-  }
-
-  // 3. Authenticated user's persistent role / accountType
-  const userRole = user?.role;
-  const accountType = user?.accountType;
-  if (["central_admin", "super_admin", "admin", "secretariat"].includes(userRole)) {
-    return navs.admin;
-  }
-  if (userRole === "state_admin") {
-    return roleNavs.state_admin;
-  }
-  if (userRole === "chapter_admin") {
-    return roleNavs.chapter_admin;
-  }
-  if (userRole === "business_owner" || userRole === "business" || accountType === "business" || (accountType !== "user" && Boolean(user?.businessId || user?.businessSlug))) {
-    return navs.business;
-  }
-  if (accountType === "user" || Boolean(user?.subscriberTier)) {
-    return navs.user;
-  }
-  if (userRole === "customer" || userRole === "buyer" || accountType === "customer") {
-    return navs.customer;
-  }
-
-  return navs.business;
+  return baseNav;
 }
 
 function toRoleAwarePath(path, role, user) {
@@ -704,7 +762,14 @@ export function AppShell({
   let finalTitle = title;
   let finalSubtitle = subtitle;
 
-  if (role === "admin" && effectiveUser?.role === "chapter_admin") {
+  if (effectiveUser?.activeWorkspace?.type === "org_role") {
+    if (title === "Central administration" || title === "Overview") {
+      finalTitle = `${effectiveUser.activeWorkspace.roleName || "Leadership"} Desk`;
+    }
+    if (subtitle === "RIFAH Central Admin · all chapters") {
+      finalSubtitle = `${effectiveUser.activeWorkspace.level || "Central"} Level Portal`;
+    }
+  } else if (role === "admin" && effectiveUser?.role === "chapter_admin") {
     if (title === "Central administration" || title === "Chapters and units" || title === "Overview") {
       finalTitle = `${effectiveUser.chapter || "Regional"} Workspace`;
     }
@@ -865,7 +930,18 @@ export function AppShell({
               </span>
             </Link>
           )}
-          {effectiveUser?.role === "central_admin" && (
+          {effectiveUser?.activeWorkspace?.type === "org_role" ? (
+            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/30">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-bold text-primary uppercase tracking-wider">
+                  {effectiveUser.activeWorkspace.roleName || "LEADERSHIP"}
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold uppercase truncate max-w-[120px]">
+                  {effectiveUser.activeWorkspace.level ? `${effectiveUser.activeWorkspace.level} LEVEL` : "ORGANIZATION"}
+                </span>
+              </div>
+            </div>
+          ) : effectiveUser?.role === "central_admin" ? (
             <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="font-bold text-blue-500 uppercase tracking-wider">CENTRAL ADMIN</span>
@@ -874,7 +950,7 @@ export function AppShell({
                 </span>
               </div>
             </div>
-          )}
+          ) : null}
           {effectiveUser?.role === "state_admin" && (
             <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
               <div className="flex items-center justify-between text-[10px]">
@@ -915,6 +991,7 @@ export function AppShell({
               </div>
             </div>
           )}
+<<<<<<< Updated upstream
           {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
             <button
               onClick={async () => {
@@ -967,6 +1044,128 @@ export function AppShell({
               <RotateCcw className="h-[18px] w-[18px] shrink-0" />
               <span>Switch to Business Panel</span>
             </button>
+=======
+          {/* Multi-workspace / Org-role switcher */}
+          {effectiveUser?.availableWorkspaces && effectiveUser.availableWorkspaces.length > 1 ? (
+            <div className="mb-2 rounded-xl bg-sidebar-accent/50 p-2 border border-sidebar-border">
+              <div className="px-1.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                <span>Switch Workspace</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
+                  {effectiveUser.availableWorkspaces.length} Panels
+                </span>
+              </div>
+              <div className="space-y-1">
+                {effectiveUser.availableWorkspaces.map((ws) => {
+                  const isCurrentActive = ws.type === "org_role"
+                    ? effectiveUser.activeWorkspace?.workspaceId === ws.workspaceId
+                    : (!effectiveUser.activeWorkspace || effectiveUser.activeWorkspace.type !== "org_role") &&
+                      (effectiveUser.role === ws.workspaceId || (ws.workspaceId === "business_owner" && (effectiveUser.role === "business_owner" || effectiveUser.role === "business")));
+
+                  return (
+                    <button
+                      key={ws.workspaceId || ws.roleName}
+                      disabled={isCurrentActive}
+                      onClick={async () => {
+                        if (isCurrentActive) return;
+                        try {
+                          if (ws.type === "org_role") {
+                            await switchRole(ws.panelType || "chapter-admin", ws.workspaceId);
+                            const allowedDest = ws.allowedNavRoutes?.[0];
+                            if (ws.panelType === "chapter-admin") router.push(allowedDest || "/chapter-admin");
+                            else if (ws.panelType === "state-admin") router.push(allowedDest || "/state-admin");
+                            else router.push(allowedDest || "/admin");
+                          } else {
+                            await switchRole(ws.workspaceId);
+                            if (ws.workspaceId === "central_admin") router.push("/admin");
+                            else if (ws.workspaceId === "state_admin") router.push("/state-admin");
+                            else if (ws.workspaceId === "chapter_admin") router.push("/chapter-admin");
+                            else router.push("/biz");
+                          }
+                        } catch (err) {
+                          toast.error(err.message || "Failed to switch workspace");
+                        }
+                      }}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all text-left",
+                        isCurrentActive
+                          ? "bg-primary text-primary-foreground shadow-xs font-bold cursor-default"
+                          : "text-sidebar-foreground/80 hover:bg-muted hover:text-foreground active:scale-[0.98]"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <RotateCcw className={cn("h-3.5 w-3.5 shrink-0", isCurrentActive ? "opacity-100" : "opacity-50")} />
+                        <span className="truncate">{ws.roleName}</span>
+                      </div>
+                      {isCurrentActive ? (
+                        <span className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />
+                      ) : (
+                        ws.level && (
+                          <span className="text-[9px] px-1 py-0.5 rounded bg-muted font-bold text-muted-foreground uppercase shrink-0">
+                            {ws.level}
+                          </span>
+                        )
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <>
+              {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const targetRole = effectiveUser.previousRole;
+                      await switchRole(targetRole);
+                      if (targetRole === "central_admin") {
+                        router.push("/admin");
+                      } else if (targetRole === "state_admin") {
+                        router.push("/state-admin");
+                      } else if (targetRole === "chapter_admin") {
+                        router.push("/chapter-admin");
+                      } else if (targetRole === "business_owner") {
+                        router.push("/biz");
+                      } else {
+                        router.push("/biz");
+                      }
+                    } catch (err) {
+                      toast.error(err.message || "Failed to switch role");
+                    }
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
+                >
+                  <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+                  <span>
+                    {effectiveUser.previousRole === "central_admin"
+                      ? "Switch to Admin Panel"
+                      : effectiveUser.previousRole === "state_admin"
+                        ? "Switch to State Admin Panel"
+                        : effectiveUser.previousRole === "chapter_admin"
+                          ? "Switch to Chapter Admin Panel"
+                          : "Switch to Business Panel"}
+                  </span>
+                </button>
+              )}
+              {/* Show switch-to-business for admins who have a business but haven't switched yet */}
+              {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await switchRole("business_owner");
+                      router.push("/biz");
+                    } catch (err) {
+                      toast.error(err.message || "Failed to switch role");
+                    }
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-amber-500/10 hover:text-amber-500 mb-1"
+                >
+                  <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+                  <span>Switch to Business Panel</span>
+                </button>
+              )}
+            </>
+>>>>>>> Stashed changes
           )}
           <button
             onClick={handleLogout}
@@ -1580,30 +1779,99 @@ export function MoreSheet({ role, isBizVerified = true }) {
             );
           })}
           <div className="mt-4 border-t border-border pt-3">
-            {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
-              <button
-                type="button"
-                onClick={handleSwitchBack}
-                className="flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-primary hover:bg-primary/10"
-              >
-                <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-                <span>{switchBackLabel}</span>
-              </button>
-            )}
-            {/* Show switch-to-business for admins who have a business but haven't switched yet */}
-            {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
-              <button
-                type="button"
-                onClick={async () => {
-                  await switchRole("business_owner");
-                  setOpen(false);
-                  router.push("/biz");
-                }}
-                className="flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-amber-600 hover:bg-amber-500/10"
-              >
-                <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-                <span>Switch to Business Panel</span>
-              </button>
+            {effectiveUser?.availableWorkspaces && effectiveUser.availableWorkspaces.length > 1 ? (
+              <div className="mb-3 rounded-xl bg-muted/40 p-2 border border-border">
+                <div className="px-1.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                  <span>Switch Workspace</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
+                    {effectiveUser.availableWorkspaces.length} Panels
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {effectiveUser.availableWorkspaces.map((ws) => {
+                    const isCurrentActive = ws.type === "org_role"
+                      ? effectiveUser.activeWorkspace?.workspaceId === ws.workspaceId
+                      : (!effectiveUser.activeWorkspace || effectiveUser.activeWorkspace.type !== "org_role") &&
+                        (effectiveUser.role === ws.workspaceId || (ws.workspaceId === "business_owner" && (effectiveUser.role === "business_owner" || effectiveUser.role === "business")));
+
+                    return (
+                      <button
+                        key={ws.workspaceId || ws.roleName}
+                        disabled={isCurrentActive}
+                        onClick={async () => {
+                          if (isCurrentActive) return;
+                          try {
+                            setOpen(false);
+                            if (ws.type === "org_role") {
+                              await switchRole(ws.panelType || "chapter-admin", ws.workspaceId);
+                              const allowedDest = ws.allowedNavRoutes?.[0];
+                              if (ws.panelType === "chapter-admin") router.push(allowedDest || "/chapter-admin");
+                              else if (ws.panelType === "state-admin") router.push(allowedDest || "/state-admin");
+                              else router.push(allowedDest || "/admin");
+                            } else {
+                              await switchRole(ws.workspaceId);
+                              if (ws.workspaceId === "central_admin") router.push("/admin");
+                              else if (ws.workspaceId === "state_admin") router.push("/state-admin");
+                              else if (ws.workspaceId === "chapter_admin") router.push("/chapter-admin");
+                              else router.push("/biz");
+                            }
+                          } catch (err) {
+                            toast.error(err.message || "Failed to switch workspace");
+                          }
+                        }}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold transition-all text-left",
+                          isCurrentActive
+                            ? "bg-primary text-primary-foreground font-bold"
+                            : "text-foreground/80 hover:bg-muted"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <RotateCcw className={cn("h-3.5 w-3.5 shrink-0", isCurrentActive ? "opacity-100" : "opacity-50")} />
+                          <span className="truncate">{ws.roleName}</span>
+                        </div>
+                        {isCurrentActive ? (
+                          <span className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />
+                        ) : (
+                          ws.level && (
+                            <span className="text-[9px] px-1 py-0.5 rounded bg-muted-foreground/10 text-muted-foreground uppercase shrink-0">
+                              {ws.level}
+                            </span>
+                          )
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <>
+                {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
+                  <button
+                    type="button"
+                    onClick={handleSwitchBack}
+                    className="flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-primary hover:bg-primary/10"
+                  >
+                    <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+                    <span>{switchBackLabel}</span>
+                  </button>
+                )}
+                {/* Show switch-to-business for admins who have a business but haven't switched yet */}
+                {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await switchRole("business_owner");
+                      setOpen(false);
+                      router.push("/biz");
+                    }}
+                    className="flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-amber-600 hover:bg-amber-500/10"
+                  >
+                    <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+                    <span>Switch to Business Panel</span>
+                  </button>
+                )}
+              </>
             )}
             <Link href="/" className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted">
               Public website

@@ -58,7 +58,7 @@ const adminModules = [
   { label: "Notifications", to: "/admin/notifications", icon: Bell },
   { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
   { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
-  { label: "Roles", to: "/admin/roles", icon: ShieldCheck },
+  { label: "Roles & RBAC", to: "/admin/roles", icon: ShieldCheck },
   { label: "LMS", to: "/admin/lms", icon: GraduationCap },
 ];
 
@@ -71,6 +71,7 @@ const stateAdminModules = [
   { label: "Business Analytics", to: "/state-admin/networking-analytics", icon: TrendingUp },
   { label: "Enquiries", to: "/state-admin/enquiries", icon: FileStack },
   { label: "Events", to: "/state-admin/events", icon: CalendarDays },
+  { label: "Roles & RBAC", to: "/state-admin/roles", icon: ShieldCheck },
   { label: "Notifications", to: "/state-admin/notifications", icon: Bell },
   { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
   { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
@@ -86,6 +87,7 @@ const chapterAdminModules = [
   { label: "Feeds", to: "/chapter-admin/feeds", icon: Compass },
   { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
   { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
+  { label: "Roles & RBAC", to: "/chapter-admin/roles", icon: ShieldCheck },
   { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
   { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
   { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },

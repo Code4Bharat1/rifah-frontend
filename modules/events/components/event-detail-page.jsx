@@ -1,7 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+<<<<<<< Updated upstream
 import { ArrowLeft, CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users, Video, Download } from "lucide-react";
+=======
+import { ArrowLeft, CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users, Video, Plane, FileText, Download, AlertTriangle, Send, Bell, Loader2, CreditCard } from "lucide-react";
+>>>>>>> Stashed changes
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -30,6 +34,7 @@ import { eventApi, paymentApi, authApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { EventShareModal } from "@shared/components/rifah/event-share-modal";
 import { getEventStatus, getEventStatusConfig, parseEventTiming, formatEventDate } from "@shared/lib/event-utils";
+import { downloadInvoicePdf } from "@shared/lib/invoice-generator";
 
 function EventDetail() {
   const params = useParams();
@@ -45,6 +50,8 @@ function EventDetail() {
   const [registered, setRegistered] = useState(false);
   const [registering, setRegistering] = useState(false);
   const [emailExistsPopup, setEmailExistsPopup] = useState(false);
+  const [payingInstallment, setPayingInstallment] = useState(null);
+  const [triggeringReminders, setTriggeringReminders] = useState(false);
 
   const userRegistration = user?._id && Array.isArray(event?.registeredUsers) 
     ? event.registeredUsers.find(u => String(u?.user?._id || u?.user || u?._id || u) === String(user._id)) 
@@ -315,6 +322,152 @@ const loadRazorpayScript = () => {
     }
   };
 
+  const handlePayInstallment = async (inst) => {
+    if (!user) {
+      toast.info("Please log in to make your delegation installment payment.");
+      return;
+    }
+    setPayingInstallment(inst.installmentNumber);
+    try {
+      const res = await loadRazorpayScript();
+      const totalAmt = Number(inst.totalAmount) || Math.round(Number(inst.baseAmount) * 1.07 * 100) / 100;
+
+      if (!res) {
+        // Fallback direct confirmation if Razorpay script is blocked or offline
+        const payRes = await eventApi.payDelegationInstallment(event?._id, {
+          installmentNumber: inst.installmentNumber,
+          paymentMethod: "Bank Transfer",
+          transactionId: `TXN-OFFLINE-${Date.now()}`,
+        });
+        toast.success(`Installment #${inst.installmentNumber} paid successfully! Tax Invoice generated.`, { duration: 5000 });
+        queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+        queryClient.invalidateQueries({ queryKey: ["all-payments"] });
+        const createdPayment = payRes?.data?.payment || payRes?.payment;
+        if (createdPayment) {
+          await downloadInvoicePdf(createdPayment);
+        }
+        return;
+      }
+
+      // Create Razorpay Order
+      let orderId = "";
+      try {
+        const orderRes = await paymentApi.createOrder({
+          amount: totalAmt,
+          currency: "INR",
+          notes: {
+            eventId: event?._id,
+            installmentNumber: inst.installmentNumber,
+            purpose: `Delegation Installment #${inst.installmentNumber}`,
+          },
+        });
+        const orderData = orderRes?.data || orderRes;
+        orderId = orderData?.id || "";
+      } catch (err) {
+        console.warn("Could not create Razorpay order on server, will proceed with standard client options:", err);
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
+        amount: Math.round(totalAmt * 100),
+        currency: "INR",
+        name: "RIFAH Chamber of Commerce",
+        description: `Installment #${inst.installmentNumber}: ${inst.title}`,
+        order_id: orderId || undefined,
+        handler: async function (response) {
+          try {
+            const payRes = await eventApi.payDelegationInstallment(event?._id, {
+              installmentNumber: inst.installmentNumber,
+              paymentMethod: "Razorpay",
+              transactionId: response.razorpay_payment_id || response.razorpay_order_id,
+            });
+
+            toast.success(`Installment #${inst.installmentNumber} Paid! Official Tax Invoice generated.`, { duration: 5000 });
+            queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+            queryClient.invalidateQueries({ queryKey: ["events"] });
+            queryClient.invalidateQueries({ queryKey: ["all-payments"] });
+
+            const createdPayment = payRes?.data?.payment || payRes?.payment;
+            if (createdPayment) {
+              await downloadInvoicePdf(createdPayment);
+            }
+          } catch (payErr) {
+            console.error("Installment confirmation error:", payErr);
+            toast.error(payErr.message || "Payment processed but failed to update status.");
+          } finally {
+            setPayingInstallment(null);
+          }
+        },
+        prefill: {
+          name: user.name || "",
+          email: user.email || "",
+          contact: user.phone || "",
+        },
+        theme: { color: "#0088d1" },
+        modal: {
+          ondismiss: () => setPayingInstallment(null),
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", () => {
+        toast.error("Payment failed. Please try again.");
+        setPayingInstallment(null);
+      });
+      rzp.open();
+    } catch (err) {
+      console.error("Payment setup error:", err);
+      toast.error(err.message || "Failed to process installment payment.");
+      setPayingInstallment(null);
+    }
+  };
+
+  const handleDownloadInstallmentInvoice = async (inst) => {
+    try {
+      toast.info("Generating Delegation Tax Invoice PDF...");
+      const paymentData = {
+        invoiceNumber: inst.invoiceNumber,
+        amount: inst.totalAmount,
+        subtotal: inst.baseAmount,
+        gstRate: 5,
+        gstAmount: inst.gstAmount,
+        tcsRate: 2,
+        tcsAmount: inst.tcsAmount,
+        isDelegationPayment: true,
+        installmentNumber: inst.installmentNumber,
+        installmentTitle: inst.title,
+        itemType: "Delegation Installment",
+        description: `${event?.title} - ${inst.title} (Installment #${inst.installmentNumber})`,
+        paidAt: inst.paidAt || Date.now(),
+        status: "Paid",
+        method: inst.method || "Razorpay / Bank Transfer",
+        transactionId: inst.paymentId || `TXN-DEL-${inst.invoiceNumber}`,
+        payerName: user?.name || "Delegate",
+        payerEmail: user?.email || "",
+        payerPhone: user?.phone || "",
+        chapter: event?.chapter || "Central",
+      };
+      await downloadInvoicePdf(paymentData);
+      toast.success(`Tax Invoice #${inst.invoiceNumber} downloaded!`);
+    } catch (e) {
+      console.error("Download invoice error:", e);
+      toast.error("Failed to generate invoice PDF.");
+    }
+  };
+
+  const handleTriggerReminders = async () => {
+    setTriggeringReminders(true);
+    try {
+      await eventApi.triggerDelegationReminders();
+      toast.success("Delegation installment reminders scanned & automated emails dispatched!");
+    } catch (err) {
+      toast.error(err.message || "Failed to trigger reminders.");
+    } finally {
+      setTriggeringReminders(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <PublicLayout>
@@ -435,6 +588,126 @@ const loadRazorpayScript = () => {
               </dl>
             </div>
 
+            {/* Overseas Business Delegation Itinerary & Installments */}
+            {(event.eventCategory === "Delegation" || event.isDelegation) && (
+              <div className="rounded-2xl border border-sky-500/30 bg-gradient-to-br from-sky-500/5 via-surface to-muted/20 p-5 sm:p-6 shadow-sm space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                      <Plane className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                        RIFAH Global Business Delegation
+                        <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30">
+                          Official Delegation
+                        </span>
+                      </h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Trade Mission, B2B Networking & Overseas Industry Exposure
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-xs text-sky-700 dark:text-sky-300 font-semibold bg-sky-500/10 border border-sky-500/20 px-3 py-1 rounded-lg">
+                    5% GST + 2% TCS Applicable (Sec 206C)
+                  </div>
+                </div>
+
+                {/* Highlights / Logistics Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                  {event.delegationDetails?.destination && (
+                    <div className="p-3 bg-surface rounded-xl border border-border">
+                      <div className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">Destination</div>
+                      <div className="font-bold text-foreground text-sm mt-1">
+                        {event.delegationDetails.destination}{event.delegationDetails.country ? `, ${event.delegationDetails.country}` : ""}
+                      </div>
+                    </div>
+                  )}
+                  {event.delegationDetails?.travelDates && (
+                    <div className="p-3 bg-surface rounded-xl border border-border">
+                      <div className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">Travel Dates</div>
+                      <div className="font-bold text-foreground text-sm mt-1">{event.delegationDetails.travelDates}</div>
+                    </div>
+                  )}
+                  {event.delegationDetails?.visaGuidelines && (
+                    <div className="p-3 bg-surface rounded-xl border border-border">
+                      <div className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">Visa Guidelines</div>
+                      <div className="font-medium text-foreground mt-1">{event.delegationDetails.visaGuidelines}</div>
+                    </div>
+                  )}
+                </div>
+
+                {event.delegationDetails?.inclusions && (
+                  <div className="p-3.5 bg-surface rounded-xl border border-border text-xs">
+                    <span className="font-bold text-foreground">Package Inclusions: </span>
+                    <span className="text-muted-foreground">{event.delegationDetails.inclusions}</span>
+                  </div>
+                )}
+
+                {/* Installment Milestone Schedule */}
+                {Array.isArray(event.delegationInstallments) && event.delegationInstallments.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-foreground">Delegation Installment Schedule</h3>
+                      <span className="text-[11px] text-muted-foreground">Milestone payment schedule</span>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-[10px] tracking-wider font-bold">
+                          <tr>
+                            <th className="py-2.5 px-3">Milestone</th>
+                            <th className="py-2.5 px-3">Due Date</th>
+                            <th className="py-2.5 px-3 text-right">Member Base</th>
+                            <th className="py-2.5 px-3 text-right">Non-Member Base</th>
+                            <th className="py-2.5 px-3 text-right">Taxes (5% GST + 2% TCS)</th>
+                            <th className="py-2.5 px-3 text-right font-black text-foreground">Total (Member / Non-Member)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/60">
+                          {event.delegationInstallments.map((inst, idx) => {
+                            const mBase = Number(inst.memberAmount) || 0;
+                            const mTax = Math.round(mBase * 0.07 * 100) / 100;
+                            const mTot = Math.round((mBase + mTax) * 100) / 100;
+
+                            const nmBase = Number(inst.nonMemberAmount) || 0;
+                            const nmTax = Math.round(nmBase * 0.07 * 100) / 100;
+                            const nmTot = Math.round((nmBase + nmTax) * 100) / 100;
+
+                            return (
+                              <tr key={idx} className="hover:bg-muted/20">
+                                <td className="py-2.5 px-3 font-semibold text-foreground">
+                                  #{inst.installmentNumber || idx + 1}: {inst.title}
+                                  {inst.notes && <div className="text-[10px] text-muted-foreground font-normal mt-0.5">{inst.notes}</div>}
+                                </td>
+                                <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                                  {inst.dueDate ? formatEventDate(inst.dueDate) : "TBA"}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-semibold text-emerald-600">
+                                  ₹{mBase.toLocaleString("en-IN")}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-semibold text-blue-600">
+                                  ₹{nmBase.toLocaleString("en-IN")}
+                                </td>
+                                <td className="py-2.5 px-3 text-right text-muted-foreground whitespace-nowrap">
+                                  5% GST + 2% TCS
+                                </td>
+                                <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                                  <span className="font-bold text-emerald-700 dark:text-emerald-300">₹{mTot.toLocaleString("en-IN")}</span>
+                                  <span className="text-muted-foreground mx-1">/</span>
+                                  <span className="font-bold text-blue-700 dark:text-blue-300">₹{nmTot.toLocaleString("en-IN")}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Full Description & Agenda */}
             {(event.description || event.summary) && (
               <div className="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
@@ -538,6 +811,28 @@ const loadRazorpayScript = () => {
                       Open in Admin Panel
                     </Link>
                   </Button>
+                  {["central_admin", "super_admin", "admin"].includes(user?.role) && (event.eventCategory === "Delegation" || event.isDelegation) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={triggeringReminders}
+                      onClick={handleTriggerReminders}
+                      className="w-full text-xs font-semibold gap-1.5 border-sky-500/30 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/30"
+                    >
+                      {triggeringReminders ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Scanning Reminders...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bell className="h-3.5 w-3.5 text-sky-600" />
+                          <span>Trigger Reminder Notifications</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </Panel>
             )}
@@ -669,6 +964,101 @@ const loadRazorpayScript = () => {
                     </div>
                   </div>
 
+                  {/* User's Delegation Installments Tracker */}
+                  {(event.eventCategory === "Delegation" || event.isDelegation) && Array.isArray(userRegistration?.installments) && userRegistration.installments.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-emerald-500/20 text-left space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                          Delegation Installments & Invoices
+                        </h4>
+                        <span className="text-[10px] font-semibold text-muted-foreground">
+                          {userRegistration.installments.filter(i => i.status === "Paid").length} / {userRegistration.installments.length} Paid
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {userRegistration.installments.map((inst, i) => {
+                          const isPaid = inst.status === "Paid";
+                          const isOverdue = !isPaid && inst.dueDate && new Date(inst.dueDate) < new Date();
+                          const tot = inst.totalAmount || Math.round(Number(inst.baseAmount) * 1.07 * 100) / 100;
+
+                          return (
+                            <div
+                              key={i}
+                              className={`p-3 rounded-xl border text-xs space-y-2 transition-all ${
+                                isPaid
+                                  ? "bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-500/30"
+                                  : isOverdue
+                                  ? "bg-rose-50/70 dark:bg-rose-950/20 border-rose-500/30"
+                                  : "bg-amber-50/60 dark:bg-amber-950/20 border-amber-500/30"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="font-bold text-foreground">
+                                  #{inst.installmentNumber}: {inst.title}
+                                </div>
+                                <span
+                                  className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                                    isPaid
+                                      ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                                      : isOverdue
+                                      ? "bg-rose-500/20 text-rose-700 dark:text-rose-300"
+                                      : "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                                  }`}
+                                >
+                                  {isPaid ? "✓ Paid" : isOverdue ? "Overdue" : "Pending"}
+                                </span>
+                              </div>
+
+                              <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                                <span>Due: {inst.dueDate ? formatEventDate(inst.dueDate) : "N/A"}</span>
+                                <span className="font-bold text-foreground">
+                                  ₹{tot.toLocaleString("en-IN")}{" "}
+                                  <span className="font-normal text-[10px] text-muted-foreground">(5% GST + 2% TCS incl.)</span>
+                                </span>
+                              </div>
+
+                              <div className="pt-1.5 border-t border-border/40 flex justify-end gap-2">
+                                {isPaid ? (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDownloadInstallmentInvoice(inst)}
+                                    className="h-7 text-xs font-semibold gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                                  >
+                                    <FileText className="h-3 w-3" />
+                                    <span>Invoice #{inst.invoiceNumber || "View"}</span>
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    disabled={payingInstallment === inst.installmentNumber}
+                                    onClick={() => handlePayInstallment(inst)}
+                                    className="h-7 text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
+                                  >
+                                    {payingInstallment === inst.installmentNumber ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        <span>Processing...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CreditCard className="h-3 w-3" />
+                                        <span>Pay ₹{tot.toLocaleString("en-IN")}</span>
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {event.meetingLink && (
                     <div className="mt-4 pt-4 border-t border-emerald-500/20 text-center">
                       {getEventStatus(event) === "Ended" ? (
@@ -721,6 +1111,7 @@ const loadRazorpayScript = () => {
               ) : isEligibleToRegister ? (
                 <div className="space-y-5">
                   <div className="flex flex-col border-b border-border pb-4 gap-3">
+<<<<<<< Updated upstream
                     {isEventPaid ? (
                       <div className="space-y-2">
                         <div className="flex justify-between items-end">
@@ -742,6 +1133,35 @@ const loadRazorpayScript = () => {
                               (₹{guestBase} + 18% GST)
                             </p>
                           </div>
+=======
+                    {(event.eventCategory === "Delegation" || event.isDelegation) ? (
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-end">
+                          <div>
+                            <p className="text-xs font-bold text-sky-600 uppercase tracking-wider mb-0.5">Member Delegation</p>
+                            <p className="text-2xl font-extrabold tracking-tight text-foreground">
+                              ₹{memberPrice} <span className="text-xs font-normal text-muted-foreground">+7% Tax</span>
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Guest Delegation</p>
+                            <p className="text-xl font-bold tracking-tight text-muted-foreground">
+                              ₹{guestPrice} <span className="text-xs font-normal text-muted-foreground">+7% Tax</span>
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground bg-sky-500/10 p-2 rounded-lg border border-sky-500/20">
+                          Payable via milestone installments. Each installment includes <strong>5% GST</strong> and <strong>2% TCS</strong> (Sec 206C) with official tax invoice.
+                        </p>
+                      </div>
+                    ) : isEventPaid ? (
+                      <div className="flex justify-between items-end">
+                        <div>
+                          <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Member Price</p>
+                          <p className="text-2xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">
+                            ₹{memberPrice}
+                          </p>
+>>>>>>> Stashed changes
                         </div>
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-md border border-border/50">
                           <span className="font-semibold text-foreground">Note:</span>

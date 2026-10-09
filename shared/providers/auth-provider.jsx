@@ -119,7 +119,8 @@ export function AuthProvider({ children }) {
       ...loggedInUser, 
       requirePasswordReset: loggedInUser?.forcePasswordChange || payload.requirePasswordReset,
       requiresRoleSelection: payload.requiresRoleSelection,
-      availableRoles: payload.availableRoles 
+      availableRoles: payload.availableRoles,
+      availableWorkspaces: payload.availableWorkspaces,
     };
   };
 
@@ -272,8 +273,10 @@ export function AuthProvider({ children }) {
         role: user?.role || "guest",
         requiresRoleSelection: user?.requiresRoleSelection,
         availableRoles: user?.availableRoles,
-        switchRole: async (targetRole) => {
-          const res = await authApi.switchRole(targetRole);
+        availableWorkspaces: user?.availableWorkspaces,
+        activeWorkspace: user?.activeWorkspace,
+        switchRole: async (targetRole, targetWorkspaceId = null) => {
+          const res = await authApi.switchRole(targetRole, targetWorkspaceId);
           const payload = res.data || res;
           const loggedInUser = payload.user;
           const accessToken = payload.accessToken || payload.tokens?.accessToken;
@@ -289,7 +292,7 @@ export function AuthProvider({ children }) {
             queryClient.clear();
             await queryClient.invalidateQueries();
           } catch (e) {}
-          // Return user with businessId/businessSlug if admin switched to business_owner
+          // Return user with businessId/businessSlug or activeWorkspace
           return loggedInUser;
         }
       }}

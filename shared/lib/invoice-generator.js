@@ -25,6 +25,7 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
   const currSymbol = isUsd ? "$" : "₹";
   const currSuffix = isUsd ? " USD" : "";
   const locale = isUsd ? "en-US" : "en-IN";
+<<<<<<< Updated upstream
 
   const totalAmount = Number(payment.amount) || 0;
   const subtotal =
@@ -36,10 +37,36 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
   const formattedAmt = `${currSymbol}${totalAmount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${currSuffix}`;
   const formattedSubtotal = `${currSymbol}${subtotal.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${currSuffix}`;
   const formattedGst = `${currSymbol}${gstAmount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${currSuffix}`;
+=======
+  
+  const isDelegation = Boolean(
+    payment.isDelegationPayment ||
+    Number(payment.tcsAmount) > 0 ||
+    Number(payment.tcsRate) > 0 ||
+    (payment.itemType && String(payment.itemType).toLowerCase().includes("delegation"))
+  );
+  
+  const totalAmount = Number(payment.amount) || 0;
+  const subtotal = Number(payment.subtotal) || (payment.gstAmount ? totalAmount - Number(payment.gstAmount) - (Number(payment.tcsAmount) || 0) : Math.round(totalAmount / 1.18));
+  const gstRate = payment.gstRate !== undefined ? payment.gstRate : (isDelegation ? 5 : 18);
+  const gstAmount = Number(payment.gstAmount) !== undefined && payment.gstAmount !== null
+    ? Number(payment.gstAmount)
+    : (isDelegation ? Math.round(subtotal * 0.05 * 100) / 100 : (totalAmount - subtotal));
+  const tcsRate = isDelegation ? (payment.tcsRate !== undefined ? payment.tcsRate : 2) : (Number(payment.tcsRate) || 0);
+  const tcsAmount = isDelegation
+    ? (payment.tcsAmount !== undefined && payment.tcsAmount !== null ? Number(payment.tcsAmount) : Math.round(subtotal * 0.02 * 100) / 100)
+    : 0;
+
+  const formattedAmt = `${currSymbol} ${totalAmount.toLocaleString(locale)}${currSuffix}`;
+  const formattedSubtotal = `${currSymbol} ${subtotal.toLocaleString(locale)}${currSuffix}`;
+  const formattedGst = `${currSymbol} ${gstAmount.toLocaleString(locale)}${currSuffix}`;
+  const formattedTcs = `${currSymbol} ${tcsAmount.toLocaleString(locale)}${currSuffix}`;
+>>>>>>> Stashed changes
 
   const origin = typeof window !== "undefined" ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || "https://rifah.nexcorealliance.com");
   const logoUrl = `${origin}/rifah-logo.png`;
 
+<<<<<<< Updated upstream
   const payerName =
     business?.name ||
     payment.business?.name ||
@@ -67,6 +94,21 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
   const issueDateObj = new Date(payment.paidAt || payment.createdAt || Date.now());
   const formattedDate = issueDateObj.toLocaleDateString("en-GB", {
     day: "2-digit",
+=======
+  const payerName = payment.payerName || payment.payer?.name || business?.contactPerson || business?.name || "Direct Client / Member";
+  const payerEmail = payment.payerEmail || payment.payer?.email || business?.email || "";
+  const payerPhone = payment.payerPhone || payment.payer?.phone || business?.phone || "";
+  const businessName = payment.businessName || business?.name || payment.business?.name || "";
+  const location = payment.location || (business?.city ? `${business.city}${business.state ? `, ${business.state}` : ""}` : (payment.chapter ? `${payment.chapter}${payment.state ? `, ${payment.state}` : ""}` : ""));
+  const membershipId = business?.membershipId || payment.business?.membershipId || "";
+  const gstin = payment.gstin || business?.gstin || "";
+  const invoiceNum = payment.invoiceNumber || `INV-${String(payment._id || "").slice(-6).toUpperCase() || "0000"}`;
+  const sacCode = payment.sacCode || "9983";
+  const quantity = payment.quantity || 1;
+  const itemDescriptionSubtext = payment.notes || (isDelegation ? "Official Overseas Business Delegation installment payment under Section 206C (Includes 5% GST & 2% TCS)." : payment.isCustomInvoice ? "Official chamber accredited deliverables & verified transaction record." : "Full chamber access, directory listing, event credentials and business networking desk.");
+  const issueDate = new Date(payment.paidAt || payment.createdAt || Date.now()).toLocaleDateString(locale, {
+    day: "numeric",
+>>>>>>> Stashed changes
     month: "short",
     year: "numeric",
   });
@@ -197,6 +239,7 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
             box-sizing: border-box;
           }
           
+<<<<<<< Updated upstream
           /* Main content fills available height and distributes spacing gracefully */
           .main-content {
             padding: 34px 44px 0 44px;
@@ -240,6 +283,27 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
             font-weight: 500;
             margin-top: 4px;
           }
+=======
+          .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+          .info-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 18px; }
+          .info-card-header { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #0088d1; margin-bottom: 8px; letter-spacing: 1px; }
+          .buyer-name { font-weight: 800; font-size: 15px; color: #0f172a; }
+          .buyer-biz { font-size: 13px; font-weight: 600; color: #334155; margin-top: 2px; }
+          .buyer-detail { font-size: 12px; color: #64748b; margin-top: 2px; }
+          
+          .table-container { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; }
+          thead tr { background: #0b1f33; color: #fff; }
+          th { font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 11px 16px; text-align: left; letter-spacing: 0.8px; }
+          td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+          .total-box { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-bottom: 24px; }
+          .subtotal-line { width: 280px; display: flex; justify-content: space-between; font-size: 13px; color: #64748b; }
+          .total-line { width: 280px; display: flex; justify-content: space-between; font-size: 17px; font-weight: 800; border-top: 2px solid #e2e8f0; padding-top: 8px; color: #0b1f33; }
+          
+          .auth-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 4px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 11px; font-weight: 700; }
+          .delegation-tag { display: inline-block; background: rgba(0, 136, 209, 0.12); color: #0088d1; border: 1px solid rgba(0, 136, 209, 0.3); font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+          .footer-section { text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 18px; line-height: 1.6; }
+>>>>>>> Stashed changes
           
           /* Pill Badge with rock-solid canvas compatibility */
           .pill-badge {
@@ -627,6 +691,7 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
               <div>
                 <img src="${logoUrl}" class="logo-img" alt="RIFAH Logo" onerror="this.style.display='none'" />
               </div>
+<<<<<<< Updated upstream
               <div class="header-right">
                 <div class="invoice-big-title">INVOICE</div>
                 <div class="invoice-sub-title">Payment Confirmation</div>
@@ -674,10 +739,20 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
                     }
                     ${paymentMethodLabel}
                   </span>
+=======
+              <div style="text-align: right;">
+                ${isDelegation ? '<div class="delegation-tag">Overseas Delegation</div>' : ""}
+                <div class="invoice-title">${isDelegation ? "DELEGATION TAX INVOICE" : "TAX INVOICE"}</div>
+                <div class="invoice-number"># ${invoiceNum}</div>
+                <div class="invoice-date">Issued: ${issueDate}</div>
+                <div style="margin-top: 6px;">
+                  <span class="auth-badge">${(payment.status || "").toLowerCase() === "paid" || (payment.status || "").toLowerCase() === "completed" ? "✓ PAYMENT VERIFIED" : "⏳ PAYMENT PENDING"}</span>
+>>>>>>> Stashed changes
                 </div>
               </div>
             </div>
 
+<<<<<<< Updated upstream
             <!-- Metadata 4-Column Strip -->
             <div class="meta-strip">
               <div>
@@ -700,6 +775,25 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
                     <text x="30" y="15" text-anchor="middle" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="11" font-weight="700" fill="${INVOICE_PALETTE.successGreen}">Paid</text>
                   </svg>
                 </div>
+=======
+            <div class="grid-two">
+              <div class="info-card">
+                <div class="info-card-header">Billed To Recipient</div>
+                <div class="buyer-name">${payerName}</div>
+                ${businessName ? `<div class="buyer-biz">${businessName}</div>` : ""}
+                ${membershipId ? `<div class="buyer-detail">Member ID: <strong>${membershipId}</strong></div>` : ""}
+                ${gstin ? `<div class="buyer-detail">GSTIN: <strong>${gstin}</strong></div>` : ""}
+                ${payerEmail ? `<div class="buyer-detail">${payerEmail}</div>` : ""}
+                ${payerPhone ? `<div class="buyer-detail">${payerPhone}</div>` : ""}
+                ${location ? `<div class="buyer-detail">${location}</div>` : ""}
+              </div>
+              <div class="info-card">
+                <div class="info-card-header">Payment & Audit Reference</div>
+                <div style="font-size: 13px;">Status: <strong>${payment.status || "Paid"}</strong></div>
+                <div style="font-size: 13px; margin-top: 4px;">Transaction ID: <strong style="font-family: monospace;">${payment.transactionId || "N/A"}</strong></div>
+                <div style="font-size: 13px; margin-top: 4px;">Payment Mode: <strong>${payment.method || "Bank Transfer"}</strong></div>
+                <div style="font-size: 13px; margin-top: 4px;">Paid On: <strong>${issueDate}</strong></div>
+>>>>>>> Stashed changes
               </div>
             </div>
 
@@ -760,12 +854,22 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
                   </tr>
                 </thead>
                 <tbody>
+<<<<<<< Updated upstream
                   <tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="text-align: center; font-weight: 600;">1</td>
                     <td style="font-weight: 600;">
                       ${payment.description || `${cardTitle}`}
                     </td>
                     <td style="text-align: center; font-weight: 600;">1</td>
+=======
+                  <tr>
+                    <td>
+                      <strong>${payment.description || payment.purpose || payment.itemType || "Annual Chamber Membership Accreditation"}</strong>
+                      <div style="font-size: 11.5px; color: #64748b; margin-top: 3px;">${itemDescriptionSubtext}</div>
+                    </td>
+                    <td>${sacCode}</td>
+                    <td style="text-align: center;">${quantity}</td>
+>>>>>>> Stashed changes
                     <td style="text-align: right; font-weight: 700;">${formattedSubtotal}</td>
                   </tr>
                   <tr class="row-subtotal">
@@ -805,6 +909,7 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
                   </ul>
                 </div>
               </div>
+<<<<<<< Updated upstream
 
               <!-- Required Exact QR Container matching reference image -->
               <div class="qr-box-bordered">
@@ -813,6 +918,21 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
                   <div class="qr-heading">Scan to Verify</div>
                   <div class="qr-subtext">Invoice &amp; Membership<br/>Details</div>
                 </div>
+=======
+              <div class="subtotal-line">
+                <span>GST (${gstRate}%):</span>
+                <span>${formattedGst}</span>
+              </div>
+              ${isDelegation ? `
+              <div class="subtotal-line">
+                <span>TCS u/s 206C (${tcsRate}%):</span>
+                <span>${formattedTcs}</span>
+              </div>
+              ` : ""}
+              <div class="total-line">
+                <span>Total Amount Paid:</span>
+                <span style="color: #0088d1;">${formattedAmt}</span>
+>>>>>>> Stashed changes
               </div>
             </div>
 
@@ -994,5 +1114,16 @@ export async function downloadInvoicePdf(payment, business = null) {
     try {
       iframe.remove();
     } catch (e) {}
+  }
+}
+
+export function openAndPrintInvoice(payment, business = null) {
+  if (typeof window === "undefined" || !payment) return;
+  const rawHtml = generateInvoiceHtml(payment, business, { isPreview: false, autoprint: true });
+  const printWindow = window.open("", "_blank");
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(rawHtml);
+    printWindow.document.close();
   }
 }

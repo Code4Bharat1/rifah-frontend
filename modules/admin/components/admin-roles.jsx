@@ -10,10 +10,12 @@ import { AppShell } from "@shared/components/rifah/app-shell";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Card, CardContent } from "@shared/components/ui/card";
-import { roleApi, userApi, stateApi, chapterApi } from "@shared/lib/api-services";
+import { roleApi, userApi, stateApi, chapterApi, rolePermissionTemplateApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/media";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@shared/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { AdminRbacPermissions } from "./admin-rbac-permissions";
+import { cn } from "@shared/lib/utils";
 
 const LEADER_ROLES = [
   "Chairman",
@@ -97,7 +99,7 @@ function RoleCard({ role, onEdit, onDelete }) {
           {role.role}
         </p>
 
-        <div className="flex gap-1.5 w-full justify-center flex-wrap mb-4">
+        <div className="flex gap-1.5 w-full justify-center flex-wrap mb-3">
           {role.level === "State" && role.state && (
             <div className="flex items-center text-[10px] font-bold text-muted-foreground tracking-widest uppercase bg-muted/60 px-2.5 py-1 rounded-md border border-border/50">
               <MapPin className="h-2.5 w-2.5 mr-1" /> {role.state}
@@ -109,6 +111,13 @@ function RoleCard({ role, onEdit, onDelete }) {
             </div>
           )}
         </div>
+
+        {role.permissionTemplateId && (
+          <div className="mb-4 px-2.5 py-1 rounded-xl bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary flex items-center justify-center gap-1.5 max-w-[95%] truncate">
+            <ShieldCheck className="h-3 w-3 shrink-0" />
+            <span className="truncate">RBAC: {role.permissionTemplateId.name || "Custom Template"}</span>
+          </div>
+        )}
 
         {(role.businessId?.name || role.userId?.organization) && (
           <div className="w-full mt-auto pt-5 border-t border-border/40">
@@ -123,7 +132,7 @@ function RoleCard({ role, onEdit, onDelete }) {
   );
 }
 
-function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
+function AddEditRoleModal({ isOpen, onClose, roleToEdit, preselectedTemplate }) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [search, setSearch] = useState("");
@@ -136,7 +145,8 @@ function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
     displayOrder: 0,
     level: "Central",
     state: "",
-    chapterId: ""
+    chapterId: "",
+    panelAccess: true,
   });
 
   // Fetch users for search
@@ -166,6 +176,18 @@ function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
   });
   const chapters = chaptersRes?.data?.chapters || chaptersRes?.data || chaptersRes || [];
 
+  // Fetch RBAC permission templates
+  const { data: templatesRes } = useQuery({
+    queryKey: ["rbac-templates"],
+    queryFn: () => rolePermissionTemplateApi.getAll(),
+    enabled: isOpen,
+  });
+  const templates = templatesRes?.data || templatesRes || [];
+
+  const matchedTemplate = (Array.isArray(templates) ? templates : []).find(
+    (t) => t.name === formData.role && t.level === formData.level && t.isActive
+  );
+
   const isEditing = !!roleToEdit;
 
   const mutation = useMutation({
@@ -180,8 +202,7 @@ function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
     }
   });
 
-  // Setup form when editing
-  
+  // Setup form when editing or when preselectedTemplate is passed
   useEffect(() => {
     if (isOpen) {
       if (isEditing) {
@@ -192,17 +213,39 @@ function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
           displayOrder: roleToEdit.displayOrder || 0,
           level: roleToEdit.level || "Central",
           state: roleToEdit.state || "",
-          chapterId: roleToEdit.chapterId?._id || roleToEdit.chapterId || ""
+          chapterId: roleToEdit.chapterId?._id || roleToEdit.chapterId || "",
+          panelAccess: roleToEdit.panelType !== null && roleToEdit.panelType !== undefined,
         });
         setStep(2);
+      } else if (preselectedTemplate) {
+        setStep(1);
+        setSearch("");
+        setSelectedUser(null);
+        setFormData({
+          role: preselectedTemplate.name || "President",
+          status: "Active",
+          displayOrder: 0,
+          level: preselectedTemplate.level || "Central",
+          state: preselectedTemplate.state || "",
+          chapterId: preselectedTemplate.chapterId?._id || preselectedTemplate.chapterId || "",
+          panelAccess: true,
+        });
       } else {
         setStep(1);
         setSearch("");
         setSelectedUser(null);
-        setFormData({ role: "President", status: "Active", displayOrder: 0, level: "Central", state: "", chapterId: "" });
+        setFormData({
+          role: "President",
+          status: "Active",
+          displayOrder: 0,
+          level: "Central",
+          state: "",
+          chapterId: "",
+          panelAccess: true,
+        });
       }
     }
-  }, [isOpen, isEditing, roleToEdit]);
+  }, [isOpen, isEditing, roleToEdit, preselectedTemplate]);
 
   const handleClose = () => {
     onClose();
@@ -231,6 +274,11 @@ function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
       level: formData.level,
       state: formData.level === "State" ? formData.state : null,
       chapterId: formData.level === "Chapter" ? formData.chapterId : null,
+      panelAccess: formData.panelAccess !== false,
+      permissionTemplateId: formData.panelAccess !== false ? (matchedTemplate?._id || null) : null,
+      panelType: formData.panelAccess !== false
+        ? (formData.level === "Central" ? "central-admin" : formData.level === "State" ? "state-admin" : "chapter-admin")
+        : null,
     };
 
     mutation.mutate(payload);
@@ -408,6 +456,86 @@ function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">Lower numbers appear first</p>
               </div>
+
+              {/* RBAC Panel Access Setting */}
+              <div className="space-y-3 col-span-2 p-4 bg-muted/30 rounded-2xl border border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <ShieldCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground">
+                        RBAC Panel Access ({formData.level} {formData.role})
+                      </h4>
+                      <p className="text-[10px] text-muted-foreground">
+                        {matchedTemplate
+                          ? `Configured in RBAC: ${matchedTemplate.allowedNavRoutes?.length || 0} sidebar features permitted`
+                          : `Default access for ${formData.level} ${formData.role} (configured in Role Permissions tab)`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                    matchedTemplate
+                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                      : "bg-muted text-muted-foreground border-border"
+                  )}>
+                    {matchedTemplate ? "RBAC Configured" : "Default"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, panelAccess: true })}
+                    className={cn(
+                      "flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all",
+                      formData.panelAccess !== false
+                        ? "bg-primary/10 border-primary text-foreground font-semibold shadow-xs"
+                        : "bg-background border-border text-muted-foreground hover:bg-muted/40"
+                    )}
+                  >
+                    <div className={cn(
+                      "flex h-4 w-4 shrink-0 rounded-full border items-center justify-center mt-0.5",
+                      formData.panelAccess !== false ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"
+                    )}>
+                      {formData.panelAccess !== false && <div className="h-1.5 w-1.5 rounded-full bg-background" />}
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold block leading-tight">Grant Panel Access</span>
+                      <span className="text-[10px] text-muted-foreground block leading-tight mt-0.5">
+                        Can log in to {formData.level} panel with {formData.role} permissions
+                      </span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, panelAccess: false })}
+                    className={cn(
+                      "flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all",
+                      formData.panelAccess === false
+                        ? "bg-primary/10 border-primary text-foreground font-semibold shadow-xs"
+                        : "bg-background border-border text-muted-foreground hover:bg-muted/40"
+                    )}
+                  >
+                    <div className={cn(
+                      "flex h-4 w-4 shrink-0 rounded-full border items-center justify-center mt-0.5",
+                      formData.panelAccess === false ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"
+                    )}>
+                      {formData.panelAccess === false && <div className="h-1.5 w-1.5 rounded-full bg-background" />}
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold block leading-tight">Directory Only</span>
+                      <span className="text-[10px] text-muted-foreground block leading-tight mt-0.5">
+                        Public chamber listing only (no panel workspace access)
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
             </div>
             
             <DialogFooter className="pt-4 border-t border-border mt-6">
@@ -423,12 +551,13 @@ function AddEditRoleModal({ isOpen, onClose, roleToEdit }) {
   );
 }
 
-export function AdminRolesPage() {
+export function AdminRolesPage({ expectedRole = "admin" }) {
+  const [activeTab, setActiveTab] = useState("assignments");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [modalState, setModalState] = useState({ isOpen: false, leader: null });
+  const [modalState, setModalState] = useState({ isOpen: false, leader: null, preselectedTemplate: null });
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, leader: null });
 
   const queryClient = useQueryClient();
@@ -461,100 +590,149 @@ export function AdminRolesPage() {
 
   return (
     <AppShell
-      role="admin"
-      title="Leadership Roles"
-      subtitle="Manage chamber hierarchy and public directory"
+      role={expectedRole}
+      title="Leadership & RBAC"
+      subtitle="Manage chamber leadership directory and role-based access permissions"
       actions={
-        <Button onClick={() => setModalState({ isOpen: true, leader: null })} className="gap-2 shrink-0 rounded-xl shadow-sm">
-          <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Assign New Role</span>
-        </Button>
+        activeTab === "assignments" ? (
+          <Button onClick={() => setModalState({ isOpen: true, leader: null, preselectedTemplate: null })} className="gap-2 shrink-0 rounded-xl shadow-sm">
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Assign New Role</span>
+          </Button>
+        ) : null
       }
     >
       <div className="space-y-6">
-        <div className="bg-card border border-border p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-center gap-4">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search leaders by name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-10 w-full bg-background border-muted-foreground/20 rounded-xl"
-            />
-          </div>
-          
-          <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-            <Select value={levelFilter} onValueChange={setLevelFilter}>
-              <SelectTrigger className="h-10 w-[140px] bg-background border-muted-foreground/20 rounded-xl shrink-0">
-                <SelectValue placeholder="Level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="Central">Central</SelectItem>
-                <SelectItem value="State">State</SelectItem>
-                <SelectItem value="Chapter">Chapter</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-2 p-1.5 bg-muted/60 rounded-2xl w-fit border border-border/50">
+          <button
+            type="button"
+            onClick={() => setActiveTab("assignments")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all",
+              activeTab === "assignments"
+                ? "bg-background text-foreground shadow-sm border border-border/50"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <User className="h-3.5 w-3.5" />
+            Leadership Assignments
+            {roles.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-primary/10 text-primary font-bold">
+                {roles.length}
+              </span>
+            )}
+          </button>
 
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="h-10 w-[160px] bg-background border-muted-foreground/20 rounded-xl shrink-0">
-                <SelectValue placeholder="Role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                {LEADER_ROLES.map(r => (
-                  <SelectItem key={r} value={r}>{r}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10 w-[120px] bg-background border-muted-foreground/20 rounded-xl shrink-0">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab("rbac")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all",
+              activeTab === "rbac"
+                ? "bg-background text-foreground shadow-sm border border-border/50"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            Role Permissions & RBAC
+          </button>
         </div>
-        
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-[280px] rounded-2xl bg-muted/40 animate-pulse border border-border" />
-            ))}
-          </div>
-        ) : roles.length === 0 ? (
-          <div className="p-16 text-center flex flex-col items-center bg-card rounded-2xl border border-border shadow-sm">
-            <div className="h-16 w-16 rounded-full bg-primary/5 flex items-center justify-center text-primary mb-4 border border-primary/10">
-              <ShieldCheck className="h-8 w-8 opacity-50" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground">No roles assigned</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mt-2">Assign members to leadership roles at the Central, State, or Chapter level to build your public directory.</p>
-            <Button onClick={() => setModalState({ isOpen: true, leader: null })} variant="default" className="mt-6 rounded-xl shadow-sm px-6">
-              Assign First Role
-            </Button>
-          </div>
+
+        {activeTab === "rbac" ? (
+          <AdminRbacPermissions
+            onAssignTemplate={(tpl) =>
+              setModalState({ isOpen: true, leader: null, preselectedTemplate: tpl })
+            }
+          />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {roles.map(role => (
-              <RoleCard 
-                key={role._id} 
-                role={role} 
-                onEdit={(r) => setModalState({ isOpen: true, leader: r })}
-                onDelete={(r) => setDeleteDialog({ isOpen: true, leader: r })}
-              />
-            ))}
-          </div>
+          <>
+            <div className="bg-card border border-border p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-center gap-4">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search leaders by name..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-10 w-full bg-background border-muted-foreground/20 rounded-xl"
+                />
+              </div>
+              
+              <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                <Select value={levelFilter} onValueChange={setLevelFilter}>
+                  <SelectTrigger className="h-10 w-[140px] bg-background border-muted-foreground/20 rounded-xl shrink-0">
+                    <SelectValue placeholder="Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Levels</SelectItem>
+                    <SelectItem value="Central">Central</SelectItem>
+                    <SelectItem value="State">State</SelectItem>
+                    <SelectItem value="Chapter">Chapter</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="h-10 w-[160px] bg-background border-muted-foreground/20 rounded-xl shrink-0">
+                    <SelectValue placeholder="Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    {LEADER_ROLES.map(r => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-10 w-[120px] bg-background border-muted-foreground/20 rounded-xl shrink-0">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="h-[280px] rounded-2xl bg-muted/40 animate-pulse border border-border" />
+                ))}
+              </div>
+            ) : roles.length === 0 ? (
+              <div className="p-16 text-center flex flex-col items-center bg-card rounded-2xl border border-border shadow-sm">
+                <div className="h-16 w-16 rounded-full bg-primary/5 flex items-center justify-center text-primary mb-4 border border-primary/10">
+                  <ShieldCheck className="h-8 w-8 opacity-50" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground">No roles assigned</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mt-2">Assign members to leadership roles at the Central, State, or Chapter level to build your public directory.</p>
+                <Button onClick={() => setModalState({ isOpen: true, leader: null, preselectedTemplate: null })} variant="default" className="mt-6 rounded-xl shadow-sm px-6">
+                  Assign First Role
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {roles.map(role => (
+                  <RoleCard 
+                    key={role._id} 
+                    role={role} 
+                    onEdit={(r) => setModalState({ isOpen: true, leader: r, preselectedTemplate: null })}
+                    onDelete={(r) => setDeleteDialog({ isOpen: true, leader: r })}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
       <AddEditRoleModal 
         isOpen={modalState.isOpen} 
-        onClose={() => setModalState({ isOpen: false, leader: null })} 
-        roleToEdit={modalState.leader} 
+        onClose={() => setModalState({ isOpen: false, leader: null, preselectedTemplate: null })} 
+        roleToEdit={modalState.leader}
+        preselectedTemplate={modalState.preselectedTemplate}
       />
 
       <Dialog open={deleteDialog.isOpen} onOpenChange={(open) => !open && setDeleteDialog({ isOpen: false, leader: null })}>
