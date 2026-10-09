@@ -25,6 +25,7 @@ import {
   ArrowRight,
   ShieldCheck,
   HelpCircle,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -108,14 +109,16 @@ function StatusBadge({ status }) {
   );
 }
 
-const TABS = ["All", "Approved", "Pending", "Rejected"];
+const TABS = ["All", "Published", "With Reply", "Without Reply"];
 
 function tabFilter(review, tab) {
-  if (tab === "All") return true;
-  const s = (review.status || "pending").toLowerCase();
-  if (tab === "Approved") return s === "approved" || s === "published";
-  if (tab === "Pending") return s === "pending";
-  if (tab === "Rejected") return s === "rejected";
+  if (tab === "All" || tab === "Published") return true;
+  const hasReply = Boolean(
+    (typeof review.reply === "object" ? review.reply?.text : review.reply) ||
+    review.businessReply
+  );
+  if (tab === "With Reply") return hasReply;
+  if (tab === "Without Reply") return !hasReply;
   return true;
 }
 
@@ -135,9 +138,11 @@ export function BizReviews({ embedded = false }) {
   const [selectedReview, setSelectedReview] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ open: false, review: null });
   const [replyText, setReplyText] = useState("");
   const [repliedMap, setRepliedMap] = useState({});
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const queryClient = useQueryClient();
   const { data: business } = useMyBusiness();
@@ -243,13 +248,6 @@ export function BizReviews({ embedded = false }) {
   };
 
   const handleOpenReply = (review) => {
-    const isPending = !review?.status || review?.status === "pending";
-    if (isPending) {
-      toast.info("Reply Not Available", {
-        description: "You cannot reply to a review that is awaiting moderation. Replies will be available once approved.",
-      });
-      return;
-    }
     const existingReply =
       (typeof review.reply === "object" ? review.reply?.text : review.reply) ||
       review.businessReply ||
@@ -258,6 +256,27 @@ export function BizReviews({ embedded = false }) {
     setSelectedReview(review);
     setReplyText(existingReply);
     setReplyDialogOpen(true);
+  };
+
+  const handleOpenDelete = (review) => {
+    setDeleteModal({ open: true, review });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteModal.review?._id) return;
+    setIsDeleting(true);
+    try {
+      await reviewApi.delete(deleteModal.review._id);
+      queryClient.invalidateQueries({ queryKey: ["reviews", business?._id] });
+      queryClient.invalidateQueries({ queryKey: ["business"] });
+      queryClient.invalidateQueries({ queryKey: ["businesses"] });
+      toast.success("Review deleted successfully!");
+      setDeleteModal({ open: false, review: null });
+    } catch (err) {
+      toast.error(err.message || "Failed to delete review.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSendReply = async () => {
@@ -334,41 +353,25 @@ export function BizReviews({ embedded = false }) {
           </div>
         </div>
 
-        {/* Card 3: Pending Moderation */}
+        {/* Card 3: Publishing Status */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <div className="h-9 w-9 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
-                <Clock className="h-4.5 w-4.5" />
+              <div className="h-9 w-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 className="h-4.5 w-4.5" />
               </div>
             </div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Pending Moderation</p>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Publishing Mode</p>
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
-              {pendingReviews.length}
+              Direct Live
             </h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-              {pendingReviews.length > 0 ? "Awaiting review" : "All cleared"}
+              No approval required
             </p>
           </div>
-          <div
-            className={cn(
-              "mt-3.5 p-2 rounded-xl border text-[11px] font-medium flex items-center gap-1.5",
-              pendingReviews.length > 0
-                ? "bg-amber-50 dark:bg-amber-950/40 border-amber-100 dark:border-amber-900/40 text-amber-800 dark:text-amber-300"
-                : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-300"
-            )}
-          >
-            {pendingReviews.length > 0 ? (
-              <>
-                <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                <span>Needs your attention</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                <span>No pending reviews</span>
-              </>
-            )}
+          <div className="mt-3.5 p-2 rounded-xl border text-[11px] font-medium flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+            <span>Reviews display immediately</span>
           </div>
         </div>
 
@@ -840,17 +843,6 @@ export function BizReviews({ embedded = false }) {
                     </p>
                   )}
 
-                  {/* Pending Review Notice Banner */}
-                  {isPending && (
-                    <div className="mt-3 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-                      <div className="leading-tight">
-                        <p className="font-semibold">This review is awaiting moderation and is not yet visible on your public profile.</p>
-                        <p className="text-[11px] text-amber-700/80 dark:text-amber-400 mt-0.5">Once approved, it will appear on your business profile.</p>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Existing Reply if any */}
                   {myReply && (
                     <div className="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs">
@@ -872,24 +864,24 @@ export function BizReviews({ embedded = false }) {
                     >
                       <Eye className="h-3.5 w-3.5 mr-1 text-slate-500" /> View
                     </Button>
-                    {!isPending && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenReply(review)}
-                        className="rounded-xl text-xs h-8 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                      >
-                        <Reply className="h-3.5 w-3.5 mr-1 text-sky-600" /> Reply
-                      </Button>
-                    )}
-                    <button
+                    <Button
                       type="button"
-                      onClick={() => handleOpenView(review)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenReply(review)}
+                      className="rounded-xl text-xs h-8 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
+                      <Reply className="h-3.5 w-3.5 mr-1 text-sky-600" /> Reply
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenDelete(review)}
+                      className="rounded-xl text-xs h-8 text-red-600 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1 text-red-500" /> Delete
+                    </Button>
                   </div>
                 </div>
               );
@@ -968,11 +960,26 @@ export function BizReviews({ embedded = false }) {
               )}
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <div className="flex items-center gap-2 mr-auto">
+              {selectedReview && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const rev = selectedReview;
+                    setViewDialogOpen(false);
+                    handleOpenDelete(rev);
+                  }}
+                  className="rounded-xl text-xs text-red-600 border-red-200 dark:border-red-900/50 hover:bg-red-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1 text-red-500" /> Delete Review
+                </Button>
+              )}
+            </div>
             <Button variant="outline" onClick={() => setViewDialogOpen(false)} className="rounded-xl text-xs">
               Close
             </Button>
-            {selectedReview && selectedReview.status !== "pending" && selectedReview.status !== "rejected" && (
+            {selectedReview && (
               <Button
                 onClick={() => {
                   setViewDialogOpen(false);
@@ -996,7 +1003,7 @@ export function BizReviews({ embedded = false }) {
               <span>Respond to Customer Review</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Your response will appear publicly below the customer review once approved.
+              Your response will appear publicly below the customer review on your profile.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -1029,6 +1036,64 @@ export function BizReviews({ embedded = false }) {
               className="rounded-xl text-xs bg-[#0284c7] hover:bg-[#0369a1] text-white"
             >
               {isSubmittingReply ? "Saving..." : "Save & Publish Reply"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation Modal ── */}
+      <Dialog
+        open={deleteModal.open}
+        onOpenChange={(open) => {
+          if (!isDeleting) setDeleteModal({ open, review: open ? deleteModal.review : null });
+        }}
+      >
+        <DialogContent className="sm:max-w-[440px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-red-600">
+              <Trash2 className="h-4.5 w-4.5" />
+              <span>Delete Review</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Are you sure you want to permanently delete this review? This action cannot be undone and will update your business rating immediately.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteModal.review && (
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 text-xs space-y-1.5 my-1">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-800 dark:text-slate-200">
+                  {deleteModal.review.authorName || deleteModal.review.reviewerName || "Customer"}
+                </span>
+                <span className="text-amber-500 font-semibold">
+                  ★ {Number(deleteModal.review.rating) || 5}/5
+                </span>
+              </div>
+              <p className="text-slate-600 dark:text-slate-400 line-clamp-2 italic">
+                "{deleteModal.review.body || deleteModal.review.comment || deleteModal.review.title || "No text"}"
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isDeleting}
+              onClick={() => setDeleteModal({ open: false, review: null })}
+              className="rounded-xl text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={isDeleting}
+              onClick={handleConfirmDelete}
+              className="rounded-xl text-xs bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? "Deleting..." : "Delete Review"}
             </Button>
           </DialogFooter>
         </DialogContent>

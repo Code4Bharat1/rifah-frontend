@@ -138,7 +138,6 @@ const navs = {
       { label: "Feeds", to: "/admin/feeds", icon: Compass },
       { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
       { label: "Memberships", to: "/admin/memberships", icon: Star },
-      { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
       { label: "Advertisements", to: "/admin/advertisements", icon: Megaphone },
       { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
       { label: "Support", to: "/admin/tickets", icon: LifeBuoy },
@@ -992,7 +991,7 @@ export function AppShell({
             </div>
           )}
           {/* Multi-workspace / Org-role switcher */}
-          {effectiveUser?.availableWorkspaces && effectiveUser.availableWorkspaces.length > 1 ? (
+          {effectiveUser?.availableWorkspaces && effectiveUser.availableWorkspaces.length > 1 && (
             <div className="mb-2 rounded-xl bg-sidebar-accent/50 p-2 border border-sidebar-border">
               <div className="px-1.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                 <span>Switch Workspace</span>
@@ -1056,61 +1055,62 @@ export function AppShell({
                 })}
               </div>
             </div>
-          ) : (
-            <>
-              {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const targetRole = effectiveUser.previousRole;
-                      await switchRole(targetRole);
-                      if (targetRole === "central_admin") {
-                        router.push("/admin");
-                      } else if (targetRole === "state_admin") {
-                        router.push("/state-admin");
-                      } else if (targetRole === "chapter_admin") {
-                        router.push("/chapter-admin");
-                      } else if (targetRole === "business_owner") {
-                        router.push("/biz");
-                      } else {
-                        router.push("/biz");
-                      }
-                    } catch (err) {
-                      toast.error(err.message || "Failed to switch role");
-                    }
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
-                >
-                  <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-                  <span>
-                    {effectiveUser.previousRole === "central_admin"
-                      ? "Switch to Admin Panel"
-                      : effectiveUser.previousRole === "state_admin"
-                        ? "Switch to State Admin Panel"
-                        : effectiveUser.previousRole === "chapter_admin"
-                          ? "Switch to Chapter Admin Panel"
-                          : "Switch to Business Panel"}
-                  </span>
-                </button>
-              )}
-              {/* Show switch-to-business for admins who have a business but haven't switched yet */}
-              {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
-                <button
-                  onClick={async () => {
-                    try {
-                      await switchRole("business_owner");
-                      router.push("/biz");
-                    } catch (err) {
-                      toast.error(err.message || "Failed to switch role");
-                    }
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-amber-500/10 hover:text-amber-500 mb-1"
-                >
-                  <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-                  <span>Switch to Business Panel</span>
-                </button>
-              )}
-            </>
+          )}
+
+          {/* Quick Return to Previous Role */}
+          {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
+            <button
+              onClick={async () => {
+                try {
+                  const targetRole = effectiveUser.previousRole;
+                  const res = await switchRole(targetRole);
+                  const resultingRole = res?.role || targetRole;
+                  if (["central_admin", "admin", "super_admin", "secretariat"].includes(resultingRole)) {
+                    router.push("/admin");
+                  } else if (resultingRole === "state_admin") {
+                    router.push("/state-admin");
+                  } else if (resultingRole === "chapter_admin") {
+                    router.push("/chapter-admin");
+                  } else if (resultingRole === "business_owner") {
+                    router.push("/biz");
+                  } else {
+                    router.push("/biz");
+                  }
+                } catch (err) {
+                  toast.error(err.message || "Failed to switch role");
+                }
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
+            >
+              <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+              <span>
+                {["central_admin", "admin", "super_admin", "secretariat"].includes(effectiveUser.previousRole)
+                  ? "Switch to Admin Panel"
+                  : effectiveUser.previousRole === "state_admin"
+                    ? "Switch to State Admin Panel"
+                    : effectiveUser.previousRole === "chapter_admin"
+                      ? "Switch to Chapter Admin Panel"
+                      : "Switch to Business Panel"}
+              </span>
+            </button>
+          )}
+
+          {/* Show switch-to-business for admins who have a business but haven't switched yet */}
+          {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && (!effectiveUser?.availableWorkspaces || effectiveUser.availableWorkspaces.length <= 1) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
+            <button
+              onClick={async () => {
+                try {
+                  await switchRole("business_owner");
+                  router.push("/biz");
+                } catch (err) {
+                  toast.error(err.message || "Failed to switch role");
+                }
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-amber-500/10 hover:text-amber-500 mb-1"
+            >
+              <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+              <span>Switch to Business Panel</span>
+            </button>
           )}
           <button
             onClick={handleLogout}
@@ -1724,7 +1724,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
             );
           })}
           <div className="mt-4 border-t border-border pt-3">
-            {effectiveUser?.availableWorkspaces && effectiveUser.availableWorkspaces.length > 1 ? (
+            {effectiveUser?.availableWorkspaces && effectiveUser.availableWorkspaces.length > 1 && (
               <div className="mb-3 rounded-xl bg-muted/40 p-2 border border-border">
                 <div className="px-1.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                   <span>Switch Workspace</span>
@@ -1789,34 +1789,33 @@ export function MoreSheet({ role, isBizVerified = true }) {
                   })}
                 </div>
               </div>
-            ) : (
-              <>
-                {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
-                  <button
-                    type="button"
-                    onClick={handleSwitchBack}
-                    className="flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-primary hover:bg-primary/10"
-                  >
-                    <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-                    <span>{switchBackLabel}</span>
-                  </button>
-                )}
-                {/* Show switch-to-business for admins who have a business but haven't switched yet */}
-                {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await switchRole("business_owner");
-                      setOpen(false);
-                      router.push("/biz");
-                    }}
-                    className="flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-amber-600 hover:bg-amber-500/10"
-                  >
-                    <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-                    <span>Switch to Business Panel</span>
-                  </button>
-                )}
-              </>
+            )}
+
+            {/* Quick Return to Previous Role */}
+            {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
+              <button
+                type="button"
+                onClick={handleSwitchBack}
+                className="flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-primary hover:bg-primary/10 mb-1"
+              >
+                <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+                <span>{switchBackLabel}</span>
+              </button>
+            )}
+            {/* Show switch-to-business for admins who have a business but haven't switched yet */}
+            {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && (!effectiveUser?.availableWorkspaces || effectiveUser.availableWorkspaces.length <= 1) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  await switchRole("business_owner");
+                  setOpen(false);
+                  router.push("/biz");
+                }}
+                className="flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-amber-600 hover:bg-amber-500/10 mb-1"
+              >
+                <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+                <span>Switch to Business Panel</span>
+              </button>
             )}
             <Link href="/" className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted">
               Public website

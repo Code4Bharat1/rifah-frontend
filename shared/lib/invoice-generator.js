@@ -25,23 +25,37 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
   const currSymbol = isUsd ? "$" : "₹";
   const currSuffix = isUsd ? " USD" : "";
   const locale = isUsd ? "en-US" : "en-IN";
-  
   const isDelegation = Boolean(
     payment.isDelegationPayment ||
     Number(payment.tcsAmount) > 0 ||
     Number(payment.tcsRate) > 0 ||
     (payment.itemType && String(payment.itemType).toLowerCase().includes("delegation"))
   );
-  
+
   const totalAmount = Number(payment.amount) || 0;
-  const subtotal = Number(payment.subtotal) || (payment.gstAmount ? totalAmount - Number(payment.gstAmount) - (Number(payment.tcsAmount) || 0) : Math.round(totalAmount / 1.18));
-  const gstRate = payment.gstRate !== undefined ? payment.gstRate : (isDelegation ? 5 : 18);
-  const gstAmount = Number(payment.gstAmount) !== undefined && payment.gstAmount !== null
-    ? Number(payment.gstAmount)
-    : (isDelegation ? Math.round(subtotal * 0.05 * 100) / 100 : (totalAmount - subtotal));
-  const tcsRate = isDelegation ? (payment.tcsRate !== undefined ? payment.tcsRate : 2) : (Number(payment.tcsRate) || 0);
+  const subtotal =
+    Number(payment.subtotal) ||
+    (payment.gstAmount
+      ? totalAmount - Number(payment.gstAmount) - (Number(payment.tcsAmount) || 0)
+      : Math.round(totalAmount / 1.18));
+  const gstRate = payment.gstRate !== undefined ? payment.gstRate : isUsd ? 0 : isDelegation ? 5 : 18;
+  const gstAmount =
+    Number(payment.gstAmount) !== undefined && payment.gstAmount !== null
+      ? Number(payment.gstAmount)
+      : isUsd
+      ? 0
+      : isDelegation
+      ? Math.round(subtotal * 0.05 * 100) / 100
+      : totalAmount - subtotal;
+  const tcsRate = isDelegation
+    ? payment.tcsRate !== undefined
+      ? payment.tcsRate
+      : 2
+    : Number(payment.tcsRate) || 0;
   const tcsAmount = isDelegation
-    ? (payment.tcsAmount !== undefined && payment.tcsAmount !== null ? Number(payment.tcsAmount) : Math.round(subtotal * 0.02 * 100) / 100)
+    ? payment.tcsAmount !== undefined && payment.tcsAmount !== null
+      ? Number(payment.tcsAmount)
+      : Math.round(subtotal * 0.02 * 100) / 100
     : 0;
 
   const formattedAmt = `${currSymbol}${totalAmount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${currSuffix}`;
@@ -54,12 +68,13 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
 
   const payerName =
     payment.payerName ||
+    payment.payer?.name ||
     business?.name ||
     payment.business?.name ||
     payment.payer?.businessName ||
-    payment.payer?.name ||
     business?.contactPerson ||
     "Direct Client / Member";
+
   const payerEmail = payment.payerEmail || payment.payer?.email || business?.email || "";
   const payerPhone = payment.payerPhone || payment.payer?.phone || business?.phone || "";
   const businessName = payment.businessName || business?.name || payment.business?.name || "";
@@ -69,11 +84,19 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
     business?.address ||
     (business?.city && business?.state ? `${business.city}, ${business.state}, India` : "") ||
     location ||
+    business?.city ||
     "";
 
-  const membershipId = business?.membershipId || payment.business?.membershipId || payment.payer?.membershipId || "";
+  const membershipId =
+    business?.membershipId ||
+    payment.business?.membershipId ||
+    payment.payer?.membershipId ||
+    (payment._id ? `RIFAH-DIA-${String(payment._id).slice(-4).toUpperCase()}` : "");
+
   const gstin = payment.gstin || business?.gstin || "";
-  const invoiceNum = payment.invoiceNumber || `INV-${String(payment._id || "").slice(-6).toUpperCase() || "0000"}`;
+  const invoiceNum =
+    payment.invoiceNumber ||
+    `INV-${String(payment._id || "").slice(-6).toUpperCase() || "0000"}`;
   const sacCode = payment.sacCode || "9983";
   const quantity = payment.quantity || 1;
   const itemDescriptionSubtext = payment.notes || (isDelegation ? "Official Overseas Business Delegation installment payment under Section 206C (Includes 5% GST & 2% TCS)." : payment.isCustomInvoice ? "Official chamber accredited deliverables & verified transaction record." : "Full chamber access, directory listing, event credentials and business networking desk.");
@@ -84,6 +107,7 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
     month: "short",
     year: "numeric",
   });
+  const issueDate = formattedDate;
   const formattedDateTime = issueDateObj.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -267,6 +291,7 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
           .total-line { width: 280px; display: flex; justify-content: space-between; font-size: 17px; font-weight: 800; border-top: 2px solid #e2e8f0; padding-top: 8px; color: #0b1f33; }
           .auth-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 4px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 11px; font-weight: 700; }
           .delegation-tag { display: inline-block; background: rgba(0, 136, 209, 0.12); color: #0088d1; border: 1px solid rgba(0, 136, 209, 0.3); font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+          .footer-section { text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 18px; line-height: 1.6; }
           
           /* Pill Badge with rock-solid canvas compatibility */
           .pill-badge {
@@ -670,6 +695,41 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
               </div>
             </div>
 
+            <!-- Green Payment Successful Banner -->
+            <div class="payment-banner">
+              <div class="banner-left">
+                <div class="check-circle">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <div class="banner-title">${(payment.status || "").toLowerCase() === "paid" || (payment.status || "").toLowerCase() === "completed" ? "Payment Successful" : "Payment Pending"}</div>
+                  <div class="banner-sub">${bannerSubtext}</div>
+                </div>
+              </div>
+              <div class="banner-right">
+                <div class="banner-right-row">
+                  <span class="banner-label">Transaction ID</span>
+                  <span class="banner-value">${transactionId}</span>
+                </div>
+                <div class="banner-right-row">
+                  <span class="banner-label">Payment Date</span>
+                  <span class="banner-value">${formattedDateTime}</span>
+                </div>
+                <div class="banner-right-row" style="align-items: center;">
+                  <span class="banner-label">Payment Method</span>
+                  <span class="banner-value" style="display: inline-flex; align-items: center; gap: 6px;">
+                    ${
+                      isCard
+                        ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0088d1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`
+                        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="${INVOICE_PALETTE.navy}"><path d="M22 2L10 10l-3 9 8-5 1-5 4-2-3 9-10 6-7 4 12-8 3-8-8 5-1 5-4 2 3-9 10-6z"/></svg>`
+                    }
+                    ${paymentMethodLabel}
+                  </span>
+                </div>
+              </div>
+            </div>
             <!-- Metadata 4-Column Strip -->
             <div class="meta-strip">
               <div>
@@ -714,6 +774,10 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
                   <span class="card-title-text">Billed To</span>
                 </div>
                 <div class="card-company-name">${payerName}</div>
+                ${businessName ? `<div style="font-size: 12px; font-weight: 600; color: #334155; margin-top: 2px;">${businessName}</div>` : ""}
+                ${gstin ? `<div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">GSTIN: <strong>${gstin}</strong></div>` : ""}
+                ${payerEmail ? `<div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">${payerEmail}</div>` : ""}
+                ${payerPhone ? `<div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">${payerPhone}</div>` : ""}
                 <div class="card-desc-text">${billingAddress}</div>
               </div>
 
@@ -756,9 +820,9 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
                     <td style="text-align: center; font-weight: 600;">1</td>
                     <td style="font-weight: 600;">
                       <strong>${payment.description || payment.purpose || payment.itemType || `${cardTitle}`}</strong>
-                      <div style="font-size: 11.5px; color: #6B7280; margin-top: 3px;">${itemDescriptionSubtext}</div>
+                      ${itemDescriptionSubtext ? `<div style="font-size: 11.5px; color: #64748b; margin-top: 2px; font-weight: normal;">${itemDescriptionSubtext}</div>` : ""}
                     </td>
-                    <td style="text-align: center; font-weight: 600;">${quantity}</td>
+                    <td style="text-align: center; font-weight: 600;">${quantity || 1}</td>
                     <td style="text-align: right; font-weight: 700;">${formattedSubtotal}</td>
                   </tr>
                   <tr class="row-subtotal">
@@ -769,6 +833,12 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
                     <td colspan="3" style="text-align: right;">GST (${gstRate}%)</td>
                     <td style="text-align: right; font-weight: 700;">${formattedGst}</td>
                   </tr>
+                  ${isDelegation ? `
+                  <tr class="row-tcs" style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 12.5px;">
+                    <td colspan="3" style="text-align: right;">TCS u/s 206C (${tcsRate}%)</td>
+                    <td style="text-align: right; font-weight: 700;">${formattedTcs}</td>
+                  </tr>
+                  ` : ""}
                   <tr class="row-total-paid">
                     <td colspan="3" style="text-align: right;">Total Paid</td>
                     <td style="text-align: right; font-weight: 900; font-size: 16px;">${formattedAmt}</td>
@@ -806,21 +876,6 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
                   <div class="qr-heading">Scan to Verify</div>
                   <div class="qr-subtext">Invoice &amp; Membership<br/>Details</div>
                 </div>
-              </div>
-              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-top: 8px;">
-                <div class="subtotal-line">
-                  <span>GST (${gstRate}%):</span>
-                  <span>${formattedGst}</span>
-                </div>
-                ${isDelegation ? `
-                <div class="subtotal-line">
-                  <span>TCS u/s 206C (${tcsRate}%):</span>
-                  <span>${formattedTcs}</span>
-                </div>
-                ` : ""}
-                <div class="total-line">
-                  <span>Total Amount Paid:</span>
-                  <span style="color: ${INVOICE_PALETTE.navy};">${formattedAmt}</span>
               </div>
             </div>
 

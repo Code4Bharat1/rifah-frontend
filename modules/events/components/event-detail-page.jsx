@@ -1128,12 +1128,30 @@ const loadRazorpayScript = () => {
                         </p>
                       </div>
                     ) : isEventPaid ? (
-                      <div className="flex justify-between items-end">
-                        <div>
-                          <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Member Price</p>
-                          <p className="text-2xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">
-                            ₹{memberPrice}
-                          </p>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-end">
+                          <div>
+                            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Member Price</p>
+                            <p className="text-2xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">
+                              ₹{memberTotal || memberPrice}
+                            </p>
+                            {memberBase && (
+                              <p className="text-[11px] text-muted-foreground font-medium">
+                                (₹{memberBase} + 18% GST)
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Guest Price</p>
+                            <p className="text-xl font-bold tracking-tight text-foreground">
+                              ₹{guestTotal || guestPrice}
+                            </p>
+                            {guestBase && (
+                              <p className="text-[11px] text-muted-foreground font-medium">
+                                (₹{guestBase} + 18% GST)
+                              </p>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-md border border-border/50">
                           <span className="font-semibold text-foreground">Note:</span>

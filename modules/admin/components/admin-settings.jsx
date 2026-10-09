@@ -48,7 +48,6 @@ const adminModules = [
   { label: "Feeds", to: "/admin/feeds", icon: Compass },
   { label: "Business Analytics", to: "/admin/networking-analytics", icon: TrendingUp },
   { label: "Memberships", to: "/admin/memberships", icon: Star },
-  { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
   { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
   { label: "States", to: "/admin/states", icon: MapPin },
   { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
@@ -92,7 +91,6 @@ const chapterAdminModules = [
   { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
   { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
   { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
-  { label: "Reviews", to: "/chapter-admin/reviews", icon: MessageSquare },
   { label: "Units", to: "/chapter-admin/units", icon: Users },
   { label: "Payments", to: "/chapter-admin/payments", icon: CreditCard },
 ];

@@ -778,7 +778,7 @@ function BusinessProfile() {
       }
 
       setReviewSuccess(true);
-      toast.success("Review submitted successfully!");
+      toast.success("Review published directly!");
       setReviewBody("");
       setReviewTitle("");
       setReviewerName("");
@@ -1412,7 +1412,7 @@ function BusinessProfile() {
                   {reviewSuccess ? (
                     <div className="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                      <span>Thank you! Your review has been submitted.</span>
+                      <span>Thank you! Your review has been published directly.</span>
                     </div>
                   ) : isMyOwnBusiness ? (
                     <div className="rounded-xl bg-muted/40 p-4 border border-border/60 text-xs text-muted-foreground">
