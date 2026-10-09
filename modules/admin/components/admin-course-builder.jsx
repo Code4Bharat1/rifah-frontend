@@ -20,7 +20,11 @@ import {
   ChevronUp,
   Users,
   CreditCard,
-  IndianRupee
+  IndianRupee,
+  Clock,
+  Check,
+  XCircle,
+  Send
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -79,6 +83,11 @@ export function AdminCourseBuilder({ role = "admin" }) {
   const [savingCourse, setSavingCourse] = useState(false);
   const [isDeleteCourseOpen, setIsDeleteCourseOpen] = useState(false);
   const [deletingCourse, setDeletingCourse] = useState(false);
+
+  // Approval Moderation States
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [rejectRemark, setRejectRemark] = useState("");
+  const [submittingModeration, setSubmittingModeration] = useState(false);
 
   // Enrollments Modal
   const [isEnrollmentsOpen, setIsEnrollmentsOpen] = useState(false);
@@ -189,13 +198,50 @@ export function AdminCourseBuilder({ role = "admin" }) {
         payload.price = editIsPaid ? Math.round(Number(editPrice)) : 0;
       }
       await courseApi.update(courseData._id, payload);
-      toast.success("Course details updated");
+      if (courseData.approvalStatus === "rejected" && role !== "admin") {
+        toast.success("Course details updated and resubmitted for Central Admin review!");
+      } else {
+        toast.success("Course details updated");
+      }
       setIsEditCourseOpen(false);
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to update course");
     } finally {
       setSavingCourse(false);
+    }
+  };
+
+  // --- Handlers: Central Admin Approval Moderation ---
+  const handleApproveCourse = async () => {
+    setSubmittingModeration(true);
+    try {
+      await courseApi.approve(courseData._id);
+      toast.success("Course approved and published successfully!");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to approve course");
+    } finally {
+      setSubmittingModeration(false);
+    }
+  };
+
+  const handleRejectCourse = async (e) => {
+    if (e) e.preventDefault();
+    if (!rejectRemark.trim()) {
+      return toast.error("Please provide constructive feedback explaining the rejection.");
+    }
+    setSubmittingModeration(true);
+    try {
+      await courseApi.reject(courseData._id, rejectRemark.trim());
+      toast.success("Course submission rejected with feedback sent to the creator.");
+      setIsRejectOpen(false);
+      setRejectRemark("");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to reject course");
+    } finally {
+      setSubmittingModeration(false);
     }
   };
 
@@ -213,6 +259,11 @@ export function AdminCourseBuilder({ role = "admin" }) {
   };
 
   const handleTogglePublish = async () => {
+    const isUnapproved = courseData.approvalStatus !== "approved" && courseData.approvalStatus !== "not_required";
+    if (!isPublished && role !== "admin" && isUnapproved) {
+      toast.error("This course cannot go live until approved by Central Admin.");
+      return;
+    }
     if (!isPublished && totalLessons === 0) {
       toast.error("Please add at least 1 chapter with content before publishing.");
       return;
@@ -226,7 +277,7 @@ export function AdminCourseBuilder({ role = "admin" }) {
       toast.success(nextStatus ? "Course published!" : "Course moved to draft");
       refetch();
     } catch (err) {
-      toast.error("Failed to update course status");
+      toast.error(err.message || "Failed to update course status");
     }
   };
 
@@ -395,6 +446,74 @@ export function AdminCourseBuilder({ role = "admin" }) {
     <AppShell role={role} title="Course Curriculum Builder" subtitle={courseData.title} backTo={backUrl}>
       <div className="space-y-6 max-w-5xl mx-auto">
         
+        {/* Course Approval Moderation Banners */}
+        {courseData.approvalStatus === "pending" && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5">
+                <Clock className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-foreground">
+                  {role === "admin" ? "Course Submission Awaiting Approval" : "Pending Central Admin Approval"}
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  {role === "admin" 
+                    ? `Submitted by ${courseData.createdBy?.name || "Admin"} (${courseData.scope || "Chapter"} Scope). Review chapters, video lessons, and PDF handouts below before approving.`
+                    : "This course has been submitted for review. It will go live once approved by Central Admin. You can continue updating content in the meantime."}
+                </p>
+              </div>
+            </div>
+
+            {role === "admin" && (
+              <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
+                <Button 
+                  size="sm" 
+                  onClick={handleApproveCourse}
+                  disabled={submittingModeration}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 flex-1 sm:flex-initial"
+                >
+                  {submittingModeration ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Check className="h-3.5 w-3.5 mr-1.5" />}
+                  Approve & Publish
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => { setIsRejectOpen(true); setRejectRemark(""); }}
+                  disabled={submittingModeration}
+                  className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700 font-semibold text-xs h-9 flex-1 sm:flex-initial"
+                >
+                  <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Reject Submission
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {courseData.approvalStatus === "rejected" && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 flex flex-col sm:flex-row items-start justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-red-500/20 text-red-600 dark:text-red-400 shrink-0 mt-0.5">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="space-y-1.5">
+                <h4 className="text-sm font-bold text-red-700 dark:text-red-400">Submission Rejected — Action Required</h4>
+                <div className="p-2.5 rounded-lg bg-background/90 border border-red-500/20 text-xs">
+                  <span className="font-semibold text-foreground">Admin Feedback: </span>
+                  <span className="text-muted-foreground">{courseData.approvalRemark || "Review requirements and content quality."}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Update your curriculum or lesson materials. Any saved update will automatically resubmit this course for Central Admin review.
+                </p>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" onClick={handleOpenEditCourse} className="shrink-0 text-xs h-8">
+              <Edit className="h-3.5 w-3.5 mr-1.5" /> Edit Info
+            </Button>
+          </div>
+        )}
+
         {/* Top Header Card */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl border bg-card shadow-xs">
           <div className="space-y-1">
@@ -402,6 +521,24 @@ export function AdminCourseBuilder({ role = "admin" }) {
               <span className="capitalize px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
                 {courseData.scope || courseData.visibilityScope || "Centre"} Scope
               </span>
+
+              {/* Approval Status Badge */}
+              {courseData.approvalStatus === "pending" && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> Pending Review
+                </span>
+              )}
+              {courseData.approvalStatus === "rejected" && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30 flex items-center gap-1">
+                  <XCircle className="h-3 w-3" /> Rejected
+                </span>
+              )}
+              {courseData.approvalStatus === "approved" && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" /> Approved
+                </span>
+              )}
+
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${isPublished ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning-foreground'}`}>
                 {isPublished ? 'Published' : 'Draft'}
               </span>
@@ -792,6 +929,28 @@ export function AdminCourseBuilder({ role = "admin" }) {
               <DialogDescription>Update the title, description, or visibility scope.</DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
+              {courseData?.approvalStatus === "rejected" && (
+                <div className="p-3 rounded-lg border border-red-500/25 bg-red-500/5 text-xs text-red-700 dark:text-red-400 space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+                    <span>Submission Previously Rejected</span>
+                  </div>
+                  <p className="text-[11px] text-foreground/80 pl-5 leading-relaxed">
+                    <strong>Admin Feedback:</strong> {courseData?.approvalRemark || "Review requirements."}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground pl-5 pt-0.5">
+                    Saving updates will automatically resubmit this course for Central Admin review.
+                  </p>
+                </div>
+              )}
+
+              {courseData?.approvalStatus === "pending" && role !== "admin" && (
+                <div className="p-2.5 rounded-lg border border-amber-500/25 bg-amber-500/5 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <Clock className="h-4 w-4 shrink-0" />
+                  <span>This course is currently pending Central Admin approval. Updates will be reflected in the review.</span>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label>Title</Label>
                 <Input required value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-10" />
@@ -1015,6 +1174,54 @@ export function AdminCourseBuilder({ role = "admin" }) {
               Close
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- MODAL: Reject Course with Feedback (Central Admin) --- */}
+      <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
+        <DialogContent className="sm:max-w-[460px] no-scrollbar">
+          <form onSubmit={handleRejectCourse}>
+            <DialogHeader>
+              <div className="flex items-center gap-2 text-destructive">
+                <XCircle className="h-5 w-5" />
+                <DialogTitle>Reject Course Submission</DialogTitle>
+              </div>
+              <DialogDescription className="text-xs pt-1">
+                Provide constructive feedback to the creator so they can revise curriculum or lessons.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4 space-y-3">
+              <div className="p-3 rounded-lg border bg-muted/20 text-xs space-y-1">
+                <p className="font-semibold text-foreground truncate">{courseData?.title}</p>
+                <p className="text-muted-foreground text-[11px]">
+                  Submitted by: {courseData?.createdBy?.name || "Member"} ({courseData?.scope || "chapter"} Scope)
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Feedback / Reason for Rejection</Label>
+                <Textarea 
+                  required
+                  rows={4}
+                  value={rejectRemark}
+                  onChange={(e) => setRejectRemark(e.target.value)}
+                  placeholder="e.g. Please add detailed lesson descriptions and verify video audio quality before resubmitting."
+                  className="text-xs"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsRejectOpen(false)} disabled={submittingModeration}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="destructive" size="sm" disabled={submittingModeration}>
+                {submittingModeration ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                Confirm Rejection
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
