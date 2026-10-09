@@ -2,11 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
-<<<<<<< Updated upstream
-import { Loader2, ArrowLeft, Image as ImageIcon, X, Check, ChevronsUpDown, Video, Sparkles, Copy, ExternalLink, Lock } from "lucide-react";
-=======
-import { Loader2, ArrowLeft, Image as ImageIcon, X, Check, ChevronsUpDown, Video, Sparkles, Copy, ExternalLink, Plane, Plus, Trash2, Calendar, CreditCard, ShieldCheck, AlertCircle, Percent } from "lucide-react";
->>>>>>> Stashed changes
+import { Loader2, ArrowLeft, Image as ImageIcon, X, Check, ChevronsUpDown, Video, Sparkles, Copy, ExternalLink, Lock, Plane, Plus, Trash2, Calendar, CreditCard, ShieldCheck, AlertCircle, Percent } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
@@ -130,19 +126,15 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-<<<<<<< Updated upstream
   const isChapterAdmin = pathname?.startsWith("/chapter-admin") || user?.role === "chapter_admin";
   const isStateAdmin = pathname?.startsWith("/state-admin") || user?.role === "state_admin";
-  const isCentralAdmin = !isChapterAdmin && !isStateAdmin && (pathname?.startsWith("/admin") || user?.role === "central_admin");
-  const basePath = isChapterAdmin ? "/chapter-admin/events" : isStateAdmin ? "/state-admin/events" : "/admin/events";
-  const role = isChapterAdmin ? "chapter_admin" : isStateAdmin ? "state_admin" : (user?.role || "admin");
-=======
-  const isCentralAdmin =
-    ["central_admin", "super_admin", "admin"].includes(user?.role) ||
+  const isCentralAdmin = !isChapterAdmin && !isStateAdmin && (
+    pathname?.startsWith("/admin") ||
+    ["central_admin", "super_admin", "admin", "secretariat"].includes(user?.role) ||
     user?.activeWorkspace?.panelType === "central-admin" ||
-    user?.activeWorkspace?.workspaceId === "admin";
-  const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
->>>>>>> Stashed changes
+    user?.activeWorkspace?.workspaceId === "admin"
+  );
+  const basePath = isChapterAdmin ? "/chapter-admin/events" : isStateAdmin ? "/state-admin/events" : "/admin/events";
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [generatingMeet, setGeneratingMeet] = useState(false);
@@ -256,11 +248,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     sportName: "",
     sportVenue: "",
     teamsAllowed: "",
-<<<<<<< Updated upstream
     location: "",
     city: "",
     chapter: "",
-=======
     delegationDestination: "",
     delegationCountry: "",
     delegationTravelDates: "",
@@ -276,10 +266,6 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         notes: "Seat reservation token for delegation",
       },
     ],
-    location: "Chamber Conference Hall",
-    city: "Mumbai",
-    chapter: "Mumbai Chapter",
->>>>>>> Stashed changes
     targetAudience: ["All"],
     targetStates: ["All"],
     targetChapters: ["All"],
@@ -336,16 +322,12 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         totalSeats: initialData.totalSeats || "",
         scheduledDate: initialSchDate,
         scheduledTime: initialSchTime,
-<<<<<<< Updated upstream
-        eventCategory: initialData.eventCategory || "Meet",
+      eventCategory: initialData.eventCategory || (initialData.isDelegation ? "Delegation" : "Meet"),
         industrySector: initialData.industrySector || "Networking",
         isRegistrationClosed: Boolean(initialData.isRegistrationClosed || initialData.seatsFull),
         seatsFull: Boolean(initialData.isRegistrationClosed || initialData.seatsFull),
         registrationClosingDate: initialRegCloseDate,
         registrationClosingTime: initialRegCloseTime,
-=======
-        eventCategory: initialData.eventCategory || (initialData.isDelegation ? "Delegation" : "Meet"),
->>>>>>> Stashed changes
         sportName: initialData.sportDetails?.sportName || "",
         sportVenue: initialData.sportDetails?.venue || "",
         teamsAllowed: initialData.sportDetails?.teamsAllowed || "",
@@ -568,7 +550,6 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     let newErrors = {};
 
     if (!formData.title) newErrors.title = "Event Title is required";
-<<<<<<< Updated upstream
 
     const currentChapter = (formData.chapter || user?.chapter || (isChapterAdmin ? "Bengaluru Chapter" : (isCentralAdmin ? "Global" : ""))).trim();
     if (!currentChapter && !isCentralAdmin) {
@@ -588,20 +569,14 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         newErrors.date = "Year must be exactly 4 digits (e.g. 2026)";
       }
     }
-    if (!formData.startTime) newErrors.startTime = "Start Time is required";
-    if (!formData.endTime) newErrors.endTime = "End Time is required";
-
-    if (formData.isPaid === undefined || formData.isPaid === null) {
-      newErrors.isPaid = "Event Fee selection is required";
-=======
-    if (!formData.date) newErrors.date = "Event Date is required";
-
     const isDelegation = formData.eventCategory === "Delegation";
-
     if (!isDelegation) {
       if (!formData.startTime) newErrors.startTime = "Start Time is required";
       if (!formData.endTime) newErrors.endTime = "End Time is required";
->>>>>>> Stashed changes
+    }
+
+    if (!isDelegation && (formData.isPaid === undefined || formData.isPaid === null)) {
+      newErrors.isPaid = "Event Fee selection is required";
     }
     
     if (!isEditMode && formData.date) {
@@ -721,26 +696,17 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         scheduledAt = new Date(`${formData.scheduledDate}T${formData.scheduledTime}:00`);
       }
 
-<<<<<<< Updated upstream
       let registrationClosingDate = null;
       if (formData.registrationClosingDate) {
         registrationClosingDate = new Date(`${formData.registrationClosingDate}T${formData.registrationClosingTime || "23:59"}:00`);
       }
 
-      const isPaid = Boolean(formData.isPaid);
-      const ticketPrice = isPaid ? Number(formData.ticketPrice) : 0;
-=======
-      const totalMemberBase = isDelegation
-        ? (Number(formData.memberPrice) || 0)
-        : (Number(formData.memberPrice) || 0);
-      const totalNonMemberBase = isDelegation
-        ? (Number(formData.ticketPrice) || 0)
-        : (Number(formData.ticketPrice) || 0);
+      const totalMemberBase = Number(formData.memberPrice) || 0;
+      const totalNonMemberBase = Number(formData.ticketPrice) || 0;
 
       const isPaid = isDelegation ? true : Boolean(formData.isPaid);
       const ticketPrice = isPaid ? totalNonMemberBase : 0;
       const memberPrice = isPaid ? totalMemberBase : 0;
->>>>>>> Stashed changes
       const fee = isPaid ? `₹${ticketPrice}` : "Free";
 
       const chapterVal = currentChapter;
@@ -754,12 +720,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         targetChapters: isChapterAdmin ? [chapterVal] : formData.targetChapters,
         isPaid,
         ticketPrice,
-<<<<<<< Updated upstream
-        memberPrice: isPaid ? (Number(formData.memberPrice) || 0) : 0,
-        gstRate: isPaid ? 18 : 0,
-=======
         memberPrice,
->>>>>>> Stashed changes
+        gstRate: isPaid ? 18 : 0,
         fee,
         isDelegation,
         time: isDelegation ? (formData.delegationTravelDates || "Multi-Day Delegation") : formatTimeStr(formData.startTime, formData.endTime),
@@ -767,12 +729,10 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         venue: formData.location,
         status: targetStatus,
         scheduledAt,
-<<<<<<< Updated upstream
         industrySector: formData.industrySector || "Networking",
         isRegistrationClosed: Boolean(formData.isRegistrationClosed),
         seatsFull: Boolean(formData.seatsFull),
         registrationClosingDate,
-=======
         delegationDetails: isDelegation ? {
           destination: formData.delegationDestination,
           country: formData.delegationCountry,
@@ -788,7 +748,6 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
           nonMemberAmount: Number(inst.nonMemberAmount) || 0,
           notes: inst.notes || "",
         })) : undefined,
->>>>>>> Stashed changes
         sportDetails: formData.eventCategory === "Sports" ? {
           sportName: formData.sportName,
           venue: formData.sportVenue,
@@ -1087,11 +1046,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-<<<<<<< Updated upstream
                 <Label htmlFor="eventCategory">Event Category <span className="text-destructive">*</span></Label>
-                <Select value={formData.eventCategory} onValueChange={(val) => setFormData({ ...formData, eventCategory: val })}>
-=======
-                <Label htmlFor="eventCategory">Event Category</Label>
                 <Select
                   value={formData.eventCategory}
                   onValueChange={(val) => {
@@ -1102,17 +1057,18 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                     });
                   }}
                 >
->>>>>>> Stashed changes
                   <SelectTrigger id="eventCategory">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-<<<<<<< Updated upstream
                     {EVENT_CATEGORIES.map((cat) => (
                       <SelectItem key={cat} value={cat}>
                         {cat}
                       </SelectItem>
                     ))}
+                    {isCentralAdmin && (
+                      <SelectItem value="Delegation">Delegation (Central Only)</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -1129,13 +1085,6 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                         {sec}
                       </SelectItem>
                     ))}
-=======
-                    <SelectItem value="Meet">Meet</SelectItem>
-                    <SelectItem value="Sports">Sports</SelectItem>
-                    {isCentralAdmin && (
-                      <SelectItem value="Delegation">Delegation (Central Only)</SelectItem>
-                    )}
->>>>>>> Stashed changes
                   </SelectContent>
                 </Select>
               </div>
@@ -1456,7 +1405,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-<<<<<<< Updated upstream
+              {formData.eventCategory !== "Delegation" && (
               <div className="space-y-2">
                 <Label htmlFor="isPaid">Event Fee <span className="text-destructive">*</span></Label>
                 <Select value={formData.isPaid ? "Paid" : "Free"} onValueChange={(val) => setFormData({ ...formData, isPaid: val === "Paid", ticketPrice: val === "Free" ? "" : formData.ticketPrice })}>
@@ -1470,22 +1419,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 </Select>
                 {errors.isPaid && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.isPaid}</p>}
               </div>
-=======
-              {formData.eventCategory !== "Delegation" && (
-                <div className="space-y-2">
-                  <Label htmlFor="isPaid">Event Type</Label>
-                  <Select value={formData.isPaid ? "Paid" : "Free"} onValueChange={(val) => setFormData({ ...formData, isPaid: val === "Paid", ticketPrice: val === "Free" ? "" : formData.ticketPrice })}>
-                    <SelectTrigger id="isPaid">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Free">Free / Complimentary</SelectItem>
-                      <SelectItem value="Paid">Paid Event</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               )}
->>>>>>> Stashed changes
               <div className="space-y-2">
                 <Label htmlFor="totalSeats">Capacity / Max Registration Allowed</Label>
                 <Input
