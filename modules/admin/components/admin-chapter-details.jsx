@@ -47,7 +47,6 @@ export default function AdminChapterDetails({ chapterId }) {
   const backHref = isChapterAdmin ? "/chapter-admin" : isStateAdmin ? "/state-admin/chapters" : "/admin/chapters";
   const businessesHref = isChapterAdmin ? "/chapter-admin/businesses" : isStateAdmin ? "/state-admin/businesses" : "/admin/businesses";
   const membersHref = isChapterAdmin ? "/chapter-admin/members" : isStateAdmin ? "/state-admin/members" : "/admin/users";
-  const unitsHref = isChapterAdmin ? "/chapter-admin/units" : isStateAdmin ? "/state-admin/chapters" : "/admin/units";
   const { data, isLoading, refetch } = useChapterDetails(chapterId);
   const { data: businessesData } = useBusinesses({ limit: 150 });
 

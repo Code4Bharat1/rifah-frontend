@@ -14,7 +14,7 @@ export { AdminReviews } from "./components/admin-reviews.jsx";
 export { AdminRolesPage, AdminRolesPage as AdminRoles } from "./components/admin-roles.jsx";
 export { AdminSettings, AdminSettings as AdminSettingsPage } from "./components/admin-settings.jsx";
 export { AdminStates } from "./components/admin-states.jsx";
-export { AdminUnits } from "./components/admin-units.jsx";
+
 export { AdminUsers } from "./components/admin-users.jsx";
 export { AdminVerification } from "./components/admin-verification.jsx";
 export { AdminAnnouncements } from "./components/admin-announcements.jsx";

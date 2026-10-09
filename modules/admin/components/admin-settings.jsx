@@ -51,7 +51,6 @@ const adminModules = [
   { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
   { label: "States", to: "/admin/states", icon: MapPin },
   { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
-  { label: "Units", to: "/admin/units", icon: Users },
   { label: "Events", to: "/admin/events", icon: Ticket },
   { label: "Payments", to: "/admin/payments", icon: CreditCard },
   { label: "Notifications", to: "/admin/notifications", icon: Bell },
