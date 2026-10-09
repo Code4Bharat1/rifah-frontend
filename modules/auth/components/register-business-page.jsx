@@ -64,6 +64,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@shared/components/ui/dialog";
 import { Textarea } from "@shared/components/ui/textarea";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
@@ -200,6 +201,8 @@ function RegisterBusiness({ isAdmin = false }) {
   const [pincodeError, setPincodeError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [paidSuccess, setPaidSuccess] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [isEditingPreview, setIsEditingPreview] = useState(false);
 
   const [formData, setFormData] = useState({
     businessName: "",
@@ -238,6 +241,28 @@ function RegisterBusiness({ isAdmin = false }) {
       setTier((plans.find((plan) => plan.isRecommended) || plans[0]).id);
     }
   }, [plans, tier]);
+
+  const previewPlanDetails = React.useMemo(() => {
+    const isIntl = formData.region === "international";
+    const activePlan = plans.find((p) => p.id === tier) || plans[0] || {};
+    const basePrice = isIntl
+      ? (activePlan?.priceUsd ?? (activePlan?.price === 0 ? 0 : Math.round((activePlan?.price || 0) / 80)))
+      : (activePlan?.price || 0);
+    const gstRate = Number(activePlan?.gstRate ?? 18);
+    const gstAmt = !isIntl && basePrice > 0 ? Math.round((basePrice * gstRate) / 100) : 0;
+    const totalPayable = isIntl ? basePrice : basePrice + gstAmt;
+    const currency = isIntl ? "USD" : "INR";
+    return {
+      plan: activePlan,
+      name: activePlan?.name || tier || "Standard Plan",
+      isIntl,
+      basePrice,
+      gstRate,
+      gstAmt,
+      totalPayable,
+      currency,
+    };
+  }, [plans, tier, formData.region]);
 
   // Admin Specific
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -1629,7 +1654,8 @@ function RegisterBusiness({ isAdmin = false }) {
               if (step < steps.length - 1) {
                 setStep((s) => s + 1);
               } else {
-                handleFinalSubmit();
+                setIsEditingPreview(false);
+                setShowPreviewModal(true);
               }
             }}
           >
@@ -3180,13 +3206,13 @@ function RegisterBusiness({ isAdmin = false }) {
 
                     if (totalPayable > 0) {
                       if (isAdmin && paymentMethod === "cash") {
-                        return isIntl ? `Receive $${totalPayable} Cash & Register` : `Receive ₹${totalPayable.toLocaleString("en-IN")} Cash & Register`;
+                        return isIntl ? `Preview & Register ($${totalPayable} Cash)` : `Preview & Register (₹${totalPayable.toLocaleString("en-IN")} Cash)`;
                       }
                       return isIntl
-                        ? `🔒 Pay $${totalPayable} USD & Register`
-                        : `🔒 Pay ₹${totalPayable.toLocaleString("en-IN")} (incl. ${gstRate}% GST) & Register`;
+                        ? `👁️ Preview & Pay ($${totalPayable} USD)`
+                        : `👁️ Preview & Pay (₹${totalPayable.toLocaleString("en-IN")})`;
                     }
-                    return "Complete Free Registration";
+                    return "👁️ Preview & Complete Registration";
                   })()
                 ) : (
                   "Continue"
@@ -3196,6 +3222,435 @@ function RegisterBusiness({ isAdmin = false }) {
           </form>
         </div>
       </div>
+
+      {/* ================= REGISTRATION PREVIEW & CONFIRMATION DIALOG ================= */}
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="w-[96vw] max-w-3xl p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl font-sans max-h-[92vh] overflow-y-auto">
+          <DialogHeader className="space-y-1.5 text-left border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                <Sparkles className="h-3.5 w-3.5" /> Registration Preview
+              </div>
+              {isEditingPreview ? (
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-900 flex items-center gap-1">
+                  <Pencil className="h-3 w-3" /> Edit Mode Active
+                </span>
+              ) : (
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Step 4 of 4 · Ready for Payment
+                </span>
+              )}
+            </div>
+            <DialogTitle className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white">
+              {isEditingPreview ? "Edit Your Registration Details" : "Review & Confirm Registration"}
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              {isEditingPreview
+                ? "You can modify your details below. Changes are saved directly to your registration."
+                : "Please review your business information before proceeding to the payment gateway."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Plan & Payable Summary Box */}
+          <div className="mt-3 rounded-xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-3 sm:p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                  Selected Membership Plan
+                </span>
+                <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  {previewPlanDetails.name}
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">
+                    {previewPlanDetails.isIntl ? "International" : "National"}
+                  </span>
+                </h4>
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Total Payable</span>
+                <span className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {previewPlanDetails.totalPayable > 0 ? (
+                    previewPlanDetails.isIntl
+                      ? `$${previewPlanDetails.totalPayable} USD`
+                      : `₹${previewPlanDetails.totalPayable.toLocaleString("en-IN")}`
+                  ) : (
+                    "Free (₹0)"
+                  )}
+                </span>
+                {previewPlanDetails.gstAmt > 0 && (
+                  <span className="block text-[10px] text-slate-500">
+                    Base: ₹{previewPlanDetails.basePrice.toLocaleString("en-IN")} + GST ({previewPlanDetails.gstRate}%): ₹{previewPlanDetails.gstAmt.toLocaleString("en-IN")}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Body: View Mode vs Edit Mode */}
+          {!isEditingPreview ? (
+            /* ================= VIEW / SUMMARY MODE ================= */
+            <div className="mt-4 space-y-4">
+              {/* Business Profile Card */}
+              <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-2 mb-2.5 pb-2 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
+                  <Building2 className="h-4 w-4 text-emerald-600" />
+                  Business Information
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Business Name:</span>
+                    <strong className="text-slate-900 dark:text-white text-sm">{formData.businessName || "—"}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Legal Entity Type:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{formData.businessType || "Proprietorship"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Industry / Category:</span>
+                    <span className="text-slate-800 dark:text-slate-200 font-medium">{formData.industry || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Sub-Category:</span>
+                    <span className="text-slate-800 dark:text-slate-200 font-medium">{formData.subCategory || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">GSTIN / Tax ID:</span>
+                    <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{formData.taxId || "Not provided"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Registered Chapter:</span>
+                    <span className="font-semibold text-emerald-700 dark:text-emerald-400">{formData.chapter || "RIFAH Chamber"}</span>
+                  </div>
+                  {formData.website && (
+                    <div className="sm:col-span-2">
+                      <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Website:</span>
+                      <span className="text-slate-700 dark:text-slate-300 truncate block">{formData.website}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Contact & Location Card */}
+              <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-2 mb-2.5 pb-2 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
+                  <Mail className="h-4 w-4 text-emerald-600" />
+                  Owner, Contact & Location
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Contact Person:</span>
+                    <strong className="text-slate-900 dark:text-white text-sm">{formData.contactPerson || "—"}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Designation / Role:</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {formData.roleInBusiness === "Other" && formData.customRoleInBusiness
+                        ? formData.customRoleInBusiness
+                        : (formData.roleInBusiness || "Founder / Owner")}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Phone / WhatsApp:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{formData.phone || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Account / Login Email:</span>
+                    <span className="text-slate-800 dark:text-slate-200 truncate block">{formData.email || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Business Email:</span>
+                    <span className="text-slate-800 dark:text-slate-200 truncate block">{formData.businessEmail || formData.email || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[11px]">City & State:</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {formData.city || "—"}, {formData.state || "—"} {formData.pincode ? `(${formData.pincode})` : ""}
+                    </span>
+                  </div>
+                  {formData.address && (
+                    <div className="sm:col-span-2">
+                      <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Street Address:</span>
+                      <span className="text-slate-700 dark:text-slate-300 block">{formData.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* ================= EDIT MODE IN DIALOG ================= */
+            <div className="mt-4 space-y-4">
+              <div className="p-3 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 rounded-xl flex items-center justify-between gap-2 text-xs">
+                <span className="text-amber-800 dark:text-amber-300">
+                  ✏️ You can edit any details below. They will be saved immediately to your registration.
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingPreview(false)}
+                  className="shrink-0 text-xs font-semibold h-7 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300"
+                >
+                  <Check className="mr-1 h-3 w-3" /> Done
+                </Button>
+              </div>
+
+              {/* Editable Fields Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Business Name *</Label>
+                  <Input
+                    value={formData.businessName}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, businessName: e.target.value }))}
+                    placeholder="Enter business name"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Legal Entity Type</Label>
+                  <Select
+                    value={formData.businessType}
+                    onValueChange={(val) => setFormData((prev) => ({ ...prev, businessType: val }))}
+                  >
+                    <SelectTrigger className="h-9 text-xs sm:text-sm">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Proprietorship" className="text-xs">Proprietorship</SelectItem>
+                      <SelectItem value="Partnership" className="text-xs">Partnership</SelectItem>
+                      <SelectItem value="Private Limited" className="text-xs">Private Limited</SelectItem>
+                      <SelectItem value="LLP" className="text-xs">LLP</SelectItem>
+                      <SelectItem value="Public Limited" className="text-xs">Public Limited</SelectItem>
+                      <SelectItem value="Trust / NGO" className="text-xs">Trust / NGO</SelectItem>
+                      <SelectItem value="Other" className="text-xs">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Industry / Category</Label>
+                  <Input
+                    value={formData.industry}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, industry: e.target.value }))}
+                    placeholder="e.g. Information Technology"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Sub-Category</Label>
+                  <Input
+                    value={formData.subCategory}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, subCategory: e.target.value }))}
+                    placeholder="e.g. Software & Web Development"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Contact Person *</Label>
+                  <Input
+                    value={formData.contactPerson}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, contactPerson: e.target.value }))}
+                    placeholder="Owner / Representative name"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Designation / Role</Label>
+                  <Input
+                    value={formData.roleInBusiness}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, roleInBusiness: e.target.value }))}
+                    placeholder="e.g. Founder / Managing Director"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Phone / WhatsApp *</Label>
+                  <Input
+                    value={formData.phone}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                    placeholder="e.g. 9876543210"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Business Email</Label>
+                  <Input
+                    value={formData.businessEmail}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, businessEmail: e.target.value }))}
+                    placeholder="contact@yourbusiness.com"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">City *</Label>
+                  <Input
+                    value={formData.city}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
+                    placeholder="e.g. Pune"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">State *</Label>
+                  <Input
+                    value={formData.state}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value }))}
+                    placeholder="e.g. Maharashtra"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Pincode</Label>
+                  <Input
+                    value={formData.pincode}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, pincode: e.target.value }))}
+                    placeholder="e.g. 411001"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">GSTIN / Tax ID</Label>
+                  <Input
+                    value={formData.taxId}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, taxId: e.target.value.toUpperCase() }))}
+                    placeholder="15-digit GSTIN"
+                    className="h-9 text-xs sm:text-sm uppercase font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-xs font-medium">Registered Chapter</Label>
+                  <Select
+                    value={formData.chapter}
+                    onValueChange={(val) => setFormData((prev) => ({ ...prev, chapter: val }))}
+                  >
+                    <SelectTrigger className="h-9 text-xs sm:text-sm">
+                      <SelectValue placeholder="Select Chapter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chapters.map((c) => (
+                        <SelectItem key={c._id || c.name} value={c.name} className="text-xs">
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-xs font-medium">Street Address</Label>
+                  <Input
+                    value={formData.address}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
+                    placeholder="Office / Shop / Factory street address"
+                    className="h-9 text-xs sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Jump to Form steps for media or password */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
+                <span>Want to change uploaded logos, photos, or password?</span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowPreviewModal(false);
+                      setStep(0);
+                    }}
+                    className="h-7 text-xs text-primary hover:underline"
+                  >
+                    Step 1 (Media)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowPreviewModal(false);
+                      setStep(1);
+                    }}
+                    className="h-7 text-xs text-primary hover:underline"
+                  >
+                    Step 2 (Contact)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowPreviewModal(false);
+                      setStep(2);
+                    }}
+                    className="h-7 text-xs text-primary hover:underline"
+                  >
+                    Step 3 (Password)
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= DIALOG FOOTER: 2 BUTTONS (EDIT & SUBMIT) ================= */}
+          <DialogFooter className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col-reverse sm:flex-row gap-2 sm:justify-between items-center">
+            {/* BUTTON 1: EDIT BUTTON */}
+            {isEditingPreview ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditingPreview(false)}
+                className="w-full sm:w-auto text-xs font-semibold border-emerald-300 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+              >
+                <Check className="mr-1.5 h-3.5 w-3.5" />
+                Done Editing (View Summary)
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditingPreview(true)}
+                className="w-full sm:w-auto text-xs font-semibold border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+              >
+                <Pencil className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
+                Edit Details
+              </Button>
+            )}
+
+            {/* BUTTON 2: SUBMIT BUTTON */}
+            <Button
+              type="button"
+              disabled={loading}
+              onClick={async () => {
+                setShowPreviewModal(false);
+                await handleFinalSubmit();
+              }}
+              className="w-full sm:w-auto text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md sm:min-w-48"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                </>
+              ) : previewPlanDetails.totalPayable > 0 ? (
+                previewPlanDetails.isIntl
+                  ? `Submit & Pay $${previewPlanDetails.totalPayable} USD →`
+                  : `Submit & Pay ₹${previewPlanDetails.totalPayable.toLocaleString("en-IN")} →`
+              ) : (
+                "Submit Registration →"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Wrapper>
   );
 }

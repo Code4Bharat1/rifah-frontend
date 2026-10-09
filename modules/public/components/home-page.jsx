@@ -711,7 +711,7 @@ function HomePage() {
                       <option value="Healthcare & Pharma">Healthcare & Pharma</option>
                       <option value="Security & SOC">Security & SOC</option>
                       <option value="General Products & Services">General Products & Services</option>
-                    </select>
+                    </select> 
                   </div>
                   <div>
                     <label className="block text-[11px] sm:text-xs font-medium text-foreground mb-1">
