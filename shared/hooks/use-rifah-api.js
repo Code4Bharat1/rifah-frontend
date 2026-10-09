@@ -316,6 +316,18 @@ export function usePublicStateRevenue() {
   });
 }
 
+export function useNetworkingSpotlight(params = {}, options = {}) {
+  return useQuery({
+    queryKey: ["networking-analytics", "spotlight", params],
+    queryFn: async () => {
+      const res = await networkingAnalyticsApi.spotlight(params);
+      return res?.data || res;
+    },
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+}
+
 // ==================== ENQUIRIES & LEADS ====================
 
 export function useMyEnquiries(params = {}) {

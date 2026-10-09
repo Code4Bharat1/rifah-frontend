@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState, useEffect, useRef, useMemo } from "react";
 import {BirthdayBanner} from "@shared/components/rifah/birthday-banner";
+import {TopPerformerSpotlight} from "@shared/components/rifah/top-performer-spotlight";
 import { resolveMediaUrl } from "@shared/lib/media";
 import {
   Bell,
@@ -642,6 +643,23 @@ export function AppShell({
   const effectiveUser = mounted ? user : null;
   const nav = useResolvedNav(role) || navs.admin || navs.business;
 
+  const isDashboardPage = useMemo(() => {
+    if (!path) return false;
+    const cleanPath = path.split("?")[0].replace(/\/$/, "");
+    return [
+      "/biz",
+      "/user",
+      "/admin",
+      "/state-admin",
+      "/chapter-admin",
+      "/biz/networking",
+      "/user/networking",
+      "/admin/networking-analytics",
+      "/state-admin/networking-analytics",
+      "/chapter-admin/networking-analytics",
+    ].includes(cleanPath);
+  }, [path]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -1200,6 +1218,7 @@ export function AppShell({
         <main className="w-full max-w-full overflow-x-hidden px-3 pb-24 pt-3 sm:px-4 sm:pb-24 sm:pt-4 md:px-6 md:pb-10 md:pt-6 xl:px-10">
           <div className="mx-auto w-full min-w-0 max-w-[1440px]">
             <BirthdayBanner />
+            {isDashboardPage && <TopPerformerSpotlight role={role} />}
             {isGatedPage ? (
               <UnderApprovalAccessGate
                 business={businessData}

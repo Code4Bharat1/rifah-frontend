@@ -162,6 +162,7 @@ export const networkingAnalyticsApi = {
   leaderboard: (params = {}) => apiClient(`/networking/analytics/leaderboard${toQueryString(params)}`),
   breakdown: (params = {}) => apiClient(`/networking/analytics/breakdown${toQueryString(params)}`),
   publicStateTotals: () => apiClient("/networking/analytics/public/states"),
+  spotlight: (params = {}) => apiClient(`/networking/analytics/spotlight${toQueryString(params)}`),
 };
 
 export const verificationApi = {
