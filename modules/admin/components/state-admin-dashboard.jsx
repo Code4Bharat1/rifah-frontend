@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   MapPin,
@@ -61,8 +61,10 @@ import { VerificationGuardAlert } from "@shared/components/rifah/verification-gu
 import { useAuth } from "@shared/providers/auth-provider";
 
 export function StateAdminDashboard({ isChaptersOnly = false }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const { user } = useAuth();
-  const stateName = user?.state || "State Region";
+  const stateName = mounted ? (user?.state || "State Region") : "State Region";
 
   const { data: chaptersData, refetch: refetchChapters, isLoading: isChaptersLoading } = useChapters();
   const { data: overviewData } = useAdminOverview();
