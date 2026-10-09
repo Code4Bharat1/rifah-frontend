@@ -1,11 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-<<<<<<< Updated upstream
-import { ArrowLeft, CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users, Video, Download } from "lucide-react";
-=======
 import { ArrowLeft, CalendarDays, CheckCircle2, Clock, MapPin, Share2, Ticket, Users, Video, Plane, FileText, Download, AlertTriangle, Send, Bell, Loader2, CreditCard } from "lucide-react";
->>>>>>> Stashed changes
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -1111,29 +1107,6 @@ const loadRazorpayScript = () => {
               ) : isEligibleToRegister ? (
                 <div className="space-y-5">
                   <div className="flex flex-col border-b border-border pb-4 gap-3">
-<<<<<<< Updated upstream
-                    {isEventPaid ? (
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-end">
-                          <div>
-                            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Member Price</p>
-                            <p className="text-2xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">
-                              ₹{memberTotal}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground font-medium">
-                              (₹{memberBase} + 18% GST)
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Guest Price</p>
-                            <p className="text-xl font-bold tracking-tight text-foreground">
-                              ₹{guestTotal}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground font-medium">
-                              (₹{guestBase} + 18% GST)
-                            </p>
-                          </div>
-=======
                     {(event.eventCategory === "Delegation" || event.isDelegation) ? (
                       <div className="space-y-2">
                         <div className="flex justify-between items-end">
@@ -1161,7 +1134,6 @@ const loadRazorpayScript = () => {
                           <p className="text-2xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">
                             ₹{memberPrice}
                           </p>
->>>>>>> Stashed changes
                         </div>
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-md border border-border/50">
                           <span className="font-semibold text-foreground">Note:</span>

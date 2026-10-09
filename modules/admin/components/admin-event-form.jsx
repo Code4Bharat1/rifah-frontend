@@ -98,11 +98,46 @@ function MultiSelectDropdown({ options, selected, toggleOption, placeholder = "S
   );
 }
 
+function formatTravelDatesRange(fromStr, toStr) {
+  if (!fromStr && !toStr) return "";
+  const formatDatePart = (str) => {
+    if (!str) return "";
+    const parts = str.split("-");
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const monthIndex = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const d = new Date(year, monthIndex, day);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      }
+    }
+    return str;
+  };
+
+  const f1 = formatDatePart(fromStr);
+  const f2 = formatDatePart(toStr);
+  if (f1 && !f2) return f1;
+  if (!f1 && f2) return f2;
+
+  let durationStr = "";
+  if (fromStr && toStr) {
+    const d1 = new Date(fromStr);
+    const d2 = new Date(toStr);
+    if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+      const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+      if (diffDays > 0) {
+        durationStr = ` (${diffDays} Days)`;
+      }
+    }
+  }
+  return `${f1} – ${f2}${durationStr}`;
+}
+
 const EVENT_CATEGORIES = [
   "Meet",
   "Workshop",
   "Seminar",
-  "Delegation Tour",
   "Sports",
   "Other Activity",
 ];
@@ -122,7 +157,7 @@ const INDUSTRY_SECTORS = [
   "Other",
 ];
 
-export function AdminEventForm({ initialData = null, isEditMode = false }) {
+export function AdminEventForm({ initialData = null, isEditMode = false, role: propRole = null }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
@@ -135,6 +170,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     user?.activeWorkspace?.workspaceId === "admin"
   );
   const basePath = isChapterAdmin ? "/chapter-admin/events" : isStateAdmin ? "/state-admin/events" : "/admin/events";
+  const role = propRole || (isChapterAdmin ? "chapter_admin" : isStateAdmin ? "state_admin" : "admin");
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [generatingMeet, setGeneratingMeet] = useState(false);
@@ -254,6 +290,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
     delegationDestination: "",
     delegationCountry: "",
     delegationTravelDates: "",
+    delegationTravelDatesFrom: "",
+    delegationTravelDatesTo: "",
     delegationInclusions: "",
     delegationVisaGuidelines: "",
     delegationInstallments: [
@@ -284,6 +322,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const isDelegation = formData.eventCategory === "Delegation" || formData.eventCategory === "Delegation Tour" || formData.eventCategory === "Delegation Tour/Visit" || Boolean(formData.isDelegation);
 
   useEffect(() => {
     if (initialData) {
@@ -334,6 +373,20 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         delegationDestination: initialData.delegationDetails?.destination || "",
         delegationCountry: initialData.delegationDetails?.country || "",
         delegationTravelDates: initialData.delegationDetails?.travelDates || "",
+        delegationTravelDatesFrom: initialData.delegationDetails?.travelDatesFrom || (() => {
+          if (initialData.delegationDetails?.travelDates) {
+            const m = initialData.delegationDetails.travelDates.match(/(\d{4}-\d{2}-\d{2})/);
+            if (m) return m[1];
+          }
+          return (initialData.isDelegation || initialData.eventCategory === "Delegation" || initialData.eventCategory === "Delegation Tour") && initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : "";
+        })(),
+        delegationTravelDatesTo: initialData.delegationDetails?.travelDatesTo || (() => {
+          if (initialData.delegationDetails?.travelDates) {
+            const matches = initialData.delegationDetails.travelDates.match(/(\d{4}-\d{2}-\d{2})/g);
+            if (matches && matches.length > 1) return matches[1];
+          }
+          return "";
+        })(),
         delegationInclusions: initialData.delegationDetails?.inclusions || "",
         delegationVisaGuidelines: initialData.delegationDetails?.visaGuidelines || "",
         delegationInstallments: Array.isArray(initialData.delegationInstallments) && initialData.delegationInstallments.length > 0
@@ -561,30 +614,40 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       newErrors.city = "City is required";
     }
 
-    if (!formData.date) {
-      newErrors.date = "Event Date is required";
-    } else {
-      const y = formData.date.split("-")[0];
-      if (!y || y.length !== 4) {
-        newErrors.date = "Year must be exactly 4 digits (e.g. 2026)";
-      }
-    }
-    const isDelegation = formData.eventCategory === "Delegation";
     if (!isDelegation) {
+      if (!formData.date) {
+        newErrors.date = "Event Date is required";
+      } else {
+        const y = formData.date.split("-")[0];
+        if (!y || y.length !== 4) {
+          newErrors.date = "Year must be exactly 4 digits (e.g. 2026)";
+        }
+      }
       if (!formData.startTime) newErrors.startTime = "Start Time is required";
       if (!formData.endTime) newErrors.endTime = "End Time is required";
-    }
 
-    if (!isDelegation && (formData.isPaid === undefined || formData.isPaid === null)) {
-      newErrors.isPaid = "Event Fee selection is required";
-    }
-    
-    if (!isEditMode && formData.date) {
-      const selectedDate = new Date(formData.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        newErrors.date = "You cannot create an event in the past. Please select today's date or a future date.";
+      if (!isEditMode && formData.date) {
+        const selectedDate = new Date(formData.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selectedDate < today) {
+          newErrors.date = "You cannot create an event in the past. Please select today's date or a future date.";
+        }
+      }
+      if (formData.isPaid === undefined || formData.isPaid === null) {
+        newErrors.isPaid = "Event Fee selection is required";
+      }
+    } else {
+      if (!formData.delegationTravelDatesFrom) {
+        newErrors.delegationTravelDatesFrom = "Travel Departure Date (From) is required";
+      }
+      if (!formData.delegationTravelDatesTo) {
+        newErrors.delegationTravelDatesTo = "Travel Return Date (To) is required";
+      }
+      if (formData.delegationTravelDatesFrom && formData.delegationTravelDatesTo) {
+        if (formData.delegationTravelDatesTo < formData.delegationTravelDatesFrom) {
+          newErrors.delegationTravelDatesTo = "Return date cannot be earlier than departure date";
+        }
       }
     }
 
@@ -593,8 +656,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       if (!regYear || regYear.length !== 4) {
         newErrors.registrationClosingDate = "Year must be exactly 4 digits (e.g. 2026)";
       }
-      if (formData.date && formData.registrationClosingDate > formData.date) {
-        newErrors.registrationClosingDate = "Registration closing date cannot be after the event date.";
+      const eventBoundaryDate = isDelegation ? formData.delegationTravelDatesFrom : formData.date;
+      if (eventBoundaryDate && formData.registrationClosingDate > eventBoundaryDate) {
+        newErrors.registrationClosingDate = "Registration closing date cannot be after the event departure/start date.";
       }
     }
 
@@ -608,7 +672,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
           newErrors.scheduledTime = "Cannot schedule in the past. Please select a future time.";
         }
       }
-      if (formData.date && formData.scheduledDate > formData.date) {
+      const eventBoundaryDate = isDelegation ? formData.delegationTravelDatesFrom : formData.date;
+      if (eventBoundaryDate && formData.scheduledDate > eventBoundaryDate) {
         newErrors.scheduledDate = "Scheduled (publication) date cannot be after the event date.";
       }
     }
@@ -617,16 +682,6 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       if (!isCentralAdmin) {
         toast.error("Only Central Admin has permission to create or manage a Delegation event.");
         return;
-      }
-
-      const totalMemberTarget = Number(formData.memberPrice) || 0;
-      const totalNonMemberTarget = Number(formData.ticketPrice) || 0;
-
-      if (!formData.memberPrice || totalMemberTarget <= 0) {
-        newErrors.memberPrice = "Total Member Base Fee is required (> 0)";
-      }
-      if (!formData.ticketPrice || totalNonMemberTarget <= 0) {
-        newErrors.ticketPrice = "Total Non-Member Base Fee is required (> 0)";
       }
 
       if (!Array.isArray(formData.delegationInstallments) || formData.delegationInstallments.length === 0) {
@@ -654,11 +709,11 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
           sumNonMemberEMI += nmAmt;
         });
 
-        if (totalMemberTarget > 0 && sumMemberEMI > totalMemberTarget) {
-          newErrors.delegationMemberExceeded = `Total Member EMIs (₹${sumMemberEMI.toLocaleString("en-IN")}) exceed Total Member Fee (₹${totalMemberTarget.toLocaleString("en-IN")}). Installments must not exceed Total Fee.`;
+        if (sumMemberEMI <= 0) {
+          newErrors.delegationInstallments = "Total Member installments must be greater than 0.";
         }
-        if (totalNonMemberTarget > 0 && sumNonMemberEMI > totalNonMemberTarget) {
-          newErrors.delegationNonMemberExceeded = `Total Non-Member EMIs (₹${sumNonMemberEMI.toLocaleString("en-IN")}) exceed Total Non-Member Fee (₹${totalNonMemberTarget.toLocaleString("en-IN")}). Installments must not exceed Total Fee.`;
+        if (sumNonMemberEMI <= 0) {
+          newErrors.delegationInstallments = "Total Non-Member installments must be greater than 0.";
         }
       }
     } else if (formData.isPaid) {
@@ -676,11 +731,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      if (newErrors.delegationMemberExceeded || newErrors.delegationNonMemberExceeded) {
-        toast.error("Installment EMIs exceed the Total Package Fees. Please adjust amounts.");
-      } else {
-        toast.error("Please fix the highlighted errors before saving.");
-      }
+      toast.error("Please fix the highlighted errors before saving.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -701,16 +752,18 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         registrationClosingDate = new Date(`${formData.registrationClosingDate}T${formData.registrationClosingTime || "23:59"}:00`);
       }
 
-      const totalMemberBase = Number(formData.memberPrice) || 0;
-      const totalNonMemberBase = Number(formData.ticketPrice) || 0;
+      const installments = formData.delegationInstallments || [];
+      const sumMemberEMI = installments.reduce((acc, i) => acc + (Number(i.memberAmount) || 0), 0);
+      const sumNonMemberEMI = installments.reduce((acc, i) => acc + (Number(i.nonMemberAmount) || 0), 0);
 
       const isPaid = isDelegation ? true : Boolean(formData.isPaid);
-      const ticketPrice = isPaid ? totalNonMemberBase : 0;
-      const memberPrice = isPaid ? totalMemberBase : 0;
+      const ticketPrice = isDelegation ? sumNonMemberEMI : (isPaid ? Number(formData.ticketPrice) || 0 : 0);
+      const memberPrice = isDelegation ? sumMemberEMI : (isPaid ? Number(formData.memberPrice) || 0 : 0);
       const fee = isPaid ? `₹${ticketPrice}` : "Free";
 
       const chapterVal = currentChapter;
       const cityVal = currentCity;
+      const travelDatesFormatted = formData.delegationTravelDates || formatTravelDatesRange(formData.delegationTravelDatesFrom, formData.delegationTravelDatesTo);
 
       const payload = {
         ...formData,
@@ -721,10 +774,11 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         isPaid,
         ticketPrice,
         memberPrice,
-        gstRate: isPaid ? 18 : 0,
+        gstRate: isDelegation ? 5 : (isPaid ? 18 : 0),
         fee,
         isDelegation,
-        time: isDelegation ? (formData.delegationTravelDates || "Multi-Day Delegation") : formatTimeStr(formData.startTime, formData.endTime),
+        date: isDelegation ? (formData.delegationTravelDatesFrom || formData.date || new Date().toISOString().split("T")[0]) : formData.date,
+        time: isDelegation ? (travelDatesFormatted || "Multi-Day Delegation") : formatTimeStr(formData.startTime, formData.endTime),
         mode: isDelegation ? "In-person" : formData.mode,
         venue: formData.location,
         status: targetStatus,
@@ -736,7 +790,9 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
         delegationDetails: isDelegation ? {
           destination: formData.delegationDestination,
           country: formData.delegationCountry,
-          travelDates: formData.delegationTravelDates,
+          travelDates: travelDatesFormatted,
+          travelDatesFrom: formData.delegationTravelDatesFrom,
+          travelDatesTo: formData.delegationTravelDatesTo,
           inclusions: formData.delegationInclusions,
           visaGuidelines: formData.delegationVisaGuidelines,
         } : undefined,
@@ -747,7 +803,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
           memberAmount: Number(inst.memberAmount) || 0,
           nonMemberAmount: Number(inst.nonMemberAmount) || 0,
           notes: inst.notes || "",
-        })) : undefined,
+        })) : [],
         sportDetails: formData.eventCategory === "Sports" ? {
           sportName: formData.sportName,
           venue: formData.sportVenue,
@@ -767,6 +823,8 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
       delete payload.delegationDestination;
       delete payload.delegationCountry;
       delete payload.delegationTravelDates;
+      delete payload.delegationTravelDatesFrom;
+      delete payload.delegationTravelDatesTo;
       delete payload.delegationInclusions;
       delete payload.delegationVisaGuidelines;
 
@@ -832,46 +890,48 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               {errors.title && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.title}</p>}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date <span className="text-destructive">*</span></Label>
-                <Input
-                  id="date"
-                  type="date"
-                  required
-                  min="2020-01-01"
-                  max="2099-12-31"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: sanitizeDateInput(e.target.value) })}
-                  className={errors.date ? 'border-destructive' : ''}
-                />
-                {errors.date && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.date}</p>}
+            {!isDelegation && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    required
+                    min="2020-01-01"
+                    max="2099-12-31"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: sanitizeDateInput(e.target.value) })}
+                    className={errors.date ? 'border-destructive' : ''}
+                  />
+                  {errors.date && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.date}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="startTime">Start Time <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    required
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    className={errors.startTime ? 'border-destructive' : ''}
+                  />
+                  {errors.startTime && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.startTime}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endTime">End Time <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    required
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    className={errors.endTime ? 'border-destructive' : ''}
+                  />
+                  {errors.endTime && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.endTime}</p>}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time <span className="text-destructive">*</span></Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  required
-                  value={formData.startTime}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  className={errors.startTime ? 'border-destructive' : ''}
-                />
-                {errors.startTime && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.startTime}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endTime">End Time <span className="text-destructive">*</span></Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  required
-                  value={formData.endTime}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  className={errors.endTime ? 'border-destructive' : ''}
-                />
-                {errors.endTime && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.endTime}</p>}
-              </div>
-            </div>
+            )}
 
             <div className={`grid grid-cols-1 ${(formData.mode === "Online" || formData.mode === "Hybrid") ? "md:grid-cols-2" : "md:grid-cols-2"} gap-6`}>
               <div className="space-y-2">
@@ -1050,10 +1110,12 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 <Select
                   value={formData.eventCategory}
                   onValueChange={(val) => {
+                    const isDel = val === "Delegation" || val === "Delegation Tour";
                     setFormData({
                       ...formData,
                       eventCategory: val,
-                      isPaid: val === "Delegation" ? true : formData.isPaid,
+                      isPaid: isDel ? true : formData.isPaid,
+                      mode: isDel ? "In-person" : formData.mode,
                     });
                   }}
                 >
@@ -1067,7 +1129,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                       </SelectItem>
                     ))}
                     {isCentralAdmin && (
-                      <SelectItem value="Delegation">Delegation (Central Only)</SelectItem>
+                      <SelectItem value="Delegation">Delegation Tour (Central)</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -1090,7 +1152,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
               </div>
             </div>
 
-            {formData.eventCategory === "Delegation" && (() => {
+            {isDelegation && (() => {
               const installments = formData.delegationInstallments || [];
               const totMemBase = installments.reduce((acc, i) => acc + (Number(i.memberAmount) || 0), 0);
               const totMemGst = Math.round(totMemBase * 0.05 * 100) / 100;
@@ -1125,7 +1187,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                   </div>
 
                   {/* Logistics & Inclusions */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="delDest" className="text-xs font-semibold">Destination City / Region</Label>
                       <Input
@@ -1146,17 +1208,73 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                         className="h-9 text-xs"
                       />
                     </div>
+
+                    {/* Travel Dates: From and To with Calendar */}
                     <div className="space-y-1.5">
-                      <Label htmlFor="delDates" className="text-xs font-semibold">Travel Dates</Label>
+                      <Label htmlFor="delDatesFrom" className="text-xs font-semibold flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                        <span>Travel Date (From / Departure) <span className="text-destructive">*</span></span>
+                      </Label>
                       <Input
-                        id="delDates"
-                        placeholder="e.g. 15 Nov – 21 Nov 2026"
-                        value={formData.delegationTravelDates}
-                        onChange={(e) => setFormData({ ...formData, delegationTravelDates: e.target.value })}
-                        className="h-9 text-xs"
+                        id="delDatesFrom"
+                        type="date"
+                        min="2020-01-01"
+                        max="2099-12-31"
+                        value={formData.delegationTravelDatesFrom}
+                        onChange={(e) => {
+                          const fromVal = sanitizeDateInput(e.target.value);
+                          const toVal = formData.delegationTravelDatesTo;
+                          const rangeFormatted = formatTravelDatesRange(fromVal, toVal);
+                          setFormData({
+                            ...formData,
+                            delegationTravelDatesFrom: fromVal,
+                            delegationTravelDates: rangeFormatted,
+                            date: fromVal || formData.date,
+                          });
+                        }}
+                        className={`h-9 text-xs ${errors.delegationTravelDatesFrom ? 'border-destructive' : ''}`}
                       />
+                      {errors.delegationTravelDatesFrom && (
+                        <p className="text-[11px] text-destructive font-medium">{errors.delegationTravelDatesFrom}</p>
+                      )}
                     </div>
-                    <div className="space-y-1.5 md:col-span-2">
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="delDatesTo" className="text-xs font-semibold flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                        <span>Travel Date (To / Return) <span className="text-destructive">*</span></span>
+                      </Label>
+                      <Input
+                        id="delDatesTo"
+                        type="date"
+                        min={formData.delegationTravelDatesFrom || "2020-01-01"}
+                        max="2099-12-31"
+                        value={formData.delegationTravelDatesTo}
+                        onChange={(e) => {
+                          const toVal = sanitizeDateInput(e.target.value);
+                          const fromVal = formData.delegationTravelDatesFrom;
+                          const rangeFormatted = formatTravelDatesRange(fromVal, toVal);
+                          setFormData({
+                            ...formData,
+                            delegationTravelDatesTo: toVal,
+                            delegationTravelDates: rangeFormatted,
+                          });
+                        }}
+                        className={`h-9 text-xs ${errors.delegationTravelDatesTo ? 'border-destructive' : ''}`}
+                      />
+                      {errors.delegationTravelDatesTo && (
+                        <p className="text-[11px] text-destructive font-medium">{errors.delegationTravelDatesTo}</p>
+                      )}
+                    </div>
+
+                    {formData.delegationTravelDates && (
+                      <div className="md:col-span-2 flex items-center gap-2 text-xs font-semibold text-sky-700 dark:text-sky-300 bg-sky-500/10 px-3 py-2 rounded-lg border border-sky-500/20">
+                        <Plane className="h-4 w-4 shrink-0 text-sky-500" />
+                        <span>Scheduled Tour Period: <strong>{formData.delegationTravelDates}</strong></span>
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5">
                       <Label htmlFor="delInclusions" className="text-xs font-semibold">Key Inclusions (Itinerary)</Label>
                       <Input
                         id="delInclusions"
@@ -1405,7 +1523,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {formData.eventCategory !== "Delegation" && (
+              {!isDelegation && (
               <div className="space-y-2">
                 <Label htmlFor="isPaid">Event Fee <span className="text-destructive">*</span></Label>
                 <Select value={formData.isPaid ? "Paid" : "Free"} onValueChange={(val) => setFormData({ ...formData, isPaid: val === "Paid", ticketPrice: val === "Free" ? "" : formData.ticketPrice })}>
@@ -1432,7 +1550,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false }) {
                 />
                 <p className="text-[10px] text-muted-foreground mt-1 font-medium">Leave 0 if seats are unlimited.</p>
               </div>
-              {formData.isPaid && (() => {
+              {formData.isPaid && !isDelegation && (() => {
                 const nonMemberBase = Number(formData.ticketPrice) || 0;
                 const nonMemberGst = Math.round(nonMemberBase * 0.18);
                 const nonMemberTotal = nonMemberBase + nonMemberGst;
