@@ -138,7 +138,11 @@ export function AdminSettings({ expectedRole }) {
     supportPhone: "+91 22 2345 6789",
     secretariatAddress: "Central Admin Office, Byculla, Mumbai 400 008",
     workingHours: "Mon–Fri · 09:30–18:00 IST",
-    membershipYear: "2026-27"
+    membershipYear: "2026-27",
+    // BUG-064: previously stored but never actually enforced anywhere — now read by
+    // catalogue.service.js createItem as a hard per-type ceiling (min of this and the
+    // business's own plan-tier limit), so lowering it here caps everyone immediately.
+    maxCatalogueItems: 50,
   });
 
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
@@ -171,7 +175,8 @@ export function AdminSettings({ expectedRole }) {
         supportPhone: globalSettings.supportPhone || "+91 22 2345 6789",
         secretariatAddress: globalSettings.secretariatAddress || "Central Admin Office, Byculla, Mumbai 400 008",
         workingHours: globalSettings.workingHours || "Mon–Fri · 09:30–18:00 IST",
-        membershipYear: globalSettings.membershipYear || "2026-27"
+        membershipYear: globalSettings.membershipYear || "2026-27",
+        maxCatalogueItems: globalSettings.maxCatalogueItems ?? 50,
       });
     }
   }, [globalSettings]);
@@ -181,9 +186,14 @@ export function AdminSettings({ expectedRole }) {
       toast.error("Enter a valid support phone number.");
       return;
     }
+    const maxItems = Number(chamberDetails.maxCatalogueItems);
+    if (!Number.isFinite(maxItems) || maxItems < 1) {
+      toast.error("Max catalogue items per business must be a positive number.");
+      return;
+    }
     setSavingChamber(true);
     try {
-      await settingsApi.update(chamberDetails);
+      await settingsApi.update({ ...chamberDetails, maxCatalogueItems: Math.round(maxItems) });
       toast.success("Chamber details saved successfully!");
       await refetch();
       queryClient.invalidateQueries({ queryKey: ["settings"] });
@@ -267,6 +277,21 @@ export function AdminSettings({ expectedRole }) {
                   className="h-11"
                   placeholder="Mon–Fri · 09:30–18:00 IST"
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Max catalogue items per business (per type)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={chamberDetails.maxCatalogueItems}
+                  onChange={(e) => setChamberDetails({ ...chamberDetails, maxCatalogueItems: e.target.value })}
+                  className="h-11"
+                  placeholder="50"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Hard ceiling on Products and Services a business can list, each — applies
+                  even to membership tiers with an otherwise unlimited plan allowance.
+                </p>
               </div>
               <div className="col-span-full pt-2">
                 <Button onClick={handleSaveChamberDetails} disabled={savingChamber}>

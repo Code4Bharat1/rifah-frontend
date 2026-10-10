@@ -1137,11 +1137,11 @@ export function BizFeeds() {
   }, [posts, filterMode, selectedState, selectedChapter, searchQuery, chapters]);
 
   // =========================================================================
-  // DELETION PERMISSIONS:
+  // BUG-063: DELETION PERMISSIONS (mirrors post.service.js deletePost):
   // - Central Admin: Can delete ANY post across the network
-  // - State Admin: Can delete posts of chapters & businesses in their state only
-  // - Chapter Admin: Can delete business posts of their chapter only
-  // - Business / Member: Can delete ONLY their own created posts
+  // - Everyone else (Business / Member / Chapter Admin / State Admin): can delete ONLY
+  //   their own post. State/Chapter Admin used to also get jurisdiction-scoped deletion
+  //   (any post in their state/chapter) — that authority is removed.
   // =========================================================================
   const hasDeletePermission = (post) => {
     // 1. Central Admin & Secretariat can delete ANY post
@@ -1159,37 +1159,7 @@ export function BizFeeds() {
       (post.author?.username && currentUsername && post.author.username.toLowerCase() === currentUsername)
     );
 
-    if (isOwner) return true;
-
-    // 3. State Admin can delete posts of chapters and businesses in their own state only
-    if (userRole === "state_admin" && userState) {
-      const adminState = userState.toLowerCase().trim();
-      const postState = (
-        post.state ||
-        chapters.find((c) => (c.name || "").toLowerCase() === (post.chapter || "").toLowerCase())?.state ||
-        ""
-      ).toLowerCase().trim();
-
-      if (postState && (postState === adminState || postState.includes(adminState) || adminState.includes(postState))) {
-        return true;
-      }
-    }
-
-    // 4. Chapter Admin can delete business posts of their own chapter only
-    if (userRole === "chapter_admin" && (userChapter || userChapterId)) {
-      const cleanAdminChapter = (userChapter || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
-      const cleanPostChapter = (post.chapter || "").toLowerCase().replace(/\b(chapter|chamber)\b/gi, "").trim();
-
-      if (
-        (userChapterId && post.chapterId && String(post.chapterId) === String(userChapterId)) ||
-        (cleanAdminChapter && cleanPostChapter && (cleanPostChapter === cleanAdminChapter || cleanPostChapter.includes(cleanAdminChapter) || cleanAdminChapter.includes(cleanPostChapter)))
-      ) {
-        return true;
-      }
-    }
-
-    // 5. Business accounts cannot delete other users' posts
-    return false;
+    return isOwner;
   };
 
   return (

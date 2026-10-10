@@ -491,6 +491,37 @@ export const contactApi = {
   replyQuery: (id, replyMessage) => apiClient(`/queries/${id}/reply`, { method: "PATCH", body: JSON.stringify({ replyMessage }) }),
 };
 
+export const revenueShareApi = {
+  // Ledger
+  listLedger: (params = {}) => apiClient(`/revenue-sharing/ledger${toQueryString(params)}`),
+  getLedgerEntry: (id) => apiClient(`/revenue-sharing/ledger/${id}`),
+  getBalance: (params = {}) => apiClient(`/revenue-sharing/balance${toQueryString(params)}`),
+  getDashboard: (params = {}) => apiClient(`/revenue-sharing/dashboard${toQueryString(params)}`),
+  downloadLedgerCsv: (params = {}) =>
+    downloadFile(`/revenue-sharing/export/ledger${toQueryString({ ...params, format: "csv" })}`, "revenue_ledger.csv"),
+  downloadLedgerPdf: (params = {}) =>
+    downloadFile(`/revenue-sharing/export/ledger${toQueryString({ ...params, format: "pdf" })}`, "revenue_ledger.pdf"),
+
+  // Claims
+  createClaim: (data) => apiClient("/revenue-sharing/claims", { method: "POST", body: JSON.stringify(data) }),
+  listClaims: (params = {}) => apiClient(`/revenue-sharing/claims${toQueryString(params)}`),
+  getClaim: (id) => apiClient(`/revenue-sharing/claims/${id}`),
+  submitClaim: (id) => apiClient(`/revenue-sharing/claims/${id}/submit`, { method: "PATCH" }),
+  reviewClaim: (id) => apiClient(`/revenue-sharing/claims/${id}/review`, { method: "PATCH" }),
+  approveClaim: (id) => apiClient(`/revenue-sharing/claims/${id}/approve`, { method: "PATCH" }),
+  rejectClaim: (id, reason) =>
+    apiClient(`/revenue-sharing/claims/${id}/reject`, { method: "PATCH", body: JSON.stringify({ reason }) }),
+  cancelClaim: (id) => apiClient(`/revenue-sharing/claims/${id}/cancel`, { method: "PATCH" }),
+
+  // Settlements
+  recordSettlement: (claimId, data) =>
+    apiClient(`/revenue-sharing/claims/${claimId}/settlements`, { method: "POST", body: JSON.stringify(data) }),
+
+  // Rules
+  listRules: (revenueType) => apiClient(`/revenue-sharing/rules${toQueryString({ revenueType })}`),
+  createRuleVersion: (data) => apiClient("/revenue-sharing/rules", { method: "POST", body: JSON.stringify(data) }),
+};
+
 export const settingsApi = {
   get: () => apiClient("/settings", { cache: "no-store" }),
   update: (data) => apiClient("/settings", { method: "PATCH", body: JSON.stringify(data) }),

@@ -756,9 +756,15 @@ function AdminLms({ role = "admin" }) {
                   </>
                 )}
 
-                <Button onClick={handleOpenCreateModal} className="h-9">
-                  <Plus className="mr-1.5 h-4 w-4" /> Create Course
-                </Button>
+                {/* BUG-062: LMS course creation is Central Admin exclusive now — State and
+                    Chapter Admins used to get this same button and a free-course approval
+                    workflow; the backend route now 403s them, so the button is hidden here
+                    instead of inviting a failed submit. */}
+                {role === "admin" && (
+                  <Button onClick={handleOpenCreateModal} className="h-9">
+                    <Plus className="mr-1.5 h-4 w-4" /> Create Course
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -784,13 +790,17 @@ function AdminLms({ role = "admin" }) {
                 <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
                   {adminApprovalFilter !== "all"
                     ? `No courses matching the "${adminApprovalFilter}" approval status.`
-                    : adminCategoryFilter !== "all" 
+                    : adminCategoryFilter !== "all"
                     ? `No courses found under "${adminCategoryFilter}${adminSubcategoryFilter !== "all" ? ` → ${adminSubcategoryFilter}` : ""}".`
-                    : "Click the button below to create your course, set up chapters, and upload video lectures and PDFs."}
+                    : role === "admin"
+                    ? "Click the button below to create your course, set up chapters, and upload video lectures and PDFs."
+                    : "Courses are created and published by Central Admin."}
                 </p>
-                <Button onClick={handleOpenCreateModal}>
-                  <Plus className="mr-2 h-4 w-4" /> Create Course
-                </Button>
+                {role === "admin" && (
+                  <Button onClick={handleOpenCreateModal}>
+                    <Plus className="mr-2 h-4 w-4" /> Create Course
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

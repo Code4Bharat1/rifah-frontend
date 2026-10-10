@@ -28,6 +28,7 @@ import {
   Megaphone,
   Menu,
   MessageSquare,
+  Wallet,
   Package,
   ScrollText,
   Search,
@@ -146,6 +147,7 @@ const navs = {
       { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
       { label: "Events", to: "/admin/events", icon: Ticket },
       { label: "Payments", to: "/admin/payments", icon: CreditCard },
+      { label: "Revenue Sharing", to: "/admin/revenue-sharing", icon: Wallet },
 
       { label: "Notifications", to: "/admin/notifications", icon: Bell },
       { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
@@ -183,6 +185,7 @@ const roleNavs = {
       { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
       { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
+      { label: "Revenue Sharing", to: "/chapter-admin/revenue-sharing", icon: Wallet },
     ],
   },
   state_admin: {
@@ -208,6 +211,7 @@ const roleNavs = {
       { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/state-admin/settings", icon: Settings },
       { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
+      { label: "Revenue Sharing", to: "/state-admin/revenue-sharing", icon: Wallet },
     ],
   },
   central_admin: null,
