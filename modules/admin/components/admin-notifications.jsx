@@ -126,6 +126,7 @@ function AdminNotifications({ expectedRole }) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("All");
 
   const { data: notifData, refetch } = useNotifications();
   const { data: chaptersData } = useChapters();
@@ -171,11 +172,21 @@ function AdminNotifications({ expectedRole }) {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const broadcastCount = notifications.filter(n => n.type === "Broadcast" || n.broadcastId).length;
-  const displayedNotifications = filter === "unread"
-    ? notifications.filter(n => !n.isRead)
-    : filter === "broadcasts"
-    ? notifications.filter(n => n.type === "Broadcast" || n.broadcastId)
-    : notifications;
+  
+  const predefinedTypes = ["Lead", "Enquiry", "Message", "Membership", "Payment", "Event", "Review", "Account", "Verification", "System", "General", "Announcement"];
+  const availableTypes = Array.from(new Set(notifications.map(n => n?.type || "System")));
+  const filterOptions = ["All", ...new Set([...predefinedTypes, ...availableTypes])].filter(Boolean);
+
+  const displayedNotifications = notifications.filter(n => {
+    // Status Filter
+    if (filter === "unread" && n.isRead) return false;
+    if (filter === "broadcasts" && !(n.type === "Broadcast" || n.broadcastId)) return false;
+    
+    // Type Filter
+    if (typeFilter !== "All" && (n?.type || "System") !== typeFilter) return false;
+
+    return true;
+  });
 
   const [viewNotif, setViewNotif] = useState(null);
   const [confirmUndo, setConfirmUndo] = useState(null);
@@ -354,12 +365,26 @@ function AdminNotifications({ expectedRole }) {
         <Panel 
           title={filter === "unread" ? "Unread alerts" : filter === "broadcasts" ? "Broadcast history" : "Recently sent alerts"} 
           bodyClassName="p-0 md:p-0"
-          actions={
-            notifications.length > 0 && (
-              <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)} className="text-destructive">
-                <Trash className="mr-2 h-4 w-4" /> Clear All
-              </Button>
-            )
+          action={
+            <div className="flex items-center gap-2">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="h-8 text-xs w-[140px]">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filterOptions.map((opt) => (
+                    <SelectItem key={opt} value={opt} className="text-xs">
+                      {opt === "All" ? "All Categories" : opt}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {notifications.length > 0 && (
+                <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)} className="text-destructive h-8">
+                  <Trash className="mr-2 h-4 w-4" /> Clear All
+                </Button>
+              )}
+            </div>
           }
         >
           {displayedNotifications.length === 0 ? (

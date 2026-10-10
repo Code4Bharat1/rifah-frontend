@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useNotifications } from "@shared/hooks/use-rifah-api";
 import { notificationApi } from "@shared/lib/api-services";
 import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Megaphone, Eye, Calendar, MapPin, Clock, Building2, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,9 +54,18 @@ function BizNotifications({ role = "business" } = {}) {
   const [viewNotif, setViewNotif] = useState(null);
   const { data: notifData, refetch } = useNotifications();
   const notifications = Array.isArray(notifData) ? notifData : (notifData?.notifications || []);
+  const [filter, setFilter] = useState("All");
   const unreadCount = typeof notifData?.unreadCount === "number"
     ? notifData.unreadCount
     : notifications.filter((n) => !n.isRead && !n.readAt).length;
+
+  const displayedNotifications = filter === "All"
+    ? notifications
+    : notifications.filter((n) => (n?.type || "System") === filter);
+
+  const predefinedTypes = ["Lead", "Enquiry", "Message", "Membership", "Payment", "Event", "Review", "Account", "Verification", "System", "General", "Announcement"];
+  const availableTypes = Array.from(new Set(notifications.map(n => n?.type || "System")));
+  const filterOptions = ["All", ...new Set([...predefinedTypes, ...availableTypes])].filter(Boolean);
 
   const handleMarkAllRead = async () => {
     try {
@@ -78,24 +88,38 @@ function BizNotifications({ role = "business" } = {}) {
         title="All Notifications"
         description={`${unreadCount} unread alert${unreadCount === 1 ? "" : "s"}`}
         action={
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={unreadCount === 0}
-            onClick={handleMarkAllRead}
-            className="h-8 text-xs font-medium gap-1.5"
-          >
-            <CheckCheck className="h-3.5 w-3.5 text-primary" />
-            Mark all as read
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="h-8 text-xs w-[140px]">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                {filterOptions.map((opt) => (
+                  <SelectItem key={opt} value={opt} className="text-xs">
+                    {opt === "All" ? "All Notifications" : opt}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={unreadCount === 0}
+              onClick={handleMarkAllRead}
+              className="h-8 text-xs font-medium gap-1.5"
+            >
+              <CheckCheck className="h-3.5 w-3.5 text-primary" />
+              Mark all as read
+            </Button>
+          </div>
         }
         bodyClassName="p-0 md:p-0"
       >
-        {notifications.length === 0 ? (
+        {displayedNotifications.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted-foreground">No notifications at this time.</p>
         ) : (
           <ul className="divide-y divide-border">
-            {notifications.map((n) => {
+            {displayedNotifications.map((n) => {
               const isUnread = !n.isRead && !n.readAt;
               const titleText = safeText(n.title || n.type, "Notification");
               const bodyText = safeText(n.body || n.message, "");
