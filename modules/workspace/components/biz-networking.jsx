@@ -423,6 +423,7 @@ function BizNetworking() {
           <TabsList>
             <TabsTrigger value="one-to-one">One to One</TabsTrigger>
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
+            <TabsTrigger value="business-generated">Business Generated</TabsTrigger>
           </TabsList>
 
           <TabsContent value="one-to-one" className="space-y-4">
@@ -522,7 +523,9 @@ function BizNetworking() {
                 </div>
               )}
             </Panel>
+          </TabsContent>
 
+          <TabsContent value="business-generated" className="space-y-4">
             <div ref={businessGeneratedRef}>
               <Panel
                 title="Business Generated"

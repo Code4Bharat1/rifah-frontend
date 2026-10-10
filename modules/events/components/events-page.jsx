@@ -274,7 +274,11 @@ function EventsPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {getEventStatus(ev) !== "Ended" && (
-                        ev.totalSeats > 0 && (ev.registeredCount || 0) >= ev.totalSeats ? (
+                        ev.isRegistrationClosed ? (
+                          <div className="flex items-center bg-muted text-muted-foreground text-[10px] font-bold px-3 rounded-xl border border-border h-8 shadow-sm">
+                            Registration Closed
+                          </div>
+                        ) : ev.totalSeats > 0 && (ev.registeredCount || 0) >= ev.totalSeats ? (
                           <div className="flex items-center bg-destructive/10 text-destructive text-[10px] font-bold px-3 rounded-xl border border-destructive/20 h-8 shadow-sm">
                             Seats Full
                           </div>
