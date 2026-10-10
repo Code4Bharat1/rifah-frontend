@@ -67,8 +67,22 @@ function EventsPage() {
     if (tab === "Past" || tab === "Ended") return status === "Ended";
     return true;
   }).sort((a, b) => {
+    const statusWeight = { "Live": 0, "Upcoming": 1, "Ended": 2 };
+    const statusA = getEventStatus(a);
+    const statusB = getEventStatus(b);
+    
+    if (statusWeight[statusA] !== statusWeight[statusB]) {
+      return statusWeight[statusA] - statusWeight[statusB];
+    }
+    
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
+    
+    // For ended events, show most recently ended first
+    if (statusA === "Ended") {
+      return dateB - dateA;
+    }
+    // For upcoming/live, show closest ones first
     return dateA - dateB;
   });
 

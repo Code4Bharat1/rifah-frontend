@@ -1439,7 +1439,17 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     if (text && !isScanning) {
       setIsScanning(true);
       try {
-        const response = await eventApi.scanCheckInTicket(text);
+        // Extract ticket ID from a full URL if it exists
+        // Example QR content: http://localhost:3000/verify/ticket/RIFAH-EVT-2026-B4F911?token=...
+        let ticketId = text;
+        if (text.includes("/verify/ticket/")) {
+          const parts = text.split("/verify/ticket/");
+          if (parts.length > 1) {
+            ticketId = parts[1].split("?")[0].replace(/\//g, ""); // extracts RIFAH-EVT-2026-B4F911
+          }
+        }
+
+        const response = await eventApi.scanCheckInTicket(ticketId);
         if (response.alreadyCheckedIn) {
           toast.error(response.message);
         } else {
@@ -3154,7 +3164,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <div className="flex flex-col items-center justify-center aspect-square sm:aspect-[4/3] w-full bg-black rounded-lg overflow-hidden relative border border-border/50">
                   {isScannerOpen && (
                     <Scanner
-                      onResult={handleQrScan}
+                      onScan={handleQrScan}
                       onError={(error) => console.log(error?.message)}
                       options={{ delayBetweenScanAttempts: 1500 }}
                     />
