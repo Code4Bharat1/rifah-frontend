@@ -310,6 +310,11 @@ export const eventApi = {
       method: "PATCH",
       body: JSON.stringify({ attendanceStatus }),
     }),
+  scanCheckInTicket: (ticketId) =>
+    apiClient(`/events/tickets/check-in/${ticketId}`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
   uploadCover: (id, file) => {
     const formData = new FormData();
     formData.append("cover", file);

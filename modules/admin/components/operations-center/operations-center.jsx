@@ -85,6 +85,7 @@ import { Label } from "@shared/components/ui/label";
 import { Textarea } from "@shared/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@shared/components/ui/dialog";
+import { Scanner } from "@yudiel/react-qr-scanner";
 import { DynamicQrCode } from "@shared/components/rifah/dynamic-qr";
 import { cn } from "@shared/lib/utils";
 import { StatCard } from "@shared/components/rifah/ui-bits";
@@ -1426,6 +1427,29 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       }
     } else {
       toast.success(isCheckedIn ? `Check-in reversed for ${attendee.name}` : `Entry allowed for ${attendee.name}!`);
+    }
+  };
+
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+
+  const handleQrScan = async (result) => {
+    // result comes as an object { rawValue: string } or string depending on version, handle both
+    const text = typeof result === "object" ? result[0]?.rawValue || result?.rawValue : result;
+    if (text && !isScanning) {
+      setIsScanning(true);
+      try {
+        const response = await eventApi.scanCheckInTicket(text);
+        if (response.alreadyCheckedIn) {
+          toast.error(response.message);
+        } else {
+          toast.success(response.message || `Entry allowed for ${response.attendeeName || "Attendee"}!`);
+        }
+        fetchOperationsData(selectedEventId);
+      } catch (err) {
+        toast.error(err.data?.error?.message || err.message || "Invalid QR Code or Ticket not found.");
+      }
+      setTimeout(() => setIsScanning(false), 2500); // Prevent double scans rapidly
     }
   };
 
@@ -3111,8 +3135,44 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                 <Button variant="outline" size="sm" onClick={handleExportAttendeesExcel} className="gap-2 h-9 text-xs">
                   <Download className="h-4 w-4" /> Export (.xlsx)
                 </Button>
+                <Button variant="default" size="sm" onClick={() => setIsScannerOpen(true)} className="gap-2 h-9 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
+                  <QrCode className="h-4 w-4" /> Scan Entry QR
+                </Button>
+
               </div>
             </div>
+
+            {/* QR Scanner Modal */}
+            <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Scan Attendee Ticket</DialogTitle>
+                  <DialogDescription>
+                    Point the camera at the attendee's ticket QR code to verify and allow entry automatically.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col items-center justify-center aspect-square sm:aspect-[4/3] w-full bg-black rounded-lg overflow-hidden relative border border-border/50">
+                  {isScannerOpen && (
+                    <Scanner
+                      onResult={handleQrScan}
+                      onError={(error) => console.log(error?.message)}
+                      options={{ delayBetweenScanAttempts: 1500 }}
+                    />
+                  )}
+                  {isScanning && (
+                    <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 flex-col gap-2 backdrop-blur-sm">
+                      <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                      <p className="text-foreground font-semibold text-sm">Verifying Ticket...</p>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter className="sm:justify-center">
+                  <Button variant="outline" onClick={() => setIsScannerOpen(false)} className="w-full sm:w-auto">
+                    Close Scanner
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {filteredAttendees.length === 0 ? (
               <div className="p-12 text-center text-muted-foreground">
