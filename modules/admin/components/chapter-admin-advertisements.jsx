@@ -91,45 +91,54 @@ const STATUS_MAP = {
 };
 
 export function AdminAdvertisementsDesk({
-  expectedRole = "chapter_admin",
-  defaultScope = "chapter",
+  defaultScope = "global",
 }) {
-  const pathname = usePathname();
   const { user } = useAuth();
 
-  // Deterministic role calculation
-  let role = expectedRole;
-  if (!role && pathname) {
-    if (pathname.startsWith("/state-admin")) role = "state_admin";
-    else if (pathname.startsWith("/admin")) role = "admin";
-    else role = "chapter_admin";
-  }
+  // 3 Primary Scope Tabs: 'global' | 'state' | 'chapter'
+  const [scopeTab, setScopeTab] = useState(() =>
+    ["global", "state", "chapter"].includes(defaultScope) ? defaultScope : "global"
+  );
 
-  const isStateAdmin = role === "state_admin";
-  const isCentralAdmin = role === "admin" || role === "central_admin";
-  const isChapterAdmin = !isStateAdmin && !isCentralAdmin;
+  // Sub-filters for state and chapter
+  const [selectedState, setSelectedState] = useState("all");
+  const [selectedChapter, setSelectedChapter] = useState("all");
 
-  const appShellRole = isStateAdmin ? "state_admin" : isCentralAdmin ? "admin" : "chapter";
-  const scope = defaultScope || (isStateAdmin ? "state" : isCentralAdmin ? "global" : "chapter");
-
-  const pageTitle = isStateAdmin
-    ? "State Advertisements Desk"
-    : isCentralAdmin
-    ? "Central Advertisements Desk"
-    : "Advertisements Desk";
-
-  const pageSubtitle = isStateAdmin
-    ? `Verify statewide member ads & manage slot queue · ${user?.state || "State Desk"}`
-    : isCentralAdmin
-    ? "Verify nationwide platform ads & manage slot queue · Central Administration"
-    : `Verify member ads & manage slot queue · ${user?.chapter || "Chapter Desk"}`;
-
-  const roleLabel = isStateAdmin ? "State Admin" : isCentralAdmin ? "Central Admin" : "Chapter Admin";
+  const pageTitle = "Central Advertisements Desk";
+  const pageSubtitle = "Verify member ads, enforce compliance & schedule spotlight slots across Global, State, and Chapter reach · Central Administration";
+  const roleLabel = "Central Admin";
 
   const { data: adsData, isLoading: loadingAds } = useAdminAdvertisements({
-    targetScope: isCentralAdmin ? "all" : scope,
+    targetScope: "all",
   });
-  const ads = Array.isArray(adsData) ? adsData : adsData?.data || [];
+  const allAds = Array.isArray(adsData) ? adsData : adsData?.data || [];
+
+  // Extract unique states and chapters from ads
+  const uniqueStates = Array.from(
+    new Set(allAds.filter((a) => a.state).map((a) => a.state.trim()))
+  ).sort();
+
+  const uniqueChapters = Array.from(
+    new Set(allAds.filter((a) => a.chapterName).map((a) => a.chapterName.trim()))
+  ).sort();
+
+  // Filter ads strictly for current scopeTab + state/chapter subfilters
+  const ads = allAds.filter((a) => {
+    const s = a.targetScope || "chapter";
+    if (s !== scopeTab) return false;
+    if (scopeTab === "state" && selectedState !== "all") {
+      if ((a.state || "").toLowerCase() !== selectedState.toLowerCase()) return false;
+    }
+    if (scopeTab === "chapter" && selectedChapter !== "all") {
+      if ((a.chapterName || "").toLowerCase() !== selectedChapter.toLowerCase()) return false;
+    }
+    return true;
+  });
+
+  // Pending counts for badges on the 3 tabs
+  const globalPendingCount = allAds.filter((a) => (a.targetScope || "chapter") === "global" && a.status === "Pending").length;
+  const statePendingCount = allAds.filter((a) => (a.targetScope || "chapter") === "state" && a.status === "Pending").length;
+  const chapterPendingCount = allAds.filter((a) => (a.targetScope || "chapter") === "chapter" && a.status === "Pending").length;
 
   const reviewMutation = useReviewAdvertisement();
   const deleteMutation = useDeleteAdvertisement();
@@ -142,7 +151,9 @@ export function AdminAdvertisementsDesk({
   const { data: calendarSlotsData, isLoading: loadingCalendar } = useAdvertisementCalendar({
     month: calendarMonth,
     year: calendarYear,
-    targetScope: scope,
+    targetScope: scopeTab,
+    state: scopeTab === "state" && selectedState !== "all" ? selectedState : undefined,
+    chapterId: scopeTab === "chapter" && selectedChapter !== "all" ? selectedChapter : undefined,
   });
   const calendarSlots = Array.isArray(calendarSlotsData) ? calendarSlotsData : calendarSlotsData?.data || [];
 
@@ -159,7 +170,7 @@ export function AdminAdvertisementsDesk({
   // Banner Preview Modal
   const [previewImage, setPreviewImage] = useState(null);
 
-  // Grouped counts
+  // Grouped counts for currently selected scope
   const pendingAds = ads.filter((a) => a.status === "Pending");
   const activeAd = ads.find((a) => a.status === "Active");
   const queuedAds = ads.filter((a) => a.status === "Queued");
@@ -279,66 +290,145 @@ export function AdminAdvertisementsDesk({
 
   return (
     <AppShell
-      role={appShellRole}
+      role="admin"
       title={pageTitle}
       subtitle={pageSubtitle}
     >
       <div className="space-y-6">
-        {/* Admin Authority Banner with Clean Professional Enterprise Styling */}
+        {/* Central Admin Authority Banner */}
         <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-5 shadow-xs">
-          <div
-            className={cn(
-              "absolute top-0 left-0 right-0 h-1",
-              isCentralAdmin
-                ? "bg-violet-600"
-                : isStateAdmin
-                ? "bg-amber-600"
-                : "bg-emerald-600"
-            )}
-          />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-600 via-indigo-600 to-sky-500" />
           <div className="flex items-start gap-3.5 pt-0.5">
-            <div
-              className={cn(
-                "grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white shadow-2xs",
-                isCentralAdmin
-                  ? "bg-violet-600"
-                  : isStateAdmin
-                  ? "bg-amber-600"
-                  : "bg-emerald-600"
-              )}
-            >
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-600 text-white shadow-2xs">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-bold text-foreground text-sm sm:text-base">
-                  {roleLabel} Ad Verification & Scheduling
+                  Central Administration · Multi-Scope Ad Desk
                 </h3>
-                <span
-                  className={cn(
-                    "rounded-full px-2.5 py-0.5 text-[11px] font-bold border",
-                    isCentralAdmin
-                      ? "bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800"
-                      : isStateAdmin
-                      ? "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-                      : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
-                  )}
-                >
-                  {isStateAdmin ? "Statewide Authority" : isCentralAdmin ? "Central Platform Authority" : "Chapter Authority"}
+                <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold border bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800">
+                  Sole Verification Authority
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
-                {isStateAdmin
-                  ? "As State Admin, you have full authority to inspect member advertisements, verify compliance, determine the approved running duration (e.g. 1 day), and schedule their spotlight slot across your entire State."
-                  : isCentralAdmin
-                  ? "As Central Admin, you have authority to review and schedule platform-wide Global advertisements, and oversee state or chapter advertising queues."
-                  : "As Chapter Admin, you have full authority to inspect member advertisements, verify compliance, determine the approved running duration (e.g. 1 day), and schedule their spotlight slot for your chapter."}
+                As Central Admin, you have full authority to verify and schedule all member advertisements across the platform: **Global** (nationwide platform reach), **Statewide** (all members in that state), and **Chapter** (local chapter members).
               </p>
             </div>
           </div>
         </div>
 
-        {/* Stats Row with Luxury Accents */}
+        {/* 3 PRIMARY SCOPE TABS: GLOBAL | STATE | CHAPTER */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-border/70 pb-4">
+          <div className="flex items-center gap-2 bg-muted/60 p-1.5 rounded-2xl border border-border/60 overflow-x-auto">
+            {/* 1. GLOBAL TAB */}
+            <button
+              type="button"
+              onClick={() => {
+                setScopeTab("global");
+              }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
+                scopeTab === "global"
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+              )}
+            >
+              <Globe className="h-4 w-4" />
+              <span>Global Platform</span>
+              {globalPendingCount > 0 && (
+                <span className="rounded-full bg-amber-500 text-white px-2 py-0.2 text-[10px] font-bold">
+                  {globalPendingCount}
+                </span>
+              )}
+            </button>
+
+            {/* 2. STATE TAB */}
+            <button
+              type="button"
+              onClick={() => {
+                setScopeTab("state");
+              }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
+                scopeTab === "state"
+                  ? "bg-amber-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+              )}
+            >
+              <MapPin className="h-4 w-4" />
+              <span>Statewide</span>
+              {statePendingCount > 0 && (
+                <span className="rounded-full bg-amber-500 text-white px-2 py-0.2 text-[10px] font-bold">
+                  {statePendingCount}
+                </span>
+              )}
+            </button>
+
+            {/* 3. CHAPTER TAB */}
+            <button
+              type="button"
+              onClick={() => {
+                setScopeTab("chapter");
+              }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
+                scopeTab === "chapter"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+              )}
+            >
+              <Building2 className="h-4 w-4" />
+              <span>Chapter Level</span>
+              {chapterPendingCount > 0 && (
+                <span className="rounded-full bg-amber-500 text-white px-2 py-0.2 text-[10px] font-bold">
+                  {chapterPendingCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Contextual Filters for State or Chapter */}
+          <div className="flex items-center gap-2">
+            {scopeTab === "state" && uniqueStates.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted-foreground">State:</span>
+                <select
+                  value={selectedState}
+                  onChange={(e) => setSelectedState(e.target.value)}
+                  className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs focus:outline-hidden"
+                >
+                  <option value="all">All States ({allAds.filter((a) => (a.targetScope || "chapter") === "state").length})</option>
+                  {uniqueStates.map((st) => (
+                    <option key={st} value={st}>
+                      {st} ({allAds.filter((a) => (a.targetScope || "chapter") === "state" && (a.state || "").toLowerCase() === st.toLowerCase()).length})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {scopeTab === "chapter" && uniqueChapters.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted-foreground">Chapter:</span>
+                <select
+                  value={selectedChapter}
+                  onChange={(e) => setSelectedChapter(e.target.value)}
+                  className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs focus:outline-hidden"
+                >
+                  <option value="all">All Chapters ({allAds.filter((a) => (a.targetScope || "chapter") === "chapter").length})</option>
+                  {uniqueChapters.map((ch) => (
+                    <option key={ch} value={ch}>
+                      {ch} ({allAds.filter((a) => (a.targetScope || "chapter") === "chapter" && (a.chapterName || "").toLowerCase() === ch.toLowerCase()).length})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Row for the Selected Scope */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4.5 shadow-2xs hover:shadow-xs transition-all duration-300">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
@@ -767,7 +857,7 @@ export function AdminAdvertisementsDesk({
                 <div>
                   <h3 className="font-bold text-foreground text-base">
                     {monthNames[calendarMonth - 1]} {calendarYear} —{" "}
-                    <span className="capitalize text-primary">{scope} Slot Schedule</span>
+                    <span className="capitalize text-primary">{scopeTab} Slot Schedule</span>
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     Advertisements schedule for {roleLabel}. Campaigns in your desk scope display with full details.
@@ -1143,19 +1233,19 @@ export function AdminAdvertisementsDesk({
   );
 }
 
-// Wrapper for Chapter Admin Desk
+// Wrapper for Chapter Admin Desk (Fallback)
 export function ChapterAdminAdvertisements() {
-  return <AdminAdvertisementsDesk expectedRole="chapter_admin" defaultScope="chapter" />;
+  return <AdminAdvertisementsDesk defaultScope="chapter" />;
 }
 
-// Wrapper for State Admin Desk
+// Wrapper for State Admin Desk (Fallback)
 export function StateAdminAdvertisements() {
-  return <AdminAdvertisementsDesk expectedRole="state_admin" defaultScope="state" />;
+  return <AdminAdvertisementsDesk defaultScope="state" />;
 }
 
 // Wrapper for Central Admin Desk
 export function CentralAdminAdvertisements() {
-  return <AdminAdvertisementsDesk expectedRole="admin" defaultScope="global" />;
+  return <AdminAdvertisementsDesk defaultScope="global" />;
 }
 
 export default AdminAdvertisementsDesk;

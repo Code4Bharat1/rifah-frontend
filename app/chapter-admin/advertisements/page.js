@@ -1,12 +1,7 @@
-import { ChapterAdminAdvertisements } from "@modules/admin";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Advertisements Desk | Chapter Admin | RIFAH Connect",
-  description: "Verify, set duration, and schedule member advertisements for your chapter.",
-};
-
-export default function Page(props) {
-  return <ChapterAdminAdvertisements {...props} />;
+export default function Page() {
+  redirect("/chapter-admin");
 }
 
 export const dynamic = "force-dynamic";

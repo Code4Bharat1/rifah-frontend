@@ -100,13 +100,13 @@ const SCOPE_META = {
   chapter: {
     label: "Chapter",
     icon: MapPin,
-    reviewer: "Chapter Admin",
+    reviewer: "Central Admin",
     badgeClass: "bg-emerald-700 text-white border-emerald-800",
   },
   state: {
     label: "State",
     icon: MapPin,
-    reviewer: "State Admin",
+    reviewer: "Central Admin",
     badgeClass: "bg-amber-700 text-white border-amber-800",
   },
   global: {
@@ -956,7 +956,7 @@ export function BizAdvertisements() {
           <form onSubmit={handleSubmitAd} className="space-y-4 pt-2">
             {/* SCOPE SELECTION CARDS */}
             <div className="space-y-2">
-              <Label className="text-xs font-semibold">Select Reach & Verification Authority *</Label>
+              <Label className="text-xs font-semibold">Select Audience Reach (All Scopes Verified by Central Admin) *</Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -973,7 +973,7 @@ export function BizAdvertisements() {
                     Own Chapter
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground leading-tight">
-                    {business?.chapter || "Chapter"} members. Reviewed by <strong>Chapter Admin</strong>.
+                    {business?.chapter || "Chapter"} members. Verified by <strong>Central Admin</strong>.
                   </p>
                 </button>
 
@@ -992,7 +992,7 @@ export function BizAdvertisements() {
                     Statewide
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground leading-tight">
-                    All {business?.state || "State"} chapters. Reviewed by <strong>State Admin</strong>.
+                    All {business?.state || "State"} chapters. Verified by <strong>Central Admin</strong>.
                   </p>
                 </button>
 
@@ -1011,7 +1011,7 @@ export function BizAdvertisements() {
                     Global Platform
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground leading-tight">
-                    All members nationwide. Reviewed by <strong>Central Admin</strong>.
+                    All members nationwide. Verified by <strong>Central Admin</strong>.
                   </p>
                 </button>
               </div>

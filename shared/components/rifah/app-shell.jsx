@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState, useEffect, useRef, useMemo } from "react";
-import {BirthdayBanner} from "@shared/components/rifah/birthday-banner";
-import {TopPerformerSpotlight} from "@shared/components/rifah/top-performer-spotlight";
+import { BirthdayBanner } from "@shared/components/rifah/birthday-banner";
+import { TopPerformerSpotlight } from "@shared/components/rifah/top-performer-spotlight";
 import { resolveMediaUrl } from "@shared/lib/media";
 import {
   Bell,
@@ -168,7 +168,6 @@ const roleNavs = {
       { label: "Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
       { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
-      { label: "Advertisements", to: "/chapter-admin/advertisements", icon: Megaphone },
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
       { label: "Support", to: "/chapter-admin/tickets", icon: LifeBuoy },
       { label: "Queries", to: "/chapter-admin/queries", icon: MessageSquareText },
@@ -197,7 +196,6 @@ const roleNavs = {
       { label: "Members", to: "/state-admin/members", icon: Users },
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
       { label: "Support", to: "/state-admin/tickets", icon: LifeBuoy },
-      { label: "Advertisements", to: "/state-admin/advertisements", icon: Megaphone },
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
@@ -325,8 +323,8 @@ function useResolvedNav(role) {
       user.activeWorkspace.panelType === "chapter-admin"
         ? "/chapter-admin"
         : user.activeWorkspace.panelType === "state-admin"
-        ? "/state-admin"
-        : "/admin";
+          ? "/state-admin"
+          : "/admin";
 
     // If allowedNavRoutes is empty, strictly default to the panel's root overview
     const allowedRoutes = allowedList.length > 0 ? allowedList : [panelDefault];
@@ -681,7 +679,7 @@ export function AppShell({
       const isMemberUser =
         !isAdminRole &&
         (user.role === "customer" || user.role === "buyer" ||
-        (user.accountType === "user" && !isBusinessAccount(user)));
+          (user.accountType === "user" && !isBusinessAccount(user)));
       if (isMemberUser && (path === "/biz" || path?.startsWith("/biz/"))) {
         const target = path.replace(/^\/biz/, "/user") + (typeof window !== "undefined" ? window.location.search : "");
         router.replace(target || "/user");
@@ -926,220 +924,220 @@ export function AppShell({
         <div className="border-t border-sidebar-border p-3">
           {mounted ? (
             <>
-          {effectiveUser && (
-            <Link
-              href={
-                role === "business"
-                  ? "/biz/profile"
-                  : role === "customer" || role === "user" || effectiveUser?.role === "customer" || effectiveUser?.role === "buyer"
-                    ? "/user/profile"
-                    : effectiveUser?.role === "state_admin"
-                      ? "/state-admin/settings"
-                      : effectiveUser?.role === "chapter_admin"
-                        ? "/chapter-admin/settings"
-                        : "/admin/settings"
-              }
-              onClick={recordScroll}
-              className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50 transition-colors cursor-pointer group"
-              title="View profile"
-            >
-              <UserAvatar user={effectiveUser} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-semibold text-sidebar-foreground group-hover:text-primary transition-colors">{effectiveUser.name}</span>
-                <span className="block truncate text-[10px] text-sidebar-foreground/50">{effectiveUser.email}</span>
-              </span>
-            </Link>
-          )}
-          {effectiveUser?.activeWorkspace?.type === "org_role" ? (
-            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/30">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="font-bold text-primary uppercase tracking-wider">
-                  {effectiveUser.activeWorkspace.roleName || "LEADERSHIP"}
-                </span>
-                <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold uppercase truncate max-w-[120px]">
-                  {effectiveUser.activeWorkspace.level ? `${effectiveUser.activeWorkspace.level} LEVEL` : "ORGANIZATION"}
-                </span>
-              </div>
-            </div>
-          ) : effectiveUser?.role === "central_admin" ? (
-            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="font-bold text-blue-500 uppercase tracking-wider">CENTRAL ADMIN</span>
-                <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-bold uppercase truncate max-w-[120px]">
-                  ALL CHAPTERS
-                </span>
-              </div>
-            </div>
-          ) : null}
-          {effectiveUser?.role === "state_admin" && (
-            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="font-bold text-emerald-500 uppercase tracking-wider">STATE ADMIN</span>
-                <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-bold uppercase truncate max-w-[120px]">
-                  {effectiveUser?.state || "STATE"}
-                </span>
-              </div>
-            </div>
-          )}
-          {effectiveUser?.role === "chapter_admin" && (
-            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="font-bold text-cyan-400 uppercase tracking-wider">CHAPTER ADMIN</span>
-                <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold uppercase truncate max-w-[120px]">
-                  {effectiveUser?.chapter ? effectiveUser.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "CHAPTER"}
-                </span>
-              </div>
-            </div>
-          )}
-          {(effectiveUser?.role === "customer" || effectiveUser?.role === "buyer" || role === "user" || role === "customer") && (
-            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="font-bold text-blue-500 uppercase tracking-wider">MEMBER TIER</span>
-                <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-bold uppercase truncate max-w-[120px]">
-                  {effectiveUser?.subscriberTier || effectiveUser?.membershipPlan || "Tier I (Free)"}
-                </span>
-              </div>
-            </div>
-          )}
-          {(effectiveUser?.role === "business_owner" || effectiveUser?.role === "business") && (
-            <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="font-bold text-primary uppercase tracking-wider">BUSINESS</span>
-                <span className="px-1.5 py-0.5 rounded bg-primary/15 text-primary font-bold uppercase truncate max-w-[120px]">
-                  {effectiveUser?.chapter ? effectiveUser.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "MEMBER"}
-                </span>
-              </div>
-            </div>
-          )}
-          {/* Multi-workspace / Org-role switcher */}
-          {effectiveUser?.availableWorkspaces && effectiveUser.availableWorkspaces.length > 1 && (
-            <div className="mb-2 rounded-xl bg-sidebar-accent/50 p-2 border border-sidebar-border">
-              <div className="px-1.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                <span>Switch Workspace</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
-                  {effectiveUser.availableWorkspaces.length} Panels
-                </span>
-              </div>
-              <div className="space-y-1">
-                {effectiveUser.availableWorkspaces.map((ws) => {
-                  const isCurrentActive = ws.type === "org_role"
-                    ? effectiveUser.activeWorkspace?.workspaceId === ws.workspaceId
-                    : (!effectiveUser.activeWorkspace || effectiveUser.activeWorkspace.type !== "org_role") &&
-                      (effectiveUser.role === ws.workspaceId || (ws.workspaceId === "business_owner" && (effectiveUser.role === "business_owner" || effectiveUser.role === "business")));
-
-                  return (
-                    <button
-                      key={ws.workspaceId || ws.roleName}
-                      disabled={isCurrentActive}
-                      onClick={async () => {
-                        if (isCurrentActive) return;
-                        try {
-                          if (ws.type === "org_role") {
-                            await switchRole(ws.panelType || "chapter-admin", ws.workspaceId);
-                            const allowedDest = ws.allowedNavRoutes?.[0];
-                            if (ws.panelType === "chapter-admin") router.push(allowedDest || "/chapter-admin");
-                            else if (ws.panelType === "state-admin") router.push(allowedDest || "/state-admin");
-                            else router.push(allowedDest || "/admin");
-                          } else {
-                            await switchRole(ws.workspaceId);
-                            if (ws.workspaceId === "central_admin") router.push("/admin");
-                            else if (ws.workspaceId === "state_admin") router.push("/state-admin");
-                            else if (ws.workspaceId === "chapter_admin") router.push("/chapter-admin");
-                            else router.push("/biz");
-                          }
-                        } catch (err) {
-                          toast.error(err.message || "Failed to switch workspace");
-                        }
-                      }}
-                      className={cn(
-                        "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all text-left",
-                        isCurrentActive
-                          ? "bg-primary text-primary-foreground shadow-xs font-bold cursor-default"
-                          : "text-sidebar-foreground/80 hover:bg-muted hover:text-foreground active:scale-[0.98]"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <RotateCcw className={cn("h-3.5 w-3.5 shrink-0", isCurrentActive ? "opacity-100" : "opacity-50")} />
-                        <span className="truncate">{ws.roleName}</span>
-                      </div>
-                      {isCurrentActive ? (
-                        <span className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />
-                      ) : (
-                        ws.level && (
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-muted font-bold text-muted-foreground uppercase shrink-0">
-                            {ws.level}
-                          </span>
-                        )
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Quick Return to Previous Role */}
-          {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
-            <button
-              onClick={async () => {
-                try {
-                  const targetRole = effectiveUser.previousRole;
-                  const res = await switchRole(targetRole);
-                  const resultingRole = res?.role || targetRole;
-                  if (["central_admin", "admin", "super_admin", "secretariat"].includes(resultingRole)) {
-                    router.push("/admin");
-                  } else if (resultingRole === "state_admin") {
-                    router.push("/state-admin");
-                  } else if (resultingRole === "chapter_admin") {
-                    router.push("/chapter-admin");
-                  } else if (resultingRole === "business_owner") {
-                    router.push("/biz");
-                  } else {
-                    router.push("/biz");
+              {effectiveUser && (
+                <Link
+                  href={
+                    role === "business"
+                      ? "/biz/profile"
+                      : role === "customer" || role === "user" || effectiveUser?.role === "customer" || effectiveUser?.role === "buyer"
+                        ? "/user/profile"
+                        : effectiveUser?.role === "state_admin"
+                          ? "/state-admin/settings"
+                          : effectiveUser?.role === "chapter_admin"
+                            ? "/chapter-admin/settings"
+                            : "/admin/settings"
                   }
-                } catch (err) {
-                  toast.error(err.message || "Failed to switch role");
-                }
-              }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
-            >
-              <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-              <span>
-                {["central_admin", "admin", "super_admin", "secretariat"].includes(effectiveUser.previousRole)
-                  ? "Switch to Admin Panel"
-                  : effectiveUser.previousRole === "state_admin"
-                    ? "Switch to State Admin Panel"
-                    : effectiveUser.previousRole === "chapter_admin"
-                      ? "Switch to Chapter Admin Panel"
-                      : "Switch to Business Panel"}
-              </span>
-            </button>
-          )}
+                  onClick={recordScroll}
+                  className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50 transition-colors cursor-pointer group"
+                  title="View profile"
+                >
+                  <UserAvatar user={effectiveUser} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-semibold text-sidebar-foreground group-hover:text-primary transition-colors">{effectiveUser.name}</span>
+                    <span className="block truncate text-[10px] text-sidebar-foreground/50">{effectiveUser.email}</span>
+                  </span>
+                </Link>
+              )}
+              {effectiveUser?.activeWorkspace?.type === "org_role" ? (
+                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/30">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-primary uppercase tracking-wider">
+                      {effectiveUser.activeWorkspace.roleName || "LEADERSHIP"}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold uppercase truncate max-w-[120px]">
+                      {effectiveUser.activeWorkspace.level ? `${effectiveUser.activeWorkspace.level} LEVEL` : "ORGANIZATION"}
+                    </span>
+                  </div>
+                </div>
+              ) : effectiveUser?.role === "central_admin" ? (
+                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-blue-500 uppercase tracking-wider">CENTRAL ADMIN</span>
+                    <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-bold uppercase truncate max-w-[120px]">
+                      ALL CHAPTERS
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+              {effectiveUser?.role === "state_admin" && (
+                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-emerald-500 uppercase tracking-wider">STATE ADMIN</span>
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-bold uppercase truncate max-w-[120px]">
+                      {effectiveUser?.state || "STATE"}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {effectiveUser?.role === "chapter_admin" && (
+                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-cyan-400 uppercase tracking-wider">CHAPTER ADMIN</span>
+                    <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold uppercase truncate max-w-[120px]">
+                      {effectiveUser?.chapter ? effectiveUser.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "CHAPTER"}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {(effectiveUser?.role === "customer" || effectiveUser?.role === "buyer" || role === "user" || role === "customer") && (
+                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-blue-500 uppercase tracking-wider">MEMBER TIER</span>
+                    <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-bold uppercase truncate max-w-[120px]">
+                      {effectiveUser?.subscriberTier || effectiveUser?.membershipPlan || "Tier I (Free)"}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {(effectiveUser?.role === "business_owner" || effectiveUser?.role === "business") && (
+                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-primary uppercase tracking-wider">BUSINESS</span>
+                    <span className="px-1.5 py-0.5 rounded bg-primary/15 text-primary font-bold uppercase truncate max-w-[120px]">
+                      {effectiveUser?.chapter ? effectiveUser.chapter.replace(/\s*[Cc]hapter\s*/g, "").toUpperCase() : "MEMBER"}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {/* Multi-workspace / Org-role switcher */}
+              {effectiveUser?.availableWorkspaces && effectiveUser.availableWorkspaces.length > 1 && (
+                <div className="mb-2 rounded-xl bg-sidebar-accent/50 p-2 border border-sidebar-border">
+                  <div className="px-1.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                    <span>Switch Workspace</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
+                      {effectiveUser.availableWorkspaces.length} Panels
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {effectiveUser.availableWorkspaces.map((ws) => {
+                      const isCurrentActive = ws.type === "org_role"
+                        ? effectiveUser.activeWorkspace?.workspaceId === ws.workspaceId
+                        : (!effectiveUser.activeWorkspace || effectiveUser.activeWorkspace.type !== "org_role") &&
+                        (effectiveUser.role === ws.workspaceId || (ws.workspaceId === "business_owner" && (effectiveUser.role === "business_owner" || effectiveUser.role === "business")));
 
-          {/* Show switch-to-business for admins who have a business but haven't switched yet */}
-          {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && (!effectiveUser?.availableWorkspaces || effectiveUser.availableWorkspaces.length <= 1) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
-            <button
-              onClick={async () => {
-                try {
-                  await switchRole("business_owner");
-                  router.push("/biz");
-                } catch (err) {
-                  toast.error(err.message || "Failed to switch role");
-                }
-              }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-amber-500/10 hover:text-amber-500 mb-1"
-            >
-              <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-              <span>Switch to Business Panel</span>
-            </button>
-          )}
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-destructive/20 hover:text-destructive"
-          >
-            <LogOut className="h-[18px] w-[18px] shrink-0" />
-            <span>Logout</span>
-          </button>
+                      return (
+                        <button
+                          key={ws.workspaceId || ws.roleName}
+                          disabled={isCurrentActive}
+                          onClick={async () => {
+                            if (isCurrentActive) return;
+                            try {
+                              if (ws.type === "org_role") {
+                                await switchRole(ws.panelType || "chapter-admin", ws.workspaceId);
+                                const allowedDest = ws.allowedNavRoutes?.[0];
+                                if (ws.panelType === "chapter-admin") router.push(allowedDest || "/chapter-admin");
+                                else if (ws.panelType === "state-admin") router.push(allowedDest || "/state-admin");
+                                else router.push(allowedDest || "/admin");
+                              } else {
+                                await switchRole(ws.workspaceId);
+                                if (ws.workspaceId === "central_admin") router.push("/admin");
+                                else if (ws.workspaceId === "state_admin") router.push("/state-admin");
+                                else if (ws.workspaceId === "chapter_admin") router.push("/chapter-admin");
+                                else router.push("/biz");
+                              }
+                            } catch (err) {
+                              toast.error(err.message || "Failed to switch workspace");
+                            }
+                          }}
+                          className={cn(
+                            "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all text-left",
+                            isCurrentActive
+                              ? "bg-primary text-primary-foreground shadow-xs font-bold cursor-default"
+                              : "text-sidebar-foreground/80 hover:bg-muted hover:text-foreground active:scale-[0.98]"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <RotateCcw className={cn("h-3.5 w-3.5 shrink-0", isCurrentActive ? "opacity-100" : "opacity-50")} />
+                            <span className="truncate">{ws.roleName}</span>
+                          </div>
+                          {isCurrentActive ? (
+                            <span className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />
+                          ) : (
+                            ws.level && (
+                              <span className="text-[9px] px-1 py-0.5 rounded bg-muted font-bold text-muted-foreground uppercase shrink-0">
+                                {ws.level}
+                              </span>
+                            )
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Return to Previous Role */}
+              {effectiveUser?.previousRole && effectiveUser.previousRole !== effectiveUser?.role && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const targetRole = effectiveUser.previousRole;
+                      const res = await switchRole(targetRole);
+                      const resultingRole = res?.role || targetRole;
+                      if (["central_admin", "admin", "super_admin", "secretariat"].includes(resultingRole)) {
+                        router.push("/admin");
+                      } else if (resultingRole === "state_admin") {
+                        router.push("/state-admin");
+                      } else if (resultingRole === "chapter_admin") {
+                        router.push("/chapter-admin");
+                      } else if (resultingRole === "business_owner") {
+                        router.push("/biz");
+                      } else {
+                        router.push("/biz");
+                      }
+                    } catch (err) {
+                      toast.error(err.message || "Failed to switch role");
+                    }
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
+                >
+                  <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+                  <span>
+                    {["central_admin", "admin", "super_admin", "secretariat"].includes(effectiveUser.previousRole)
+                      ? "Switch to Admin Panel"
+                      : effectiveUser.previousRole === "state_admin"
+                        ? "Switch to State Admin Panel"
+                        : effectiveUser.previousRole === "chapter_admin"
+                          ? "Switch to Chapter Admin Panel"
+                          : "Switch to Business Panel"}
+                  </span>
+                </button>
+              )}
+
+              {/* Show switch-to-business for admins who have a business but haven't switched yet */}
+              {effectiveUser && (!effectiveUser?.previousRole || effectiveUser.previousRole === effectiveUser?.role) && (!effectiveUser?.availableWorkspaces || effectiveUser.availableWorkspaces.length <= 1) && ["central_admin", "state_admin", "chapter_admin"].includes(effectiveUser?.role) && (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await switchRole("business_owner");
+                      router.push("/biz");
+                    } catch (err) {
+                      toast.error(err.message || "Failed to switch role");
+                    }
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-amber-500/10 hover:text-amber-500 mb-1"
+                >
+                  <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+                  <span>Switch to Business Panel</span>
+                </button>
+              )}
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-destructive/20 hover:text-destructive"
+              >
+                <LogOut className="h-[18px] w-[18px] shrink-0" />
+                <span>Logout</span>
+              </button>
             </>
           ) : (
             <div className="h-16"></div>
@@ -1177,12 +1175,12 @@ export function AppShell({
                     path?.startsWith("/state-admin") || role === "state_admin" || role === "state"
                       ? "/state-admin/notifications"
                       : path?.startsWith("/chapter-admin") || role === "chapter_admin" || role === "chapter"
-                      ? "/chapter-admin/notifications"
-                      : path?.startsWith("/admin") || role === "admin" || role === "central_admin"
-                      ? "/admin/notifications"
-                      : role === "customer" || role === "user" || effectiveUser?.role === "customer" || effectiveUser?.role === "buyer"
-                      ? "/user/notifications"
-                      : "/biz/notifications"
+                        ? "/chapter-admin/notifications"
+                        : path?.startsWith("/admin") || role === "admin" || role === "central_admin"
+                          ? "/admin/notifications"
+                          : role === "customer" || role === "user" || effectiveUser?.role === "customer" || effectiveUser?.role === "buyer"
+                            ? "/user/notifications"
+                            : "/biz/notifications"
                   }
                   aria-label="Notifications"
                 >
@@ -1222,7 +1220,9 @@ export function AppShell({
         <main className="w-full max-w-full overflow-x-hidden px-3 pb-24 pt-3 sm:px-4 sm:pb-24 sm:pt-4 md:px-6 md:pb-10 md:pt-6 xl:px-10">
           <div className="mx-auto w-full min-w-0 max-w-[1440px]">
             <BirthdayBanner />
-            {isDashboardPage && <TopPerformerSpotlight role={role} />}
+            {isDashboardPage && (
+              <TopPerformerSpotlight role={role} />
+            )}
             {isGatedPage ? (
               <UnderApprovalAccessGate
                 business={businessData}
@@ -1759,7 +1759,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
                     const isCurrentActive = ws.type === "org_role"
                       ? effectiveUser.activeWorkspace?.workspaceId === ws.workspaceId
                       : (!effectiveUser.activeWorkspace || effectiveUser.activeWorkspace.type !== "org_role") &&
-                        (effectiveUser.role === ws.workspaceId || (ws.workspaceId === "business_owner" && (effectiveUser.role === "business_owner" || effectiveUser.role === "business")));
+                      (effectiveUser.role === ws.workspaceId || (ws.workspaceId === "business_owner" && (effectiveUser.role === "business_owner" || effectiveUser.role === "business")));
 
                     return (
                       <button
