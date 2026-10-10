@@ -70,7 +70,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "eslint": "^10.10.0",
-    "eslint-config-next": "^14.2.35",
+    "eslint-config-next": "^16.4.0",
     "sucrase": "^3.35.1",
     "tailwindcss": "^4"
   },
