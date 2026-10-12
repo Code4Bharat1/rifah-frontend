@@ -722,7 +722,10 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
   const path = useCurrentPath();
   const router = useRouter();
   const { user, logout, switchRole, loading } = useAuth();
-  const mounted = typeof window !== "undefined";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const effectiveUser = mounted ? user : null;
   const nav = useResolvedNav(role) || navs.admin || navs.business;
 
@@ -2407,7 +2410,10 @@ export function BottomNav({ role, isBizVerified = true }) {
   const nav = useResolvedNav(role);
   const primary = nav.primary;
   const { isRouteLocked } = useFeatureAccess();
-  const mounted = typeof window !== "undefined";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <nav
@@ -2471,7 +2477,11 @@ export function BottomNav({ role, isBizVerified = true }) {
 function MobileLogoutButton() {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const effectiveUser = typeof window !== "undefined" ? user : null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const effectiveUser = mounted ? user : null;
   const handleLogout = () => {
     logout();
     window.location.href = "/login";

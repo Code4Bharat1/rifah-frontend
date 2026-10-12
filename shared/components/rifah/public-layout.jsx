@@ -101,7 +101,11 @@ export function PublicHeader() {
             : "/user";
 
   const [isScrolled, setIsScrolled] = React.useState(false);
-  const mounted = typeof window !== "undefined";
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -227,7 +231,11 @@ function MobileMenu() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
-  const mounted = typeof window !== "undefined";
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   const t = useTranslations("Navbar");
 
   const handleLogout = () => {
