@@ -233,14 +233,23 @@ export default function LoginPage() {
     const role = user.role;
     const accountType = user.accountType;
 
-    const isCentralAdmin = ["central_admin", "super_admin", "admin", "secretariat"].includes(role);
+    const isCentralAdmin = [
+      "central_admin",
+      "super_admin",
+      "admin",
+      "secretariat",
+      "country_admin",
+    ].includes(role);
     const isStateAdmin = role === "state_admin";
     const isChapterAdmin = role === "chapter_admin";
     const isBiz =
-      role === "business_owner" ||
-      role === "business" ||
-      accountType === "business" ||
-      (user.accountType !== "user" && Boolean(user.businessId || user.businessSlug));
+      !isCentralAdmin &&
+      !isStateAdmin &&
+      !isChapterAdmin &&
+      (role === "business_owner" ||
+        role === "business" ||
+        accountType === "business" ||
+        (user.accountType !== "user" && Boolean(user.businessId || user.businessSlug)));
     const isMemberUser =
       !isBiz &&
       !isCentralAdmin &&

@@ -1,17 +1,44 @@
 "use client";
 import Link from "next/link";
-import { MapPin, Plus, Users, Loader2, MoreHorizontal, CheckCircle2, Globe, Eye, UserPlus } from "lucide-react";
+import {
+  MapPin,
+  Plus,
+  Users,
+  Loader2,
+  MoreHorizontal,
+  CheckCircle2,
+  Globe,
+  Eye,
+  UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
-import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
+import {
+  Panel,
+  ResponsiveTable,
+  StatCard,
+} from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@shared/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@shared/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -22,18 +49,22 @@ import {
   SelectValue,
 } from "@shared/components/ui/select";
 import { useChapters, useBusinesses } from "@shared/hooks/use-rifah-api";
-import { chapterApi } from "@shared/lib/api-services";
-import { isBusinessPendingVerification, isBusinessVerified } from "@shared/lib/validators";
+import { chapterApi, countryApi } from "@shared/lib/api-services";
+import {
+  isBusinessPendingVerification,
+  isBusinessVerified,
+} from "@shared/lib/validators";
 import { VerificationGuardAlert } from "@shared/components/rifah/verification-guard-alert";
 import { useAuth } from "@shared/providers/auth-provider";
 import { isValidName } from "@shared/lib/validators";
 
 function AdminChapters() {
-  const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
+  const { user, loading: authLoading } = useAuth();
+  const isCentralAdmin = !authLoading && user?.role === "central_admin";
   const { data: chaptersData, refetch } = useChapters();
   const chapters = chaptersData || [];
 
+  const [countries, setCountries] = useState([]);
   const [openAdd, setOpenAdd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [adminModalChapter, setAdminModalChapter] = useState(null);
@@ -43,7 +74,7 @@ function AdminChapters() {
   const { data: businessesData } = useBusinesses({ limit: 150 });
   const rawBusinesses = Array.isArray(businessesData)
     ? businessesData
-    : (businessesData?.businesses || businessesData?.data || []);
+    : businessesData?.businesses || businessesData?.data || [];
 
   const isEligibleBusiness = (b) =>
     b.isPaid === true &&
@@ -55,27 +86,47 @@ function AdminChapters() {
     ? rawBusinesses.find((b) => String(b._id) === String(selectedBusinessId))
     : null;
   const isSelectedBizPending = Boolean(
-    selectedBusiness && (isBusinessPendingVerification(selectedBusiness) || !isBusinessVerified(selectedBusiness))
+    selectedBusiness &&
+    (isBusinessPendingVerification(selectedBusiness) ||
+      !isBusinessVerified(selectedBusiness)),
   );
 
   const eligibleBusinesses = rawBusinesses.filter(isEligibleBusiness);
 
   const chapterBizList = eligibleBusinesses.filter((b) => {
     if (!adminModalChapter) return false;
-    const bChapter = String(b.chapter || "").toLowerCase().trim();
-    const targetChapter = String(adminModalChapter.name || "").toLowerCase().trim();
+    const bChapter = String(b.chapter || "")
+      .toLowerCase()
+      .trim();
+    const targetChapter = String(adminModalChapter.name || "")
+      .toLowerCase()
+      .trim();
     const bChapterId = String(b.chapterId || "");
-    const targetId = String(adminModalChapter._id || adminModalChapter.id || "");
-    return (bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter);
+    const targetId = String(
+      adminModalChapter._id || adminModalChapter.id || "",
+    );
+    return (
+      (bChapterId && bChapterId === targetId) ||
+      (bChapter && bChapter === targetChapter)
+    );
   });
 
   const otherBizList = eligibleBusinesses.filter((b) => {
     if (!adminModalChapter) return true;
-    const bChapter = String(b.chapter || "").toLowerCase().trim();
-    const targetChapter = String(adminModalChapter.name || "").toLowerCase().trim();
+    const bChapter = String(b.chapter || "")
+      .toLowerCase()
+      .trim();
+    const targetChapter = String(adminModalChapter.name || "")
+      .toLowerCase()
+      .trim();
     const bChapterId = String(b.chapterId || "");
-    const targetId = String(adminModalChapter._id || adminModalChapter.id || "");
-    return !((bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter));
+    const targetId = String(
+      adminModalChapter._id || adminModalChapter.id || "",
+    );
+    return !(
+      (bChapterId && bChapterId === targetId) ||
+      (bChapter && bChapter === targetChapter)
+    );
   });
 
   const handleSelectBusinessOwner = (bizId) => {
@@ -94,11 +145,63 @@ function AdminChapters() {
   const [newChapter, setNewChapter] = useState({
     name: "",
     city: "",
-    state: "Maharashtra",
+    state: "",
+    country: "",
     status: "Active",
   });
 
-  const totalUnits = chapters.reduce((sum, c) => sum + (c.units?.length || 0), 0);
+  useEffect(() => {
+    const loadCountryOptions = async () => {
+      try {
+        const res = await countryApi.list();
+        const rows = Array.isArray(res)
+          ? res
+          : res?.countries || res?.data || [];
+
+        const normalizedRows = rows
+          .map((country) => ({
+            name: String(country?.name || "").trim(),
+          }))
+          .filter((country) => country.name);
+
+        const hasIndia = normalizedRows.some(
+          (country) => country.name.toLowerCase() === "india",
+        );
+        const countryOptions = hasIndia
+          ? normalizedRows
+          : [{ name: "India" }, ...normalizedRows];
+
+        setCountries(countryOptions);
+
+        setNewChapter((current) => {
+          const currentCountry = String(current.country || "").trim();
+          const nextCountry =
+            currentCountry &&
+            countryOptions.some(
+              (country) =>
+                country.name.toLowerCase() === currentCountry.toLowerCase(),
+            )
+              ? currentCountry
+              : countryOptions[0]?.name || "India";
+
+          return {
+            ...current,
+            country: nextCountry,
+            state: "",
+          };
+        });
+      } catch {
+        // ignore;
+      }
+    };
+
+    loadCountryOptions();
+  }, []);
+
+  const totalUnits = chapters.reduce(
+    (sum, c) => sum + (c.units?.length || 0),
+    0,
+  );
 
   const handleCreateChapter = async (e) => {
     e.preventDefault();
@@ -112,7 +215,13 @@ function AdminChapters() {
       await chapterApi.create(newChapter);
       toast.success("Chapter created successfully");
       setOpenAdd(false);
-      setNewChapter({ name: "", city: "", state: "Maharashtra", status: "Active" });
+      setNewChapter({
+        name: "",
+        city: "",
+        state: "",
+        country: "",
+        status: "Active",
+      });
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to create chapter.");
@@ -135,20 +244,25 @@ function AdminChapters() {
     e.preventDefault();
     if (!selectedBusinessId || !adminModalChapter) return;
     if (isSelectedBizPending) {
-      toast.error("This business is pending verification and cannot be allocated until it is verified.");
+      toast.error(
+        "This business is pending verification and cannot be allocated until it is verified.",
+      );
       return;
     }
     setLoading(true);
     try {
       const chapterId = adminModalChapter._id || adminModalChapter.id;
-      await chapterApi.assignAdmin(chapterId, { businessId: selectedBusinessId });
+      await chapterApi.assignAdmin(chapterId, {
+        businessId: selectedBusinessId,
+      });
       setAdminModalChapter(null);
       setSelectedBusinessId("");
       setNewAdmin({ name: "", email: "" });
       toast.success("Admin assigned successfully. Email invitation sent!");
       refetch();
     } catch (err) {
-      const msg = err.data?.error?.message || err.message || "Failed to assign admin.";
+      const msg =
+        err.data?.error?.message || err.message || "Failed to assign admin.";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -170,52 +284,107 @@ function AdminChapters() {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Chapters" value={String(chapters.length)} icon={MapPin} tone="primary" />
-          <StatCard label="Specialised units" value={String(totalUnits)} icon={Users} />
-          <StatCard label="Active Chapters" value={String(chapters.filter((c) => c.status === "Active").length)} icon={CheckCircle2} tone="success" />
-          <StatCard label="Regions" value="Pan-India" icon={Globe} tone="warning" />
+          <StatCard
+            label="Chapters"
+            value={String(chapters.length)}
+            icon={MapPin}
+            tone="primary"
+          />
+          <StatCard
+            label="Specialised units"
+            value={String(totalUnits)}
+            icon={Users}
+          />
+          <StatCard
+            label="Active Chapters"
+            value={String(chapters.filter((c) => c.status === "Active").length)}
+            icon={CheckCircle2}
+            tone="success"
+          />
+          <StatCard
+            label="Regions"
+            value="Pan-India"
+            icon={Globe}
+            tone="warning"
+          />
         </div>
 
         <Panel title="Regional Chapters">
           <ResponsiveTable
             rows={chapters}
             columns={[
-              { key: "name", header: "Chapter", cell: (r) => <span className="font-semibold">{r.name}</span> },
-              { key: "loc", header: "Location", cell: (r) => `${r.city}, ${r.state}` },
-              { key: "units", header: "Active Units", cell: (r) => r.units?.length || 0 },
-              { key: "status", header: "Status", cell: (r) => <Pill tone={r.status === "Active" ? "success" : "warning"}>{r.status}</Pill> },
+              {
+                key: "name",
+                header: "Chapter",
+                cell: (r) => <span className="font-semibold">{r.name}</span>,
+              },
+              {
+                key: "loc",
+                header: "Location",
+                cell: (r) => `${r.city}, ${r.state}`,
+              },
+              {
+                key: "units",
+                header: "Active Units",
+                cell: (r) => r.units?.length || 0,
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (r) => (
+                  <Pill tone={r.status === "Active" ? "success" : "warning"}>
+                    {r.status}
+                  </Pill>
+                ),
+              },
               {
                 key: "act",
                 header: "",
-                cell: (r) => isCentralAdmin ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/chapters/${r._id || r.id}`}>
-                          <Eye className="mr-2 h-4 w-4" /> View Details
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/chapters/${r._id || r.id}?allocate=true`}>
-                          <UserPlus className="mr-2 h-4 w-4" /> {r.hasAdmin ? "Reallocate Chapter Admin" : "Allocate Chapter Admin"}
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id || r.id, "Active")} disabled={r.status === "Active"}>
-                        Mark as Active
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleUpdateStatus(r._id || r.id, "Inactive")} disabled={r.status === "Inactive"}>
-                        Mark as Inactive
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : null,
+                cell: (r) =>
+                  isCentralAdmin ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/chapters/${r._id || r.id}`}>
+                            <Eye className="mr-2 h-4 w-4" /> View Details
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/admin/chapters/${r._id || r.id}?allocate=true`}
+                          >
+                            <UserPlus className="mr-2 h-4 w-4" />{" "}
+                            {r.hasAdmin
+                              ? "Reallocate Chapter Admin"
+                              : "Allocate Chapter Admin"}
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handleUpdateStatus(r._id || r.id, "Active")
+                          }
+                          disabled={r.status === "Active"}
+                        >
+                          Mark as Active
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handleUpdateStatus(r._id || r.id, "Inactive")
+                          }
+                          disabled={r.status === "Inactive"}
+                        >
+                          Mark as Inactive
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : null,
               },
             ]}
             mobile={(r) => (
@@ -227,7 +396,9 @@ function AdminChapters() {
                       {r.city}, {r.state}
                     </p>
                   </div>
-                  <Pill tone={r.status === "Active" ? "success" : "warning"}>{r.status}</Pill>
+                  <Pill tone={r.status === "Active" ? "success" : "warning"}>
+                    {r.status}
+                  </Pill>
                 </div>
               </div>
             )}
@@ -236,18 +407,35 @@ function AdminChapters() {
 
         <Panel title="Specialised focus units across chapters">
           <div className="grid gap-3 sm:grid-cols-2">
-            {chapters.flatMap((c) => (c.units || []).map((u) => ({ ...u, chapterName: c.name }))).map((u, i) => (
-              <div key={i} className="rounded-xl border border-border p-3.5">
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <p className="min-w-0 truncate text-sm font-semibold">{u.name}</p>
-                  <Pill tone={u.status === "Active" ? "success" : "warning"}>{u.status || "Active"}</Pill>
+            {chapters
+              .flatMap((c) =>
+                (c.units || []).map((u, unitIndex) => ({
+                  ...u,
+                  chapterName: c.name,
+                  __key: `${c._id || c.id || c.name}-${u._id || u.id || unitIndex}`,
+                })),
+              )
+              .map((u) => (
+                <div
+                  key={u.__key}
+                  className="rounded-xl border border-border p-3.5"
+                >
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <p className="min-w-0 truncate text-sm font-semibold">
+                      {u.name}
+                    </p>
+                    <Pill tone={u.status === "Active" ? "success" : "warning"}>
+                      {u.status || "Active"}
+                    </Pill>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {u.focus}
+                  </p>
+                  <p className="mt-2 text-xs font-medium text-primary">
+                    {u.chapterName}
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{u.focus}</p>
-                <p className="mt-2 text-xs font-medium text-primary">
-                  {u.chapterName}
-                </p>
-              </div>
-            ))}
+              ))}
           </div>
         </Panel>
       </div>
@@ -256,7 +444,9 @@ function AdminChapters() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Chamber Chapter</DialogTitle>
-            <DialogDescription>Establish a new regional chapter branch.</DialogDescription>
+            <DialogDescription>
+              Establish a new regional chapter branch.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateChapter} className="space-y-4 pt-2">
             <div className="space-y-1.5">
@@ -265,7 +455,9 @@ function AdminChapters() {
                 id="ch-name"
                 required
                 value={newChapter.name}
-                onChange={(e) => setNewChapter({ ...newChapter, name: e.target.value })}
+                onChange={(e) =>
+                  setNewChapter({ ...newChapter, name: e.target.value })
+                }
                 placeholder="e.g. Pune Chapter"
               />
             </div>
@@ -275,21 +467,69 @@ function AdminChapters() {
                 id="ch-city"
                 required
                 value={newChapter.city}
-                onChange={(e) => setNewChapter({ ...newChapter, city: e.target.value })}
+                onChange={(e) =>
+                  setNewChapter({ ...newChapter, city: e.target.value })
+                }
                 placeholder="e.g. Pune"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ch-state">State</Label>
+              <Label htmlFor="ch-state">
+                State
+                {newChapter.country &&
+                newChapter.country.toLowerCase() !== "india"
+                  ? " (optional)"
+                  : " *"}
+              </Label>
               <Input
                 id="ch-state"
                 value={newChapter.state}
-                onChange={(e) => setNewChapter({ ...newChapter, state: e.target.value })}
-                placeholder="Maharashtra"
+                onChange={(e) =>
+                  setNewChapter({ ...newChapter, state: e.target.value })
+                }
+                placeholder={
+                  newChapter.country &&
+                  newChapter.country.toLowerCase() !== "india"
+                    ? "Optional for international chapters"
+                    : "Maharashtra"
+                }
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ch-country">Country</Label>
+              <select
+                id="ch-country"
+                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500"
+                value={newChapter.country}
+                onChange={(e) => {
+                  const nextCountry = e.target.value;
+                  setNewChapter({
+                    ...newChapter,
+                    country: nextCountry,
+                    state: "",
+                  });
+                }}
+              >
+                {countries.length === 0 ? (
+                  <option value="India">India</option>
+                ) : (
+                  countries.map((country) => (
+                    <option
+                      key={country._id || country.id}
+                      value={country.name}
+                    >
+                      {country.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Chapter"}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Create Chapter"
+              )}
             </Button>
           </form>
         </DialogContent>
@@ -309,8 +549,9 @@ function AdminChapters() {
           <DialogHeader>
             <DialogTitle>Assign Chapter Admin</DialogTitle>
             <DialogDescription>
-              Assign an admin for {adminModalChapter?.name}. Only businesses with an active paid membership and
-              verified status are eligible. They will receive an email with their login credentials.
+              Assign an admin for {adminModalChapter?.name}. Only businesses
+              with an active paid membership and verified status are eligible.
+              They will receive an email with their login credentials.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAssignAdmin} className="space-y-4 py-4">
@@ -336,13 +577,22 @@ function AdminChapters() {
                         {adminModalChapter?.name} Owners
                       </SelectLabel>
                       {chapterBizList.map((b) => {
-                        const oName = b.owner?.name || b.contactPerson || b.name;
-                        const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                        const oName =
+                          b.owner?.name || b.contactPerson || b.name;
+                        const oEmail =
+                          b.owner?.email ||
+                          b.ownerEmail ||
+                          b.email ||
+                          "No email";
                         return (
                           <SelectItem key={b._id} value={b._id}>
                             <div className="flex flex-col text-left py-0.5">
-                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
-                              <span className="text-[11px] text-muted-foreground">{oEmail}</span>
+                              <span className="font-medium text-xs text-foreground">
+                                {oName} ({b.name})
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {oEmail}
+                              </span>
                             </div>
                           </SelectItem>
                         );
@@ -352,17 +602,27 @@ function AdminChapters() {
                   {otherBizList.length > 0 && (
                     <SelectGroup>
                       <SelectLabel className="text-xs font-semibold text-muted-foreground">
-                        {chapterBizList.length > 0 ? "Other State Business Owners" : "Registered Business Owners"}
+                        {chapterBizList.length > 0
+                          ? "Other State Business Owners"
+                          : "Registered Business Owners"}
                       </SelectLabel>
                       {otherBizList.map((b) => {
-                        const oName = b.owner?.name || b.contactPerson || b.name;
-                        const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                        const oName =
+                          b.owner?.name || b.contactPerson || b.name;
+                        const oEmail =
+                          b.owner?.email ||
+                          b.ownerEmail ||
+                          b.email ||
+                          "No email";
                         return (
                           <SelectItem key={b._id} value={b._id}>
                             <div className="flex flex-col text-left py-0.5">
-                              <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                              <span className="font-medium text-xs text-foreground">
+                                {oName} ({b.name})
+                              </span>
                               <span className="text-[11px] text-muted-foreground">
-                                {b.chapter ? `${b.chapter} · ` : ""}{oEmail}
+                                {b.chapter ? `${b.chapter} · ` : ""}
+                                {oEmail}
                               </span>
                             </div>
                           </SelectItem>
@@ -373,7 +633,8 @@ function AdminChapters() {
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-muted-foreground">
-                Only businesses with an active paid membership and verified status appear here.
+                Only businesses with an active paid membership and verified
+                status appear here.
               </p>
             </div>
 
@@ -390,16 +651,26 @@ function AdminChapters() {
             {selectedBusinessId && !isSelectedBizPending && (
               <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
                 <p className="font-medium text-foreground">{newAdmin.name}</p>
-                <p className="text-xs text-muted-foreground">{newAdmin.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  {newAdmin.email}
+                </p>
               </div>
             )}
             <div className="flex justify-end pt-4">
-              <Button 
-                type="submit" 
-                disabled={loading || !selectedBusinessId || isSelectedBizPending}
-                title={isSelectedBizPending ? "This business is pending verification and cannot be allocated." : undefined}
+              <Button
+                type="submit"
+                disabled={
+                  loading || !selectedBusinessId || isSelectedBizPending
+                }
+                title={
+                  isSelectedBizPending
+                    ? "This business is pending verification and cannot be allocated."
+                    : undefined
+                }
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
                 Send Invitation
               </Button>
             </div>

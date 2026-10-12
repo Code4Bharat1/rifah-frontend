@@ -63,23 +63,22 @@ export function PublicHeader() {
   };
 
   const dashboardPath =
-    ["central_admin", "super_admin", "admin", "secretariat"].includes(user?.role)
+    ["central_admin", "super_admin", "admin", "secretariat", "country_admin"].includes(user?.role)
       ? "/admin"
       : user?.role === "state_admin"
         ? "/state-admin"
         : user?.role === "chapter_admin"
           ? "/chapter-admin"
-          : user?.role === "business_owner" || user?.role === "business" || user?.accountType === "business" || (user?.accountType !== "user" && Boolean(user?.businessId || user?.businessSlug))
+          : user?.role === "business_owner" || user?.role === "business" || user?.accountType === "business" || (user?.role && !["central_admin", "super_admin", "admin", "secretariat", "country_admin", "state_admin", "chapter_admin"].includes(user.role) && user?.accountType !== "user" && Boolean(user?.businessId || user?.businessSlug))
             ? "/biz"
             : user?.accountType === "user" || Boolean(user?.subscriberTier)
               ? "/user"
               : "/user";
 
   const [isScrolled, setIsScrolled] = React.useState(false);
-  const [mounted, setMounted] = React.useState(false);
+  const mounted = typeof window !== "undefined";
 
   React.useEffect(() => {
-    setMounted(true);
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
@@ -179,10 +178,7 @@ export function PublicHeader() {
     const router = useRouter();
     const pathname = usePathname();
     const { user, isAuthenticated, logout } = useAuth();
-    const [mounted, setMounted] = React.useState(false);
-    React.useEffect(() => {
-      setMounted(true);
-    }, []);
+    const mounted = typeof window !== "undefined";
     const t = useTranslations("Navbar");
 
     const handleLogout = () => {

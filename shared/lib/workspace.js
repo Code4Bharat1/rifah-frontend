@@ -5,18 +5,31 @@ const ADMIN_HOME = {
   super_admin: "/admin",
   admin: "/admin",
   secretariat: "/admin",
+  country_admin: "/admin",
   state_admin: "/state-admin",
   chapter_admin: "/chapter-admin",
 };
 
 export function isBusinessAccount(user) {
   if (!user) return false;
+
+  const isResponsibilityRole = [
+    "central_admin",
+    "super_admin",
+    "admin",
+    "secretariat",
+    "country_admin",
+    "state_admin",
+    "chapter_admin",
+  ].includes(user.role);
+
+  if (isResponsibilityRole) return false;
+
   return (
     user.role === "business_owner" ||
     user.role === "business" ||
     user.accountType === "business" ||
-    (user.accountType !== "user" && Boolean(user.businessId || user.businessSlug)) ||
-    (["central_admin", "super_admin", "admin", "secretariat", "state_admin", "chapter_admin"].includes(user.role) && Boolean(user.businessId || user.businessSlug))
+    (user.accountType !== "user" && Boolean(user.businessId || user.businessSlug))
   );
 }
 

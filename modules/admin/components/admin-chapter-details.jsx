@@ -4,9 +4,18 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { 
-  ArrowLeft, Building2, MapPin, Users, UserCog, Mail, Briefcase, 
-  Loader2, ShieldAlert, KeyRound, CheckCircle2 
+import {
+  ArrowLeft,
+  Building2,
+  MapPin,
+  Users,
+  UserCog,
+  Mail,
+  Briefcase,
+  Loader2,
+  ShieldAlert,
+  KeyRound,
+  CheckCircle2,
 } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -33,7 +42,10 @@ import {
 } from "@shared/components/ui/select";
 import { useChapterDetails, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { chapterApi } from "@shared/lib/api-services";
-import { isBusinessPendingVerification, isBusinessVerified } from "@shared/lib/validators";
+import {
+  isBusinessPendingVerification,
+  isBusinessVerified,
+} from "@shared/lib/validators";
 import { VerificationGuardAlert } from "@shared/components/rifah/verification-guard-alert";
 import { useAuth } from "@shared/providers/auth-provider";
 
@@ -43,10 +55,27 @@ export default function AdminChapterDetails({ chapterId }) {
   const { user } = useAuth();
   const isChapterAdmin = user?.role === "chapter_admin";
   const isStateAdmin = user?.role === "state_admin";
-  const currentRole = isChapterAdmin ? "chapter_admin" : isStateAdmin ? "state_admin" : "admin";
-  const backHref = isChapterAdmin ? "/chapter-admin" : isStateAdmin ? "/state-admin/chapters" : "/admin/chapters";
-  const businessesHref = isChapterAdmin ? "/chapter-admin/businesses" : isStateAdmin ? "/state-admin/businesses" : "/admin/businesses";
-  const membersHref = isChapterAdmin ? "/chapter-admin/members" : isStateAdmin ? "/state-admin/members" : "/admin/users";
+  const currentRole = isChapterAdmin
+    ? "chapter_admin"
+    : isStateAdmin
+      ? "state_admin"
+      : "admin";
+  const backHref = isChapterAdmin
+    ? "/chapter-admin"
+    : isStateAdmin
+      ? "/state-admin/chapters"
+      : "/admin/chapters";
+  const businessesHref = isChapterAdmin
+    ? "/chapter-admin/businesses"
+    : isStateAdmin
+      ? "/state-admin/businesses"
+      : "/admin/businesses";
+  const membersHref = isChapterAdmin
+    ? "/chapter-admin/members"
+    : isStateAdmin
+      ? "/state-admin/members"
+      : "/admin/users";
+  const unitsHref = undefined;
   const { data, isLoading, refetch } = useChapterDetails(chapterId);
   const { data: businessesData } = useBusinesses({ limit: 150 });
 
@@ -59,7 +88,7 @@ export default function AdminChapterDetails({ chapterId }) {
   const [statusLoading, setStatusLoading] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('allocate') === 'true') {
+    if (searchParams.get("allocate") === "true") {
       setOpenAdminModal(true);
     }
   }, [searchParams]);
@@ -91,7 +120,7 @@ export default function AdminChapterDetails({ chapterId }) {
 
   const rawBusinesses = Array.isArray(businessesData)
     ? businessesData
-    : (businessesData?.businesses || businessesData?.data || []);
+    : businessesData?.businesses || businessesData?.data || [];
 
   const isEligibleBusiness = (b) =>
     b.isPaid === true &&
@@ -103,27 +132,43 @@ export default function AdminChapterDetails({ chapterId }) {
     ? rawBusinesses.find((b) => String(b._id) === String(selectedBusinessId))
     : null;
   const isSelectedBizPending = Boolean(
-    selectedBusiness && (isBusinessPendingVerification(selectedBusiness) || !isBusinessVerified(selectedBusiness))
+    selectedBusiness &&
+    (isBusinessPendingVerification(selectedBusiness) ||
+      !isBusinessVerified(selectedBusiness)),
   );
 
   const eligibleBusinesses = rawBusinesses.filter(isEligibleBusiness);
 
   const chapterBizList = eligibleBusinesses.filter((b) => {
     if (!chapter) return false;
-    const bChapter = String(b.chapter || "").toLowerCase().trim();
-    const targetChapter = String(chapter.name || "").toLowerCase().trim();
+    const bChapter = String(b.chapter || "")
+      .toLowerCase()
+      .trim();
+    const targetChapter = String(chapter.name || "")
+      .toLowerCase()
+      .trim();
     const bChapterId = String(b.chapterId || "");
     const targetId = String(chapter._id || chapter.id || "");
-    return (bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter);
+    return (
+      (bChapterId && bChapterId === targetId) ||
+      (bChapter && bChapter === targetChapter)
+    );
   });
 
   const otherBizList = eligibleBusinesses.filter((b) => {
     if (!chapter) return true;
-    const bChapter = String(b.chapter || "").toLowerCase().trim();
-    const targetChapter = String(chapter.name || "").toLowerCase().trim();
+    const bChapter = String(b.chapter || "")
+      .toLowerCase()
+      .trim();
+    const targetChapter = String(chapter.name || "")
+      .toLowerCase()
+      .trim();
     const bChapterId = String(b.chapterId || "");
     const targetId = String(chapter._id || chapter.id || "");
-    return !((bChapterId && bChapterId === targetId) || (bChapter && bChapter === targetChapter));
+    return !(
+      (bChapterId && bChapterId === targetId) ||
+      (bChapter && bChapter === targetChapter)
+    );
   });
 
   const handleSelectBusinessOwner = (bizId) => {
@@ -142,7 +187,9 @@ export default function AdminChapterDetails({ chapterId }) {
   const handleChangeAdmin = async (e) => {
     e.preventDefault();
     if (selectedBusinessId && isSelectedBizPending) {
-      toast.error("This business is pending verification and cannot be allocated until it is verified.");
+      toast.error(
+        "This business is pending verification and cannot be allocated until it is verified.",
+      );
       return;
     }
     if (!newAdmin.name?.trim() || !newAdmin.email?.trim()) {
@@ -156,13 +203,20 @@ export default function AdminChapterDetails({ chapterId }) {
         name: newAdmin.name.trim(),
         email: newAdmin.email.trim(),
       });
-      toast.success(admin ? "Admin role successfully reallocated!" : "Admin successfully appointed!");
+      toast.success(
+        admin
+          ? "Admin role successfully reallocated!"
+          : "Admin successfully appointed!",
+      );
       setOpenAdminModal(false);
       setNewAdmin({ name: "", email: "" });
       setSelectedBusinessId("");
       refetch();
     } catch (error) {
-      const msg = error.data?.error?.message || error.message || "Failed to change admin.";
+      const msg =
+        error.data?.error?.message ||
+        error.message ||
+        "Failed to change admin.";
       toast.error(msg);
     } finally {
       setAdminLoading(false);
@@ -174,7 +228,9 @@ export default function AdminChapterDetails({ chapterId }) {
     try {
       const newStatus = chapter.status === "Active" ? "Inactive" : "Active";
       await chapterApi.updateStatus(chapterId, newStatus);
-      toast.success(`Chapter has been ${newStatus === "Active" ? "activated" : "deactivated"}.`);
+      toast.success(
+        `Chapter has been ${newStatus === "Active" ? "activated" : "deactivated"}.`,
+      );
       setOpenStatusModal(false);
       refetch();
     } catch (error) {
@@ -207,8 +263,12 @@ export default function AdminChapterDetails({ chapterId }) {
               <MapPin className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">{chapter.name}</h2>
-              <p className="text-sm text-muted-foreground">{chapter.address || "No address provided"}</p>
+              <h2 className="text-lg font-bold text-foreground">
+                {chapter.name}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {chapter.address || "No address provided"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -218,7 +278,9 @@ export default function AdminChapterDetails({ chapterId }) {
             {!isChapterAdmin && (
               <Button
                 size="sm"
-                variant={chapter.status === "Active" ? "destructive" : "default"}
+                variant={
+                  chapter.status === "Active" ? "destructive" : "default"
+                }
                 onClick={() => setOpenStatusModal(true)}
               >
                 {chapter.status === "Active" ? "Deactivate" : "Activate"}
@@ -229,32 +291,35 @@ export default function AdminChapterDetails({ chapterId }) {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard 
-            label="Total Businesses" 
-            value={stats.businessesCount || 0} 
-            icon={Building2} 
-            tone="primary" 
+          <StatCard
+            label="Total Businesses"
+            value={stats.businessesCount || 0}
+            icon={Building2}
+            tone="primary"
             href={businessesHref}
           />
-          <StatCard 
-            label="Verified Members" 
-            value={stats.customersCount || 0} 
-            icon={Users} 
-            tone="success" 
+          <StatCard
+            label="Verified Members"
+            value={stats.customersCount || 0}
+            icon={Users}
+            tone="success"
             href={membersHref}
           />
-          <StatCard 
-            label="Specialised Units" 
-            value={chapter.units?.length || 0} 
-            icon={Briefcase} 
-            tone="warning" 
+          <StatCard
+            label="Specialised Units"
+            value={chapter.units?.length || 0}
+            icon={Briefcase}
+            tone="warning"
             href={unitsHref}
           />
         </div>
 
         {/* Admin Card */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Panel title="Chapter Administration" icon={<ShieldAlert className="h-4 w-4" />}>
+          <Panel
+            title="Chapter Administration"
+            icon={<ShieldAlert className="h-4 w-4" />}
+          >
             {admin ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 border border-border">
@@ -269,16 +334,19 @@ export default function AdminChapterDetails({ chapterId }) {
                   </div>
                   <Pill tone="primary">Chapter Admin</Pill>
                 </div>
-                
+
                 <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs border border-blue-100 flex gap-2 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50">
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-600" />
-                  <p>Appointed to manage businesses, units, and operations within this chapter.</p>
+                  <p>
+                    Appointed to manage businesses, units, and operations within
+                    this chapter.
+                  </p>
                 </div>
 
                 {!isChapterAdmin && (
                   <div className="pt-2 border-t border-border">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full"
                       onClick={() => {
                         setSelectedBusinessId("");
@@ -289,7 +357,8 @@ export default function AdminChapterDetails({ chapterId }) {
                       <KeyRound className="mr-2 h-4 w-4" /> Reallocate Admin
                     </Button>
                     <p className="text-xs text-muted-foreground mt-2 text-center">
-                      This will revoke the current administrator and assign a new user.
+                      This will revoke the current administrator and assign a
+                      new user.
                     </p>
                   </div>
                 )}
@@ -297,12 +366,15 @@ export default function AdminChapterDetails({ chapterId }) {
             ) : (
               <div className="text-center py-8">
                 <UserCog className="h-10 w-10 text-muted-foreground opacity-20 mx-auto mb-3" />
-                <h3 className="font-semibold text-sm">No Chapter Administrator Assigned</h3>
+                <h3 className="font-semibold text-sm">
+                  No Chapter Administrator Assigned
+                </h3>
                 <p className="text-xs text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
-                  Appoint or reallocate a Chapter Administrator to manage businesses and operations for {chapter.name}.
+                  Appoint or reallocate a Chapter Administrator to manage
+                  businesses and operations for {chapter.name}.
                 </p>
                 {!isChapterAdmin && (
-                  <Button 
+                  <Button
                     onClick={() => {
                       setSelectedBusinessId("");
                       setNewAdmin({ name: "", email: "" });
@@ -317,29 +389,41 @@ export default function AdminChapterDetails({ chapterId }) {
           </Panel>
 
           {/* Units Summary (Optional visual filler) */}
-          <Panel title="Active Focus Units" icon={<Briefcase className="h-4 w-4" />}>
+          <Panel
+            title="Active Focus Units"
+            icon={<Briefcase className="h-4 w-4" />}
+          >
             {chapter.units && chapter.units.length > 0 ? (
               <div className="space-y-3">
                 {chapter.units.map((unit) => (
-                  <div key={unit._id} className="flex justify-between items-center p-3 border border-border rounded-lg">
+                  <div
+                    key={unit._id}
+                    className="flex justify-between items-center p-3 border border-border rounded-lg"
+                  >
                     <div>
                       <p className="font-medium text-sm">{unit.name}</p>
-                      <p className="text-xs text-muted-foreground">{unit.focus}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {unit.focus}
+                      </p>
                     </div>
-                    <Pill tone={unit.status === "Active" ? "success" : "gray"}>{unit.status}</Pill>
+                    <Pill tone={unit.status === "Active" ? "success" : "gray"}>
+                      {unit.status}
+                    </Pill>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-6">No specialised units created yet.</p>
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No specialised units created yet.
+              </p>
             )}
           </Panel>
         </div>
       </div>
 
       {/* Change / Reallocate Admin Dialog */}
-      <Dialog 
-        open={openAdminModal} 
+      <Dialog
+        open={openAdminModal}
         onOpenChange={(open) => {
           setOpenAdminModal(open);
           if (!open) {
@@ -350,15 +434,16 @@ export default function AdminChapterDetails({ chapterId }) {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{admin ? "Reallocate Chapter Admin" : "Allocate Chapter Admin"}</DialogTitle>
+            <DialogTitle>
+              {admin ? "Reallocate Chapter Admin" : "Allocate Chapter Admin"}
+            </DialogTitle>
             <DialogDescription>
-              {admin 
+              {admin
                 ? `Reallocate administrator for ${chapter.name}. This will revoke access from ${admin.name} and assign a new user.`
-                : `Appoint a new administrator for ${chapter.name}. They will receive login credentials by email.`
-              }
+                : `Appoint a new administrator for ${chapter.name}. They will receive login credentials by email.`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleChangeAdmin} className="space-y-4 pt-2">
             {admin && (
               <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs border border-amber-200 flex gap-2 items-start dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50">
@@ -366,9 +451,14 @@ export default function AdminChapterDetails({ chapterId }) {
                 <div>
                   <p className="font-semibold mb-1">What happens next?</p>
                   <ul className="list-disc pl-4 space-y-1">
-                    <li>Current admin ({admin.name}) will be downgraded to a regular user.</li>
+                    <li>
+                      Current admin ({admin.name}) will be downgraded to a
+                      regular user.
+                    </li>
                     <li>A removal notification email will be sent to them.</li>
-                    <li>New admin will receive an email with login credentials.</li>
+                    <li>
+                      New admin will receive an email with login credentials.
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -377,7 +467,9 @@ export default function AdminChapterDetails({ chapterId }) {
             {/* Business Owner Select (optional shortcut) */}
             {eligibleBusinesses.length > 0 && (
               <div className="space-y-1.5">
-                <Label htmlFor="biz-owner-select">Select Business Owner (Optional)</Label>
+                <Label htmlFor="biz-owner-select">
+                  Select Business Owner (Optional)
+                </Label>
                 <Select
                   value={selectedBusinessId || undefined}
                   onValueChange={handleSelectBusinessOwner}
@@ -392,13 +484,22 @@ export default function AdminChapterDetails({ chapterId }) {
                           {chapter.name} Businesses
                         </SelectLabel>
                         {chapterBizList.map((b) => {
-                          const oName = b.owner?.name || b.contactPerson || b.name;
-                          const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                          const oName =
+                            b.owner?.name || b.contactPerson || b.name;
+                          const oEmail =
+                            b.owner?.email ||
+                            b.ownerEmail ||
+                            b.email ||
+                            "No email";
                           return (
                             <SelectItem key={b._id} value={b._id}>
                               <div className="flex flex-col text-left py-0.5">
-                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
-                                <span className="text-[11px] text-muted-foreground">{oEmail}</span>
+                                <span className="font-medium text-xs text-foreground">
+                                  {oName} ({b.name})
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {oEmail}
+                                </span>
                               </div>
                             </SelectItem>
                           );
@@ -408,17 +509,27 @@ export default function AdminChapterDetails({ chapterId }) {
                     {otherBizList.length > 0 && (
                       <SelectGroup>
                         <SelectLabel className="text-xs font-semibold text-muted-foreground">
-                          {chapterBizList.length > 0 ? "Other State Business Owners" : "Registered Business Owners"}
+                          {chapterBizList.length > 0
+                            ? "Other State Business Owners"
+                            : "Registered Business Owners"}
                         </SelectLabel>
                         {otherBizList.map((b) => {
-                          const oName = b.owner?.name || b.contactPerson || b.name;
-                          const oEmail = b.owner?.email || b.ownerEmail || b.email || "No email";
+                          const oName =
+                            b.owner?.name || b.contactPerson || b.name;
+                          const oEmail =
+                            b.owner?.email ||
+                            b.ownerEmail ||
+                            b.email ||
+                            "No email";
                           return (
                             <SelectItem key={b._id} value={b._id}>
                               <div className="flex flex-col text-left py-0.5">
-                                <span className="font-medium text-xs text-foreground">{oName} ({b.name})</span>
+                                <span className="font-medium text-xs text-foreground">
+                                  {oName} ({b.name})
+                                </span>
                                 <span className="text-[11px] text-muted-foreground">
-                                  {b.chapter ? `${b.chapter} · ` : ""}{oEmail}
+                                  {b.chapter ? `${b.chapter} · ` : ""}
+                                  {oEmail}
                                 </span>
                               </div>
                             </SelectItem>
@@ -454,7 +565,7 @@ export default function AdminChapterDetails({ chapterId }) {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="admin-email">Admin Email *</Label>
               <Input
@@ -470,13 +581,19 @@ export default function AdminChapterDetails({ chapterId }) {
               />
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full mt-2" 
+            <Button
+              type="submit"
+              className="w-full mt-2"
               disabled={adminLoading || isSelectedBizPending}
-              title={isSelectedBizPending ? "This business is pending verification and cannot be allocated." : undefined}
+              title={
+                isSelectedBizPending
+                  ? "This business is pending verification and cannot be allocated."
+                  : undefined
+              }
             >
-              {adminLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {adminLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
               {admin ? "Reallocate Admin" : "Confirm Allocation"}
             </Button>
           </form>
@@ -487,29 +604,40 @@ export default function AdminChapterDetails({ chapterId }) {
       <Dialog open={openStatusModal} onOpenChange={setOpenStatusModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{chapter.status === "Active" ? "Deactivate Chapter" : "Activate Chapter"}</DialogTitle>
+            <DialogTitle>
+              {chapter.status === "Active"
+                ? "Deactivate Chapter"
+                : "Activate Chapter"}
+            </DialogTitle>
             <DialogDescription>
-              {chapter.status === "Active" 
-                ? "This will block all logins for customers, businesses, and admins associated with this chapter. Are you sure you want to proceed?" 
+              {chapter.status === "Active"
+                ? "This will block all logins for customers, businesses, and admins associated with this chapter. Are you sure you want to proceed?"
                 : "This will restore access for all users associated with this chapter. Are you sure?"}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-3 mt-4">
-            <Button variant="outline" onClick={() => setOpenStatusModal(false)} disabled={statusLoading}>
-              Cancel
-            </Button>
-            <Button 
-              variant={chapter.status === "Active" ? "destructive" : "default"} 
-              onClick={handleToggleStatus} 
+            <Button
+              variant="outline"
+              onClick={() => setOpenStatusModal(false)}
               disabled={statusLoading}
             >
-              {statusLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {chapter.status === "Active" ? "Confirm Deactivation" : "Confirm Activation"}
+              Cancel
+            </Button>
+            <Button
+              variant={chapter.status === "Active" ? "destructive" : "default"}
+              onClick={handleToggleStatus}
+              disabled={statusLoading}
+            >
+              {statusLoading && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {chapter.status === "Active"
+                ? "Confirm Deactivation"
+                : "Confirm Activation"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-
     </AppShell>
   );
 }

@@ -2,36 +2,97 @@ import { apiClient } from "./api-client";
 
 function toQueryString(params = {}) {
   const clean = Object.fromEntries(
-    Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "" && v !== "undefined")
+    Object.entries(params).filter(
+      ([_, v]) =>
+        v !== undefined && v !== null && v !== "" && v !== "undefined",
+    ),
   );
   const qs = new URLSearchParams(clean).toString();
   return qs ? `?${qs}` : "";
 }
 
 export const authApi = {
-  login: (credentials) => apiClient("/auth/login", { method: "POST", body: JSON.stringify(credentials) }),
-  register: (data) => apiClient("/auth/register", { method: "POST", body: JSON.stringify(data) }),
-  registerBusiness: (data) => apiClient("/auth/register-business", { method: "POST", body: JSON.stringify(data) }),
+  login: (credentials) =>
+    apiClient("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    }),
+  register: (data) =>
+    apiClient("/auth/register", { method: "POST", body: JSON.stringify(data) }),
+  registerBusiness: (data) =>
+    apiClient("/auth/register-business", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   getMe: () => apiClient("/auth/me"),
   logout: () => apiClient("/auth/logout", { method: "POST" }),
   switchRole: (targetRole, targetWorkspaceId = null) => {
-    const body = typeof targetRole === "object" && targetRole !== null
-      ? targetRole
-      : { targetRole, targetWorkspaceId };
-    return apiClient("/auth/switch-role", { method: "POST", body: JSON.stringify(body) });
+    const body =
+      typeof targetRole === "object" && targetRole !== null
+        ? targetRole
+        : { targetRole, targetWorkspaceId };
+    return apiClient("/auth/switch-role", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
   },
-  refreshToken: (refreshToken) => apiClient("/auth/refresh-token", { method: "POST", body: JSON.stringify({ refreshToken }) }),
-  changePassword: (data) => apiClient("/auth/change-password", { method: "PATCH", body: JSON.stringify(data) }),
-  forgotPassword: (email) => apiClient("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
-  verifyResetCode: (data) => apiClient("/auth/verify-reset-code", { method: "POST", body: JSON.stringify(data) }),
-  resetPassword: (data) => apiClient("/auth/reset-password", { method: "POST", body: JSON.stringify(data) }),
-  googleAuth: (data) => apiClient("/auth/google", { method: "POST", body: JSON.stringify(data) }),
-  completeOnboarding: (data) => apiClient("/auth/complete-onboarding", { method: "POST", body: JSON.stringify(data) }),
-  sendRegisterOtp: (email, type = "business") => apiClient("/auth/register-otp/send", { method: "POST", body: JSON.stringify({ email, type }) }),
-  verifyRegisterOtp: (email, otp, type = "business") => apiClient("/auth/register-otp/verify", { method: "POST", body: JSON.stringify({ email, otp, type }) }),
-  sendLoginOtp: (email) => apiClient("/auth/login-otp/send", { method: "POST", body: JSON.stringify({ email }) }),
-  verifyLoginOtp: (email, otp) => apiClient("/auth/login-otp/verify", { method: "POST", body: JSON.stringify({ email, otp }) }),
-  checkEmail: (email) => apiClient("/auth/check-email", { method: "POST", body: JSON.stringify({ email }) }),
+  refreshToken: (refreshToken) =>
+    apiClient("/auth/refresh-token", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken }),
+    }),
+  changePassword: (data) =>
+    apiClient("/auth/change-password", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  forgotPassword: (email) =>
+    apiClient("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  verifyResetCode: (data) =>
+    apiClient("/auth/verify-reset-code", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  resetPassword: (data) =>
+    apiClient("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  googleAuth: (data) =>
+    apiClient("/auth/google", { method: "POST", body: JSON.stringify(data) }),
+  completeOnboarding: (data) =>
+    apiClient("/auth/complete-onboarding", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  sendRegisterOtp: (email, type = "business") =>
+    apiClient("/auth/register-otp/send", {
+      method: "POST",
+      body: JSON.stringify({ email, type }),
+    }),
+  verifyRegisterOtp: (email, otp, type = "business") =>
+    apiClient("/auth/register-otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ email, otp, type }),
+    }),
+  sendLoginOtp: (email) =>
+    apiClient("/auth/login-otp/send", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  verifyLoginOtp: (email, otp) =>
+    apiClient("/auth/login-otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ email, otp }),
+    }),
+  checkEmail: (email) =>
+    apiClient("/auth/check-email", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
   uploadPhoto: (file) => {
     const formData = new FormData();
     formData.append("photo", file);
@@ -41,7 +102,8 @@ export const authApi = {
 
 export const userApi = {
   getProfile: () => apiClient("/users/me"),
-  updateProfile: (data) => apiClient("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
+  updateProfile: (data) =>
+    apiClient("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
   uploadAvatar: (file) => {
     const formData = new FormData();
     formData.append("avatar", file);
@@ -50,43 +112,85 @@ export const userApi = {
   toggleSaveBusiness: () => Promise.resolve({ success: true }),
   getSavedBusinesses: () => Promise.resolve([]),
   getAdminUsers: (params = {}) => apiClient(`/users${toQueryString(params)}`),
-  updateUserStatus: (id, data) => apiClient(`/users/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
-  deactivateAccount: (data = {}) => apiClient("/users/me/deactivate", { method: "POST", body: JSON.stringify(data) }),
-  inviteUser: (data) => apiClient("/users/invite", { method: "POST", body: JSON.stringify(data) }),
+  updateUserStatus: (id, data) =>
+    apiClient(`/users/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  deactivateAccount: (data = {}) =>
+    apiClient("/users/me/deactivate", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  inviteUser: (data) =>
+    apiClient("/users/invite", { method: "POST", body: JSON.stringify(data) }),
   getMyEventAssignments: () => apiClient("/users/me/event-assignments"),
 };
 
 export const businessApi = {
-  verifyGst: (gstin) => apiClient("/businesses/gst/verify", { method: "POST", body: JSON.stringify({ gstin }) }),
-  fetchGstDetails: (gstin) => apiClient("/businesses/gst/details", { method: "POST", body: JSON.stringify({ gstin }) }),
+  verifyGst: (gstin) =>
+    apiClient("/businesses/gst/verify", {
+      method: "POST",
+      body: JSON.stringify({ gstin }),
+    }),
+  fetchGstDetails: (gstin) =>
+    apiClient("/businesses/gst/details", {
+      method: "POST",
+      body: JSON.stringify({ gstin }),
+    }),
   list: (params = {}) => apiClient(`/businesses${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/businesses/detail/${idOrSlug}`),
   getMyBusiness: () => apiClient("/businesses/me"),
-  create: (data) => apiClient("/businesses", { method: "POST", body: JSON.stringify(data) }),
-  createAdmin: (data) => apiClient("/businesses/admin/create", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/businesses/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  updateStatus: (id, data) => apiClient(`/businesses/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
+  create: (data) =>
+    apiClient("/businesses", { method: "POST", body: JSON.stringify(data) }),
+  createAdmin: (data) =>
+    apiClient("/businesses/admin/create", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (id, data) =>
+    apiClient(`/businesses/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  updateStatus: (id, data) =>
+    apiClient(`/businesses/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   uploadLogo: (id, file) => {
     const formData = new FormData();
     formData.append("logo", file);
-    return apiClient(`/businesses/${id}/logo`, { method: "POST", body: formData });
+    return apiClient(`/businesses/${id}/logo`, {
+      method: "POST",
+      body: formData,
+    });
   },
   uploadCover: (id, file) => {
     const formData = new FormData();
     formData.append("cover", file);
-    return apiClient(`/businesses/${id}/cover`, { method: "POST", body: formData });
+    return apiClient(`/businesses/${id}/cover`, {
+      method: "POST",
+      body: formData,
+    });
   },
   uploadGallery: (id, files) => {
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
       formData.append("gallery", files[i]);
     }
-    return apiClient(`/businesses/${id}/gallery`, { method: "POST", body: formData });
+    return apiClient(`/businesses/${id}/gallery`, {
+      method: "POST",
+      body: formData,
+    });
   },
   uploadCertificate: (id, file) => {
     const formData = new FormData();
     formData.append("certificate", file);
-    return apiClient(`/businesses/${id}/certificates`, { method: "POST", body: formData });
+    return apiClient(`/businesses/${id}/certificates`, {
+      method: "POST",
+      body: formData,
+    });
   },
   getNewChapterMembers: () => apiClient("/businesses/new-members"),
 };
@@ -94,8 +198,13 @@ export const businessApi = {
 export const categoryApi = {
   list: (params = {}) => apiClient(`/categories${toQueryString(params)}`),
   getAll: (params = {}) => apiClient(`/categories${toQueryString(params)}`),
-  create: (data) => apiClient("/categories", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/categories/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  create: (data) =>
+    apiClient("/categories", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) =>
+    apiClient(`/categories/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   delete: (id) => apiClient(`/categories/${id}`, { method: "DELETE" }),
 };
 
@@ -103,55 +212,138 @@ export const chapterApi = {
   list: () => apiClient("/chapters"),
   getById: (id) => apiClient(`/chapters/${id}`),
   getChapterDetails: (id) => apiClient(`/chapters/${id}/details`),
-  create: (data) => apiClient("/chapters", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/chapters/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  addUnit: (chapterId, data) => apiClient(`/chapters/${chapterId}/units`, { method: "POST", body: JSON.stringify(data) }),
-  removeUnit: (chapterId, unitId) => apiClient(`/chapters/${chapterId}/units/${unitId}`, { method: "DELETE" }),
-  assignAdmin: (chapterId, data) => apiClient(`/chapters/${chapterId}/admins`, { method: "POST", body: JSON.stringify(data) }),
-  removeAdmin: (chapterId) => apiClient(`/chapters/${chapterId}/admins`, { method: "DELETE" }),
-  deleteChapter: (chapterId) => apiClient(`/chapters/${chapterId}`, { method: "DELETE" }),
-  updateStatus: (id, status) => apiClient(`/chapters/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  create: (data) =>
+    apiClient("/chapters", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) =>
+    apiClient(`/chapters/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  addUnit: (chapterId, data) =>
+    apiClient(`/chapters/${chapterId}/units`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  removeUnit: (chapterId, unitId) =>
+    apiClient(`/chapters/${chapterId}/units/${unitId}`, { method: "DELETE" }),
+  assignAdmin: (chapterId, data) =>
+    apiClient(`/chapters/${chapterId}/admins`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  removeAdmin: (chapterId) =>
+    apiClient(`/chapters/${chapterId}/admins`, { method: "DELETE" }),
+  deleteChapter: (chapterId) =>
+    apiClient(`/chapters/${chapterId}`, { method: "DELETE" }),
+  updateStatus: (id, status) =>
+    apiClient(`/chapters/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
 };
 
 export const stateApi = {
   list: () => apiClient("/states"),
-  getByName: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}`),
-  createState: (data) => apiClient("/states", { method: "POST", body: JSON.stringify(data) }),
-  assignAdmin: (data) => apiClient("/states/assign-admin", { method: "POST", body: JSON.stringify(data) }),
-  removeAdmin: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}/admin`, { method: "DELETE" }),
-  renameState: (oldName, newName) => apiClient(`/states/${encodeURIComponent(oldName)}`, { method: "PUT", body: JSON.stringify({ newStateName: newName }) }),
-  deleteState: (stateName) => apiClient(`/states/${encodeURIComponent(stateName)}`, { method: "DELETE" }),
+  getByName: (stateName) =>
+    apiClient(`/states/${encodeURIComponent(stateName)}`),
+  createState: (data) =>
+    apiClient("/states", { method: "POST", body: JSON.stringify(data) }),
+  assignAdmin: (data) =>
+    apiClient("/states/assign-admin", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  removeAdmin: (stateName) =>
+    apiClient(`/states/${encodeURIComponent(stateName)}/admin`, {
+      method: "DELETE",
+    }),
+  renameState: (oldName, newName) =>
+    apiClient(`/states/${encodeURIComponent(oldName)}`, {
+      method: "PUT",
+      body: JSON.stringify({ newStateName: newName }),
+    }),
+  deleteState: (stateName) =>
+    apiClient(`/states/${encodeURIComponent(stateName)}`, { method: "DELETE" }),
   uploadStateCover: (file) => {
     const formData = new FormData();
     formData.append("image", file);
     return apiClient("/states/upload", { method: "POST", body: formData });
   },
-  updateStateProfile: (stateName, data) => apiClient(`/states/${encodeURIComponent(stateName)}/profile`, { method: "PUT", body: JSON.stringify(data) }),
+  updateStateProfile: (stateName, data) =>
+    apiClient(`/states/${encodeURIComponent(stateName)}/profile`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+};
+
+export const countryApi = {
+  list: (params = {}) => apiClient(`/countries${toQueryString(params)}`),
+  getById: (id) => apiClient(`/countries/${id}`),
+  getByName: (name) => apiClient(`/countries/${encodeURIComponent(name)}`),
+  create: (data) =>
+    apiClient("/countries", { method: "POST", body: JSON.stringify(data) }),
+  assignAdmin: (data) =>
+    apiClient("/countries/assign-admin", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  removeAdmin: (countryName) =>
+    apiClient(`/countries/${encodeURIComponent(countryName)}/admin`, {
+      method: "DELETE",
+    }),
+  update: (id, data) =>
+    apiClient(`/countries/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  rename: (oldName, newName) =>
+    apiClient(`/countries/${encodeURIComponent(oldName)}`, {
+      method: "PUT",
+      body: JSON.stringify({ name: newName }),
+    }),
+  delete: (id) => apiClient(`/countries/${id}`, { method: "DELETE" }),
 };
 
 export const centralAdminApi = {
   getCurrent: () => apiClient("/central-admin"),
-  transfer: (businessId) => apiClient("/central-admin/transfer", { method: "POST", body: JSON.stringify({ businessId }) }),
+  transfer: (businessId) =>
+    apiClient("/central-admin/transfer", {
+      method: "POST",
+      body: JSON.stringify({ businessId }),
+    }),
 };
 
 export const oneToOneApi = {
-  create: (data) => apiClient("/one-to-ones", { method: "POST", body: JSON.stringify(data) }),
-  listMine: (params = {}) => apiClient(`/one-to-ones/me${toQueryString(params)}`),
+  create: (data) =>
+    apiClient("/one-to-ones", { method: "POST", body: JSON.stringify(data) }),
+  listMine: (params = {}) =>
+    apiClient(`/one-to-ones/me${toQueryString(params)}`),
   listAdmin: (params = {}) => apiClient(`/one-to-ones${toQueryString(params)}`),
   getById: (id) => apiClient(`/one-to-ones/${id}`),
 };
 
 export const thankYouNoteApi = {
-  create: (data) => apiClient("/thank-you-notes", { method: "POST", body: JSON.stringify(data) }),
-  listMine: (params = {}) => apiClient(`/thank-you-notes/me${toQueryString(params)}`),
-  listAdmin: (params = {}) => apiClient(`/thank-you-notes${toQueryString(params)}`),
+  create: (data) =>
+    apiClient("/thank-you-notes", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  listMine: (params = {}) =>
+    apiClient(`/thank-you-notes/me${toQueryString(params)}`),
+  listAdmin: (params = {}) =>
+    apiClient(`/thank-you-notes${toQueryString(params)}`),
   summaryMine: () => apiClient("/thank-you-notes/summary/me"),
   getById: (id) => apiClient(`/thank-you-notes/${id}`),
 };
 
 export const referralApi = {
-  create: (data) => apiClient("/referrals", { method: "POST", body: JSON.stringify(data) }),
-  close: (id, data) => apiClient(`/referrals/${id}/close`, { method: "POST", body: JSON.stringify(data) }),
+  create: (data) =>
+    apiClient("/referrals", { method: "POST", body: JSON.stringify(data) }),
+  close: (id, data) =>
+    apiClient(`/referrals/${id}/close`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   listMine: (params = {}) => apiClient(`/referrals/me${toQueryString(params)}`),
   listAdmin: (params = {}) => apiClient(`/referrals${toQueryString(params)}`),
   getById: (id) => apiClient(`/referrals/${id}`),
@@ -159,23 +351,43 @@ export const referralApi = {
 
 export const networkingAnalyticsApi = {
   overview: () => apiClient("/networking/analytics/overview"),
-  leaderboard: (params = {}) => apiClient(`/networking/analytics/leaderboard${toQueryString(params)}`),
-  breakdown: (params = {}) => apiClient(`/networking/analytics/breakdown${toQueryString(params)}`),
+  leaderboard: (params = {}) =>
+    apiClient(`/networking/analytics/leaderboard${toQueryString(params)}`),
+  breakdown: (params = {}) =>
+    apiClient(`/networking/analytics/breakdown${toQueryString(params)}`),
   publicStateTotals: () => apiClient("/networking/analytics/public/states"),
-  spotlight: (params = {}) => apiClient(`/networking/analytics/spotlight${toQueryString(params)}`),
+  spotlight: (params = {}) =>
+    apiClient(`/networking/analytics/spotlight${toQueryString(params)}`),
 };
 
 export const verificationApi = {
-  getByBusinessId: (businessId) => apiClient(`/verification/business/${businessId}`),
-  getQueue: (params = {}) => apiClient(`/verification/queue${toQueryString(params)}`),
-  submit: (data) => apiClient("/verification/submit", { method: "POST", body: JSON.stringify(data) }),
+  getByBusinessId: (businessId) =>
+    apiClient(`/verification/business/${businessId}`),
+  getQueue: (params = {}) =>
+    apiClient(`/verification/queue${toQueryString(params)}`),
+  submit: (data) =>
+    apiClient("/verification/submit", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   uploadDocument: (file) => {
     const formData = new FormData();
     formData.append("document", file);
-    return apiClient("/verification/upload", { method: "POST", body: formData });
+    return apiClient("/verification/upload", {
+      method: "POST",
+      body: formData,
+    });
   },
-  review: (id, data) => apiClient(`/verification/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
-  updateRemarks: (id, remarks) => apiClient(`/verification/${id}/remarks`, { method: "PATCH", body: JSON.stringify({ remarks }) }),
+  review: (id, data) =>
+    apiClient(`/verification/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  updateRemarks: (id, remarks) =>
+    apiClient(`/verification/${id}/remarks`, {
+      method: "PATCH",
+      body: JSON.stringify({ remarks }),
+    }),
   delete: (id) => apiClient(`/verification/${id}`, { method: "DELETE" }),
 };
 
@@ -184,78 +396,144 @@ export const catalogueApi = {
   getByBusiness: (businessId) => apiClient(`/catalogue/business/${businessId}`),
   getById: (id) => apiClient(`/catalogue/${id}`),
   recordView: (id) => apiClient(`/catalogue/${id}/view`, { method: "POST" }),
-  create: (data) => apiClient("/catalogue", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/catalogue/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  create: (data) =>
+    apiClient("/catalogue", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) =>
+    apiClient(`/catalogue/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   delete: (id) => apiClient(`/catalogue/${id}`, { method: "DELETE" }),
   uploadImages: (id, files) => {
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
       formData.append("catalogue", files[i]);
     }
-    return apiClient(`/catalogue/${id}/images`, { method: "POST", body: formData });
+    return apiClient(`/catalogue/${id}/images`, {
+      method: "POST",
+      body: formData,
+    });
   },
 };
 
 export const enquiryApi = {
-  create: (data) => apiClient("/enquiries", { method: "POST", body: JSON.stringify(data) }),
+  create: (data) =>
+    apiClient("/enquiries", { method: "POST", body: JSON.stringify(data) }),
   uploadPhoto: (file) => {
     const formData = new FormData();
     formData.append("image", file);
     return apiClient("/enquiries/upload", { method: "POST", body: formData });
   },
-  getMyEnquiries: (params = {}) => apiClient(`/enquiries/me${toQueryString(params)}`),
-  getMyBusinessEnquiries: (params = {}) => apiClient(`/enquiries/business/me${toQueryString(params)}`),
-  getAllEnquiries: (params = {}) => apiClient(`/enquiries/admin/all${toQueryString(params)}`),
+  getMyEnquiries: (params = {}) =>
+    apiClient(`/enquiries/me${toQueryString(params)}`),
+  getMyBusinessEnquiries: (params = {}) =>
+    apiClient(`/enquiries/business/me${toQueryString(params)}`),
+  getAllEnquiries: (params = {}) =>
+    apiClient(`/enquiries/admin/all${toQueryString(params)}`),
   getById: (id) => apiClient(`/enquiries/${id}`),
-  updateStatus: (id, data) => apiClient(`/enquiries/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
-  escalate: (id, note) => apiClient(`/enquiries/${id}/escalate`, { method: "POST", body: JSON.stringify({ note }) }),
-  exportCsv: (params = {}) => apiClient(`/enquiries/admin/export/csv${toQueryString(params)}`),
+  updateStatus: (id, data) =>
+    apiClient(`/enquiries/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  escalate: (id, note) =>
+    apiClient(`/enquiries/${id}/escalate`, {
+      method: "POST",
+      body: JSON.stringify({ note }),
+    }),
+  exportCsv: (params = {}) =>
+    apiClient(`/enquiries/admin/export/csv${toQueryString(params)}`),
 };
 
 export const leadApi = {
   getMyLeads: (params = {}) => apiClient(`/leads/me${toQueryString(params)}`),
   getEnquiryResponses: (enquiryId) => apiClient(`/leads/enquiry/${enquiryId}`),
-  submitQuotation: (id, data) => apiClient(`/leads/${id}/quote`, { method: "POST", body: JSON.stringify(data) }),
-  updateStatus: (id, data) => apiClient(`/leads/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
-  routeLead: (data) => apiClient("/leads/route", { method: "POST", body: JSON.stringify(data) }),
+  submitQuotation: (id, data) =>
+    apiClient(`/leads/${id}/quote`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateStatus: (id, data) =>
+    apiClient(`/leads/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  routeLead: (data) =>
+    apiClient("/leads/route", { method: "POST", body: JSON.stringify(data) }),
 };
 
 export const membershipApi = {
   getPlans: () => apiClient("/memberships/plans"),
-  createPlan: (data) => apiClient("/memberships/plans", { method: "POST", body: JSON.stringify(data) }),
-  updatePlan: (planId, data) => apiClient(`/memberships/plans/${planId}`, { method: "PUT", body: JSON.stringify(data) }),
-  deletePlan: (planId) => apiClient(`/memberships/plans/${planId}`, { method: "DELETE" }),
+  createPlan: (data) =>
+    apiClient("/memberships/plans", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updatePlan: (planId, data) =>
+    apiClient(`/memberships/plans/${planId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deletePlan: (planId) =>
+    apiClient(`/memberships/plans/${planId}`, { method: "DELETE" }),
   getMyMembership: () => apiClient("/memberships/me"),
-  upgradePlan: (data) => apiClient("/memberships/upgrade", { method: "POST", body: JSON.stringify(data) }),
+  upgradePlan: (data) =>
+    apiClient("/memberships/upgrade", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 
 export const paymentApi = {
   getMyPayments: () => apiClient("/payments/me"),
-  getAllPayments: (params = {}) => apiClient(`/payments/admin/all${toQueryString(params)}`),
-  getAll: (params = {}) => apiClient(`/payments/admin/all${toQueryString(params)}`),
-  createOrder: (data) => apiClient("/payments/order", { method: "POST", body: JSON.stringify(data) }),
-  verifyPayment: (data) => apiClient("/payments/verify", { method: "POST", body: JSON.stringify(data) }),
-  verifyByAdmin: (id) => apiClient(`/payments/${id}/verify-by-admin`, { method: "POST" }),
+  getAllPayments: (params = {}) =>
+    apiClient(`/payments/admin/all${toQueryString(params)}`),
+  getAll: (params = {}) =>
+    apiClient(`/payments/admin/all${toQueryString(params)}`),
+  createOrder: (data) =>
+    apiClient("/payments/order", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  verifyPayment: (data) =>
+    apiClient("/payments/verify", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  verifyByAdmin: (id) =>
+    apiClient(`/payments/${id}/verify-by-admin`, { method: "POST" }),
   refund: (id) => apiClient(`/payments/${id}/refund`, { method: "POST" }),
-  createAdminInvoice: (data) => apiClient("/payments/admin/create-invoice", { method: "POST", body: JSON.stringify(data) }),
+  createAdminInvoice: (data) =>
+    apiClient("/payments/admin/create-invoice", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 
 export const invoiceApi = {
   verify: (invoiceNumber, token = "") =>
-    apiClient(`/invoices/verify/${encodeURIComponent(invoiceNumber)}${token ? `?token=${encodeURIComponent(token)}` : ""}`),
+    apiClient(
+      `/invoices/verify/${encodeURIComponent(invoiceNumber)}${token ? `?token=${encodeURIComponent(token)}` : ""}`,
+    ),
   downloadPdfUrl: (invoiceNumber, token = "") => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
     return `${baseUrl}/invoices/download/${encodeURIComponent(invoiceNumber)}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
   },
   revoke: (invoiceNumber, reason) =>
-    apiClient(`/invoices/${encodeURIComponent(invoiceNumber)}/revoke`, { method: "PATCH", body: JSON.stringify({ reason }) }),
+    apiClient(`/invoices/${encodeURIComponent(invoiceNumber)}/revoke`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
 };
 
 export const messageApi = {
   getConversations: () => apiClient("/messages/conversations"),
-  getMessages: (otherUserId) => apiClient(`/messages/conversation/${otherUserId}`),
+  getMessages: (otherUserId) =>
+    apiClient(`/messages/conversation/${otherUserId}`),
   getUserContact: (userId) => apiClient(`/messages/contact-info/${userId}`),
-  sendMessage: (data) => apiClient("/messages", { method: "POST", body: JSON.stringify(data) }),
+  sendMessage: (data) =>
+    apiClient("/messages", { method: "POST", body: JSON.stringify(data) }),
   uploadAttachment: (file) => {
     const formData = new FormData();
     formData.append("attachment", file);
@@ -265,10 +543,17 @@ export const messageApi = {
 
 export const notificationApi = {
   list: () => apiClient("/notifications/me"),
-  markAsRead: (id) => apiClient(`/notifications/${id}/read`, { method: "PATCH" }),
-  markAllAsRead: () => apiClient("/notifications/read-all", { method: "PATCH" }),
-  broadcast: (data) => apiClient("/notifications/broadcast", { method: "POST", body: JSON.stringify(data) }),
-  deleteBroadcast: (broadcastId) => apiClient(`/notifications/broadcast/${broadcastId}`, { method: "DELETE" }),
+  markAsRead: (id) =>
+    apiClient(`/notifications/${id}/read`, { method: "PATCH" }),
+  markAllAsRead: () =>
+    apiClient("/notifications/read-all", { method: "PATCH" }),
+  broadcast: (data) =>
+    apiClient("/notifications/broadcast", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deleteBroadcast: (broadcastId) =>
+    apiClient(`/notifications/broadcast/${broadcastId}`, { method: "DELETE" }),
   deleteLocal: (id) => apiClient(`/notifications/${id}`, { method: "DELETE" }),
   clearAll: () => apiClient("/notifications/clear-all", { method: "DELETE" }),
 };
@@ -276,8 +561,13 @@ export const notificationApi = {
 export const announcementApi = {
   list: (params = {}) => apiClient(`/announcements${toQueryString(params)}`),
   getById: (id) => apiClient(`/announcements/${id}`),
-  create: (data) => apiClient("/announcements", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/announcements/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  create: (data) =>
+    apiClient("/announcements", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) =>
+    apiClient(`/announcements/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   delete: (id) => apiClient(`/announcements/${id}`, { method: "DELETE" }),
 };
 
@@ -285,10 +575,21 @@ export const eventApi = {
   list: (params = {}) => apiClient(`/events${toQueryString(params)}`),
   getByIdOrSlug: (idOrSlug) => apiClient(`/events/detail/${idOrSlug}`),
   generateMeetLink: (data = {}) =>
-    apiClient("/events/generate-meet", { method: "POST", body: JSON.stringify(data) }),
+    apiClient("/events/generate-meet", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   getGoogleMeetAuthUrl: () => apiClient("/events/google/auth-url"),
-  register: (id) => apiClient(`/events/${id}/register`, { method: "POST", body: JSON.stringify({}) }),
-  registerPaid: (id, data) => apiClient(`/events/${id}/register-paid`, { method: "POST", body: JSON.stringify(data) }),
+  register: (id) =>
+    apiClient(`/events/${id}/register`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  registerPaid: (id, data) =>
+    apiClient(`/events/${id}/register-paid`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   payDelegationInstallment: (id, data) =>
     apiClient(`/events/${id}/delegation/pay-installment`, {
       method: "POST",
@@ -298,13 +599,23 @@ export const eventApi = {
     apiClient("/events/delegation/trigger-reminders", {
       method: "POST",
     }),
-  markAttendance: (id) => apiClient(`/events/${id}/attend`, { method: "POST", body: JSON.stringify({}) }),
-  create: (data) => apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  markAttendance: (id) =>
+    apiClient(`/events/${id}/attend`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  create: (data) =>
+    apiClient("/events", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) =>
+    apiClient(`/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/events/${id}`, { method: "DELETE" }),
   getRegistrations: (id) => apiClient(`/events/${id}/registrations`),
   getOperations: (id) => apiClient(`/events/${id}/operations`),
-  updateOperations: (id, data) => apiClient(`/events/${id}/operations`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateOperations: (id, data) =>
+    apiClient(`/events/${id}/operations`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   checkinAttendee: (id, attendeeId, attendanceStatus = "Present") =>
     apiClient(`/events/${id}/attendees/${attendeeId}/checkin`, {
       method: "PATCH",
@@ -323,7 +634,10 @@ export const eventApi = {
   uploadPoster: (id, file) => {
     const formData = new FormData();
     formData.append("poster", file);
-    return apiClient(`/events/${id}/poster`, { method: "POST", body: formData });
+    return apiClient(`/events/${id}/poster`, {
+      method: "POST",
+      body: formData,
+    });
   },
   // BUG-055: uploads the actual signature file and returns a persisted URL, instead of
   // the frontend faking a preview with a browser-only blob: URL.
@@ -331,26 +645,41 @@ export const eventApi = {
     const formData = new FormData();
     formData.append("image", file);
     formData.append("slot", String(slot));
-    return apiClient(`/events/${id}/signatory-image`, { method: "POST", body: formData });
+    return apiClient(`/events/${id}/signatory-image`, {
+      method: "POST",
+      body: formData,
+    });
   },
   // BUG-060: Keynote 1/2 Poster was a disabled, unwired "Choose File" button.
   uploadKeynotePoster: (id, slot, file) => {
     const formData = new FormData();
     formData.append("poster", file);
     formData.append("slot", String(slot));
-    return apiClient(`/events/${id}/keynote-poster`, { method: "POST", body: formData });
+    return apiClient(`/events/${id}/keynote-poster`, {
+      method: "POST",
+      body: formData,
+    });
   },
   addFinanceTransaction: (id, data) =>
-    apiClient(`/events/${id}/finance`, { method: "POST", body: JSON.stringify(data) }),
-  
+    apiClient(`/events/${id}/finance`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   // ─── Ask & Give Board ──────────────────────────────────────────────────────
   getAskGiveBoard: (id) => apiClient(`/events/${id}/ask-give-board`),
   updateAttendeeAskGive: (id, attendeeId, data) =>
-    apiClient(`/events/${id}/attendees/${attendeeId}/ask-give`, { method: "PATCH", body: JSON.stringify(data) }),
+    apiClient(`/events/${id}/attendees/${attendeeId}/ask-give`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 
   // ─── Event Role Assignments (functional roles → real access) ──────────────
   assignRole: (id, role, userId) =>
-    apiClient(`/events/${id}/role-assignments`, { method: "PATCH", body: JSON.stringify({ role, userId }) }),
+    apiClient(`/events/${id}/role-assignments`, {
+      method: "PATCH",
+      body: JSON.stringify({ role, userId }),
+    }),
   assignRolesBulk: (id, assignments) =>
     apiClient(`/events/${id}/role-assignments/bulk`, {
       method: "PATCH",
@@ -371,28 +700,43 @@ export const eventApi = {
   // param specifically for this kind of direct-link use — without it, every
   // certificate view/download 401'd and nothing rendered for the viewer.
   getCertificateUrl: (id, attendeeId, style, accentColor) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") || "http://localhost:5000";
-    const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
-    const params = new URLSearchParams({ style: style || "", accentColor: accentColor || "" });
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ||
+      "http://localhost:5000";
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("rifah_access_token")
+        : null;
+    const params = new URLSearchParams({
+      style: style || "",
+      accentColor: accentColor || "",
+    });
     if (token) params.set("token", token);
     return `${baseUrl}/api/v1/events/${id}/certificates/${attendeeId}?${params.toString()}`;
   },
 
   // ─── Event Scripts ─────────────────────────────────────────────────────────
   getScripts: (id) => apiClient(`/events/${id}/scripts`),
-  updateScript: (id, segmentId, data) => 
-    apiClient(`/events/${id}/scripts/${segmentId}`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateScript: (id, segmentId, data) =>
+    apiClient(`/events/${id}/scripts/${segmentId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 
   // ─── Event Ticket Verification & Digital Entry Pass ─────────────────────────
   verifyTicket: (ticketId, token = "") =>
-    apiClient(`/events/tickets/verify/${encodeURIComponent(ticketId)}${token ? `?token=${encodeURIComponent(token)}` : ""}`),
+    apiClient(
+      `/events/tickets/verify/${encodeURIComponent(ticketId)}${token ? `?token=${encodeURIComponent(token)}` : ""}`,
+    ),
   checkInTicket: (ticketId, staffName = "Event Staff") =>
     apiClient(`/events/tickets/check-in/${encodeURIComponent(ticketId)}`, {
       method: "POST",
       body: JSON.stringify({ staffName }),
     }),
   getTicketPass: (ticketId, token = "") =>
-    apiClient(`/events/tickets/${encodeURIComponent(ticketId)}/pass${token ? `?token=${encodeURIComponent(token)}` : ""}`),
+    apiClient(
+      `/events/tickets/${encodeURIComponent(ticketId)}/pass${token ? `?token=${encodeURIComponent(token)}` : ""}`,
+    ),
   updateTicketStatus: (ticketId, status, reason = "") =>
     apiClient(`/events/tickets/${encodeURIComponent(ticketId)}/status`, {
       method: "PATCH",
@@ -402,60 +746,154 @@ export const eventApi = {
 
 export const followupApi = {
   list: (params = {}) => apiClient(`/followups${toQueryString(params)}`),
-  getStats: (params = {}) => apiClient(`/followups/stats${toQueryString(params)}`),
-  getAnalytics: (params = {}) => apiClient(`/followups/stats${toQueryString(params)}`),
-  create: (data) => apiClient("/followups", { method: "POST", body: JSON.stringify(data) }),
-  updateStatus: (id, status, note) => apiClient(`/followups/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) }),
-  addNote: (id, content) => apiClient(`/followups/${id}/note`, { method: "POST", body: JSON.stringify({ content }) }),
-  logMessage: (id, channel, message) => apiClient(`/followups/${id}/message`, { method: "POST", body: JSON.stringify({ channel, message }) }),
-  addHistory: (id, data) => apiClient(`/followups/${id}/history`, { method: "POST", body: JSON.stringify(data) }),
+  getStats: (params = {}) =>
+    apiClient(`/followups/stats${toQueryString(params)}`),
+  getAnalytics: (params = {}) =>
+    apiClient(`/followups/stats${toQueryString(params)}`),
+  create: (data) =>
+    apiClient("/followups", { method: "POST", body: JSON.stringify(data) }),
+  updateStatus: (id, status, note) =>
+    apiClient(`/followups/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, note }),
+    }),
+  addNote: (id, content) =>
+    apiClient(`/followups/${id}/note`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }),
+  logMessage: (id, channel, message) =>
+    apiClient(`/followups/${id}/message`, {
+      method: "POST",
+      body: JSON.stringify({ channel, message }),
+    }),
+  addHistory: (id, data) =>
+    apiClient(`/followups/${id}/history`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   delete: (id) => apiClient(`/followups/${id}`, { method: "DELETE" }),
-  syncFromEvent: (eventId) => apiClient(`/followups/sync-event/${eventId}`, { method: "POST" }),
-  syncFromMembers: (chapter) => apiClient("/followups/sync/members", { method: "POST", body: JSON.stringify({ chapter }) }),
+  syncFromEvent: (eventId) =>
+    apiClient(`/followups/sync-event/${eventId}`, { method: "POST" }),
+  syncFromMembers: (chapter) =>
+    apiClient("/followups/sync/members", {
+      method: "POST",
+      body: JSON.stringify({ chapter }),
+    }),
 };
 
 export const reviewApi = {
   getByBusiness: (businessId) => apiClient(`/reviews/business/${businessId}`),
-  submit: (data) => apiClient("/reviews", { method: "POST", body: JSON.stringify(data) }),
-  reply: (id, data) => apiClient(`/reviews/${id}/reply`, { method: "POST", body: JSON.stringify(data) }),
-  getAdminReviews: (params = {}) => apiClient(`/reviews/admin/all${toQueryString(params)}`),
-  moderate: (id, data) => apiClient(`/reviews/${id}/moderate`, { method: "PATCH", body: JSON.stringify(data) }),
+  submit: (data) =>
+    apiClient("/reviews", { method: "POST", body: JSON.stringify(data) }),
+  reply: (id, data) =>
+    apiClient(`/reviews/${id}/reply`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getAdminReviews: (params = {}) =>
+    apiClient(`/reviews/admin/all${toQueryString(params)}`),
+  moderate: (id, data) =>
+    apiClient(`/reviews/${id}/moderate`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   delete: (id) => apiClient(`/reviews/${id}`, { method: "DELETE" }),
-  deleteAll: (params = {}) => apiClient(`/reviews/admin/all${toQueryString(params)}`, { method: "DELETE" }),
+  deleteAll: (params = {}) =>
+    apiClient(`/reviews/admin/all${toQueryString(params)}`, {
+      method: "DELETE",
+    }),
 };
 
 export const reportApi = {
   getPublicStats: () => apiClient("/reports/public/stats"),
   getOverview: () => apiClient("/reports/admin/overview"),
   getBusinessAnalytics: () => apiClient("/reports/business/me"),
-  downloadAdminCsv: () => downloadFile("/reports/admin/export/csv", "admin_reports.csv"),
-  downloadRevenue: (params) => downloadFile(`/reports/admin/export/revenue${toQueryString(params)}`, "revenue_report.csv"),
-  downloadBusinesses: (params) => downloadFile(`/reports/admin/export/businesses${toQueryString(params)}`, "businesses_report.csv"),
-  downloadMemberships: (params) => downloadFile(`/reports/admin/export/memberships${toQueryString(params)}`, "memberships_report.csv"),
-  downloadLeads: (params) => downloadFile(`/reports/admin/export/leads${toQueryString(params)}`, "leads_report.csv"),
-  downloadAdminPdf: () => downloadFile("/reports/admin/export/csv?format=pdf", "admin_reports.pdf"),
-  downloadRevenuePdf: (params) => downloadFile(`/reports/admin/export/revenue${toQueryString({ ...params, format: "pdf" })}`, "revenue_report.pdf"),
-  downloadBusinessesPdf: (params) => downloadFile(`/reports/admin/export/businesses${toQueryString({ ...params, format: "pdf" })}`, "businesses_report.pdf"),
-  downloadMembershipsPdf: (params) => downloadFile(`/reports/admin/export/memberships${toQueryString({ ...params, format: "pdf" })}`, "memberships_report.pdf"),
-  downloadLeadsPdf: (params) => downloadFile(`/reports/admin/export/leads${toQueryString({ ...params, format: "pdf" })}`, "leads_report.pdf"),
-  downloadEventsAnalyticsPdf: (params) => downloadFile(`/reports/admin/events-analytics${toQueryString({ ...params, format: "pdf" })}`, "events_analytics_report.pdf"),
-  getRevenue: (params) => apiClient(`/reports/admin/export/revenue${toQueryString({ ...params, format: 'json' })}`),
-  getBusinesses: (params) => apiClient(`/reports/admin/export/businesses${toQueryString({ ...params, format: 'json' })}`),
-  getMemberships: (params) => apiClient(`/reports/admin/export/memberships${toQueryString({ ...params, format: 'json' })}`),
-  getLeads: (params) => apiClient(`/reports/admin/export/leads${toQueryString({ ...params, format: 'json' })}`),
-  getEventsAnalytics: (params) => apiClient(`/reports/admin/events-analytics${toQueryString(params)}`),
+  downloadAdminCsv: () =>
+    downloadFile("/reports/admin/export/csv", "admin_reports.csv"),
+  downloadRevenue: (params) =>
+    downloadFile(
+      `/reports/admin/export/revenue${toQueryString(params)}`,
+      "revenue_report.csv",
+    ),
+  downloadBusinesses: (params) =>
+    downloadFile(
+      `/reports/admin/export/businesses${toQueryString(params)}`,
+      "businesses_report.csv",
+    ),
+  downloadMemberships: (params) =>
+    downloadFile(
+      `/reports/admin/export/memberships${toQueryString(params)}`,
+      "memberships_report.csv",
+    ),
+  downloadLeads: (params) =>
+    downloadFile(
+      `/reports/admin/export/leads${toQueryString(params)}`,
+      "leads_report.csv",
+    ),
+  downloadAdminPdf: () =>
+    downloadFile("/reports/admin/export/csv?format=pdf", "admin_reports.pdf"),
+  downloadRevenuePdf: (params) =>
+    downloadFile(
+      `/reports/admin/export/revenue${toQueryString({ ...params, format: "pdf" })}`,
+      "revenue_report.pdf",
+    ),
+  downloadBusinessesPdf: (params) =>
+    downloadFile(
+      `/reports/admin/export/businesses${toQueryString({ ...params, format: "pdf" })}`,
+      "businesses_report.pdf",
+    ),
+  downloadMembershipsPdf: (params) =>
+    downloadFile(
+      `/reports/admin/export/memberships${toQueryString({ ...params, format: "pdf" })}`,
+      "memberships_report.pdf",
+    ),
+  downloadLeadsPdf: (params) =>
+    downloadFile(
+      `/reports/admin/export/leads${toQueryString({ ...params, format: "pdf" })}`,
+      "leads_report.pdf",
+    ),
+  downloadEventsAnalyticsPdf: (params) =>
+    downloadFile(
+      `/reports/admin/events-analytics${toQueryString({ ...params, format: "pdf" })}`,
+      "events_analytics_report.pdf",
+    ),
+  getRevenue: (params) =>
+    apiClient(
+      `/reports/admin/export/revenue${toQueryString({ ...params, format: "json" })}`,
+    ),
+  getBusinesses: (params) =>
+    apiClient(
+      `/reports/admin/export/businesses${toQueryString({ ...params, format: "json" })}`,
+    ),
+  getMemberships: (params) =>
+    apiClient(
+      `/reports/admin/export/memberships${toQueryString({ ...params, format: "json" })}`,
+    ),
+  getLeads: (params) =>
+    apiClient(
+      `/reports/admin/export/leads${toQueryString({ ...params, format: "json" })}`,
+    ),
+  getEventsAnalytics: (params) =>
+    apiClient(`/reports/admin/events-analytics${toQueryString(params)}`),
 };
 
 // Helper for authenticated file downloads
 async function downloadFile(endpoint, defaultFilename = "download.csv") {
-  const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
-  const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("rifah_access_token")
+      : null;
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+  const url = endpoint.startsWith("http")
+    ? endpoint
+    : `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
   const response = await fetch(url, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    }
+    },
   });
 
   if (!response.ok) {
@@ -467,15 +905,15 @@ async function downloadFile(endpoint, defaultFilename = "download.csv") {
   const downloadUrl = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = downloadUrl;
-  
+
   // Try to get filename from Content-Disposition header
   let filename = defaultFilename;
   const disposition = response.headers.get("content-disposition");
   if (disposition && disposition.indexOf("attachment") !== -1) {
     const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
     const matches = filenameRegex.exec(disposition);
-    if (matches != null && matches[1]) { 
-      filename = matches[1].replace(/['"]/g, '');
+    if (matches != null && matches[1]) {
+      filename = matches[1].replace(/['"]/g, "");
     }
   }
 
@@ -491,144 +929,252 @@ export const auditApi = {
 };
 
 export const contactApi = {
-  submitQuery: (data) => apiClient("/queries", { method: "POST", body: JSON.stringify(data) }),
+  submitQuery: (data) =>
+    apiClient("/queries", { method: "POST", body: JSON.stringify(data) }),
   getQueries: (params = {}) => apiClient(`/queries${toQueryString(params)}`),
-  replyQuery: (id, replyMessage) => apiClient(`/queries/${id}/reply`, { method: "PATCH", body: JSON.stringify({ replyMessage }) }),
+  replyQuery: (id, replyMessage) =>
+    apiClient(`/queries/${id}/reply`, {
+      method: "PATCH",
+      body: JSON.stringify({ replyMessage }),
+    }),
 };
 
 export const revenueShareApi = {
   // Ledger
-  listLedger: (params = {}) => apiClient(`/revenue-sharing/ledger${toQueryString(params)}`),
+  listLedger: (params = {}) =>
+    apiClient(`/revenue-sharing/ledger${toQueryString(params)}`),
   getLedgerEntry: (id) => apiClient(`/revenue-sharing/ledger/${id}`),
-  getBalance: (params = {}) => apiClient(`/revenue-sharing/balance${toQueryString(params)}`),
-  getDashboard: (params = {}) => apiClient(`/revenue-sharing/dashboard${toQueryString(params)}`),
+  getBalance: (params = {}) =>
+    apiClient(`/revenue-sharing/balance${toQueryString(params)}`),
+  getDashboard: (params = {}) =>
+    apiClient(`/revenue-sharing/dashboard${toQueryString(params)}`),
   downloadLedgerCsv: (params = {}) =>
-    downloadFile(`/revenue-sharing/export/ledger${toQueryString({ ...params, format: "csv" })}`, "revenue_ledger.csv"),
+    downloadFile(
+      `/revenue-sharing/export/ledger${toQueryString({ ...params, format: "csv" })}`,
+      "revenue_ledger.csv",
+    ),
   downloadLedgerPdf: (params = {}) =>
-    downloadFile(`/revenue-sharing/export/ledger${toQueryString({ ...params, format: "pdf" })}`, "revenue_ledger.pdf"),
+    downloadFile(
+      `/revenue-sharing/export/ledger${toQueryString({ ...params, format: "pdf" })}`,
+      "revenue_ledger.pdf",
+    ),
 
   // Claims
-  createClaim: (data) => apiClient("/revenue-sharing/claims", { method: "POST", body: JSON.stringify(data) }),
-  listClaims: (params = {}) => apiClient(`/revenue-sharing/claims${toQueryString(params)}`),
+  createClaim: (data) =>
+    apiClient("/revenue-sharing/claims", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  listClaims: (params = {}) =>
+    apiClient(`/revenue-sharing/claims${toQueryString(params)}`),
   getClaim: (id) => apiClient(`/revenue-sharing/claims/${id}`),
-  submitClaim: (id) => apiClient(`/revenue-sharing/claims/${id}/submit`, { method: "PATCH" }),
-  reviewClaim: (id) => apiClient(`/revenue-sharing/claims/${id}/review`, { method: "PATCH" }),
-  approveClaim: (id) => apiClient(`/revenue-sharing/claims/${id}/approve`, { method: "PATCH" }),
+  submitClaim: (id) =>
+    apiClient(`/revenue-sharing/claims/${id}/submit`, { method: "PATCH" }),
+  reviewClaim: (id) =>
+    apiClient(`/revenue-sharing/claims/${id}/review`, { method: "PATCH" }),
+  approveClaim: (id) =>
+    apiClient(`/revenue-sharing/claims/${id}/approve`, { method: "PATCH" }),
   rejectClaim: (id, reason) =>
-    apiClient(`/revenue-sharing/claims/${id}/reject`, { method: "PATCH", body: JSON.stringify({ reason }) }),
-  cancelClaim: (id) => apiClient(`/revenue-sharing/claims/${id}/cancel`, { method: "PATCH" }),
+    apiClient(`/revenue-sharing/claims/${id}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
+  cancelClaim: (id) =>
+    apiClient(`/revenue-sharing/claims/${id}/cancel`, { method: "PATCH" }),
 
   // Settlements
   recordSettlement: (claimId, data) =>
-    apiClient(`/revenue-sharing/claims/${claimId}/settlements`, { method: "POST", body: JSON.stringify(data) }),
+    apiClient(`/revenue-sharing/claims/${claimId}/settlements`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   // Rules
-  listRules: (revenueType) => apiClient(`/revenue-sharing/rules${toQueryString({ revenueType })}`),
-  createRuleVersion: (data) => apiClient("/revenue-sharing/rules", { method: "POST", body: JSON.stringify(data) }),
+  listRules: (revenueType) =>
+    apiClient(`/revenue-sharing/rules${toQueryString({ revenueType })}`),
+  createRuleVersion: (data) =>
+    apiClient("/revenue-sharing/rules", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 
 export const settingsApi = {
   get: () => apiClient("/settings", { cache: "no-store" }),
-  update: (data) => apiClient("/settings", { method: "PATCH", body: JSON.stringify(data) }),
+  update: (data) =>
+    apiClient("/settings", { method: "PATCH", body: JSON.stringify(data) }),
 };
 
 export const courseApi = {
   list: (params = {}) => apiClient(`/courses${toQueryString(params)}`),
   getById: (id) => apiClient(`/courses/${id}`),
-  create: (data) => apiClient("/courses", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/courses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  create: (data) =>
+    apiClient("/courses", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) =>
+    apiClient(`/courses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/courses/${id}`, { method: "DELETE" }),
   uploadContent: (file) => {
     const formData = new FormData();
     formData.append("file", file);
     return apiClient("/courses/upload", { method: "POST", body: formData });
   },
-  markWatched: (id, contentId, data = {}) => apiClient(`/courses/${id}/contents/${contentId}/watch`, { method: "POST", body: JSON.stringify(data) }),
-  getCertificates: (params = {}) => apiClient(`/courses/certificates${toQueryString(params)}`),
-  toggleStar: (id) => apiClient(`/courses/${id}/toggle-star`, { method: "PATCH" }),
+  markWatched: (id, contentId, data = {}) =>
+    apiClient(`/courses/${id}/contents/${contentId}/watch`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getCertificates: (params = {}) =>
+    apiClient(`/courses/certificates${toQueryString(params)}`),
+  toggleStar: (id) =>
+    apiClient(`/courses/${id}/toggle-star`, { method: "PATCH" }),
   getEnrollments: (id) => apiClient(`/courses/${id}/enrollments`),
-  manualEnroll: (id, data) => apiClient(`/courses/${id}/manual-enroll`, { method: "POST", body: JSON.stringify(data) }),
+  manualEnroll: (id, data) =>
+    apiClient(`/courses/${id}/manual-enroll`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   approve: (id) => apiClient(`/courses/${id}/approve`, { method: "POST" }),
-  reject: (id, remark) => apiClient(`/courses/${id}/reject`, { method: "POST", body: JSON.stringify({ remark }) }),
+  reject: (id, remark) =>
+    apiClient(`/courses/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ remark }),
+    }),
 };
 
 export const birthdayApi = {
   getToday: () => apiClient("/birthdays/today"),
-  triggerEmails: () => apiClient("/birthdays/trigger-emails", { method: "POST" }),
+  triggerEmails: () =>
+    apiClient("/birthdays/trigger-emails", { method: "POST" }),
 };
 
 export const anniversaryApi = {
   getToday: () => apiClient("/anniversaries/today"),
-  triggerEmails: () => apiClient("/anniversaries/trigger-emails", { method: "POST" }),
+  triggerEmails: () =>
+    apiClient("/anniversaries/trigger-emails", { method: "POST" }),
 };
 
 export const powerNetworkingApi = {
   getStats: () => apiClient("/power-networking/stats"),
-  getMyNetwork: (params = {}) => apiClient(`/power-networking/my-network${toQueryString(params)}`),
-  removeFromNetwork: (id) => apiClient(`/power-networking/my-network/${id}/remove`, { method: "POST" }),
-  requestQuote: (data) => apiClient("/power-networking/request-quote", { method: "POST", body: JSON.stringify(data) }),
-  getRequirements: (params = {}) => apiClient(`/power-networking/requirements${toQueryString(params)}`),
+  getMyNetwork: (params = {}) =>
+    apiClient(`/power-networking/my-network${toQueryString(params)}`),
+  removeFromNetwork: (id) =>
+    apiClient(`/power-networking/my-network/${id}/remove`, { method: "POST" }),
+  requestQuote: (data) =>
+    apiClient("/power-networking/request-quote", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getRequirements: (params = {}) =>
+    apiClient(`/power-networking/requirements${toQueryString(params)}`),
   getRequirementById: (id) => apiClient(`/power-networking/requirements/${id}`),
-  createRequirement: (data) => apiClient("/power-networking/requirements", { method: "POST", body: JSON.stringify(data) }),
-  getRequirementMatches: (id, params = {}) => apiClient(`/power-networking/requirements/${id}/matches${toQueryString(params)}`),
-  discoverBusinesses: (params = {}) => apiClient(`/power-networking/discover${toQueryString(params)}`),
-  sendConnectionRequest: (data) => apiClient("/power-networking/connections", { method: "POST", body: JSON.stringify(data) }),
-  getConnections: (params = {}) => apiClient(`/power-networking/connections${toQueryString(params)}`),
-  getRequests: (params = {}) => apiClient(`/power-networking/requests${toQueryString(params)}`),
-  respondToRequest: (id, action) => apiClient(`/power-networking/requests/${id}/respond`, { method: "POST", body: JSON.stringify({ action }) }),
-  cancelRequest: (id) => apiClient(`/power-networking/requests/${id}/cancel`, { method: "POST" }),
+  createRequirement: (data) =>
+    apiClient("/power-networking/requirements", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getRequirementMatches: (id, params = {}) =>
+    apiClient(
+      `/power-networking/requirements/${id}/matches${toQueryString(params)}`,
+    ),
+  discoverBusinesses: (params = {}) =>
+    apiClient(`/power-networking/discover${toQueryString(params)}`),
+  sendConnectionRequest: (data) =>
+    apiClient("/power-networking/connections", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getConnections: (params = {}) =>
+    apiClient(`/power-networking/connections${toQueryString(params)}`),
+  getRequests: (params = {}) =>
+    apiClient(`/power-networking/requests${toQueryString(params)}`),
+  respondToRequest: (id, action) =>
+    apiClient(`/power-networking/requests/${id}/respond`, {
+      method: "POST",
+      body: JSON.stringify({ action }),
+    }),
+  cancelRequest: (id) =>
+    apiClient(`/power-networking/requests/${id}/cancel`, { method: "POST" }),
 };
 
 export const roleApi = {
   getAll: (params = {}) => apiClient(`/roles${toQueryString(params)}`),
-  getPublic: (params = {}) => apiClient(`/roles/public${toQueryString(params)}`),
-  create: (data) => apiClient("/roles", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/roles/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  getPublic: (params = {}) =>
+    apiClient(`/roles/public${toQueryString(params)}`),
+  create: (data) =>
+    apiClient("/roles", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) =>
+    apiClient(`/roles/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/roles/${id}`, { method: "DELETE" }),
 };
 
 export const rolePermissionTemplateApi = {
-  getAll: (params = {}) => apiClient(`/role-permission-templates${toQueryString(params)}`),
+  getAll: (params = {}) =>
+    apiClient(`/role-permission-templates${toQueryString(params)}`),
   getById: (id) => apiClient(`/role-permission-templates/${id}`),
-  create: (data) => apiClient("/role-permission-templates", { method: "POST", body: JSON.stringify(data) }),
-  update: (id, data) => apiClient(`/role-permission-templates/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-  delete: (id) => apiClient(`/role-permission-templates/${id}`, { method: "DELETE" }),
+  create: (data) =>
+    apiClient("/role-permission-templates", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (id, data) =>
+    apiClient(`/role-permission-templates/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  delete: (id) =>
+    apiClient(`/role-permission-templates/${id}`, { method: "DELETE" }),
 };
 
 export const documentApi = {
   getAll: (params = {}) => apiClient(`/documents${toQueryString(params)}`),
-  create: (data) => apiClient("/documents", { method: "POST", body: JSON.stringify(data) }),
-  upload: (formData) => apiClient("/documents/upload", { method: "POST", body: formData }),
-  update: (id, data) => apiClient(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  create: (data) =>
+    apiClient("/documents", { method: "POST", body: JSON.stringify(data) }),
+  upload: (formData) =>
+    apiClient("/documents/upload", { method: "POST", body: formData }),
+  update: (id, data) =>
+    apiClient(`/documents/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   delete: (id) => apiClient(`/documents/${id}`, { method: "DELETE" }),
 };
 
 export const postsApi = {
   list: (params = {}) => apiClient(`/posts${toQueryString(params)}`),
-  create: (data) => apiClient("/posts", { method: "POST", body: JSON.stringify(data) }),
+  create: (data) =>
+    apiClient("/posts", { method: "POST", body: JSON.stringify(data) }),
   uploadImage: (file) => {
     const formData = new FormData();
     formData.append("image", file);
     return apiClient("/posts/upload", { method: "POST", body: formData });
   },
   toggleLike: (id) => apiClient(`/posts/${id}/like`, { method: "POST" }),
-  addComment: (id, data) => apiClient(`/posts/${id}/comments`, { method: "POST", body: JSON.stringify(data) }),
-  deleteComment: (id, commentId) => apiClient(`/posts/${id}/comments/${commentId}`, { method: "DELETE" }),
+  addComment: (id, data) =>
+    apiClient(`/posts/${id}/comments`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deleteComment: (id, commentId) =>
+    apiClient(`/posts/${id}/comments/${commentId}`, { method: "DELETE" }),
   delete: (id) => apiClient(`/posts/${id}`, { method: "DELETE" }),
 };
 
-
 export const galleryApi = {
   // One folder per event, filtered by title / date range / state / chapter / scope.
-  listFolders: (params = {}) => apiClient(`/gallery/folders${toQueryString(params)}`),
+  listFolders: (params = {}) =>
+    apiClient(`/gallery/folders${toQueryString(params)}`),
   getFolder: (eventId) => apiClient(`/gallery/folders/${eventId}`),
   addMedia: (eventId, files, caption = "") => {
     const formData = new FormData();
     for (const file of files) formData.append("media", file);
     if (caption) formData.append("caption", caption);
-    return apiClient(`/gallery/folders/${eventId}/media`, { method: "POST", body: formData });
+    return apiClient(`/gallery/folders/${eventId}/media`, {
+      method: "POST",
+      body: formData,
+    });
   },
-  removeMedia: (mediaId) => apiClient(`/gallery/media/${mediaId}`, { method: "DELETE" }),
+  removeMedia: (mediaId) =>
+    apiClient(`/gallery/media/${mediaId}`, { method: "DELETE" }),
 };
 
 export const copilotApi = {
@@ -642,27 +1188,54 @@ export const copilotApi = {
 
 export const advertisementApi = {
   getActive: () => apiClient("/advertisements/active"),
-  getCalendar: (params = {}) => apiClient(`/advertisements/calendar${toQueryString(params)}`),
-  getMy: (params = {}) => apiClient(`/advertisements/my${toQueryString(params)}`),
+  getCalendar: (params = {}) =>
+    apiClient(`/advertisements/calendar${toQueryString(params)}`),
+  getMy: (params = {}) =>
+    apiClient(`/advertisements/my${toQueryString(params)}`),
   create: (formDataOrData) => {
     if (typeof FormData !== "undefined" && formDataOrData instanceof FormData) {
-      return apiClient("/advertisements", { method: "POST", body: formDataOrData });
+      return apiClient("/advertisements", {
+        method: "POST",
+        body: formDataOrData,
+      });
     }
-    return apiClient("/advertisements", { method: "POST", body: JSON.stringify(formDataOrData) });
+    return apiClient("/advertisements", {
+      method: "POST",
+      body: JSON.stringify(formDataOrData),
+    });
   },
-  getChapterAds: (params = {}) => apiClient(`/advertisements/chapter-admin${toQueryString(params)}`),
-  getAdminList: (params = {}) => apiClient(`/advertisements/admin/list${toQueryString(params)}`),
-  review: (id, data) => apiClient(`/advertisements/${id}/review`, { method: "PATCH", body: JSON.stringify(data) }),
+  getChapterAds: (params = {}) =>
+    apiClient(`/advertisements/chapter-admin${toQueryString(params)}`),
+  getAdminList: (params = {}) =>
+    apiClient(`/advertisements/admin/list${toQueryString(params)}`),
+  review: (id, data) =>
+    apiClient(`/advertisements/${id}/review`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   delete: (id) => apiClient(`/advertisements/${id}`, { method: "DELETE" }),
 };
 
 export const ticketApi = {
-  create: (data) => apiClient("/tickets", { method: "POST", body: JSON.stringify(data) }),
+  create: (data) =>
+    apiClient("/tickets", { method: "POST", body: JSON.stringify(data) }),
   list: (params = {}) => apiClient(`/tickets${toQueryString(params)}`),
   getById: (id) => apiClient(`/tickets/${id}`),
-  addMessage: (id, data) => apiClient(`/tickets/${id}/messages`, { method: "POST", body: JSON.stringify(data) }),
-  escalate: (id, data) => apiClient(`/tickets/${id}/escalate`, { method: "POST", body: JSON.stringify(data) }),
-  resolve: (id, data) => apiClient(`/tickets/${id}/resolve`, { method: "POST", body: JSON.stringify(data) }),
+  addMessage: (id, data) =>
+    apiClient(`/tickets/${id}/messages`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  escalate: (id, data) =>
+    apiClient(`/tickets/${id}/escalate`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  resolve: (id, data) =>
+    apiClient(`/tickets/${id}/resolve`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   close: (id) => apiClient(`/tickets/${id}/close`, { method: "POST" }),
   uploadPhoto: (file) => {
     const formData = new FormData();
@@ -670,4 +1243,3 @@ export const ticketApi = {
     return apiClient("/tickets/upload", { method: "POST", body: formData });
   },
 };
-

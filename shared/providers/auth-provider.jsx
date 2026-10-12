@@ -1,27 +1,35 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authApi, userApi } from "../lib/api-services";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       try {
         const cached = localStorage.getItem("rifah_user");
-        return cached ? JSON.parse(cached) : null;
+        if (cached) {
+          setUser(JSON.parse(cached));
+        }
       } catch (_) {}
+
+      const hasToken = Boolean(localStorage.getItem("rifah_access_token"));
+      const hasCachedUser = Boolean(localStorage.getItem("rifah_user"));
+      setLoading(!(hasToken && hasCachedUser));
     }
-    return null;
-  });
-  const [loading, setLoading] = useState(() => {
-    if (typeof window !== "undefined") {
-      return !Boolean(localStorage.getItem("rifah_user") && localStorage.getItem("rifah_access_token"));
-    }
-    return true;
-  });
-  const queryClient = useQueryClient();
+  }, []);
 
   // BUG-013: the mount-time session check (fetchCurrentUser, below) and an
   // explicit login() both call setUser asynchronously. If a user logs in
@@ -37,7 +45,10 @@ export function AuthProvider({ children }) {
 
   const fetchCurrentUser = async () => {
     const requestId = ++requestIdRef.current;
-    const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("rifah_access_token")
+        : null;
     if (!token) {
       if (requestId === requestIdRef.current) {
         setUser(null);
@@ -60,12 +71,13 @@ export function AuthProvider({ children }) {
           err?.code === "UNAUTHORIZED" ||
           err?.code === "TOKEN_EXPIRED" ||
           err?.code === "TOKEN_INVALID" ||
-          (typeof err?.message === "string" && (
-            err.message.includes("401") ||
-            err.message.toLowerCase().includes("session has expired") ||
-            err.message.toLowerCase().includes("invalid or expired refresh token") ||
-            err.message.toLowerCase().includes("please log in to continue")
-          ));
+          (typeof err?.message === "string" &&
+            (err.message.includes("401") ||
+              err.message.toLowerCase().includes("session has expired") ||
+              err.message
+                .toLowerCase()
+                .includes("invalid or expired refresh token") ||
+              err.message.toLowerCase().includes("please log in to continue")));
 
         if (isAuthError) {
           setUser(null);
@@ -75,7 +87,10 @@ export function AuthProvider({ children }) {
         } else {
           // Non-auth error (e.g. temporary network glitch or server restart)
           // Retain cached user so panels do not panic-redirect
-          const cachedUserStr = typeof window !== "undefined" ? localStorage.getItem("rifah_user") : null;
+          const cachedUserStr =
+            typeof window !== "undefined"
+              ? localStorage.getItem("rifah_user")
+              : null;
           if (cachedUserStr) {
             try {
               setUser(JSON.parse(cachedUserStr));
@@ -115,9 +130,10 @@ export function AuthProvider({ children }) {
       queryClient.clear();
       await queryClient.invalidateQueries();
     } catch (e) {}
-    return { 
-      ...loggedInUser, 
-      requirePasswordReset: loggedInUser?.forcePasswordChange || payload.requirePasswordReset,
+    return {
+      ...loggedInUser,
+      requirePasswordReset:
+        loggedInUser?.forcePasswordChange || payload.requirePasswordReset,
       requiresRoleSelection: payload.requiresRoleSelection,
       availableRoles: payload.availableRoles,
       availableWorkspaces: payload.availableWorkspaces,
@@ -257,7 +273,10 @@ export function AuthProvider({ children }) {
       value={{
         user,
         loading,
-        token: typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null,
+        token:
+          typeof window !== "undefined"
+            ? localStorage.getItem("rifah_access_token")
+            : null,
         login,
         loginWithOtp,
         loginWithGoogle,
@@ -279,10 +298,14 @@ export function AuthProvider({ children }) {
           const res = await authApi.switchRole(targetRole, targetWorkspaceId);
           const payload = res.data || res;
           const loggedInUser = payload.user;
-          const accessToken = payload.accessToken || payload.tokens?.accessToken;
-          const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
-          if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
-          if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+          const accessToken =
+            payload.accessToken || payload.tokens?.accessToken;
+          const refreshToken =
+            payload.refreshToken || payload.tokens?.refreshToken;
+          if (accessToken)
+            localStorage.setItem("rifah_access_token", accessToken);
+          if (refreshToken)
+            localStorage.setItem("rifah_refresh_token", refreshToken);
           if (loggedInUser) {
             requestIdRef.current++;
             localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
@@ -294,7 +317,7 @@ export function AuthProvider({ children }) {
           } catch (e) {}
           // Return user with businessId/businessSlug or activeWorkspace
           return loggedInUser;
-        }
+        },
       }}
     >
       {children}

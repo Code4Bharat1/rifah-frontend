@@ -119,13 +119,13 @@ export function GoogleAuthButton({
                   onSuccess(loggedInUser);
                 } else if (loggedInUser.isProfileComplete === false) {
                   router.push("/onboarding");
-                } else if (["central_admin", "super_admin", "admin", "secretariat"].includes(loggedInUser.role)) {
+                } else if (["central_admin", "super_admin", "admin", "secretariat", "country_admin"].includes(loggedInUser.role)) {
                   router.push("/admin");
                 } else if (loggedInUser.role === "state_admin") {
                   router.push("/state-admin");
                 } else if (loggedInUser.role === "chapter_admin") {
                   router.push("/chapter-admin");
-                } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || (loggedInUser.accountType !== "user" && Boolean(loggedInUser.businessId || loggedInUser.businessSlug))) {
+                } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || (loggedInUser.role && !["central_admin", "super_admin", "admin", "secretariat", "country_admin", "state_admin", "chapter_admin"].includes(loggedInUser.role) && loggedInUser.accountType !== "user" && Boolean(loggedInUser.businessId || loggedInUser.businessSlug))) {
                   router.push("/biz");
                 } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.subscriberTier)) {
                   router.push("/user");
@@ -169,13 +169,13 @@ export function GoogleAuthButton({
                 onSuccess(loggedInUser);
               } else if (loggedInUser.isProfileComplete === false) {
                 router.push("/onboarding");
-              } else if (["central_admin", "super_admin", "admin", "secretariat"].includes(loggedInUser.role)) {
+              } else if (["central_admin", "super_admin", "admin", "secretariat", "country_admin"].includes(loggedInUser.role)) {
                 router.push("/admin");
               } else if (loggedInUser.role === "state_admin") {
                 router.push("/state-admin");
               } else if (loggedInUser.role === "chapter_admin") {
                 router.push("/chapter-admin");
-              } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || (loggedInUser.accountType !== "user" && Boolean(loggedInUser.businessId || loggedInUser.businessSlug))) {
+              } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || (loggedInUser.role && !["central_admin", "super_admin", "admin", "secretariat", "country_admin", "state_admin", "chapter_admin"].includes(loggedInUser.role) && loggedInUser.accountType !== "user" && Boolean(loggedInUser.businessId || loggedInUser.businessSlug))) {
                 router.push("/biz");
               } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.subscriberTier)) {
                 router.push("/user");
