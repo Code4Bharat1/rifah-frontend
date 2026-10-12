@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@shared/lib/utils";
 import { withAssetPrefix } from "@shared/lib/asset-prefix";
@@ -9,10 +10,17 @@ const logoDark = withAssetPrefix("/rifah-logo-dark.png?v=4");
 export function RifahLogo({
   className,
   to = "/",
-  label = "RIFAH Connect",
+  label,
   showLabel = true,
   onDark = false,
 }) {
+  let t = null;
+  try {
+    t = useTranslations("Navbar");
+  } catch (e) {
+    // Fallback if rendered outside NextIntlClientProvider
+  }
+  const displayLabel = label || (t ? t("rifahConnect") : "RIFAH Connect");
   return (
     <Link href={to} className={cn("flex min-w-0 items-center gap-2.5", className)} aria-label="RIFAH Connect home">
       <img
@@ -27,7 +35,7 @@ export function RifahLogo({
             onDark ? "border-primary-foreground/25 text-primary-foreground" : "border-border text-navy dark:text-foreground",
           )}
         >
-          {label}
+          {displayLabel}
         </span>
       )}
     </Link>

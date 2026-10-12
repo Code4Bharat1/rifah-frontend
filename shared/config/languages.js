@@ -2,9 +2,9 @@ export const RTL_LANGUAGES = ["ar", "he", "fa", "ur", "ps", "sd", "ug", "yi", "k
 
 export const LANGUAGES = [
   { code: "en", name: "English", nativeName: "English" },
-  { code: "hi", name: "Hindi", nativeName: "हिन्दी (Hindi)" },
-  { code: "ur", name: "Urdu", nativeName: "اردو (Urdu)" },
-  { code: "mr", name: "Marathi", nativeName: "मराठी (Marathi)" },
+  { code: "hi", name: "Hindi", nativeName: "हिन्दी" },
+  { code: "ur", name: "Urdu", nativeName: "اردو" },
+  { code: "mr", name: "Marathi", nativeName: "मराठी" },
   { code: "af", name: "Afrikaans", nativeName: "Afrikaans" },
   { code: "sq", name: "Albanian", nativeName: "Shqip" },
   { code: "am", name: "Amharic", nativeName: "አማርኛ" },

@@ -1,5 +1,6 @@
 {
   "Navbar": {
+    "rifahConnect": "رفاہ کنیکٹ",
     "login": "لاگ ان",
     "register": "نیٹ ورک میں شامل ہوں",
     "dashboard": "ڈیش بورڈ",
@@ -10,6 +11,8 @@
       "catalogue": "مصنوعات اور خدمات",
       "events": "تقریبات",
       "membership": "رکنیت",
+      "leadership": "ہماری قیادت",
+      "presence": "ہماری موجودگی",
       "about": "ہمارے بارے میں",
       "contact": "رابطہ کریں"
     }

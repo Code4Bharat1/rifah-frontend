@@ -43,8 +43,8 @@ const primaryNav = [
   { tKey: "discover", to: "/discover" },
   { tKey: "events", to: "/events" },
   { tKey: "membership", to: "/membership" },
-  { label: "Our Leadership", to: "/members" },
-  { label: "Our Presence", to: "/presence" },
+  { tKey: "leadership", label: "Our Leadership", to: "/members" },
+  { tKey: "presence", label: "Our Presence", to: "/presence" },
   { tKey: "about", to: "/about" },
   { tKey: "contact", to: "/contact" },
 ];
@@ -147,7 +147,9 @@ export function PublicHeader() {
                     : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                 )}
               >
-                {item.tKey ? t(`nav.${item.tKey}`) : item.label}
+                <span className="notranslate" translate="no">
+                  {item.tKey ? t(`nav.${item.tKey}`) : item.label}
+                </span>
                 <span
                   className={cn(
                     "absolute bottom-0.5 left-1/2 -translate-x-1/2 h-[2px] w-[calc(100%-1.25rem)] rounded-full bg-primary transition-transform duration-300 ease-out origin-center pointer-events-none",
@@ -295,7 +297,9 @@ function MobileMenu() {
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                {item.tKey ? t(`nav.${item.tKey}`) : item.label}
+                <span className="notranslate" translate="no">
+                  {item.tKey ? t(`nav.${item.tKey}`) : item.label}
+                </span>
               </Link>
             );
           })}

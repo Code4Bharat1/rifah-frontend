@@ -1,5 +1,6 @@
 {
   "Navbar": {
+    "rifahConnect": "RIFAH Connect",
     "login": "Log in",
     "register": "Join Network",
     "dashboard": "Dashboard",
@@ -10,6 +11,8 @@
       "catalogue": "Products & Services",
       "events": "Events",
       "membership": "Membership",
+      "leadership": "Our Leadership",
+      "presence": "Our Presence",
       "about": "About Us",
       "contact": "Contact"
     }
