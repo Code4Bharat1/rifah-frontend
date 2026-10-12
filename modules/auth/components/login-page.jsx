@@ -116,7 +116,9 @@ export default function LoginPage() {
   }, [isForgotOpen, forgotStep, otpTimer]);
 
   const formatTimer = (seconds) => {
-    const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const mins = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
     const secs = (seconds % 60).toString().padStart(2, "0");
     return `${mins}:${secs}`;
   };
@@ -159,7 +161,10 @@ export default function LoginPage() {
     setForgotLoading(true);
     try {
       const res = await authApi.forgotPassword(forgotEmail.trim());
-      setForgotSuccess(res?.message || `A new verification code has been sent to ${forgotEmail}.`);
+      setForgotSuccess(
+        res?.message ||
+          `A new verification code has been sent to ${forgotEmail}.`,
+      );
       setOtpDigits(["", "", "", "", "", ""]);
       setResetCode("");
       setOtpTimer(150);
@@ -188,7 +193,7 @@ export default function LoginPage() {
       if (
         user.requiresRoleSelection &&
         ((user.availableWorkspaces && user.availableWorkspaces.length > 1) ||
-         (user.availableRoles && user.availableRoles.length > 1))
+          (user.availableRoles && user.availableRoles.length > 1))
       ) {
         setPendingUser(user);
         setAvailableRoles(user.availableRoles || []);
@@ -200,7 +205,9 @@ export default function LoginPage() {
 
       navigateUser(user);
     } catch (err) {
-      setError(err.message || "Failed to sign in. Please verify your credentials.");
+      setError(
+        err.message || "Failed to sign in. Please verify your credentials.",
+      );
     } finally {
       if (!showRoleModal) setLoading(false);
     }
@@ -249,14 +256,20 @@ export default function LoginPage() {
       (role === "business_owner" ||
         role === "business" ||
         accountType === "business" ||
-        (user.accountType !== "user" && Boolean(user.businessId || user.businessSlug)));
+        (user.accountType !== "user" &&
+          Boolean(user.businessId || user.businessSlug)));
     const isMemberUser =
       !isBiz &&
       !isCentralAdmin &&
       !isStateAdmin &&
       !isChapterAdmin &&
       (accountType === "user" || Boolean(user.subscriberTier));
-    const isPureCustomer = !isBiz && !isCentralAdmin && !isStateAdmin && !isChapterAdmin && !isMemberUser;
+    const isPureCustomer =
+      !isBiz &&
+      !isCentralAdmin &&
+      !isStateAdmin &&
+      !isChapterAdmin &&
+      !isMemberUser;
 
     // Strict validation of redirect query param:
     // User can ONLY follow redirect if it belongs to their own designated workspace!
@@ -310,7 +323,10 @@ export default function LoginPage() {
     setRoleSwitchLoading(true);
     try {
       if (ws.type === "org_role") {
-        const updatedUser = await switchRole(ws.panelType || "chapter-admin", ws.workspaceId);
+        const updatedUser = await switchRole(
+          ws.panelType || "chapter-admin",
+          ws.workspaceId,
+        );
         navigateUser(updatedUser);
       } else {
         if (ws.workspaceId === pendingUser?.role) {
@@ -356,7 +372,10 @@ export default function LoginPage() {
     setForgotLoading(true);
     try {
       const res = await authApi.forgotPassword(forgotEmail.trim());
-      setForgotSuccess(res?.message || `A 6-digit verification code has been sent to ${forgotEmail}.`);
+      setForgotSuccess(
+        res?.message ||
+          `A 6-digit verification code has been sent to ${forgotEmail}.`,
+      );
       setResetCode("");
       setOtpDigits(["", "", "", "", "", ""]);
       setOtpTimer(150); // 02:30 countdown
@@ -365,7 +384,10 @@ export default function LoginPage() {
         otpInputRefs.current[0]?.focus();
       }, 100);
     } catch (err) {
-      setForgotError(err.message || "Failed to send reset code. Please check your email address.");
+      setForgotError(
+        err.message ||
+          "Failed to send reset code. Please check your email address.",
+      );
     } finally {
       setForgotLoading(false);
     }
@@ -376,7 +398,7 @@ export default function LoginPage() {
     setForgotError("");
     setForgotSuccess("");
 
-    const fullCode = (otpDigits.join("").trim() || resetCode.trim());
+    const fullCode = otpDigits.join("").trim() || resetCode.trim();
     if (!fullCode || fullCode.length !== 6) {
       setForgotError("Please enter the complete 6-digit verification code.");
       return;
@@ -389,12 +411,18 @@ export default function LoginPage() {
         resetToken: fullCode,
       });
       setResetCode(fullCode);
-      setForgotSuccess(res?.message || "Code verified successfully! Now choose your new password.");
+      setForgotSuccess(
+        res?.message ||
+          "Code verified successfully! Now choose your new password.",
+      );
       setNewPassword("");
       setConfirmPassword("");
       setForgotStep(3);
     } catch (err) {
-      setForgotError(err.message || "Invalid or expired verification code. Please check and try again.");
+      setForgotError(
+        err.message ||
+          "Invalid or expired verification code. Please check and try again.",
+      );
     } finally {
       setForgotLoading(false);
     }
@@ -426,7 +454,10 @@ export default function LoginPage() {
       setEmail(forgotEmail.trim());
       setPassword("");
       setError("");
-      setSuccessMsg(res?.message || "Password has been reset successfully! Please sign in with your new password.");
+      setSuccessMsg(
+        res?.message ||
+          "Password has been reset successfully! Please sign in with your new password.",
+      );
 
       // Reset dialog form state
       setForgotStep(1);
@@ -436,7 +467,9 @@ export default function LoginPage() {
       setForgotError("");
       setForgotSuccess("");
     } catch (err) {
-      setForgotError(err.message || "Failed to reset password. Please try again.");
+      setForgotError(
+        err.message || "Failed to reset password. Please try again.",
+      );
     } finally {
       setForgotLoading(false);
     }
@@ -460,14 +493,28 @@ export default function LoginPage() {
 
             {/* Illuminated RIFAH Building Logo on glass facade */}
             <div className="absolute top-[28%] right-[14%] xl:right-[18%] flex items-center gap-2.5 z-10 pointer-events-none drop-shadow-[0_0_20px_rgba(56,189,248,0.6)]">
-              <svg className="w-9 h-9 shrink-0 filter drop-shadow" viewBox="0 0 100 100" fill="none">
-                <path d="M15 15 L50 50 L15 85 L32 85 L60 50 L32 15 Z" fill="#38bdf8" />
-                <path d="M42 15 L77 50 L42 85 L59 85 L87 50 L59 15 Z" fill="#ffffff" />
+              <svg
+                className="w-9 h-9 shrink-0 filter drop-shadow"
+                viewBox="0 0 100 100"
+                fill="none"
+              >
+                <path
+                  d="M15 15 L50 50 L15 85 L32 85 L60 50 L32 15 Z"
+                  fill="#38bdf8"
+                />
+                <path
+                  d="M42 15 L77 50 L42 85 L59 85 L87 50 L59 15 Z"
+                  fill="#ffffff"
+                />
               </svg>
               <div className="text-white">
-                <div className="text-sm xl:text-base font-extrabold tracking-wider leading-none">RIFAH</div>
+                <div className="text-sm xl:text-base font-extrabold tracking-wider leading-none">
+                  RIFAH
+                </div>
                 <div className="text-[7px] xl:text-[8px] font-semibold text-slate-200 tracking-wider leading-tight uppercase mt-0.5">
-                  Chamber Of Commerce<br />And Industry
+                  Chamber Of Commerce
+                  <br />
+                  And Industry
                 </div>
               </div>
             </div>
@@ -478,14 +525,22 @@ export default function LoginPage() {
                 className="text-2xl xl:text-3xl text-sky-200/90 leading-[1.1] font-bold"
                 style={{ fontFamily: "'Caveat', cursive, sans-serif" }}
               >
-                <span>Stronger</span><br />
-                <span>Businesses</span><br />
-                <span>A Brighter</span><br />
+                <span>Stronger</span>
+                <br />
+                <span>Businesses</span>
+                <br />
+                <span>A Brighter</span>
+                <br />
                 <span>Tomorrow</span>
               </div>
               <div className="flex justify-end mt-1">
                 <svg width="105" height="12" viewBox="0 0 105 12" fill="none">
-                  <path d="M 5 6 Q 52 1 100 8" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" />
+                  <path
+                    d="M 5 6 Q 52 1 100 8"
+                    stroke="#dc2626"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </div>
             </div>
@@ -502,13 +557,16 @@ export default function LoginPage() {
           {/* Middle Content: Heading, Subtitle, 4 Pillars & Stats */}
           <div className="relative z-10 my-auto space-y-4 xl:space-y-5 max-w-xl py-2">
             <h1 className="text-2xl sm:text-3xl xl:text-[36px] 2xl:text-[40px] font-extrabold tracking-tight text-white leading-[1.18]">
-              One chamber network<br />
-              for discovery, enquiries<br />
+              One chamber network
+              <br />
+              for discovery, enquiries
+              <br />
               and <span className="text-[#38bdf8]">verified trade.</span>
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-300/90 leading-relaxed max-w-md">
-              Members receive matched buyer enquiries, manage their catalogue and participate in chapter events from a single workspace.
+              Members receive matched buyer enquiries, manage their catalogue
+              and participate in chapter events from a single workspace.
             </p>
 
             {/* 4 Feature Badges in a row */}
@@ -517,25 +575,33 @@ export default function LoginPage() {
                 <div className="flex h-9 w-9 xl:h-10 xl:w-10 items-center justify-center rounded-xl bg-[#0c1e38]/80 border border-sky-500/20 text-[#38bdf8] shadow-sm">
                   <Users className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
-                <span className="text-[11px] font-medium text-slate-200 leading-tight">Verified Network</span>
+                <span className="text-[11px] font-medium text-slate-200 leading-tight">
+                  Verified Network
+                </span>
               </div>
               <div className="flex flex-col items-start gap-1.5">
                 <div className="flex h-9 w-9 xl:h-10 xl:w-10 items-center justify-center rounded-xl bg-[#0c1e38]/80 border border-sky-500/20 text-[#38bdf8] shadow-sm">
                   <BarChart3 className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
-                <span className="text-[11px] font-medium text-slate-200 leading-tight">Business Opportunities</span>
+                <span className="text-[11px] font-medium text-slate-200 leading-tight">
+                  Business Opportunities
+                </span>
               </div>
               <div className="flex flex-col items-start gap-1.5">
                 <div className="flex h-9 w-9 xl:h-10 xl:w-10 items-center justify-center rounded-xl bg-[#0c1e38]/80 border border-sky-500/20 text-[#38bdf8] shadow-sm">
                   <Calendar className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
-                <span className="text-[11px] font-medium text-slate-200 leading-tight">Events & Collaborations</span>
+                <span className="text-[11px] font-medium text-slate-200 leading-tight">
+                  Events & Collaborations
+                </span>
               </div>
               <div className="flex flex-col items-start gap-1.5">
                 <div className="flex h-9 w-9 xl:h-10 xl:w-10 items-center justify-center rounded-xl bg-[#0c1e38]/80 border border-sky-500/20 text-[#38bdf8] shadow-sm">
                   <ShieldCheck className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
-                <span className="text-[11px] font-medium text-slate-200 leading-tight">Trusted Ecosystem</span>
+                <span className="text-[11px] font-medium text-slate-200 leading-tight">
+                  Trusted Ecosystem
+                </span>
               </div>
             </div>
 
@@ -545,8 +611,12 @@ export default function LoginPage() {
               <div className="flex items-center gap-2">
                 <div className="w-[3px] h-7 bg-[#dc2626] rounded-full shrink-0" />
                 <div>
-                  <div className="text-base xl:text-lg font-bold text-white leading-none">5,000+</div>
-                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">Verified Members</div>
+                  <div className="text-base xl:text-lg font-bold text-white leading-none">
+                    5,000+
+                  </div>
+                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">
+                    Verified Members
+                  </div>
                 </div>
               </div>
 
@@ -556,8 +626,12 @@ export default function LoginPage() {
               <div className="flex items-center gap-2">
                 <div className="w-[2px] h-7 bg-sky-400 rounded-full shrink-0" />
                 <div>
-                  <div className="text-base xl:text-lg font-bold text-white leading-none">28+</div>
-                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">Chapters Across India</div>
+                  <div className="text-base xl:text-lg font-bold text-white leading-none">
+                    28+
+                  </div>
+                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">
+                    Chapters Across India
+                  </div>
                 </div>
               </div>
 
@@ -567,8 +641,12 @@ export default function LoginPage() {
               <div className="flex items-center gap-2">
                 <div className="w-[3px] h-7 bg-[#dc2626] rounded-full shrink-0" />
                 <div>
-                  <div className="text-base xl:text-lg font-bold text-white leading-none">50+</div>
-                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">Events Every Year</div>
+                  <div className="text-base xl:text-lg font-bold text-white leading-none">
+                    50+
+                  </div>
+                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">
+                    Events Every Year
+                  </div>
                 </div>
               </div>
 
@@ -578,8 +656,12 @@ export default function LoginPage() {
               <div className="flex items-center gap-2">
                 <div className="w-[3px] h-7 bg-[#dc2626] rounded-full shrink-0" />
                 <div>
-                  <div className="text-base xl:text-lg font-bold text-white leading-none">100+</div>
-                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">Business Categories</div>
+                  <div className="text-base xl:text-lg font-bold text-white leading-none">
+                    100+
+                  </div>
+                  <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">
+                    Business Categories
+                  </div>
                 </div>
               </div>
             </div>
@@ -597,7 +679,9 @@ export default function LoginPage() {
 
             {/* Frosted Glass Quote Card */}
             <div className="rounded-2xl border border-white/10 bg-[#071328]/85 backdrop-blur-md p-4 shadow-2xl max-w-[230px] text-left">
-              <span className="text-2xl font-serif text-[#38bdf8] leading-none block select-none">“</span>
+              <span className="text-2xl font-serif text-[#38bdf8] leading-none block select-none">
+                “
+              </span>
               <p className="mt-1 text-xs font-semibold text-slate-100 leading-snug">
                 Building connections today for a stronger tomorrow.
               </p>
@@ -611,12 +695,36 @@ export default function LoginPage() {
           <div className="w-full max-w-[450px] rounded-[28px] sm:rounded-[32px] border border-slate-100 bg-white p-5 sm:p-7 xl:p-8 shadow-[0_12px_45px_-12px_rgba(0,0,0,0.08)] relative overflow-hidden my-auto">
             {/* Top Right Decorative Watermark with Curved Lines and Connect / Collaborate / Grow */}
             <div className="absolute top-0 right-0 pointer-events-none select-none w-44 h-44 overflow-hidden">
-              <svg viewBox="0 0 160 160" fill="none" className="w-full h-full text-sky-400/30">
-                <path d="M 160 20 A 140 140 0 0 0 20 160" stroke="currentColor" strokeWidth="1" />
-                <path d="M 160 45 A 115 115 0 0 0 45 160" stroke="currentColor" strokeWidth="1" />
-                <path d="M 160 70 A 90 90 0 0 0 70 160" stroke="currentColor" strokeWidth="1" />
-                <path d="M 160 95 A 65 65 0 0 0 95 160" stroke="currentColor" strokeWidth="1" />
-                <path d="M 160 120 A 40 40 0 0 0 120 160" stroke="currentColor" strokeWidth="1" />
+              <svg
+                viewBox="0 0 160 160"
+                fill="none"
+                className="w-full h-full text-sky-400/30"
+              >
+                <path
+                  d="M 160 20 A 140 140 0 0 0 20 160"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                />
+                <path
+                  d="M 160 45 A 115 115 0 0 0 45 160"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                />
+                <path
+                  d="M 160 70 A 90 90 0 0 0 70 160"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                />
+                <path
+                  d="M 160 95 A 65 65 0 0 0 95 160"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                />
+                <path
+                  d="M 160 120 A 40 40 0 0 0 120 160"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                />
               </svg>
               <div className="absolute top-5 right-6 flex flex-col items-start gap-1 text-[11px] font-semibold text-slate-400/90 leading-tight">
                 <span>Connect</span>
@@ -649,10 +757,16 @@ export default function LoginPage() {
               </div>
             )}
             {/* Form */}
-            <form className="mt-4 space-y-3 relative z-10" onSubmit={handleSubmit}>
+            <form
+              className="mt-4 space-y-3 relative z-10"
+              onSubmit={handleSubmit}
+            >
               {/* Email Field with Left Icon */}
               <div className="space-y-1">
-                <Label htmlFor="email" className="text-xs font-semibold text-slate-700">
+                <Label
+                  htmlFor="email"
+                  className="text-xs font-semibold text-slate-700"
+                >
                   Email
                 </Label>
                 <div className="relative flex items-center rounded-xl bg-[#f0f4f9] border border-transparent focus-within:border-[#0077e6] focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all px-3.5 py-2.5">
@@ -672,7 +786,10 @@ export default function LoginPage() {
               {/* Password Field with Left Lock & Right Eye Toggle */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-xs font-semibold text-slate-700">
+                  <Label
+                    htmlFor="password"
+                    className="text-xs font-semibold text-slate-700"
+                  >
                     Password
                   </Label>
                   <button
@@ -708,7 +825,11 @@ export default function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3.5 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -721,7 +842,9 @@ export default function LoginPage() {
                   onChange={(e) => setKeepSignedIn(e.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 text-[#0077e6] focus:ring-[#0077e6] accent-[#0077e6] cursor-pointer"
                 />
-                <span className="text-xs text-slate-600">Keep me signed in</span>
+                <span className="text-xs text-slate-600">
+                  Keep me signed in
+                </span>
               </label>
 
               {/* Sign In Button */}
@@ -732,7 +855,8 @@ export default function LoginPage() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("signingIn")}
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    {t("signingIn")}
                   </>
                 ) : (
                   <>
@@ -765,10 +889,16 @@ export default function LoginPage() {
 
             {/* Don't have an account? Section */}
             <div className="mt-3.5 sm:mt-4 rounded-2xl border border-slate-100 bg-[#f8fafc] p-2.5 sm:p-3 space-y-1.5 relative z-10">
-              <p className="text-xs font-bold text-slate-800 px-1">Don&apos;t have an account?</p>
+              <p className="text-xs font-bold text-slate-800 px-1">
+                Don&apos;t have an account?
+              </p>
               <div className="grid gap-1.5">
                 <Link
-                  href={redirectParam ? `/register-user?redirect=${encodeURIComponent(redirectParam)}` : "/register-user"}
+                  href={
+                    redirectParam
+                      ? `/register-user?redirect=${encodeURIComponent(redirectParam)}`
+                      : "/register-user"
+                  }
                   className="group flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50/40 p-2.5 transition-all hover:border-blue-300 hover:shadow-2xs"
                 >
                   <div className="flex items-center gap-2.5">
@@ -776,8 +906,12 @@ export default function LoginPage() {
                       <UserRound className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <span className="block text-xs font-bold text-slate-800">Register as Member / User</span>
-                      <span className="block text-[10px] text-slate-500">Chamber networking, member tiers & business discovery</span>
+                      <span className="block text-xs font-bold text-slate-800">
+                        Register as Member / User
+                      </span>
+                      <span className="block text-[10px] text-slate-500">
+                        Chamber networking, member tiers & business discovery
+                      </span>
                     </div>
                   </div>
                   <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 mr-1" />
@@ -792,8 +926,12 @@ export default function LoginPage() {
                       <Building2 className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <span className="block text-xs font-bold text-slate-800">Register your business</span>
-                      <span className="block text-[10px] text-slate-500">Join chamber directory & receive sales leads</span>
+                      <span className="block text-xs font-bold text-slate-800">
+                        Register your business
+                      </span>
+                      <span className="block text-[10px] text-slate-500">
+                        Join chamber directory & receive sales leads
+                      </span>
                     </div>
                   </div>
                   <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 shrink-0 mr-1" />
@@ -805,7 +943,12 @@ export default function LoginPage() {
       </div>
 
       {/* Workspace / Role Selection Modal — shown at login when user has multiple panel access */}
-      <Dialog open={showRoleModal} onOpenChange={(o) => { if (!roleSwitchLoading) setShowRoleModal(o); }}>
+      <Dialog
+        open={showRoleModal}
+        onOpenChange={(o) => {
+          if (!roleSwitchLoading) setShowRoleModal(o);
+        }}
+      >
         <DialogContent className="w-[94vw] max-w-[500px] rounded-[28px] border-0 bg-white shadow-2xl p-0 overflow-hidden">
           {/* Top gradient banner */}
           <div className="h-1.5 w-full bg-gradient-to-r from-[#0060df] via-[#0077e6] via-60% to-[#dc2626]" />
@@ -813,8 +956,18 @@ export default function LoginPage() {
             {/* Header */}
             <div className="flex items-start gap-4 mb-6">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#f0f7ff] border border-[#d9ebfb]">
-                <svg className="h-6 w-6 text-[#0060df]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
+                <svg
+                  className="h-6 w-6 text-[#0060df]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                  <path d="M2 17l10 5 10-5" />
+                  <path d="M2 12l10 5 10-5" />
                 </svg>
               </div>
               <div>
@@ -822,225 +975,362 @@ export default function LoginPage() {
                   Select Your <span className="text-[#0060df]">Panel</span>
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-sm text-slate-500 leading-snug">
-                  Welcome back! Your account has access to multiple panels. Choose where you&apos;d like to log in.
+                  Welcome back! Your account has access to multiple panels.
+                  Choose where you&apos;d like to log in.
                 </DialogDescription>
               </div>
             </div>
 
             {/* Role / Workspace cards */}
             <div className="space-y-3">
-              {availableWorkspaces && availableWorkspaces.length > 0 ? (
-                availableWorkspaces.map((ws) => {
-                  const isOrgRole = ws.type === "org_role";
-                  const isLoading = roleSwitchLoading;
+              {availableWorkspaces && availableWorkspaces.length > 0
+                ? availableWorkspaces.map((ws) => {
+                    const isOrgRole = ws.type === "org_role";
+                    const isLoading = roleSwitchLoading;
 
-                  let label = ws.roleName || "Workspace";
-                  let badge = isOrgRole ? `${(ws.level || "ORG").toUpperCase()} ROLE` : "PANEL";
-                  let desc = isOrgRole
-                    ? `${ws.chapterName ? `${ws.chapterName} • ` : ws.state ? `${ws.state} State • ` : ""}Assigned administrative features & operations`
-                    : ws.workspaceId === "business_owner"
-                      ? "Manage your business profile, enquiries, catalogue & B2B networking"
-                      : "Administrative command center & monitoring";
-                  let bg = isOrgRole
-                    ? ws.level === "Chapter"
-                      ? "bg-cyan-50/70 hover:bg-cyan-100/70 border-cyan-200 hover:border-cyan-400"
-                      : ws.level === "State"
-                        ? "bg-indigo-50/70 hover:bg-indigo-100/70 border-indigo-200 hover:border-indigo-400"
-                        : "bg-purple-50/70 hover:bg-purple-100/70 border-purple-200 hover:border-purple-400"
-                    : ws.workspaceId === "business_owner"
-                      ? "bg-amber-50/70 hover:bg-amber-100/70 border-amber-200 hover:border-amber-400"
-                      : "bg-blue-50/70 hover:bg-blue-100/70 border-blue-200 hover:border-blue-400";
+                    let label = ws.roleName || "Workspace";
+                    let badge = isOrgRole
+                      ? `${(ws.level || "ORG").toUpperCase()} ROLE`
+                      : "PANEL";
+                    let desc = isOrgRole
+                      ? `${ws.chapterName ? `${ws.chapterName} • ` : ws.state ? `${ws.state} State • ` : ""}Assigned administrative features & operations`
+                      : ws.workspaceId === "business_owner"
+                        ? "Manage your business profile, enquiries, catalogue & B2B networking"
+                        : "Administrative command center & monitoring";
+                    let bg = isOrgRole
+                      ? ws.level === "Chapter"
+                        ? "bg-cyan-50/70 hover:bg-cyan-100/70 border-cyan-200 hover:border-cyan-400"
+                        : ws.level === "State"
+                          ? "bg-indigo-50/70 hover:bg-indigo-100/70 border-indigo-200 hover:border-indigo-400"
+                          : "bg-purple-50/70 hover:bg-purple-100/70 border-purple-200 hover:border-purple-400"
+                      : ws.workspaceId === "business_owner"
+                        ? "bg-amber-50/70 hover:bg-amber-100/70 border-amber-200 hover:border-amber-400"
+                        : "bg-blue-50/70 hover:bg-blue-100/70 border-blue-200 hover:border-blue-400";
 
-                  let badgeBg = isOrgRole
-                    ? ws.level === "Chapter" ? "bg-cyan-600 text-white" : ws.level === "State" ? "bg-indigo-600 text-white" : "bg-purple-600 text-white"
-                    : ws.workspaceId === "business_owner" ? "bg-amber-500 text-white" : "bg-blue-600 text-white";
+                    let badgeBg = isOrgRole
+                      ? ws.level === "Chapter"
+                        ? "bg-cyan-600 text-white"
+                        : ws.level === "State"
+                          ? "bg-indigo-600 text-white"
+                          : "bg-purple-600 text-white"
+                      : ws.workspaceId === "business_owner"
+                        ? "bg-amber-500 text-white"
+                        : "bg-blue-600 text-white";
 
-                  let iconBg = isOrgRole
-                    ? ws.level === "Chapter" ? "bg-cyan-100 text-cyan-700" : ws.level === "State" ? "bg-indigo-100 text-indigo-700" : "bg-purple-100 text-purple-700"
-                    : ws.workspaceId === "business_owner" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700";
+                    let iconBg = isOrgRole
+                      ? ws.level === "Chapter"
+                        ? "bg-cyan-100 text-cyan-700"
+                        : ws.level === "State"
+                          ? "bg-indigo-100 text-indigo-700"
+                          : "bg-purple-100 text-purple-700"
+                      : ws.workspaceId === "business_owner"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-blue-100 text-blue-700";
 
-                  let icon = isOrgRole ? (
-                    <Award className="h-6 w-6" />
-                  ) : ws.workspaceId === "business_owner" ? (
-                    <Building2 className="h-6 w-6" />
-                  ) : (
-                    <Shield className="h-6 w-6" />
-                  );
+                    let icon = isOrgRole ? (
+                      <Award className="h-6 w-6" />
+                    ) : ws.workspaceId === "business_owner" ? (
+                      <Building2 className="h-6 w-6" />
+                    ) : (
+                      <Shield className="h-6 w-6" />
+                    );
 
-                  return (
-                    <button
-                      key={ws.workspaceId || ws.roleName}
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() => handleWorkspaceSelect(ws)}
-                      className={`group w-full rounded-2xl border-2 p-4 text-left transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99] ${bg}`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconBg} transition-colors`}>
-                          {isLoading ? (
-                            <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                            </svg>
-                          ) : icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-bold text-slate-900">{label}</span>
-                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-black tracking-widest uppercase ${badgeBg}`}>
-                              {badge}
-                            </span>
+                    return (
+                      <button
+                        key={ws.workspaceId || ws.roleName}
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => handleWorkspaceSelect(ws)}
+                        className={`group w-full rounded-2xl border-2 p-4 text-left transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99] ${bg}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconBg} transition-colors`}
+                          >
+                            {isLoading ? (
+                              <svg
+                                className="h-6 w-6 animate-spin"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                                />
+                              </svg>
+                            ) : (
+                              icon
+                            )}
                           </div>
-                          <p className="mt-0.5 text-xs text-slate-500 leading-snug line-clamp-2">{desc}</p>
-                        </div>
-                        <div className="shrink-0 text-slate-400 group-hover:text-slate-700 transition-colors">
-                          <svg className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 18l6-6-6-6" />
-                          </svg>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })
-              ) : (
-                availableRoles.map((role) => {
-                  const normalizedRole = (role || "").toString().toLowerCase().replace(/ /g, "_");
-                  const isLoading = roleSwitchLoading;
-
-                  const ROLE_META = {
-                    central_admin: {
-                      label: "Central Admin Panel",
-                      badge: "FULL ACCESS",
-                      desc: "Manage entire RIFAH platform — businesses, chapters, states, members & all operations",
-                      gradient: "from-blue-600 to-indigo-700",
-                      bg: "bg-blue-50 hover:bg-blue-100/70 border-blue-200 hover:border-blue-400",
-                      badgeBg: "bg-blue-600 text-white",
-                      iconBg: "bg-blue-100 text-blue-700",
-                      icon: (
-                        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
-                      ),
-                    },
-                    state_admin: {
-                      label: "State Admin Panel",
-                      badge: "STATE LEVEL",
-                      desc: "Oversee all chapters, members and businesses within your state jurisdiction",
-                      gradient: "from-emerald-600 to-teal-700",
-                      bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
-                      badgeBg: "bg-emerald-600 text-white",
-                      iconBg: "bg-emerald-100 text-emerald-700",
-                      icon: (
-                        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-                        </svg>
-                      ),
-                    },
-                    chapter_admin: {
-                      label: "Chapter Admin Panel",
-                      badge: "CHAPTER",
-                      desc: "Manage your chapter members, events, verifications and chapter-level operations",
-                      gradient: "from-cyan-600 to-sky-700",
-                      bg: "bg-cyan-50 hover:bg-cyan-100/70 border-cyan-200 hover:border-cyan-400",
-                      badgeBg: "bg-cyan-600 text-white",
-                      iconBg: "bg-cyan-100 text-cyan-700",
-                      icon: (
-                        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
-                      ),
-                    },
-                    business_owner: {
-                      label: "Business Owner Panel",
-                      badge: "BUSINESS",
-                      desc: "Manage your business profile, enquiries, catalogue, analytics and B2B networking",
-                      gradient: "from-orange-500 to-amber-600",
-                      bg: "bg-amber-50 hover:bg-amber-100/70 border-amber-200 hover:border-amber-400",
-                      badgeBg: "bg-amber-500 text-white",
-                      iconBg: "bg-amber-100 text-amber-700",
-                      icon: (
-                        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
-                        </svg>
-                      ),
-                    },
-                    customer: {
-                      label: "Customer Portal",
-                      badge: "BUYER",
-                      desc: "Discover businesses, send requirements, receive quotations & track orders",
-                      gradient: "from-emerald-500 to-teal-600",
-                      bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
-                      badgeBg: "bg-emerald-500 text-white",
-                      iconBg: "bg-emerald-100 text-emerald-700",
-                      icon: <ShoppingBag className="h-6 w-6" />,
-                    },
-                    buyer: {
-                      label: "Customer Portal",
-                      badge: "BUYER",
-                      desc: "Discover businesses, send requirements, receive quotations & track orders",
-                      gradient: "from-emerald-500 to-teal-600",
-                      bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
-                      badgeBg: "bg-emerald-500 text-white",
-                      iconBg: "bg-emerald-100 text-emerald-700",
-                      icon: <ShoppingBag className="h-6 w-6" />,
-                    },
-                  };
-
-                  const meta = ROLE_META[normalizedRole] || {
-                    label: role || "Workspace",
-                    badge: "ACCESS",
-                    desc: "Access your workspace",
-                    bg: "bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-400",
-                    badgeBg: "bg-slate-600 text-white",
-                    iconBg: "bg-slate-100 text-slate-700",
-                    icon: (
-                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 9h6M9 12h6M9 15h4" />
-                      </svg>
-                    ),
-                  };
-
-                  return (
-                    <button
-                      key={role}
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() => handleRoleSelect(role)}
-                      className={`group w-full rounded-2xl border-2 p-4 text-left transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99] ${meta.bg}`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${meta.iconBg} transition-colors`}>
-                          {isLoading ? (
-                            <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                            </svg>
-                          ) : meta.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-bold text-slate-900">{meta.label}</span>
-                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-black tracking-widest uppercase ${meta.badgeBg}`}>
-                              {meta.badge}
-                            </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold text-slate-900">
+                                {label}
+                              </span>
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[9px] font-black tracking-widest uppercase ${badgeBg}`}
+                              >
+                                {badge}
+                              </span>
+                            </div>
+                            <p className="mt-0.5 text-xs text-slate-500 leading-snug line-clamp-2">
+                              {desc}
+                            </p>
                           </div>
-                          <p className="mt-0.5 text-xs text-slate-500 leading-snug line-clamp-2">{meta.desc}</p>
+                          <div className="shrink-0 text-slate-400 group-hover:text-slate-700 transition-colors">
+                            <svg
+                              className="h-4 w-4 group-hover:translate-x-0.5 transition-transform"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M9 18l6-6-6-6" />
+                            </svg>
+                          </div>
                         </div>
-                        <div className="shrink-0 text-slate-400 group-hover:text-slate-700 transition-colors">
-                          <svg className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 18l6-6-6-6" />
+                      </button>
+                    );
+                  })
+                : availableRoles.map((role) => {
+                    const normalizedRole = (role || "")
+                      .toString()
+                      .toLowerCase()
+                      .replace(/ /g, "_");
+                    const isLoading = roleSwitchLoading;
+
+                    const ROLE_META = {
+                      central_admin: {
+                        label: "Central Admin Panel",
+                        badge: "FULL ACCESS",
+                        desc: "Manage entire RIFAH platform — businesses, chapters, states, members & all operations",
+                        gradient: "from-blue-600 to-indigo-700",
+                        bg: "bg-blue-50 hover:bg-blue-100/70 border-blue-200 hover:border-blue-400",
+                        badgeBg: "bg-blue-600 text-white",
+                        iconBg: "bg-blue-100 text-blue-700",
+                        icon: (
+                          <svg
+                            className="h-6 w-6"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                           </svg>
+                        ),
+                      },
+                      state_admin: {
+                        label: "State Admin Panel",
+                        badge: "STATE LEVEL",
+                        desc: "Oversee all chapters, members and businesses within your state jurisdiction",
+                        gradient: "from-emerald-600 to-teal-700",
+                        bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
+                        badgeBg: "bg-emerald-600 text-white",
+                        iconBg: "bg-emerald-100 text-emerald-700",
+                        icon: (
+                          <svg
+                            className="h-6 w-6"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                          </svg>
+                        ),
+                      },
+                      chapter_admin: {
+                        label: "Chapter Admin Panel",
+                        badge: "CHAPTER",
+                        desc: "Manage your chapter members, events, verifications and chapter-level operations",
+                        gradient: "from-cyan-600 to-sky-700",
+                        bg: "bg-cyan-50 hover:bg-cyan-100/70 border-cyan-200 hover:border-cyan-400",
+                        badgeBg: "bg-cyan-600 text-white",
+                        iconBg: "bg-cyan-100 text-cyan-700",
+                        icon: (
+                          <svg
+                            className="h-6 w-6"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                          </svg>
+                        ),
+                      },
+                      business_owner: {
+                        label: "Business Owner Panel",
+                        badge: "BUSINESS",
+                        desc: "Manage your business profile, enquiries, catalogue, analytics and B2B networking",
+                        gradient: "from-orange-500 to-amber-600",
+                        bg: "bg-amber-50 hover:bg-amber-100/70 border-amber-200 hover:border-amber-400",
+                        badgeBg: "bg-amber-500 text-white",
+                        iconBg: "bg-amber-100 text-amber-700",
+                        icon: (
+                          <svg
+                            className="h-6 w-6"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect
+                              x="2"
+                              y="3"
+                              width="20"
+                              height="14"
+                              rx="2"
+                              ry="2"
+                            />
+                            <line x1="8" y1="21" x2="16" y2="21" />
+                            <line x1="12" y1="17" x2="12" y2="21" />
+                          </svg>
+                        ),
+                      },
+                      customer: {
+                        label: "Customer Portal",
+                        badge: "BUYER",
+                        desc: "Discover businesses, send requirements, receive quotations & track orders",
+                        gradient: "from-emerald-500 to-teal-600",
+                        bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
+                        badgeBg: "bg-emerald-500 text-white",
+                        iconBg: "bg-emerald-100 text-emerald-700",
+                        icon: <ShoppingBag className="h-6 w-6" />,
+                      },
+                      buyer: {
+                        label: "Customer Portal",
+                        badge: "BUYER",
+                        desc: "Discover businesses, send requirements, receive quotations & track orders",
+                        gradient: "from-emerald-500 to-teal-600",
+                        bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
+                        badgeBg: "bg-emerald-500 text-white",
+                        iconBg: "bg-emerald-100 text-emerald-700",
+                        icon: <ShoppingBag className="h-6 w-6" />,
+                      },
+                    };
+
+                    const meta = ROLE_META[normalizedRole] || {
+                      label: role || "Workspace",
+                      badge: "ACCESS",
+                      desc: "Access your workspace",
+                      bg: "bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-400",
+                      badgeBg: "bg-slate-600 text-white",
+                      iconBg: "bg-slate-100 text-slate-700",
+                      icon: (
+                        <svg
+                          className="h-6 w-6"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <path d="M9 9h6M9 12h6M9 15h4" />
+                        </svg>
+                      ),
+                    };
+
+                    return (
+                      <button
+                        key={role}
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => handleRoleSelect(role)}
+                        className={`group w-full rounded-2xl border-2 p-4 text-left transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99] ${meta.bg}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${meta.iconBg} transition-colors`}
+                          >
+                            {isLoading ? (
+                              <svg
+                                className="h-6 w-6 animate-spin"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                                />
+                              </svg>
+                            ) : (
+                              meta.icon
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold text-slate-900">
+                                {meta.label}
+                              </span>
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[9px] font-black tracking-widest uppercase ${meta.badgeBg}`}
+                              >
+                                {meta.badge}
+                              </span>
+                            </div>
+                            <p className="mt-0.5 text-xs text-slate-500 leading-snug line-clamp-2">
+                              {meta.desc}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-slate-400 group-hover:text-slate-700 transition-colors">
+                            <svg
+                              className="h-4 w-4 group-hover:translate-x-0.5 transition-transform"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M9 18l6-6-6-6" />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
+                      </button>
+                    );
+                  })}
             </div>
 
             {/* Footer note */}
             <p className="mt-5 text-center text-[11px] text-slate-400 leading-relaxed">
-              You can switch between panels anytime from the sidebar after logging in.
+              You can switch between panels anytime from the sidebar after
+              logging in.
             </p>
           </div>
         </DialogContent>
@@ -1063,33 +1353,41 @@ export default function LoginPage() {
                 )}
                 {forgotStep === 2 && (
                   <>
-                    Enter Verification <span className="text-[#C90000]">Code</span>
+                    Enter Verification{" "}
+                    <span className="text-[#C90000]">Code</span>
                   </>
                 )}
                 {forgotStep === 3 && "Create New Password"}
               </DialogTitle>
               <DialogDescription className="mt-1 text-sm text-[#64748b] leading-normal">
-                {forgotStep === 1 && "Enter your registered email address to receive a 6-digit verification code."}
+                {forgotStep === 1 &&
+                  "Enter your registered email address to receive a 6-digit verification code."}
                 {forgotStep === 2 && (
                   <>
                     We sent a 6-digit verification code to{" "}
-                    <span className="font-semibold text-[#0060df]">{forgotEmail}</span>. Please enter it below.
+                    <span className="font-semibold text-[#0060df]">
+                      {forgotEmail}
+                    </span>
+                    . Please enter it below.
                   </>
                 )}
-                {forgotStep === 3 && "Verification successful! Please choose a new password for your account."}
+                {forgotStep === 3 &&
+                  "Verification successful! Please choose a new password for your account."}
               </DialogDescription>
             </div>
           </div>
 
           {forgotSuccess && (
             <div className="mt-2 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs font-semibold text-emerald-700">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" /> {forgotSuccess}
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />{" "}
+              {forgotSuccess}
             </div>
           )}
 
           {forgotError && (
             <div className="mt-2 flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs font-semibold text-rose-700">
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" /> {forgotError}
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />{" "}
+              {forgotError}
             </div>
           )}
 
@@ -1097,7 +1395,10 @@ export default function LoginPage() {
           {forgotStep === 1 && (
             <form onSubmit={handleSendResetCode} className="space-y-4 pt-2">
               <div>
-                <Label htmlFor="forgot-email" className="block text-sm font-bold text-[#0f172a] mb-2">
+                <Label
+                  htmlFor="forgot-email"
+                  className="block text-sm font-bold text-[#0f172a] mb-2"
+                >
                   Registered Email
                 </Label>
                 <div className="relative">
@@ -1122,7 +1423,8 @@ export default function LoginPage() {
                   <Shield className="h-4 w-4 stroke-[2.2]" />
                 </div>
                 <div className="text-xs leading-relaxed text-[#475569]">
-                  We&apos;ll send a 6-digit verification code to this email address.
+                  We&apos;ll send a 6-digit verification code to this email
+                  address.
                   <br />
                   Please check your inbox and spam folder.
                 </div>
@@ -1160,7 +1462,11 @@ export default function LoginPage() {
 
           {/* Step 2: Enter OTP Code Form matching user's image */}
           {forgotStep === 2 && (
-            <form onSubmit={handleVerifyOtp} className="space-y-4 pt-1" autoComplete="off">
+            <form
+              onSubmit={handleVerifyOtp}
+              className="space-y-4 pt-1"
+              autoComplete="off"
+            >
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <Label className="text-sm font-bold text-[#0f172a]">
@@ -1189,19 +1495,24 @@ export default function LoginPage() {
                       maxLength={1}
                       autoComplete="off"
                       value={digit}
-                      onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
+                      onChange={(e) =>
+                        handleOtpDigitChange(idx, e.target.value)
+                      }
                       onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                       onPaste={(e) => {
                         e.preventDefault();
-                        const pasteData = e.clipboardData.getData("text").replace(/\D/g, "");
+                        const pasteData = e.clipboardData
+                          .getData("text")
+                          .replace(/\D/g, "");
                         if (pasteData) {
                           handleOtpDigitChange(idx, pasteData);
                         }
                       }}
-                      className={`h-12 w-9 sm:h-14 sm:w-11 md:h-16 md:w-14 rounded-xl sm:rounded-2xl border text-center text-lg sm:text-xl md:text-2xl font-bold transition-all outline-none bg-white ${digit
+                      className={`h-12 w-9 sm:h-14 sm:w-11 md:h-16 md:w-14 rounded-xl sm:rounded-2xl border text-center text-lg sm:text-xl md:text-2xl font-bold transition-all outline-none bg-white ${
+                        digit
                           ? "border-slate-300 text-slate-900 shadow-sm"
                           : "border-slate-200 text-slate-900"
-                        } focus:border-[#0060df] focus:ring-4 focus:ring-blue-100/70`}
+                      } focus:border-[#0060df] focus:ring-4 focus:ring-blue-100/70`}
                     />
                   ))}
                 </div>
@@ -1212,7 +1523,10 @@ export default function LoginPage() {
                 <Shield className="h-3.5 w-3.5 text-[#0060df]" />
                 <span>
                   Enter the code within{" "}
-                  <span className="font-bold text-[#C90000]">{formatTimer(otpTimer)}</span> minutes
+                  <span className="font-bold text-[#C90000]">
+                    {formatTimer(otpTimer)}
+                  </span>{" "}
+                  minutes
                 </span>
               </div>
 
@@ -1254,9 +1568,16 @@ export default function LoginPage() {
 
           {/* Step 3: Create New Password Form matching user's image */}
           {forgotStep === 3 && (
-            <form onSubmit={handleResetPassword} className="space-y-4 pt-1" autoComplete="off">
+            <form
+              onSubmit={handleResetPassword}
+              className="space-y-4 pt-1"
+              autoComplete="off"
+            >
               <div>
-                <Label htmlFor="new-pw" className="block text-sm font-bold text-[#0f172a] mb-2">
+                <Label
+                  htmlFor="new-pw"
+                  className="block text-sm font-bold text-[#0f172a] mb-2"
+                >
                   New Password
                 </Label>
                 <div className="relative">
@@ -1279,18 +1600,28 @@ export default function LoginPage() {
                     onClick={() => setShowNewPassword(!showNewPassword)}
                     className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showNewPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
                 {/* Helper text matching screenshot */}
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-2">
                   <Shield className="h-3.5 w-3.5 text-[#0060df] shrink-0 stroke-[2.2]" />
-                  <span>Use at least 6 characters with a mix of letters, numbers &amp; symbols</span>
+                  <span>
+                    Use at least 6 characters with a mix of letters, numbers
+                    &amp; symbols
+                  </span>
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="confirm-new-pw" className="block text-sm font-bold text-[#0f172a] mb-2">
+                <Label
+                  htmlFor="confirm-new-pw"
+                  className="block text-sm font-bold text-[#0f172a] mb-2"
+                >
                   Confirm New Password
                 </Label>
                 <div className="relative">
@@ -1313,7 +1644,11 @@ export default function LoginPage() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -1334,7 +1669,9 @@ export default function LoginPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={forgotLoading || !newPassword || newPassword.length < 6}
+                  disabled={
+                    forgotLoading || !newPassword || newPassword.length < 6
+                  }
                   className="h-11 px-6 rounded-xl bg-[#0060df] hover:bg-[#0051bd] text-white font-semibold flex items-center gap-2 shadow-sm transition-all"
                 >
                   {forgotLoading ? (

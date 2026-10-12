@@ -7,7 +7,12 @@ import { useRouter } from "next/navigation";
 
 export function GoogleIcon({ className = "h-4 w-4" }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <path
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
         fill="#4285F4"
@@ -34,7 +39,9 @@ const loadGsiScript = () => {
     if (window.google?.accounts?.oauth2 || window.google?.accounts?.id) {
       return resolve(true);
     }
-    const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    const existing = document.querySelector(
+      'script[src="https://accounts.google.com/gsi/client"]',
+    );
     if (existing) {
       existing.addEventListener("load", () => resolve(true), { once: true });
       existing.addEventListener("error", () => resolve(false), { once: true });
@@ -92,7 +99,8 @@ export function GoogleAuthButton({
       const loaded = await loadGsiScript();
       if (!loaded || !window.google?.accounts) {
         setLoading(false);
-        const errorMsg = "Google Sign-In service could not be loaded. Please check your network or ad blocker.";
+        const errorMsg =
+          "Google Sign-In service could not be loaded. Please check your network or ad blocker.";
         if (onError) onError(errorMsg);
         else alert(errorMsg);
         return;
@@ -108,7 +116,8 @@ export function GoogleAuthButton({
             if (tokenResponse && tokenResponse.access_token) {
               try {
                 // If id_token exists in response or simulated token
-                const credential = tokenResponse.id_token || tokenResponse.access_token;
+                const credential =
+                  tokenResponse.id_token || tokenResponse.access_token;
 
                 const loggedInUser = await loginWithGoogle({
                   credential,
@@ -119,21 +128,51 @@ export function GoogleAuthButton({
                   onSuccess(loggedInUser);
                 } else if (loggedInUser.isProfileComplete === false) {
                   router.push("/onboarding");
-                } else if (["central_admin", "super_admin", "admin", "secretariat", "country_admin"].includes(loggedInUser.role)) {
+                } else if (
+                  [
+                    "central_admin",
+                    "super_admin",
+                    "admin",
+                    "secretariat",
+                    "country_admin",
+                  ].includes(loggedInUser.role)
+                ) {
                   router.push("/admin");
                 } else if (loggedInUser.role === "state_admin") {
                   router.push("/state-admin");
                 } else if (loggedInUser.role === "chapter_admin") {
                   router.push("/chapter-admin");
-                } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || (loggedInUser.role && !["central_admin", "super_admin", "admin", "secretariat", "country_admin", "state_admin", "chapter_admin"].includes(loggedInUser.role) && loggedInUser.accountType !== "user" && Boolean(loggedInUser.businessId || loggedInUser.businessSlug))) {
+                } else if (
+                  loggedInUser.role === "business_owner" ||
+                  loggedInUser.role === "business" ||
+                  loggedInUser.accountType === "business" ||
+                  (loggedInUser.role &&
+                    ![
+                      "central_admin",
+                      "super_admin",
+                      "admin",
+                      "secretariat",
+                      "country_admin",
+                      "state_admin",
+                      "chapter_admin",
+                    ].includes(loggedInUser.role) &&
+                    loggedInUser.accountType !== "user" &&
+                    Boolean(
+                      loggedInUser.businessId || loggedInUser.businessSlug,
+                    ))
+                ) {
                   router.push("/biz");
-                } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.subscriberTier)) {
+                } else if (
+                  loggedInUser.accountType === "user" ||
+                  Boolean(loggedInUser.subscriberTier)
+                ) {
                   router.push("/user");
                 } else {
                   router.push("/user");
                 }
               } catch (err) {
-                const msg = err.message || "Google authentication failed on server.";
+                const msg =
+                  err.message || "Google authentication failed on server.";
                 if (onError) onError(msg);
                 else alert(msg);
               } finally {
@@ -145,7 +184,8 @@ export function GoogleAuthButton({
           },
           error_callback: (err) => {
             setLoading(false);
-            const msg = err?.message || "Google sign-in was cancelled or failed.";
+            const msg =
+              err?.message || "Google sign-in was cancelled or failed.";
             if (onError) onError(msg);
           },
         });
@@ -169,21 +209,49 @@ export function GoogleAuthButton({
                 onSuccess(loggedInUser);
               } else if (loggedInUser.isProfileComplete === false) {
                 router.push("/onboarding");
-              } else if (["central_admin", "super_admin", "admin", "secretariat", "country_admin"].includes(loggedInUser.role)) {
+              } else if (
+                [
+                  "central_admin",
+                  "super_admin",
+                  "admin",
+                  "secretariat",
+                  "country_admin",
+                ].includes(loggedInUser.role)
+              ) {
                 router.push("/admin");
               } else if (loggedInUser.role === "state_admin") {
                 router.push("/state-admin");
               } else if (loggedInUser.role === "chapter_admin") {
                 router.push("/chapter-admin");
-              } else if (loggedInUser.role === "business_owner" || loggedInUser.role === "business" || loggedInUser.accountType === "business" || (loggedInUser.role && !["central_admin", "super_admin", "admin", "secretariat", "country_admin", "state_admin", "chapter_admin"].includes(loggedInUser.role) && loggedInUser.accountType !== "user" && Boolean(loggedInUser.businessId || loggedInUser.businessSlug))) {
+              } else if (
+                loggedInUser.role === "business_owner" ||
+                loggedInUser.role === "business" ||
+                loggedInUser.accountType === "business" ||
+                (loggedInUser.role &&
+                  ![
+                    "central_admin",
+                    "super_admin",
+                    "admin",
+                    "secretariat",
+                    "country_admin",
+                    "state_admin",
+                    "chapter_admin",
+                  ].includes(loggedInUser.role) &&
+                  loggedInUser.accountType !== "user" &&
+                  Boolean(loggedInUser.businessId || loggedInUser.businessSlug))
+              ) {
                 router.push("/biz");
-              } else if (loggedInUser.accountType === "user" || Boolean(loggedInUser.subscriberTier)) {
+              } else if (
+                loggedInUser.accountType === "user" ||
+                Boolean(loggedInUser.subscriberTier)
+              ) {
                 router.push("/user");
               } else {
                 router.push("/user");
               }
             } catch (serverErr) {
-              const msg = serverErr.message || "Failed to authenticate with Google.";
+              const msg =
+                serverErr.message || "Failed to authenticate with Google.";
               if (onError) onError(msg);
               else alert(msg);
             } finally {
