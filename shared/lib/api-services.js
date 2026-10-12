@@ -1243,3 +1243,13 @@ export const ticketApi = {
     return apiClient("/tickets/upload", { method: "POST", body: formData });
   },
 };
+
+export const dignitaryApi = {
+  getAll: (params = {}) => apiClient(`/dignitaries${toQueryString(params)}`),
+  getById: (id) => apiClient(`/dignitaries/${id}`),
+  create: (data) =>
+    apiClient("/dignitaries", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) =>
+    apiClient(`/dignitaries/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/dignitaries/${id}`, { method: "DELETE" }),
+};
