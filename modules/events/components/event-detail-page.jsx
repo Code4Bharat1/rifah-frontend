@@ -35,7 +35,7 @@ import { downloadInvoicePdf } from "@shared/lib/invoice-generator";
 function EventDetail() {
   const params = useParams();
   const eventId = params?.eventId;
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: event, isLoading } = useEventDetail(eventId);
@@ -44,17 +44,22 @@ function EventDetail() {
   const others = Array.isArray(othersData) ? othersData : (othersData?.events || []);
 
   const [registered, setRegistered] = useState(false);
+  const [registeredTicket, setRegisteredTicket] = useState(() => {
+    if (typeof window !== "undefined" && eventId) {
+      try {
+        const cached = sessionStorage.getItem(`rifah_ticket_${eventId}`);
+        return cached ? JSON.parse(cached) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  });
   const [registering, setRegistering] = useState(false);
   const [emailExistsPopup, setEmailExistsPopup] = useState(false);
   const [payingInstallment, setPayingInstallment] = useState(null);
   const [triggeringReminders, setTriggeringReminders] = useState(false);
 
-  const userRegistration = user?._id && Array.isArray(event?.registeredUsers) 
-    ? event.registeredUsers.find(u => String(u?.user?._id || u?.user || u?._id || u) === String(user._id)) 
-    : null;
-
-  const isUserRegistered = Boolean(registered || userRegistration);
-  
   const [attended, setAttended] = useState(false);
   const [marking, setMarking] = useState(false);
 
@@ -66,6 +71,18 @@ function EventDetail() {
   // Guest Form State
   const [guestForm, setGuestForm] = useState({ name: "", email: "", phone: "", businessName: "" });
 
+  const userRegistration = Array.isArray(event?.registeredUsers) 
+    ? event.registeredUsers.find(u => {
+        const uId = String(u?.user?._id || u?.user || u?._id || u);
+        const matchesUser = user?._id && uId === String(user._id);
+        const matchesGuestEmail = guestForm.email && (u?.user?.email?.toLowerCase() === guestForm.email.toLowerCase() || u?.email?.toLowerCase() === guestForm.email.toLowerCase());
+        const matchesGuestPhone = guestForm.phone && (u?.user?.phone === guestForm.phone || u?.phone === guestForm.phone);
+        const matchesTicket = registeredTicket?.ticketId && u?.ticketId === registeredTicket.ticketId;
+        return matchesTicket || matchesUser || matchesGuestEmail || matchesGuestPhone;
+      }) 
+    : null;
+
+  const isUserRegistered = Boolean(registered || userRegistration || registeredTicket);
   const isUserAttended = Boolean(attended || userRegistration?.attendanceStatus === "Present");
 
   const isEventToday = event?.date === new Date().toISOString().split("T")[0];
@@ -181,6 +198,12 @@ const loadRazorpayScript = () => {
           if (responseData?.accessToken) {
             localStorage.setItem("rifah_access_token", responseData.accessToken);
             if (responseData.refreshToken) localStorage.setItem("rifah_refresh_token", responseData.refreshToken);
+            if (responseData.user) {
+              localStorage.setItem("rifah_user", JSON.stringify(responseData.user));
+            }
+            if (refreshProfile) {
+              refreshProfile().catch(() => {});
+            }
           }
         } catch (regErr) {
           if (regErr.message && regErr.message.toLowerCase().includes("already exists")) {
@@ -228,7 +251,7 @@ const loadRazorpayScript = () => {
               setRegistering(true);
 
               // Run both in parallel — no need to wait for one before the other
-              await Promise.all([
+              const [, paidRegRes] = await Promise.all([
                 // Creates Payment record in DB
                 paymentApi.verifyPayment({
                   razorpay_order_id: response.razorpay_order_id,
@@ -254,6 +277,14 @@ const loadRazorpayScript = () => {
                   guest: regPath === "guest" ? guestForm : undefined,
                 }),
               ]);
+
+              const paidPayload = paidRegRes?.data || paidRegRes;
+              if (paidPayload?.ticket) {
+                setRegisteredTicket(paidPayload.ticket);
+                try {
+                  sessionStorage.setItem(`rifah_ticket_${event?._id}`, JSON.stringify(paidPayload.ticket));
+                } catch (_) {}
+              }
 
               setRegistered(true);
               setIsRegModalOpen(false);
@@ -282,7 +313,14 @@ const loadRazorpayScript = () => {
         return;
       }
 
-      await eventApi.register(event?._id);
+      const freeRegRes = await eventApi.register(event?._id);
+      const freePayload = freeRegRes?.data || freeRegRes;
+      if (freePayload?.ticket) {
+        setRegisteredTicket(freePayload.ticket);
+        try {
+          sessionStorage.setItem(`rifah_ticket_${event?._id}`, JSON.stringify(freePayload.ticket));
+        } catch (_) {}
+      }
       setRegistered(true);
       setIsRegModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ["event", eventId] });
@@ -856,16 +894,31 @@ const loadRazorpayScript = () => {
                         const myUserId = String(user?._id || user?.id || "");
                         const userReg = (event?.registeredUsers || []).find((reg) => {
                           const regUserId = String(reg?.user?._id || reg?.user || reg?._id || reg);
-                          return regUserId === myUserId;
+                          const matchesUser = myUserId && regUserId === myUserId;
+                          const matchesEmail = guestForm.email && (reg?.user?.email?.toLowerCase() === guestForm.email.toLowerCase() || reg?.email?.toLowerCase() === guestForm.email.toLowerCase());
+                          const matchesPhone = guestForm.phone && (reg?.user?.phone === guestForm.phone || reg?.phone === guestForm.phone);
+                          const matchesTicket = registeredTicket?.ticketId && reg?.ticketId === registeredTicket.ticketId;
+                          return matchesTicket || matchesUser || matchesEmail || matchesPhone;
                         });
 
-                        const qrUserName = user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member') : (guestForm.name || 'Attendee');
-                        const qrUserEmail = user ? user.email : (guestForm.email || 'N/A');
-                        const qrUserBusiness = user?.businessName || guestForm.businessName || '';
+                        const ticketId = registeredTicket?.ticketId || userReg?.ticketId;
+                        const verificationToken = registeredTicket?.verificationToken || userReg?.verificationToken || '';
+                        const ticketType = registeredTicket?.ticketType || userReg?.ticketType || (isEventPaid ? "Paid Pass" : "Member Pass");
+
+                        if (!ticketId) {
+                          return (
+                            <div className="p-8 flex flex-col items-center justify-center space-y-2 text-center">
+                              <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+                              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Generating your Official Entry Pass...</p>
+                              <p className="text-[11px] text-muted-foreground">Retrieving verified ticket from server</p>
+                            </div>
+                          );
+                        }
+
+                        const qrUserName = user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member') : (userReg?.user?.name || guestForm.name || 'Attendee');
+                        const qrUserEmail = user ? user.email : (userReg?.user?.email || guestForm.email || 'N/A');
+                        const qrUserBusiness = user?.businessName || userReg?.user?.company || userReg?.user?.businessName || guestForm.businessName || '';
                         const qrEventName = event?.title || '';
-                        const ticketId = userReg?.ticketId || `RIFAH-EVT-${new Date().getFullYear()}-${String(event?._id || '').slice(-4).toUpperCase()}`;
-                        const verificationToken = userReg?.verificationToken || '';
-                        const ticketType = userReg?.ticketType || (isEventPaid ? "Paid Pass" : "Member Pass");
                         const origin = typeof window !== 'undefined' ? window.location.origin : '';
                         const tokenQuery = verificationToken ? `?token=${encodeURIComponent(verificationToken)}` : '';
                         const secureVerifyUrl = `${origin}/verify/ticket/${encodeURIComponent(ticketId)}${tokenQuery}`;
