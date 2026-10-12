@@ -209,7 +209,7 @@ export const categoryApi = {
 };
 
 export const chapterApi = {
-  list: () => apiClient("/chapters"),
+  list: (params = {}) => apiClient(`/chapters${toQueryString(params)}`),
   getById: (id) => apiClient(`/chapters/${id}`),
   getChapterDetails: (id) => apiClient(`/chapters/${id}/details`),
   create: (data) =>
@@ -243,7 +243,7 @@ export const chapterApi = {
 };
 
 export const stateApi = {
-  list: () => apiClient("/states"),
+  list: (params = {}) => apiClient(`/states${toQueryString(params)}`),
   getByName: (stateName) =>
     apiClient(`/states/${encodeURIComponent(stateName)}`),
   createState: (data) =>

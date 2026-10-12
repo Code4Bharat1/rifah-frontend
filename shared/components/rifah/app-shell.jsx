@@ -441,6 +441,16 @@ function useResolvedNav(role) {
     };
   }
 
+  // 5. Hide Countries module for Country Admin (exclusive to Super Central Admin)
+  if (user?.role === "country_admin") {
+    return {
+      ...baseNav,
+      title: user?.country ? `RIFAH • ${user.country} Administration` : "Country Administration",
+      primary: (baseNav.primary || []).filter((item) => item.to !== "/admin/countries"),
+      more: (baseNav.more || []).filter((item) => item.to !== "/admin/countries"),
+    };
+  }
+
   return baseNav;
 }
 
