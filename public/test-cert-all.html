@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Preview All 4 RIFAH Membership Certificates</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0b1329;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: #e2e8f0;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 50px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: 0.5px;
+    }
+    .cert-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .cert-badge-tag {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      padding: 6px 18px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+    .tag-silver { background: rgba(148, 163, 184, 0.2); border: 1px solid #94a3b8; color: #e2e8f0; }
+    .tag-platinum { background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #93c5fd; }
+    .tag-diamond { background: rgba(14, 165, 233, 0.2); border: 1px solid #0ea5e9; color: #7dd3fc; }
+    .tag-gold { background: rgba(234, 179, 8, 0.2); border: 1px solid #eab308; color: #fde047; }
+
+    .cert-frame {
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      background: #ffffff;
+      position: relative;
+    }
+
+    /* Base certificate layout */
+    .cert-wrap {
+      position: relative;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .cert-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      z-index: 1;
+    }
+
+    /* Dynamic Overlays */
+    .overlay-box {
+      position: absolute;
+      background-color: #ffffff;
+      z-index: 5;
+      box-sizing: border-box;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .overlay-meta {
+      border-radius: 2px;
+      padding: 0 12px;
+      font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .label-red {
+      color: #991b1b;
+      font-weight: 700;
+    }
+    .val-black {
+      color: #111827;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+
+    .overlay-body {
+      background: #ffffff;
+      z-index: 5;
+      text-align: left;
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+    .line-certify {
+      font-size: 17px;
+      color: #111827;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+    .line-address {
+      font-size: 14px;
+      color: #111827;
+      line-height: 1.45;
+      margin-top: 10px;
+      max-width: 610px;
+    }
+    .line-address strong {
+      font-weight: 700;
+      color: #111827;
+    }
+    .line-admission {
+      font-size: 13.5px;
+      color: #111827;
+      line-height: 1.55;
+      margin-top: 10px;
+      max-width: 610px;
+    }
+    .line-admission strong {
+      font-weight: 700;
+      color: #111827;
+    }
+    .biz-name {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      margin-left: 6px;
+    }
+    .rep-name {
+      font-size: 23px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      margin-top: 8px;
+      white-space: nowrap;
+    }
+
+    .overlay-validity {
+      background: #ffffff;
+      z-index: 5;
+      text-align: left;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 14px;
+      color: #374151;
+    }
+    .overlay-validity strong {
+      font-weight: 700;
+      color: #111827;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>RIFAH Chamber of Commerce - Dynamic Tier Certificates</h1>
+
+  <!-- 1. SILVER TIER -->
+  <div class="cert-section">
+    <div class="cert-badge-tag tag-silver">Silver Membership Tier</div>
+    <div class="cert-frame" style="width: 1024px; height: 716px;">
+      <div class="cert-wrap" style="width: 1024px; height: 716px;">
+        <img src="/certificate-silver.jpg" class="cert-img" alt="Silver Certificate" />
+        
+        <div class="overlay-box overlay-meta" style="top: 184px; left: 480px; width: 486px; height: 29px; border: 1.1px solid #8b1d1d;">
+          <div><span class="label-red">Membership ID:</span><span class="val-black">RIFAH-SUR-0001</span></div>
+          <div><span class="label-red">Date of Issue:</span><span class="val-black">03/07/2025</span></div>
+        </div>
+
+        <div class="overlay-box overlay-body" style="top: 292px; left: 324px; width: 620px; min-height: 195px;">
+          <div class="line-certify">Certified that M/s<span class="biz-name" style="color: #c01e1e;">Palla Fashion</span></div>
+          <div class="line-address">Address:&nbsp;<strong>30 Number Ground Floor, Milleninium Textile Market-2 (M/2), Ring Road, Surat, 395003 Gujarat</strong></div>
+          <div class="line-admission">Has&nbsp;been&nbsp;duly&nbsp;admitted&nbsp;as&nbsp;a&nbsp;<strong>Member&nbsp;of&nbsp;the&nbsp;Rifah&nbsp;Chamber&nbsp;of&nbsp;Commerce&nbsp;and</strong><br><strong>Industry</strong>.&nbsp;The&nbsp;authorized&nbsp;representative,&nbsp;as&nbsp;stated&nbsp;in&nbsp;the&nbsp;application,&nbsp;is:</div>
+          <div class="rep-name" style="color: #c01e1e;">Samir Palla</div>
+        </div>
+
+        <div class="overlay-box overlay-validity" style="top: 575px; left: 65px; width: 200px; height: 40px;">
+          <div>This Certificate is</div>
+          <div>Valid upto:&nbsp;<strong>16/09/2026</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. PLATINUM TIER -->
+  <div class="cert-section">
+    <div class="cert-badge-tag tag-platinum">Platinum Membership Tier</div>
+    <div class="cert-frame" style="width: 1024px; height: 768px;">
+      <div class="cert-wrap" style="width: 1024px; height: 768px;">
+        <img src="/certificate-platinum.jpg" class="cert-img" alt="Platinum Certificate" />
+        
+        <div class="overlay-box overlay-meta" style="top: 196px; left: 454px; width: 535px; height: 30px; border: 1.1px solid #4a6fa5;">
+          <div><span class="label-red">Membership ID:</span><span class="val-black">RIFAH-PUN-0001</span></div>
+          <div><span class="label-red">Date of Issue:</span><span class="val-black">03/07/2025</span></div>
+        </div>
+
+        <div class="overlay-box overlay-body" style="top: 310px; left: 328px; width: 650px; min-height: 200px;">
+          <div class="line-certify">Certified that M/s<span class="biz-name" style="color: #102a45;">Ross Boilers</span></div>
+          <div class="line-address">Address:&nbsp;<strong>33, Burhani Industrial Estate, Kondhwa Budruk, Pune, Pune, Maharashtra, 411048</strong></div>
+          <div class="line-admission">Has&nbsp;been&nbsp;duly&nbsp;admitted&nbsp;as&nbsp;a&nbsp;<strong>Member&nbsp;of&nbsp;the&nbsp;Rifah&nbsp;Chamber&nbsp;of&nbsp;Commerce&nbsp;and</strong><br><strong>Industry</strong>.&nbsp;The&nbsp;authorized&nbsp;representative,&nbsp;as&nbsp;stated&nbsp;in&nbsp;the&nbsp;application,&nbsp;is:</div>
+          <div class="rep-name" style="color: #102a45;">Suhail Shaikh</div>
+        </div>
+
+        <div class="overlay-box overlay-validity" style="top: 616px; left: 65px; width: 210px; height: 42px;">
+          <div>This Certificate is</div>
+          <div>Valid upto:&nbsp;<strong>26/08/2028</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. DIAMOND TIER -->
+  <div class="cert-section">
+    <div class="cert-badge-tag tag-diamond">Diamond Membership Tier</div>
+    <div class="cert-frame" style="width: 1024px; height: 724px;">
+      <div class="cert-wrap" style="width: 1024px; height: 724px;">
+        <img src="/certificate-diamond.jpg" class="cert-img" alt="Diamond Certificate" />
+        
+        <div class="overlay-box overlay-meta" style="top: 185px; left: 442px; width: 518px; height: 29px; border: 1.1px solid #004b87;">
+          <div><span class="label-red">Membership ID:</span><span class="val-black">RIFAH-HYD-0001</span></div>
+          <div><span class="label-red">Date of Issue:</span><span class="val-black">03/07/2025</span></div>
+        </div>
+
+        <div class="overlay-box overlay-body" style="top: 292px; left: 305px; width: 645px; min-height: 195px;">
+          <div class="line-certify">Certified that M/s<span class="biz-name" style="color: #004b87;">Aziz Construction</span></div>
+          <div class="line-address">Address:&nbsp;<strong>Delux Colony, 8-1-364/54 And 56, Rethi Bowli, Towlichowki, Hyderabad, 500008 Telangana</strong></div>
+          <div class="line-admission">Has&nbsp;been&nbsp;duly&nbsp;admitted&nbsp;as&nbsp;a&nbsp;<strong>Member&nbsp;of&nbsp;the&nbsp;Rifah&nbsp;Chamber&nbsp;of&nbsp;Commerce&nbsp;and</strong><br><strong>Industry</strong>.&nbsp;The&nbsp;authorized&nbsp;representative,&nbsp;as&nbsp;stated&nbsp;in&nbsp;the&nbsp;application,&nbsp;is:</div>
+          <div class="rep-name" style="color: #004b87;">Adv. Syed Abdul Wasey</div>
+        </div>
+
+        <div class="overlay-box overlay-validity" style="top: 580px; left: 55px; width: 200px; height: 40px;">
+          <div>This Certificate is</div>
+          <div>Valid upto:&nbsp;<strong>02/07/2027</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. GOLD TIER -->
+  <div class="cert-section">
+    <div class="cert-badge-tag tag-gold">Gold Membership Tier</div>
+    <div class="cert-frame" style="width: 1024px; height: 768px;">
+      <div class="cert-wrap" style="width: 1024px; height: 768px;">
+        <img src="/certificate-gold.jpg" class="cert-img" alt="Gold Certificate" />
+        
+        <div class="overlay-box overlay-meta" style="top: 196px; left: 455px; width: 535px; height: 30px; border: 1.1px solid #b45309;">
+          <div><span class="label-red">Membership ID:</span><span class="val-black">RIFAH-HYD-0001</span></div>
+          <div><span class="label-red">Date of Issue:</span><span class="val-black">03/07/2025</span></div>
+        </div>
+
+        <div class="overlay-box overlay-body" style="top: 310px; left: 322px; width: 650px; min-height: 200px;">
+          <div class="line-certify">Certified that M/s<span class="biz-name" style="color: #8b1d1d;">Aziz Construction</span></div>
+          <div class="line-address">Address:&nbsp;<strong>Delux Colony, 8-1-364/54 And 56, Rethi Bowli, Towlichowki, Hyderabad, 500008 Telangana</strong></div>
+          <div class="line-admission">Has&nbsp;been&nbsp;duly&nbsp;admitted&nbsp;as&nbsp;a&nbsp;<strong>Member&nbsp;of&nbsp;the&nbsp;Rifah&nbsp;Chamber&nbsp;of&nbsp;Commerce&nbsp;and</strong><br><strong>Industry</strong>.&nbsp;The&nbsp;authorized&nbsp;representative,&nbsp;as&nbsp;stated&nbsp;in&nbsp;the&nbsp;application,&nbsp;is:</div>
+          <div class="rep-name" style="color: #8b1d1d;">Adv. Syed Abdul Wasey</div>
+        </div>
+
+        <div class="overlay-box overlay-validity" style="top: 618px; left: 65px; width: 210px; height: 42px;">
+          <div>This Certificate is</div>
+          <div>Valid upto:&nbsp;<strong>02/07/2027</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

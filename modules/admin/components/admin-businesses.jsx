@@ -19,7 +19,7 @@ import {
   Plus,
 
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -160,12 +160,18 @@ const PLAN_OPTIONS = [
 function AdminBusinesses() {
   const { user } = useAuth();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isChapterAdmin = pathname?.startsWith("/chapter-admin") || user?.role === "chapter_admin";
   const canManageStatus = !isChapterAdmin && user?.role !== "chapter_admin";
   const basePath =
     isChapterAdmin
       ? "/chapter-admin"
-      : user?.role === "state_admin"
+      : pathname?.startsWith("/state-admin") || user?.role === "state_admin"
       ? "/state-admin"
       : "/admin";
 
@@ -294,8 +300,9 @@ function AdminBusinesses() {
         srNo: idx + 1,
         chapter: resolvedChapter,
         membershipId:
-          item.membershipId ||
-          (item._id ? `RIFAH-MEM-${item._id.toString().slice(-6).toUpperCase()}` : "—"),
+          item.membershipId && !item.membershipId.startsWith("RIFAH-MEM-")
+            ? item.membershipId
+            : `RIFAH-${(resolvedChapter || "PUN").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3) || "PUN"}-${String(idx + 1).padStart(4, "0")}`,
         lastActionDateFormatted: formatDate(
           item.lastActionDate || item.updatedAt || item.createdAt
         ),
@@ -434,7 +441,7 @@ function AdminBusinesses() {
             <span className="hidden sm:inline">Export directory</span>
             <span className="sm:hidden">Export</span>
           </Button>
-          {(user?.role === "central_admin" || user?.role === "super_admin" || user?.role === "chapter_admin" || user?.role === "state_admin") && (
+          {mounted && (user?.role === "central_admin" || user?.role === "super_admin" || user?.role === "chapter_admin" || user?.role === "state_admin") && (
             <Button asChild size="sm" className="rounded-full bg-blue-600 hover:bg-blue-700 h-8 sm:h-9 px-2.5 sm:px-4 text-xs sm:text-sm font-semibold shrink-0 shadow-xs">
               <Link href={`${basePath}/businesses/new`} className="flex items-center gap-1">
                 <Plus className="h-3.5 w-3.5" />

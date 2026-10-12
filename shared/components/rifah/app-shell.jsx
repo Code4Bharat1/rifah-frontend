@@ -1333,148 +1333,6 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
                     </span>
                   </button>
                 )}
-              {effectiveUser?.availableWorkspaces &&
-                effectiveUser.availableWorkspaces.length > 1 && (
-                  <div className="mb-2 rounded-xl bg-sidebar-accent/50 p-2 border border-sidebar-border">
-                    <div className="px-1.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                      <span>Switch Workspace</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
-                        {effectiveUser.availableWorkspaces.length} Panels
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      {effectiveUser.availableWorkspaces.map((ws) => {
-                        const isCurrentActive =
-                          ws.type === "org_role"
-                            ? effectiveUser.activeWorkspace?.workspaceId ===
-                              ws.workspaceId
-                            : (!effectiveUser.activeWorkspace ||
-                                effectiveUser.activeWorkspace.type !==
-                                  "org_role") &&
-                              (effectiveUser.role === ws.workspaceId ||
-                                (ws.workspaceId === "business_owner" &&
-                                  (effectiveUser.role === "business_owner" ||
-                                    effectiveUser.role === "business")));
-
-                        return (
-                          <button
-                            key={ws.workspaceId || ws.roleName}
-                            disabled={isCurrentActive}
-                            onClick={async () => {
-                              if (isCurrentActive) return;
-                              try {
-                                if (ws.type === "org_role") {
-                                  await switchRole(
-                                    ws.panelType || "chapter-admin",
-                                    ws.workspaceId,
-                                  );
-                                  const allowedDest = ws.allowedNavRoutes?.[0];
-                                  if (ws.panelType === "chapter-admin")
-                                    router.push(
-                                      allowedDest || "/chapter-admin",
-                                    );
-                                  else if (ws.panelType === "state-admin")
-                                    router.push(allowedDest || "/state-admin");
-                                  else router.push(allowedDest || "/admin");
-                                } else {
-                                  await switchRole(ws.workspaceId);
-                                  if (ws.workspaceId === "central_admin")
-                                    router.push("/admin");
-                                  else if (ws.workspaceId === "state_admin")
-                                    router.push("/state-admin");
-                                  else if (ws.workspaceId === "chapter_admin")
-                                    router.push("/chapter-admin");
-                                  else router.push("/biz");
-                                }
-                              } catch (err) {
-                                toast.error(
-                                  err.message || "Failed to switch workspace",
-                                );
-                              }
-                            }}
-                            className={cn(
-                              "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all text-left",
-                              isCurrentActive
-                                ? "bg-primary text-primary-foreground shadow-xs font-bold cursor-default"
-                                : "text-sidebar-foreground/80 hover:bg-muted hover:text-foreground active:scale-[0.98]",
-                            )}
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <RotateCcw
-                                className={cn(
-                                  "h-3.5 w-3.5 shrink-0",
-                                  isCurrentActive
-                                    ? "opacity-100"
-                                    : "opacity-50",
-                                )}
-                              />
-                              <span className="truncate">{ws.roleName}</span>
-                            </div>
-                            {isCurrentActive ? (
-                              <span className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />
-                            ) : (
-                              ws.level && (
-                                <span className="text-[9px] px-1 py-0.5 rounded bg-muted font-bold text-muted-foreground uppercase shrink-0">
-                                  {ws.level}
-                                </span>
-                              )
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              {/* Quick Return to Previous Role */}
-              {effectiveUser?.previousRole &&
-                effectiveUser.previousRole !== effectiveUser?.role && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const targetRole = effectiveUser.previousRole;
-                        const res = await switchRole(targetRole);
-                        const resultingRole = res?.role || targetRole;
-                        if (
-                          [
-                            "central_admin",
-                            "admin",
-                            "super_admin",
-                            "secretariat",
-                          ].includes(resultingRole)
-                        ) {
-                          router.push("/admin");
-                        } else if (resultingRole === "state_admin") {
-                          router.push("/state-admin");
-                        } else if (resultingRole === "chapter_admin") {
-                          router.push("/chapter-admin");
-                        } else if (resultingRole === "business_owner") {
-                          router.push("/biz");
-                        } else {
-                          router.push("/biz");
-                        }
-                      } catch (err) {
-                        toast.error(err.message || "Failed to switch role");
-                      }
-                    }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary mb-1"
-                  >
-                    <RotateCcw className="h-[18px] w-[18px] shrink-0" />
-                    <span>
-                      {[
-                        "central_admin",
-                        "admin",
-                        "super_admin",
-                        "secretariat",
-                      ].includes(effectiveUser.previousRole)
-                        ? "Switch to Admin Panel"
-                        : effectiveUser.previousRole === "state_admin"
-                          ? "Switch to State Admin Panel"
-                          : effectiveUser.previousRole === "chapter_admin"
-                            ? "Switch to Chapter Admin Panel"
-                            : "Switch to Business Panel"}
-                    </span>
-                  </button>
-                )}
               {/* Show switch-to-business for admins who have a business but haven't switched yet */}
               {effectiveUser &&
                 (!effectiveUser?.previousRole ||
@@ -1635,6 +1493,7 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
                 isSubscriptionExpired={isSubscriptionExpired}
                 planName={currentPlanName}
                 isRoutePlanLocked={isRoutePlanLocked}
+                isUserRole={isUserRole}
               />
             ) : (
               children
@@ -1658,16 +1517,11 @@ function UnderApprovalAccessGate({
   isSubscriptionExpired,
   planName,
   isRoutePlanLocked,
+  isUserRole: isUserRoleProp,
 }) {
-  const vStatus = (
-    business?.verification ||
-    business?.verificationStatus ||
-    ""
-  ).toLowerCase();
-  const isChangesReq =
-    vStatus === "changes_required" ||
-    vStatus === "correction" ||
-    vStatus === "correction_requested";
+  const isUserRole = Boolean(isUserRoleProp || path?.startsWith("/user"));
+  const vStatus = (business?.verification || business?.verificationStatus || "").toLowerCase();
+  const isChangesReq = vStatus === "changes_required" || vStatus === "correction" || vStatus === "correction_requested";
   const isRejected = vStatus === "rejected";
 
   const missingFields = [];
@@ -1697,46 +1551,76 @@ function UnderApprovalAccessGate({
     vStatus === "";
   const isUnderReview = !isChangesReq && !isRejected && !isNotSubmitted;
 
-  const accessibleModules = [
-    {
-      title: "Membership & Subscription Plans",
-      description:
-        "Upgrade or renew your membership plan, review billing tier privileges and download invoices.",
-      to: "/biz/membership",
-      icon: Star,
-      badge: planName || "Plans",
-      actionText: "Manage / Upgrade Plan →",
-    },
-    {
-      title: "Business Profile & Details",
-      description:
-        "Review and update your enterprise profile, address, business type, founded year, and contact details.",
-      to: "/biz/profile",
-      icon: Building2,
-      badge: isNotSubmitted ? "Action Required" : "Accessible",
-      actionText: isNotSubmitted
-        ? "Complete Profile Now →"
-        : "Edit Business Profile →",
-    },
-    {
-      title: "Verification & Document Upload",
-      description:
-        "Upload and replace official business documents (GST, PAN, Trade License) and track review status.",
-      to: "/biz/verification",
-      icon: ShieldCheck,
-      badge: isChangesReq ? "Action Required" : "Accessible",
-      actionText: "Open Verification Desk →",
-    },
-    {
-      title: "Central Admin Notifications",
-      description:
-        "Receive real-time notifications, status updates, and Central Admin review announcements.",
-      to: "/biz/notifications",
-      icon: Bell,
-      badge: "Accessible",
-      actionText: "View Notifications →",
-    },
-  ];
+  const accessibleModules = isUserRole
+    ? [
+        {
+          title: "Membership & Subscription Plans",
+          description:
+            "Upgrade or renew your membership plan, review billing tier privileges and download invoices.",
+          to: "/user/membership",
+          icon: Star,
+          badge: planName || "Plans",
+          actionText: "Manage / Upgrade Plan →",
+        },
+        {
+          title: "Member Profile & Details",
+          description:
+            "Review and update your member profile, interests, and contact details.",
+          to: "/user/profile",
+          icon: Building2,
+          badge: "Accessible",
+          actionText: "Edit Member Profile →",
+        },
+        {
+          title: "Notifications Desk",
+          description:
+            "Receive real-time notifications, status updates, and announcements.",
+          to: "/user/notifications",
+          icon: Bell,
+          badge: "Accessible",
+          actionText: "View Notifications →",
+        },
+      ]
+    : [
+        {
+          title: "Membership & Subscription Plans",
+          description:
+            "Upgrade or renew your membership plan, review billing tier privileges and download invoices.",
+          to: "/biz/membership",
+          icon: Star,
+          badge: planName || "Plans",
+          actionText: "Manage / Upgrade Plan →",
+        },
+        {
+          title: "Business Profile & Details",
+          description:
+            "Review and update your enterprise profile, address, business type, founded year, and contact details.",
+          to: "/biz/profile",
+          icon: Building2,
+          badge: isNotSubmitted ? "Action Required" : "Accessible",
+          actionText: isNotSubmitted
+            ? "Complete Profile Now →"
+            : "Edit Business Profile →",
+        },
+        {
+          title: "Verification & Document Upload",
+          description:
+            "Upload and replace official business documents (GST, PAN, Trade License) and track review status.",
+          to: "/biz/verification",
+          icon: ShieldCheck,
+          badge: isChangesReq ? "Action Required" : "Accessible",
+          actionText: "Open Verification Desk →",
+        },
+        {
+          title: "Central Admin Notifications",
+          description:
+            "Receive real-time notifications, status updates, and Central Admin review announcements.",
+          to: "/biz/notifications",
+          icon: Bell,
+          badge: "Accessible",
+          actionText: "View Notifications →",
+        },
+      ];
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto py-4 animate-in fade-in duration-300">
@@ -1754,7 +1638,8 @@ function UnderApprovalAccessGate({
                 </span>
                 <span className="text-xs text-muted-foreground">•</span>
                 <span className="text-xs font-semibold text-foreground/80">
-                  {business?.name || "Business Enterprise"}
+                  {business?.name ||
+                    (isUserRole ? "Member Account" : "Business Enterprise")}
                 </span>
               </div>
               <h2 className="text-lg sm:text-xl font-bold tracking-tight text-red-950 dark:text-red-100">
@@ -1772,7 +1657,9 @@ function UnderApprovalAccessGate({
                   size="sm"
                   className="font-semibold shadow-xs gap-2 bg-red-600 hover:bg-red-700 text-white"
                 >
-                  <Link href="/biz/membership">
+                  <Link
+                    href={isUserRole ? "/user/membership" : "/biz/membership"}
+                  >
                     <Star className="h-4 w-4" />
                     <span>Renew / Upgrade Membership Plan</span>
                   </Link>
@@ -1783,7 +1670,7 @@ function UnderApprovalAccessGate({
                   variant="outline"
                   className="font-semibold gap-2 border-red-300 text-red-900 hover:bg-red-100 dark:border-red-800 dark:text-red-200"
                 >
-                  <Link href="/biz/profile">
+                  <Link href={isUserRole ? "/user/profile" : "/biz/profile"}>
                     <Building2 className="h-4 w-4" />
                     <span>View Profile</span>
                   </Link>
@@ -2023,7 +1910,7 @@ function UnderApprovalAccessGate({
             Accessible Pages & Services
           </h3>
           <span className="text-xs text-muted-foreground font-medium">
-            4 Modules Accessible
+            {accessibleModules.length} Modules Accessible
           </span>
         </div>
 
