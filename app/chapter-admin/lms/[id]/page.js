@@ -1,10 +1,7 @@
-import { AdminCourseBuilder } from "@modules/admin/components/admin-course-builder";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Course Curriculum Builder | RIFAH Chapter Admin",
-  description: "Manage course chapters, video lectures, and PDF documents",
-};
-
-export default function ChapterAdminCourseDetailPage() {
-  return <AdminCourseBuilder role="chapter_admin" />;
+export default function Page() {
+  redirect("/chapter-admin");
 }
+
+export const dynamic = "force-dynamic";

@@ -694,8 +694,6 @@ function AdminLms({ role = "admin" }) {
                     <SelectContent>
                       <SelectItem value="all">🌐 All Scopes</SelectItem>
                       <SelectItem value="centre">🏛️ Centre</SelectItem>
-                      <SelectItem value="state">🗺️ State</SelectItem>
-                      <SelectItem value="chapter">📍 Chapter</SelectItem>
                       <SelectItem value="business">💼 Business</SelectItem>
                     </SelectContent>
                   </Select>

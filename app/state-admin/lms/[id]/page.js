@@ -1,10 +1,7 @@
-import { AdminCourseBuilder } from "@modules/admin/components/admin-course-builder";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Course Curriculum Builder | RIFAH State Admin",
-  description: "Manage course chapters, video lectures, and PDF documents",
-};
-
-export default function StateAdminCourseDetailPage() {
-  return <AdminCourseBuilder role="state_admin" />;
+export default function Page() {
+  redirect("/state-admin");
 }
+
+export const dynamic = "force-dynamic";

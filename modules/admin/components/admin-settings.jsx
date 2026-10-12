@@ -57,6 +57,7 @@ const adminModules = [
   { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
   { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
   { label: "Roles & RBAC", to: "/admin/roles", icon: ShieldCheck },
+  { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
   { label: "LMS", to: "/admin/lms", icon: GraduationCap },
 ];
 
@@ -73,14 +74,12 @@ const stateAdminModules = [
   { label: "Notifications", to: "/state-admin/notifications", icon: Bell },
   { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
   { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
-  { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
 ];
 
 const chapterAdminModules = [
   { label: "Operations Center", to: "/chapter-admin/operations", icon: Radio },
   { label: "Members", to: "/chapter-admin/members", icon: Users },
   { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
-  { label: "Verification", to: "/chapter-admin/verification", icon: ShieldCheck },
   { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
   { label: "Feeds", to: "/chapter-admin/feeds", icon: Compass },
   { label: "Business Analytics", to: "/chapter-admin/networking-analytics", icon: TrendingUp },
@@ -89,7 +88,6 @@ const chapterAdminModules = [
   { label: "Notifications", to: "/chapter-admin/notifications", icon: Bell },
   { label: "Reports", to: "/chapter-admin/reports", icon: ChartNoAxesColumn },
   { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
-  { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
   { label: "Units", to: "/chapter-admin/units", icon: Users },
   { label: "Payments", to: "/chapter-admin/payments", icon: CreditCard },
 ];
@@ -122,10 +120,10 @@ function getRoleConfig(role) {
 export function AdminSettings({ expectedRole }) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
+
   const role = user?.role || expectedRole || "admin";
   const { basePath, title, subtitle, modules } = getRoleConfig(role);
-  
+
   // BUG-017: Chamber details, moderation rules, fees and system limits are
   // organisation-wide settings owned by Central Admin. State/chapter admins
   // should only see the module shortcuts and their own account security.

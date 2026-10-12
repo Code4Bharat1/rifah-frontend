@@ -171,6 +171,7 @@ const navs = {
       { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
       { label: "Roles & RBAC", to: "/admin/roles", icon: Award },
       { label: "Settings", to: "/admin/settings", icon: Settings },
+      { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
       { label: "LMS", to: "/admin/lms", icon: GraduationCap },
     ],
   },
@@ -188,11 +189,6 @@ const roleNavs = {
       },
       { label: "Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
-      {
-        label: "Verification",
-        to: "/chapter-admin/verification",
-        icon: ShieldCheck,
-      },
       {
         label: "Advertisements",
         to: "/chapter-admin/advertisements",
@@ -233,7 +229,6 @@ const roleNavs = {
       },
       { label: "Audit logs", to: "/chapter-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/chapter-admin/settings", icon: Settings },
-      { label: "LMS", to: "/chapter-admin/lms", icon: GraduationCap },
       {
         label: "Revenue Sharing",
         to: "/chapter-admin/revenue-sharing",
@@ -271,7 +266,6 @@ const roleNavs = {
       { label: "Reports", to: "/state-admin/reports", icon: ChartNoAxesColumn },
       { label: "Audit logs", to: "/state-admin/audit", icon: ScrollText },
       { label: "Settings", to: "/state-admin/settings", icon: Settings },
-      { label: "LMS", to: "/state-admin/lms", icon: GraduationCap },
       {
         label: "Revenue Sharing",
         to: "/state-admin/revenue-sharing",

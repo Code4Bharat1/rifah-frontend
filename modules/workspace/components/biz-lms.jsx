@@ -76,8 +76,6 @@ const SCOPES = [
   { key: "all", label: "All Courses" },
   { key: "business", label: "🏢 Business Community", match: ["business"] },
   { key: "central", label: "🏛️ Central HQ", match: ["central", "centre"] },
-  { key: "state", label: "📍 State", match: ["state"] },
-  { key: "chapter", label: "🤝 Chapter", match: ["chapter"] },
 ];
 
 const STATUS_FILTERS = [
@@ -484,14 +482,22 @@ export function BizLms() {
     refetch: refetchCourses,
   } = useCourses();
   const { data: categoriesData } = useCategories();
-  const refetchMyCourses = () => {};
+  const {
+    data: myCoursesData,
+    isLoading: loadingMyCourses,
+    refetch: refetchMyCourses,
+  } = useCourses({ myCourses: "true" });
 
   const courses = Array.isArray(coursesData?.data)
     ? coursesData.data
     : Array.isArray(coursesData)
       ? coursesData
       : [];
-  const myCourses = [];
+  const myCourses = Array.isArray(myCoursesData?.data)
+    ? myCoursesData.data
+    : Array.isArray(myCoursesData)
+      ? myCoursesData
+      : [];
 
   const allCategories = Array.isArray(categoriesData)
     ? categoriesData
@@ -711,9 +717,14 @@ export function BizLms() {
     refetchMyCourses();
   };
 
-  // This panel no longer exposes the published-courses tab; keep placeholder state
-  // so the older creator-studio helper code remains non-breaking but inert.
-  const activeMyCourse = null;
+  const activeMyCourse =
+    myCourses.find(
+      (c) => String(c._id || c.id) === String(activeMyCourseId),
+    ) || null;
+  const activeChapter =
+    activeMyCourse && activeChapterIdx !== null
+      ? activeMyCourse.chapters?.[activeChapterIdx]
+      : null;
 
   // ── Creator Modal Handlers
   const handleOpenCreateModal = () => {
@@ -1304,19 +1315,39 @@ export function BizLms() {
 
           <button
             onClick={() => {
+              setActiveTab("studio");
+              setActiveMyCourseId(null);
+            }}
+            className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+              activeTab === "studio"
+                ? "border-amber-600 text-amber-600"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Sparkles className="h-4 w-4 inline -mt-0.5" />
+            Creator Studio
+            {myCourses.length > 0 && (
+              <span className="ml-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 leading-none">
+                {myCourses.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => {
               setActiveTab("certificates");
               setActiveMyCourseId(null);
             }}
             className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
               activeTab === "certificates"
-                ? "border-amber-500 text-amber-600"
+                ? "border-emerald-600 text-emerald-600"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <Award className="h-4 w-4 inline -mt-0.5" />
             My Certificates
             {completedCount > 0 && (
-              <span className="ml-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 leading-none">
+              <span className="ml-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 leading-none">
                 {completedCount}
               </span>
             )}
@@ -1597,16 +1628,376 @@ export function BizLms() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: CERTIFICATES / ACCOUNT STATUS */}
+        {/* TAB 2: CREATOR STUDIO (BUSINESS COMMUNITY COURSES)                       */}
         {/* ========================================================================= */}
-        {activeTab === "certificates" && (
+        {activeTab === "studio" && (
           <div className="space-y-6">
-            <div className="rounded-2xl border bg-card p-6">
-              <h3 className="text-lg font-semibold">Certificates</h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                Your completed training certificates will appear here.
-              </p>
-            </div>
+            {/* LEVEL 1: STUDIO COURSES LIST */}
+            {activeMyCourseId === null && (
+              <div className="space-y-5">
+                {/* Header with CTA */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 rounded-2xl border bg-gradient-to-r from-amber-500/10 via-card to-card">
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-amber-500" />
+                      Creator Studio
+                    </h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                      Publish training courses for member businesses. Submitted courses go to Central Admin for quality review before going live.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleOpenCreateModal}
+                    className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 font-semibold"
+                  >
+                    <Plus className="h-4 w-4 mr-1.5" /> Create Course
+                  </Button>
+                </div>
+
+                {/* Stat Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="rounded-xl border bg-card p-4">
+                    <p className="text-2xl font-bold">{myCourses.length}</p>
+                    <p className="text-xs text-muted-foreground">Total Created</p>
+                  </div>
+                  <div className="rounded-xl border bg-card p-4">
+                    <p className="text-2xl font-bold text-emerald-600">
+                      {myCourses.filter((c) => c.isActive || c.approvalStatus === "approved").length}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Live on Platform</p>
+                  </div>
+                  <div className="rounded-xl border bg-card p-4">
+                    <p className="text-2xl font-bold text-amber-600">
+                      {myCourses.filter((c) => c.approvalStatus === "pending").length}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Under Review</p>
+                  </div>
+                  <div className="rounded-xl border bg-card p-4">
+                    <p className="text-2xl font-bold text-slate-600">
+                      {myCourses.filter((c) => c.approvalStatus === "rejected" || (!c.isActive && c.approvalStatus !== "pending")).length}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Drafts / Revisions</p>
+                  </div>
+                </div>
+
+                {/* Course List / Grid */}
+                {loadingMyCourses ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+                  </div>
+                ) : myCourses.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center border rounded-2xl bg-muted/10">
+                    <div className="bg-amber-100 dark:bg-amber-950/60 p-4 rounded-full mb-3">
+                      <Sparkles className="h-8 w-8 text-amber-600" />
+                    </div>
+                    <h4 className="text-base font-semibold">No Courses Created Yet</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-sm">
+                      Share your business knowledge, standard operating procedures, or industry trade training with other RIFAH members.
+                    </p>
+                    <Button
+                      onClick={handleOpenCreateModal}
+                      className="mt-4 bg-amber-600 hover:bg-amber-700 text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-1.5" /> Create Your First Course
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {myCourses.map((c) => {
+                      const isApproved = c.approvalStatus === "approved" || c.isActive;
+                      const isPending = c.approvalStatus === "pending";
+                      const isRejected = c.approvalStatus === "rejected";
+                      const totalLessons = (c.chapters || []).reduce((acc, ch) => acc + (ch.contents?.length || 0), 0) + (c.contents?.length || 0);
+
+                      return (
+                        <div
+                          key={c._id || c.id}
+                          className="flex flex-col rounded-2xl border bg-card overflow-hidden shadow-xs hover:shadow-md transition-all"
+                        >
+                          {/* Accent Bar */}
+                          <div
+                            className={`h-1.5 w-full ${
+                              isApproved
+                                ? "bg-emerald-500"
+                                : isPending
+                                  ? "bg-amber-500"
+                                  : isRejected
+                                    ? "bg-rose-500"
+                                    : "bg-slate-300"
+                            }`}
+                          />
+
+                          <div className="p-5 flex-1 flex flex-col justify-between gap-4">
+                            <div className="space-y-2.5">
+                              {/* Status Badge */}
+                              <div className="flex items-center justify-between gap-2">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                                    isApproved
+                                      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                                      : isPending
+                                        ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                                        : isRejected
+                                          ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
+                                          : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                                  }`}
+                                >
+                                  {isApproved && "✅ Live Platform Course"}
+                                  {isPending && "⏳ Under Review by Central Admin"}
+                                  {isRejected && "⚠️ Revisions Requested"}
+                                  {!isApproved && !isPending && !isRejected && "📝 Draft"}
+                                </span>
+
+                                <span className="text-[11px] font-semibold text-muted-foreground">
+                                  {c.category || "General"}
+                                </span>
+                              </div>
+
+                              <h4 className="font-bold text-base leading-snug line-clamp-2">
+                                {c.title}
+                              </h4>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {c.description}
+                              </p>
+
+                              {/* Rejection Remark */}
+                              {isRejected && c.approvalRemark && (
+                                <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 text-xs text-rose-800 dark:text-rose-200">
+                                  <span className="font-bold block mb-0.5">Central Admin Feedback:</span>
+                                  {c.approvalRemark}
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
+                                <span>{(c.chapters || []).length} Chapters</span>
+                                <span>•</span>
+                                <span>{totalLessons} Lessons</span>
+                              </div>
+                            </div>
+
+                            {/* Card Footer Actions */}
+                            <div className="pt-3 border-t flex items-center justify-between gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setActiveMyCourseId(c._id || c.id);
+                                  setActiveChapterIdx(null);
+                                }}
+                                className="text-xs font-semibold flex-1"
+                              >
+                                <Layers className="h-3.5 w-3.5 mr-1" /> Curriculum
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleOpenEditCourse(c)}
+                                className="text-xs px-2.5"
+                                title="Edit Title & Description"
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setCourseToDelete(c)}
+                                className="text-xs px-2.5 text-destructive hover:bg-destructive/10"
+                                title="Delete Course"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* LEVEL 2: CHAPTERS VIEW FOR SELECTED COURSE */}
+            {activeMyCourseId !== null && activeChapterIdx === null && activeMyCourse && (
+              <div className="space-y-5">
+                <div className="flex items-center justify-between gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveMyCourseId(null)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" /> Back to My Courses
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleOpenInPlaceChapter(null)}
+                    className="bg-primary text-primary-foreground font-semibold text-xs"
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Add Chapter
+                  </Button>
+                </div>
+
+                {/* Course Header Banner */}
+                <div className="p-5 rounded-2xl border bg-card space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h3 className="text-lg font-bold text-foreground">
+                      {activeMyCourse.title}
+                    </h3>
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full border bg-muted">
+                      {activeMyCourse.category || "General"}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    {activeMyCourse.description}
+                  </p>
+                </div>
+
+                {/* Chapters List */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Chapters Curriculum ({(activeMyCourse.chapters || []).length})
+                  </h4>
+
+                  {(activeMyCourse.chapters || []).length === 0 ? (
+                    <div className="p-8 border rounded-2xl text-center text-muted-foreground bg-muted/10 space-y-2">
+                      <p className="text-sm font-semibold">No chapters in this course yet.</p>
+                      <p className="text-xs">Click &quot;Add Chapter&quot; above to organize your lessons.</p>
+                    </div>
+                  ) : (
+                    (activeMyCourse.chapters || []).map((ch, idx) => (
+                      <div
+                        key={ch._id || idx}
+                        className="p-4 rounded-xl border bg-card hover:border-primary/40 transition flex items-center justify-between gap-3"
+                      >
+                        <div
+                          className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
+                          onClick={() => setActiveChapterIdx(idx)}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm truncate text-foreground hover:text-primary transition">
+                              {ch.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {(ch.contents || []).length} Lessons attached
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setActiveChapterIdx(idx)}
+                            className="text-xs h-8"
+                          >
+                            Manage Lessons <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleOpenInPlaceChapter(idx)}
+                            className="h-8 px-2"
+                            title="Edit Chapter"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteInPlaceChapter(idx)}
+                            className="h-8 px-2 text-destructive hover:bg-destructive/10"
+                            title="Delete Chapter"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* LEVEL 3: LESSONS VIEW FOR SELECTED CHAPTER */}
+            {activeMyCourseId !== null && activeChapterIdx !== null && activeMyCourse && activeChapter && (
+              <div className="space-y-5">
+                <div className="flex items-center justify-between gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveChapterIdx(null)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" /> Back to Chapters
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleOpenInPlaceLesson(activeChapterIdx)}
+                    className="bg-primary text-primary-foreground font-semibold text-xs"
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Attach Lesson
+                  </Button>
+                </div>
+
+                {/* Chapter Banner */}
+                <div className="p-4 rounded-xl border bg-muted/30">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    {activeMyCourse.title} • Chapter {activeChapterIdx + 1}
+                  </p>
+                  <h3 className="text-base font-bold text-foreground mt-0.5">
+                    {activeChapter.title}
+                  </h3>
+                </div>
+
+                {/* Lessons List */}
+                <div className="space-y-2.5">
+                  {(activeChapter.contents || []).length === 0 ? (
+                    <div className="p-8 border rounded-2xl text-center text-muted-foreground bg-muted/10 space-y-2">
+                      <p className="text-sm font-semibold">No lessons attached to this chapter yet.</p>
+                      <p className="text-xs">Click &quot;Attach Lesson&quot; above to upload video lectures or PDF notes.</p>
+                    </div>
+                  ) : (
+                    (activeChapter.contents || []).map((lesson, lIdx) => (
+                      <div
+                        key={lesson._id || lIdx}
+                        className="p-3.5 rounded-xl border bg-card flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            {lesson.type === "pdf" ? (
+                              <FileText className="h-4 w-4 text-emerald-600" />
+                            ) : (
+                              <Video className="h-4 w-4 text-blue-600" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm text-foreground truncate">
+                              {lesson.title}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground uppercase font-semibold">
+                              {lesson.type} • Lesson {lIdx + 1}
+                            </p>
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteInPlaceLesson(activeChapterIdx, lIdx)}
+                          className="h-8 px-2 text-destructive hover:bg-destructive/10 shrink-0"
+                          title="Remove Lesson"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

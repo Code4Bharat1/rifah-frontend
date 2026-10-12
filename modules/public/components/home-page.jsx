@@ -208,6 +208,7 @@ function HomePage() {
     try {
       await enquiryApi.create({
         targetType: "all",
+        sourceType: "guest",
         title: rfqForm.title.trim(),
         category: rfqForm.category || "Manufacturing",
         quantity: rfqForm.quantity.trim() || "Flexible",

@@ -76,7 +76,10 @@ function NewEnquiry() {
     setError("");
     setLoading(true);
     try {
+      const isGuest = !user;
       const res = await enquiryApi.create({
+        targetType: "all",
+        sourceType: isGuest ? "guest" : "marketplace",
         title: formData.title,
         category: formData.category,
         description: formData.description,
@@ -88,6 +91,9 @@ function NewEnquiry() {
         buyerName: formData.buyerName || user?.name || "Buyer",
         buyerEmail: formData.buyerEmail || user?.email || "buyer@example.com",
         buyerPhone: formData.buyerPhone,
+        guestName: isGuest ? (formData.buyerName || "Guest Buyer") : undefined,
+        guestEmail: isGuest ? (formData.buyerEmail || "") : undefined,
+        guestPhone: isGuest ? (formData.buyerPhone || "") : undefined,
       });
       setCreatedEnquiry(res?.data);
     } catch (err) {

@@ -1,10 +1,7 @@
-import { AdminLms } from "@modules/admin/components/admin-lms";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "LMS | RIFAH Chapter Admin",
-  description: "Manage courses and training material",
-};
-
-export default function LmsPage() {
-  return <AdminLms role="chapter_admin" />;
+export default function Page() {
+  redirect("/chapter-admin");
 }
+
+export const dynamic = "force-dynamic";

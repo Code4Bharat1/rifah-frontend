@@ -72,7 +72,6 @@ const SIDEBAR_FEATURES_BY_LEVEL = {
       items: [
         { route: "/chapter-admin/members", label: "Chapter Members", icon: Users, desc: "Member directory and profiles" },
         { route: "/chapter-admin/businesses", label: "Chapter Businesses", icon: Building2, desc: "Businesses in this chapter" },
-        { route: "/chapter-admin/verification", label: "Verifications", icon: ShieldCheck, desc: "Review and approve verifications" },
       ],
     },
     {
@@ -91,7 +90,6 @@ const SIDEBAR_FEATURES_BY_LEVEL = {
         { route: "/chapter-admin/advertisements", label: "Advertisements", icon: Megaphone, desc: "Banners and sponsor ads" },
         { route: "/chapter-admin/reports", label: "Reports & Exports", icon: BarChart3, desc: "Generate chapter activity reports" },
         { route: "/chapter-admin/audit", label: "Audit Logs", icon: ScrollText, desc: "View administrative activity logs" },
-        { route: "/chapter-admin/lms", label: "LMS Learning Desk", icon: GraduationCap, desc: "Access chamber training courses" },
         { route: "/chapter-admin/settings", label: "Chapter Settings", icon: Settings, desc: "Configure chapter parameters" },
       ],
     },
@@ -127,7 +125,6 @@ const SIDEBAR_FEATURES_BY_LEVEL = {
         { route: "/state-admin/advertisements", label: "Advertisements", icon: Megaphone, desc: "State banners and campaigns" },
         { route: "/state-admin/reports", label: "Reports & Data", icon: BarChart3, desc: "State reports and CSV exports" },
         { route: "/state-admin/audit", label: "Audit Logs", icon: ScrollText, desc: "State administrative audit logs" },
-        { route: "/state-admin/lms", label: "State LMS", icon: GraduationCap, desc: "State learning courses" },
         { route: "/state-admin/settings", label: "State Settings", icon: Settings, desc: "State configuration settings" },
       ],
     },
@@ -144,6 +141,7 @@ const SIDEBAR_FEATURES_BY_LEVEL = {
       category: "Enterprise & Governance",
       items: [
         { route: "/admin/businesses", label: "Businesses Directory", icon: Building2, desc: "Manage all national businesses" },
+        { route: "/admin/verification", label: "Business Verifications", icon: ShieldCheck, desc: "National business verification desk" },
         { route: "/admin/users", label: "User Management", icon: Users, desc: "All system accounts and roles" },
         { route: "/admin/states", label: "State Chapters", icon: MapPin, desc: "Manage states and territorial divisions" },
         { route: "/admin/chapters", label: "Chapter Desks", icon: Layers, desc: "National chapter directory" },

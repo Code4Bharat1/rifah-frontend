@@ -25,7 +25,7 @@ import {
   Edit3,
   Plus,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { VerificationBadge, StatusBadge, MembershipBadge } from "@shared/components/rifah/badges";
@@ -51,7 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@shared/components/ui/select";
-import { useVerificationQueue, useChapters } from "@shared/hooks/use-rifah-api";
+import { useVerificationQueue, useChapters, useStates } from "@shared/hooks/use-rifah-api";
 import { verificationApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { toast } from "sonner";
@@ -66,19 +66,61 @@ function AdminVerification() {
     setMounted(true);
   }, []);
 
-  const isCentralAdmin = user?.role === "central_admin";
+  const isCentralAdmin = ["central_admin", "super_admin", "admin", "secretariat"].includes(user?.role);
+  const isAuthorizedVerifier = isCentralAdmin;
+  const [stateFilter, setStateFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
 
   const { data: queueData, error, isLoading, refetch } = useVerificationQueue({
-    chapter: chapterFilter,
-    search: searchQuery,
+    state: stateFilter === "all" ? undefined : stateFilter,
+    chapter: chapterFilter === "all" ? undefined : chapterFilter,
+    search: searchQuery.trim() || undefined,
   });
   const queue = Array.isArray(queueData) ? queueData : (queueData?.verifications || []);
 
+  const { data: statesData } = useStates();
+  const rawStates = Array.isArray(statesData) ? statesData : statesData?.states || [];
+
   const { data: chaptersData } = useChapters();
-  const chapters = Array.isArray(chaptersData) ? chaptersData : [];
+  const rawChapters = Array.isArray(chaptersData) ? chaptersData : chaptersData?.chapters || [];
+
+  const availableStates = useMemo(() => {
+    const list = rawStates
+      .map((s) => (typeof s === "string" ? s : s?.state || s?.name))
+      .filter(Boolean);
+    const chapterStates = rawChapters
+      .map((c) => c?.state)
+      .filter(Boolean);
+    const queueStates = (queue || [])
+      .map((q) => q?.business?.state)
+      .filter(Boolean);
+    return Array.from(new Set([...list, ...chapterStates, ...queueStates])).sort();
+  }, [rawStates, rawChapters, queue]);
+
+  const availableChapters = useMemo(() => {
+    let list = rawChapters;
+    if (stateFilter !== "all") {
+      list = list.filter((c) => {
+        const cState = (c?.state || "").trim().toLowerCase();
+        return cState === stateFilter.trim().toLowerCase();
+      });
+    }
+    const names = list
+      .map((c) => (typeof c === "string" ? c : c?.name || c?.chapter))
+      .filter(Boolean);
+
+    const queueChapters = (queue || [])
+      .filter((q) => {
+        if (stateFilter === "all") return true;
+        return (q?.business?.state || "").trim().toLowerCase() === stateFilter.trim().toLowerCase();
+      })
+      .map((q) => q?.business?.chapter)
+      .filter(Boolean);
+
+    return Array.from(new Set([...names, ...queueChapters])).sort();
+  }, [rawChapters, stateFilter, queue]);
 
   // Document Inspection State
   const [selectedDoc, setSelectedDoc] = useState(null);
@@ -165,32 +207,56 @@ function AdminVerification() {
     );
   }
 
-  if (user && user.role !== "chapter_admin") {
+  if (user && !isAuthorizedVerifier) {
     return (
       <AppShell role="admin" title="Verification Desk">
         <Panel className="p-12 text-center max-w-lg mx-auto my-8 border border-border/80 rounded-2xl shadow-xs">
           <ShieldAlert className="mx-auto h-12 w-12 text-amber-500 mb-4" />
-          <h2 className="text-xl font-bold text-foreground">Decentralized Chamber Verification</h2>
+          <h2 className="text-xl font-bold text-foreground">Restricted Verification Desk</h2>
           <p className="text-muted-foreground mt-2 mb-6 text-sm">
-            Business document verification is handled exclusively by each local Chapter/Chamber Administrator.
+            Business document compliance and verification is managed centrally by RIFAH National Administration.
           </p>
           <Button asChild>
-            <a href="/admin">Return to Administration</a>
+            <a href="/">Return to Dashboard</a>
           </Button>
         </Panel>
       </AppShell>
     );
   }
 
+  // Instant client-side fallback filtering on queue
+  const filteredQueue = useMemo(() => {
+    return queue.filter((item) => {
+      const biz = item?.business;
+      if (stateFilter !== "all") {
+        const bState = (biz?.state || "").trim().toLowerCase();
+        if (bState !== stateFilter.trim().toLowerCase()) return false;
+      }
+      if (chapterFilter !== "all") {
+        const bChapter = (biz?.chapter || "").trim().toLowerCase();
+        if (bChapter !== chapterFilter.trim().toLowerCase()) return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const bName = (biz?.name || "").toLowerCase();
+        const bEmail = (item?.submittedBy?.email || "").toLowerCase();
+        const bPhone = (item?.submittedBy?.phone || "").toLowerCase();
+        const bGst = (item?.documents || []).some((d) => (d.documentNumber || "").toLowerCase().includes(q));
+        if (!bName.includes(q) && !bEmail.includes(q) && !bPhone.includes(q) && !bGst) return false;
+      }
+      return true;
+    });
+  }, [queue, stateFilter, chapterFilter, searchQuery]);
+
   // Filter queue into tabs
-  const pending = queue.filter(
+  const pending = filteredQueue.filter(
     (b) => b.status === "pending" || b.status === "under_review" || !b.status
   );
-  const changesReq = queue.filter(
+  const changesReq = filteredQueue.filter(
     (b) => b.status === "changes_required" || b.status === "correction" || b.status === "correction_requested"
   );
-  const approved = queue.filter((b) => b.status === "approved" || b.status === "verified");
-  const rejected = queue.filter((b) => b.status === "rejected");
+  const approved = filteredQueue.filter((b) => b.status === "approved" || b.status === "verified");
+  const rejected = filteredQueue.filter((b) => b.status === "rejected");
 
   const openDecisionModal = (item, type) => {
     setDecisionModal({
@@ -364,6 +430,12 @@ function AdminVerification() {
               <span>{biz.industry || "General Industry"}</span>
               <span>•</span>
               <span>{biz.city || "India"}</span>
+              {biz.state && (
+                <>
+                  <span>•</span>
+                  <span className="font-medium text-foreground">{biz.state}</span>
+                </>
+              )}
               <span>•</span>
               <span className="font-semibold text-foreground">{biz.chapter || "National"}</span>
               {biz.taxId && (
@@ -541,7 +613,7 @@ function AdminVerification() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {!isApproved && user?.role === "chapter_admin" && (() => {
+            {!isApproved && isAuthorizedVerifier && (() => {
               const hasDocs = docs.length > 0;
               const allDocsViewed = hasDocs && docs.every((d) => !d.fileUrl || verifiedDocs.includes(d.fileUrl));
               const canApprove = hasDocs && allDocsViewed;
@@ -578,7 +650,7 @@ function AdminVerification() {
               );
             })()}
 
-            {user?.role === "chapter_admin" && (
+            {isAuthorizedVerifier && (
               <Button
                 size="sm"
                 variant="outline"
@@ -590,7 +662,7 @@ function AdminVerification() {
               </Button>
             )}
 
-            {!isChangesReq && !isApproved && user?.role === "chapter_admin" && (
+            {!isChangesReq && !isApproved && isAuthorizedVerifier && (
               <Button
                 size="sm"
                 variant="outline"
@@ -602,7 +674,7 @@ function AdminVerification() {
               </Button>
             )}
 
-            {!isRejected && user?.role === "chapter_admin" && (
+            {!isRejected && isAuthorizedVerifier && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -614,7 +686,7 @@ function AdminVerification() {
               </Button>
             )}
 
-            {item.isOrphaned && user?.role === "chapter_admin" && (
+            {item.isOrphaned && isAuthorizedVerifier && (
               <Button
                 size="sm"
                 variant="destructive"
@@ -660,30 +732,46 @@ function AdminVerification() {
             />
           </div>
 
-          {isCentralAdmin ? (
-            <Select value={chapterFilter} onValueChange={setChapterFilter}>
-              <SelectTrigger className="sm:max-w-[220px] h-10">
-                <SelectValue placeholder="Filter by chapter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Chapters</SelectItem>
-                {chapters.map((ch) => (
-                  <SelectItem key={ch._id || ch.name} value={ch.name}>
-                    {ch.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <div
-              suppressHydrationWarning
-              className="flex h-10 items-center justify-between rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-primary font-medium sm:max-w-[220px] truncate"
-            >
-              {mounted && user?.chapter
-                ? `${user.chapter.replace(/\s*[Cc]hapter\s*/g, "")}'s Queue`
-                : "Your Chapter Queue"}
-            </div>
-          )}
+          {/* Cascading State Dropdown */}
+          <Select
+            value={stateFilter}
+            onValueChange={(val) => {
+              setStateFilter(val);
+              setChapterFilter("all");
+            }}
+          >
+            <SelectTrigger className="sm:max-w-[200px] h-10">
+              <SelectValue placeholder="All States" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All States</SelectItem>
+              {availableStates.map((st) => (
+                <SelectItem key={st} value={st}>
+                  {st}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Cascading Chapter Dropdown */}
+          <Select
+            value={chapterFilter}
+            onValueChange={setChapterFilter}
+          >
+            <SelectTrigger className="sm:max-w-[200px] h-10">
+              <SelectValue placeholder="All Chapters" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {stateFilter !== "all" ? `All ${stateFilter} Chapters` : "All Chapters"}
+              </SelectItem>
+              {availableChapters.map((chName) => (
+                <SelectItem key={chName} value={chName}>
+                  {chName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Top Stat Cards / Tab Selectors */}
@@ -717,7 +805,7 @@ function AdminVerification() {
           />
           <StatCard
             label="Total"
-            value={String(queue.length)}
+            value={String(filteredQueue.length)}
             icon={Building2}
             hint="All submissions"
             active={activeTab === "all"}
@@ -741,7 +829,7 @@ function AdminVerification() {
               Rejected ({rejected.length})
             </TabsTrigger>
             <TabsTrigger value="all" className="rounded-lg text-xs font-semibold">
-              All Submissions ({queue.length})
+              All Submissions ({filteredQueue.length})
             </TabsTrigger>
           </TabsList>
 
@@ -750,7 +838,7 @@ function AdminVerification() {
             ["changes", changesReq],
             ["approved", approved],
             ["rejected", rejected],
-            ["all", queue],
+            ["all", filteredQueue],
           ].map(([key, rows]) => (
             <TabsContent key={key} value={key} className="mt-4">
               {isLoading ? (
@@ -766,6 +854,8 @@ function AdminVerification() {
                     description={
                       searchQuery
                         ? `No results matching "${searchQuery}".`
+                        : stateFilter !== "all" || chapterFilter !== "all"
+                        ? `No applications found for ${chapterFilter !== "all" ? `${chapterFilter} Chapter` : stateFilter}.`
                         : "Submissions will appear here as businesses register."
                     }
                   />

@@ -51,8 +51,8 @@ function getEnquiryType(r) {
   if (!r) return "b2b";
   const explicit = r.sourceType || r.enquiry?.sourceType;
   if (explicit === "b2b") return "b2b";
-  if (explicit === "guest") return "guest";
-  if (explicit === "marketplace" || explicit === "general") return "marketplace";
+  if (explicit === "guest" || explicit === "general") return "guest";
+  if (explicit === "marketplace") return "marketplace";
 
   const role = (
     r.requesterRole ||
@@ -61,6 +61,11 @@ function getEnquiryType(r) {
     r.enquiry?.requester?.role ||
     ""
   ).toLowerCase();
+
+  const hasUserAccount = Boolean(r.requester || r.enquiry?.requester);
+  if (!hasUserAccount && (r.guestName || r.enquiry?.guestName || role.includes("guest"))) {
+    return "guest";
+  }
 
   // Any enquiry submitted by a Customer/Buyer is classified under Marketplace
   if (role.includes("customer") || role.includes("buyer")) {
@@ -75,14 +80,13 @@ function getEnquiryType(r) {
   // Fallback heuristics for older records:
   const targetType = r.targetType || r.enquiry?.targetType;
   if (targetType === "all" || targetType === "chamber") {
-    return "marketplace";
+    return !hasUserAccount ? "guest" : "marketplace";
   }
 
   if (role.includes("business") || role.includes("member")) {
     return "b2b";
   }
 
-  const hasUserAccount = Boolean(r.requester || r.enquiry?.requester);
   if (targetType === "business" && (!hasUserAccount || role.includes("guest"))) {
     return "guest";
   }
