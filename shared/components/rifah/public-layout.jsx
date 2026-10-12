@@ -100,14 +100,11 @@ export function PublicHeader() {
             ? "/user"
             : "/user";
 
-  const [isScrolled, setIsScrolled] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
+  const [isScrolled, setIsScrolled] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
-  }, []);
-
-  React.useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
@@ -232,11 +229,11 @@ function MobileMenu() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
   const [mounted, setMounted] = React.useState(false);
+  const t = useTranslations("Navbar");
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
-  const t = useTranslations("Navbar");
 
   const handleLogout = () => {
     logout();

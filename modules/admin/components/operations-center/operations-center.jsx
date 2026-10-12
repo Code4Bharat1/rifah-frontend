@@ -1432,34 +1432,162 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [lastScanResult, setLastScanResult] = useState(null);
+  const [scanStats, setScanStats] = useState({ success: 0, duplicate: 0 });
+  const lastScannedTicketRef = useRef({ code: "", timestamp: 0 });
+  const isProcessingRef = useRef(false);
+
+  const playScanBeep = (type = "success") => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      if (type === "success") {
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.18);
+      } else {
+        osc.frequency.setValueAtTime(320, ctx.currentTime);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.25);
+      }
+    } catch {
+      // Audio fails gracefully if user gesture restriction
+    }
+  };
+
+  const handleCloseScanner = () => {
+    setIsScannerOpen(false);
+    setIsScanning(false);
+    isProcessingRef.current = false;
+    lastScannedTicketRef.current = { code: "", timestamp: 0 };
+    setLastScanResult(null);
+  };
 
   const handleQrScan = async (result) => {
-    // result comes as an object { rawValue: string } or string depending on version, handle both
-    const text = typeof result === "object" ? result[0]?.rawValue || result?.rawValue : result;
-    if (text && !isScanning) {
-      setIsScanning(true);
-      try {
-        // Extract ticket ID from a full URL if it exists
-        // Example QR content: http://localhost:3000/verify/ticket/RIFAH-EVT-2026-B4F911?token=...
-        let ticketId = text;
-        if (text.includes("/verify/ticket/")) {
-          const parts = text.split("/verify/ticket/");
-          if (parts.length > 1) {
-            ticketId = parts[1].split("?")[0].replace(/\//g, ""); // extracts RIFAH-EVT-2026-B4F911
-          }
-        }
+    // result comes as an array of objects ({ rawValue: string }) in v2.6.0, or object, or string
+    let rawText = "";
+    if (Array.isArray(result) && result.length > 0) {
+      rawText = result[0]?.rawValue || "";
+    } else if (typeof result === "object" && result !== null) {
+      rawText = result.rawValue || "";
+    } else if (typeof result === "string") {
+      rawText = result;
+    }
 
-        const response = await eventApi.scanCheckInTicket(ticketId);
-        if (response.alreadyCheckedIn) {
-          toast.error(response.message);
-        } else {
-          toast.success(response.message || `Entry allowed for ${response.attendeeName || "Attendee"}!`);
-        }
-        fetchOperationsData(selectedEventId);
-      } catch (err) {
-        toast.error(err.data?.error?.message || err.message || "Invalid QR Code or Ticket not found.");
+    if (!rawText) return;
+
+    // Extract ticket ID from a full URL if it exists
+    let ticketId = String(rawText).trim();
+    if (ticketId.includes("/verify/ticket/")) {
+      const parts = ticketId.split("/verify/ticket/");
+      if (parts.length > 1) {
+        ticketId = parts[1].split("?")[0].replace(/\//g, "").trim();
       }
-      setTimeout(() => setIsScanning(false), 2500); // Prevent double scans rapidly
+    }
+
+    if (!ticketId) return;
+
+    const now = Date.now();
+    // Prevent rapid repeated scan of the EXACT same ticket while held in front of the lens (3.5s cooldown)
+    if (
+      lastScannedTicketRef.current.code === ticketId &&
+      now - lastScannedTicketRef.current.timestamp < 3500
+    ) {
+      return;
+    }
+
+    // If already processing another ticket, skip
+    if (isProcessingRef.current) return;
+
+    isProcessingRef.current = true;
+    setIsScanning(true);
+    lastScannedTicketRef.current = { code: ticketId, timestamp: now };
+
+    try {
+      const response = await eventApi.scanCheckInTicket(ticketId);
+      const isAlready = response?.alreadyCheckedIn || response?.data?.alreadyCheckedIn;
+      const attendeeName =
+        response?.attendeeName ||
+        response?.data?.attendeeName ||
+        response?.data?.name ||
+        "Attendee";
+
+      if (isAlready) {
+        playScanBeep("warning");
+        const msg = response?.message || `${attendeeName} is already checked in!`;
+        toast.warning(msg);
+        setLastScanResult({
+          type: "warning",
+          name: attendeeName,
+          ticketId,
+          message: msg,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        });
+        setScanStats((prev) => ({ ...prev, duplicate: prev.duplicate + 1 }));
+      } else {
+        playScanBeep("success");
+        const msg = response?.message || `Entry allowed for ${attendeeName}!`;
+        toast.success(msg);
+        setLastScanResult({
+          type: "success",
+          name: attendeeName,
+          ticketId,
+          message: msg,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        });
+        setScanStats((prev) => ({ ...prev, success: prev.success + 1 }));
+      }
+      fetchOperationsData(selectedEventId);
+    } catch (err) {
+      playScanBeep("error");
+      const errMsg =
+        err?.data?.message ||
+        err?.data?.error?.message ||
+        err?.message ||
+        "Invalid QR Code or Ticket not found.";
+
+      const isAlready =
+        err?.status === 409 ||
+        err?.data?.data?.alreadyCheckedIn ||
+        errMsg?.toLowerCase()?.includes("already checked in");
+
+      if (isAlready) {
+        const attendeeName = err?.data?.data?.attendeeName || "Attendee";
+        toast.warning(errMsg);
+        setLastScanResult({
+          type: "warning",
+          name: attendeeName,
+          ticketId,
+          message: errMsg,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        });
+        setScanStats((prev) => ({ ...prev, duplicate: prev.duplicate + 1 }));
+      } else {
+        toast.error(errMsg);
+        setLastScanResult({
+          type: "error",
+          name: "Ticket Error",
+          ticketId,
+          message: errMsg,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        });
+      }
+    } finally {
+      // Cooldown for next scan: allow next ticket almost immediately (800ms)
+      setTimeout(() => {
+        isProcessingRef.current = false;
+        setIsScanning(false);
+      }, 800);
     }
   };
 
@@ -3153,34 +3281,113 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             </div>
 
             {/* QR Scanner Modal */}
-            <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Scan Attendee Ticket</DialogTitle>
-                  <DialogDescription>
-                    Point the camera at the attendee's ticket QR code to verify and allow entry automatically.
+            <Dialog
+              open={isScannerOpen}
+              onOpenChange={(open) => {
+                if (!open) handleCloseScanner();
+                else setIsScannerOpen(true);
+              }}
+            >
+              <DialogContent className="sm:max-w-md max-w-[95vw] p-4 sm:p-6 overflow-hidden">
+                <DialogHeader className="pb-1">
+                  <div className="flex items-center justify-between">
+                    <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
+                      <QrCode className="h-5 w-5 text-primary" />
+                      Continuous QR Scanner
+                    </DialogTitle>
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Continuous Mode
+                    </span>
+                  </div>
+                  <DialogDescription className="text-xs text-muted-foreground">
+                    Point camera at visitor tickets. Keep scanning one-by-one without closing this window.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="flex flex-col items-center justify-center aspect-square sm:aspect-[4/3] w-full bg-black rounded-lg overflow-hidden relative border border-border/50">
+
+                {/* Scanner Frame */}
+                <div className="flex flex-col items-center justify-center aspect-square sm:aspect-[4/3] w-full bg-black rounded-lg overflow-hidden relative border border-border/50 shadow-inner">
                   {isScannerOpen && (
                     <Scanner
                       onScan={handleQrScan}
                       onError={(error) => console.log(error?.message)}
-                      options={{ delayBetweenScanAttempts: 1500 }}
+                      allowMultiple={true}
+                      scanDelay={1000}
+                      paused={!isScannerOpen}
+                      formats={["qr_code"]}
                     />
                   )}
+
+                  {/* Processing Badge Overlay (Non-blocking, top right) */}
                   {isScanning && (
-                    <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 flex-col gap-2 backdrop-blur-sm">
-                      <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                      <p className="text-foreground font-semibold text-sm">Verifying Ticket...</p>
+                    <div className="absolute top-3 right-3 bg-black/85 backdrop-blur-md text-white text-xs px-2.5 py-1.5 rounded-full flex items-center gap-2 border border-white/20 shadow-lg z-20">
+                      <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                      <span className="font-medium">Verifying Ticket...</span>
                     </div>
                   )}
+
+                  {/* Helper overlay on camera bottom */}
+                  <div className="absolute bottom-2 inset-x-2 bg-black/60 backdrop-blur-xs text-white/80 text-[11px] py-1 px-2.5 rounded text-center z-10 pointer-events-none">
+                    Keep camera steady • Auto-scans next ticket automatically
+                  </div>
                 </div>
-                <DialogFooter className="sm:justify-center">
-                  <Button variant="outline" onClick={() => setIsScannerOpen(false)} className="w-full sm:w-auto">
-                    Close Scanner
+
+                {/* Live Scan Result Card */}
+                {lastScanResult ? (
+                  <div
+                    className={cn(
+                      "p-3 rounded-lg border flex items-start gap-3 transition-all",
+                      lastScanResult.type === "success" && "bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200",
+                      lastScanResult.type === "warning" && "bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40 text-amber-900 dark:text-amber-200",
+                      lastScanResult.type === "error" && "bg-rose-50/70 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/40 text-rose-900 dark:text-rose-200"
+                    )}
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {lastScanResult.type === "success" && <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+                      {lastScanResult.type === "warning" && <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
+                      {lastScanResult.type === "error" && <X className="h-5 w-5 text-rose-600 dark:text-rose-400" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-xs sm:text-sm truncate">
+                          {lastScanResult.name || (lastScanResult.type === "success" ? "Entry Allowed" : "Scan Alert")}
+                        </p>
+                        <span className="text-[10px] opacity-75 shrink-0 font-mono">
+                          {lastScanResult.time}
+                        </span>
+                      </div>
+                      <p className="text-xs opacity-90 line-clamp-2 mt-0.5">
+                        {lastScanResult.message}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-lg border border-dashed border-border/80 bg-muted/30 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Ready to scan. Present attendee's digital pass or printed QR code.
+                    </p>
+                  </div>
+                )}
+
+                {/* Session Counter / Footer */}
+                <div className="flex items-center justify-between pt-1 text-xs">
+                  <div className="flex items-center gap-3 text-muted-foreground text-[11px]">
+                    <span className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
+                      Entries: <strong className="text-foreground">{scanStats.success}</strong>
+                    </span>
+                    {scanStats.duplicate > 0 && (
+                      <span className="flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
+                        Repeats: <strong className="text-foreground">{scanStats.duplicate}</strong>
+                      </span>
+                    )}
+                  </div>
+
+                  <Button variant="outline" size="sm" onClick={handleCloseScanner} className="h-8 text-xs">
+                    Done Scanning
                   </Button>
-                </DialogFooter>
+                </div>
               </DialogContent>
             </Dialog>
 

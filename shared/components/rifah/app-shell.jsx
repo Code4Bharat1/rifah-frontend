@@ -2035,7 +2035,11 @@ export function MoreSheet({ role, isBizVerified = true }) {
   const router = useRouter();
   const { user, switchRole } = useAuth();
   const { isRouteLocked } = useFeatureAccess();
-  const effectiveUser = typeof window !== "undefined" ? user : null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const effectiveUser = mounted ? user : null;
   const nav = useResolvedNav(role);
   const items =
     role === "chapter_admin"
