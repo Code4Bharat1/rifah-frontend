@@ -29,18 +29,20 @@ export function useFeatureAccess() {
   // placeholder made the same account look locked on one device and unlocked on another.
   const planLoading = bizLoading || memLoading;
 
-  // Determine current tier from business membership, membership data, or user subscription
-  const planName =
-    business?.membership ||
-    membershipData?.planName ||
-    membershipData?.subscriberTier ||
+  // Prioritize explicit subscriber tier (tier_1, tier_2, tier_3, tier_4).
+  // Members who only purchased a Chamber membership (Silver/Gold/Platinum/Diamond)
+  // but no subscription are treated as Tier I (Free) for subscriber features & quotas.
+  const subscriberTierName =
     business?.subscriberTier ||
     user?.subscriberTier ||
-    membershipData?.planId ||
-    user?.membershipPlan ||
+    membershipData?.subscriberTier ||
+    (String(membershipData?.planId || "").toLowerCase().startsWith("tier_") ? (membershipData?.planName || membershipData?.planId) : null) ||
+    (String(user?.membershipPlan || "").toLowerCase().startsWith("tier_") ? user?.membershipPlan : null) ||
     "Tier I (Free)";
-  const tierId = normalizeUserTier(planName);
+
+  const tierId = normalizeUserTier(subscriberTierName);
   const currentTier = SUBSCRIBER_TIERS.find((t) => t.id === tierId) || SUBSCRIBER_TIERS[0];
+  const planName = currentTier.name;
 
   // Check if subscription has expired (e.g. 1 month passed for monthly subscriber or plan period passed)
   const isExpired = useMemo(() => {

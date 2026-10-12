@@ -158,7 +158,22 @@ function HomePage() {
       s === "pending_verification" ||
       s === "suspended" ||
       s === "draft";
-    return isVerified && !isPendingOrRejected;
+
+    // In Featured Businesses on Landing Page, Show Businesses of Tier 4 Subscribers + Diamond Members
+    const subTier = String(b.subscriberTier || b.subscriber_tier || "").toLowerCase();
+    const mem = String(b.membership || b.membershipPlan || b.membershipTier || "").toLowerCase();
+    const isTier4 =
+      subTier === "tier_4" ||
+      subTier === "tier-4" ||
+      subTier === "tier 4" ||
+      subTier.includes("tier iv") ||
+      mem.includes("tier iv") ||
+      mem.includes("tier 4") ||
+      mem.includes("enterprise");
+    const isDiamond = mem.includes("diamond");
+    const isExplicitlyFeatured = b.featured === true;
+
+    return isVerified && !isPendingOrRejected && (isTier4 || isDiamond || isExplicitlyFeatured);
   });
   const catalogueList = Array.isArray(catalogueData)
     ? catalogueData
@@ -438,7 +453,7 @@ function HomePage() {
           <div className="rifah-container">
             <SectionHeader
               title="Featured Member Enterprises"
-              description="Verified businesses with active commercial catalogues on RIFAH Connect."
+              description="Verified showcase of Tier 4 Subscriber Enterprises and Diamond Chamber Members."
               action={<MoreLink href="/discover">Explore directory</MoreLink>}
             />
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

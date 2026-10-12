@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Crown, ShieldCheck, Mail, Loader2, ArrowRightLeft } from "lucide-react";
+import { Crown, ShieldCheck, Mail, Loader2, ArrowRightLeft, Globe, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel, StatCard } from "@shared/components/rifah/ui-bits";
@@ -108,6 +109,25 @@ function AdminCentralAdmin() {
             current Central Admin back to a regular business owner. Only businesses with an active paid
             membership and verified status are eligible.
           </p>
+        </div>
+
+        <div className="rounded-xl border border-border bg-surface p-5 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Globe className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-foreground">Visa Referrals Desk</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Review applicant passport documents, approve consular requests, and dispatch official Referral Letters by mail. Strictly Central Admin managed with zero State or Chapter interference.
+              </p>
+            </div>
+          </div>
+          <Button asChild size="sm" className="font-semibold gap-1.5 shrink-0">
+            <Link href="/admin/visa-referrals">
+              Open Visa Desk <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
       </div>
 

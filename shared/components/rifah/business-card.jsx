@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
+import { MembershipBadge, MemberSubscriberBadges, Pill, VerificationBadge, isMemberAndSubscriber } from "@shared/components/rifah/badges";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Textarea } from "@shared/components/ui/textarea";
@@ -317,10 +317,11 @@ export function BusinessCard({
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <VerificationBadge status={business.verification} compact />
-        <MembershipBadge tier={business.membership} />
-      </div>
+      {isMemberAndSubscriber(business) && (
+        <div className="mt-3">
+          <MemberSubscriberBadges business={business} compact />
+        </div>
+      )}
 
       {business.tagline ? (
         <p className="mt-3 line-clamp-2 min-h-[36px] text-xs leading-relaxed text-muted-foreground">{business.tagline}</p>
@@ -444,10 +445,12 @@ export function PremiumBusinessCard({ business }) {
           <p className="mt-0.5 truncate text-xs text-muted-foreground">{locationText}</p>
         </div>
 
-        {/* Verification Pill */}
-        <div className="mt-2 flex items-center gap-1.5">
-          <VerificationBadge status={business.verification} compact />
-        </div>
+        {/* Verification & Member Badges — only for Members + Subscribers */}
+        {isMemberAndSubscriber(business) && (
+          <div className="mt-2">
+            <MemberSubscriberBadges business={business} compact />
+          </div>
+        )}
 
         {/* Tagline / Summary with consistent min-height */}
         {business.tagline ? (
@@ -524,9 +527,11 @@ export function CompactBusinessCard({
         <p className="truncate text-xs text-muted-foreground">
           {business.industry} · {business.city}
         </p>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          <VerificationBadge status={business.verification} compact />
-        </div>
+        {isMemberAndSubscriber(business) && (
+          <div className="mt-1.5">
+            <MemberSubscriberBadges business={business} compact />
+          </div>
+        )}
       </div>
     </div>
   );

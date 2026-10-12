@@ -117,6 +117,135 @@ export function MembershipBadge({ tier }) {
   );
 }
 
+/**
+ * Checks if a business has an active Chamber Membership (Silver, Gold, Platinum, Diamond, or legacy paid tier).
+ */
+export function isChamberMember(business) {
+  if (!business) return false;
+  const raw = String(
+    business.membership ||
+    business.membershipTier ||
+    business.chamberMembership ||
+    business.membershipPlan ||
+    ""
+  ).trim().toLowerCase();
+
+  if (!raw || raw === "free" || raw === "unregistered" || raw === "tier i (free)" || raw === "tier_1") {
+    return false;
+  }
+
+  return (
+    raw.includes("silver") ||
+    raw.includes("gold") ||
+    raw.includes("platinum") ||
+    raw.includes("diamond") ||
+    raw.includes("enterprise") ||
+    raw.includes("premium")
+  );
+}
+
+/**
+ * Checks if a business has an active paid Subscriber Tier (Tier 2, Tier 3, Tier 4, or legacy paid tier).
+ */
+export function isPaidSubscriber(business) {
+  if (!business) return false;
+  const subTier = String(
+    business.subscriberTier ||
+    business.subscriber_tier ||
+    business.subscriptionTier ||
+    business.planId ||
+    ""
+  ).trim().toLowerCase();
+
+  if (
+    subTier === "tier_2" ||
+    subTier === "tier_3" ||
+    subTier === "tier_4" ||
+    subTier === "tier-2" ||
+    subTier === "tier-3" ||
+    subTier === "tier-4" ||
+    subTier === "tier 2" ||
+    subTier === "tier 3" ||
+    subTier === "tier 4" ||
+    subTier.includes("tier ii") ||
+    subTier.includes("tier iii") ||
+    subTier.includes("tier iv")
+  ) {
+    return true;
+  }
+
+  // Legacy paid membership plans that bundled subscription
+  const mem = String(business.membership || "").toLowerCase();
+  if (mem.includes("enterprise") || mem.includes("premium")) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Checks if a business is verified and approved.
+ */
+export function isVerifiedBusiness(business) {
+  if (!business) return false;
+  const v = String(business.verification || "").toLowerCase();
+  const s = String(business.status || "").toLowerCase();
+  const isVerified = v === "verified" || v === "approved" || business.isVerified === true;
+  const isNotEligible =
+    v === "rejected" ||
+    v === "pending" ||
+    v === "under_review" ||
+    v === "unverified" ||
+    v === "correction_requested" ||
+    s === "rejected" ||
+    s === "pending" ||
+    s === "pending verification" ||
+    s === "pending_verification" ||
+    s === "suspended" ||
+    s === "draft";
+  return isVerified && !isNotEligible;
+}
+
+/**
+ * Rule: The 2 Tags ([Verified] and [Premium member]) are ONLY shown for Members + Subscribers.
+ * Must be verified, hold Chamber Membership, AND have an active Subscriber Tier.
+ */
+export function isMemberAndSubscriber(business) {
+  if (!business) return false;
+  return isVerifiedBusiness(business) && isChamberMember(business) && isPaidSubscriber(business);
+}
+
+/**
+ * Renders the 2 Tags for businesses that are BOTH Members + Subscribers:
+ * 1. [✔ Verified] (Green pill)
+ * 2. [☆ Premium member] (Rose/Brand pill) or specific tier ([👑 Diamond member], [👑 Platinum member])
+ */
+export function MemberSubscriberBadges({ business, compact = true, className }) {
+  if (!isMemberAndSubscriber(business)) {
+    return null;
+  }
+
+  const rawMem = String(business?.membership || "").toLowerCase();
+  const isDiamond = rawMem.includes("diamond");
+  const isPlatinum = rawMem.includes("platinum");
+
+  return (
+    <div className={cn("inline-flex flex-wrap items-center gap-1.5", className)}>
+      <VerificationBadge status="verified" compact={compact} />
+      {isDiamond ? (
+        <MembershipBadge tier="Diamond" />
+      ) : isPlatinum ? (
+        <MembershipBadge tier="Platinum" />
+      ) : (
+        <Pill tone="brand" icon={<Star className="h-3.5 w-3.5" />}>
+          Premium member
+        </Pill>
+      )}
+    </div>
+  );
+}
+
+
 const statusTone = {
   New: "primary",
   "In Progress": "warning",
@@ -143,8 +272,21 @@ const statusTone = {
   Medium: "warning",
   Low: "neutral",
   Escalated: "warning",
+  Delivered: "success",
 };
 
 export function StatusBadge({ status }) {
   return <Pill tone={statusTone[status] ?? "neutral"}>{status}</Pill>;
 }
+
+export function VisaStatusBadge({ status }) {
+  const tones = {
+    Pending: "warning",
+    "In Progress": "primary",
+    Approved: "brand",
+    Delivered: "success",
+    Rejected: "danger",
+  };
+  return <Pill tone={tones[status] ?? "neutral"}>{status || "Pending"}</Pill>;
+}
+

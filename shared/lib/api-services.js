@@ -1243,3 +1243,29 @@ export const ticketApi = {
     return apiClient("/tickets/upload", { method: "POST", body: formData });
   },
 };
+
+export const visaReferralApi = {
+  create: (data) =>
+    apiClient("/visa-referrals", { method: "POST", body: JSON.stringify(data) }),
+  listMy: () => apiClient("/visa-referrals/my"),
+  listAdmin: (params = {}) =>
+    apiClient(`/visa-referrals${toQueryString(params)}`),
+  getStats: () => apiClient("/visa-referrals/stats"),
+  getById: (id) => apiClient(`/visa-referrals/${id}`),
+  updateStatus: (id, data) =>
+    apiClient(`/visa-referrals/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  deliverLetter: (id, data) =>
+    apiClient(`/visa-referrals/${id}/deliver`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  uploadDocument: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient("/visa-referrals/upload", { method: "POST", body: formData });
+  },
+};
+

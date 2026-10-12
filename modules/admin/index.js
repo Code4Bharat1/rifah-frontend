@@ -24,3 +24,5 @@ export {
   StateAdminAdvertisements,
   CentralAdminAdvertisements,
 } from "./components/chapter-admin-advertisements.jsx";
+export { AdminVisaReferrals } from "./components/admin-visa-referrals.jsx";
+

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Building2, CalendarDays, ShieldCheck, Users, Wallet, ArrowRight, Activity, Plus } from "lucide-react";
+import { Building2, CalendarDays, ShieldCheck, Users, Wallet, ArrowRight, Activity, Plus, Globe } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell, YAxis } from "recharts";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -66,13 +66,22 @@ function AdminHome() {
             </Link>
           </Button>
           {isCentralAdmin && (
-            <Button asChild size="sm" className="rounded-full gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-8 sm:h-9 px-2.5 sm:px-4 text-xs sm:text-sm shrink-0 shadow-xs">
-              <Link href="/admin/businesses/new">
-                <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Add Business</span>
-                <span className="sm:hidden">Add</span>
-              </Link>
-            </Button>
+            <>
+              <Button asChild variant="outline" size="sm" className="rounded-full gap-1 h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm shrink-0">
+                <Link href="/admin/visa-referrals">
+                  <Globe className="h-3.5 w-3.5 text-primary" />
+                  <span className="hidden sm:inline">Visa Desk</span>
+                  <span className="sm:hidden">Visa</span>
+                </Link>
+              </Button>
+              <Button asChild size="sm" className="rounded-full gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-8 sm:h-9 px-2.5 sm:px-4 text-xs sm:text-sm shrink-0 shadow-xs">
+                <Link href="/admin/businesses/new">
+                  <Plus className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Add Business</span>
+                  <span className="sm:hidden">Add</span>
+                </Link>
+              </Button>
+            </>
           )}
         </div>
       }

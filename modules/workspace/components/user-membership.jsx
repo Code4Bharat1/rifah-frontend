@@ -24,6 +24,7 @@ import { Button } from "@shared/components/ui/button";
 import { useAuth } from "@shared/providers/auth-provider";
 import { userApi } from "@shared/lib/api-services";
 import { SUBSCRIBER_TIERS, FEATURE_SPEC_DEFINITIONS } from "@shared/lib/subscription-models";
+import { SubscriberModelsTable } from "@shared/components/rifah/subscriber-models-table";
 import { useFeatureAccess } from "@shared/hooks/use-feature-access";
 import { toast } from "sonner";
 import { cn } from "@shared/lib/utils";
@@ -211,52 +212,23 @@ export function UserMembership() {
           </div>
         </div>
 
-        {/* Feature Matrix Breakdown */}
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs">
-          <h3 className="text-base font-bold text-slate-900 mb-1">Detailed Tier Comparison Matrix</h3>
-          <p className="text-xs text-slate-500 mb-6">
-            Compare monthly entitlements across lead unlocks, enquiries, direct messaging, and community access.
-          </p>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/70">
-                  <th className="py-3 px-4 font-bold text-slate-700">Feature</th>
-                  <th className="py-3 px-3 font-bold text-slate-700 text-center">Tier I (Free)</th>
-                  <th className="py-3 px-3 font-bold text-slate-700 text-center">Tier II (₹50)</th>
-                  <th className="py-3 px-3 font-bold text-slate-700 text-center">Tier III (₹100)</th>
-                  <th className="py-3 px-3 font-bold text-slate-700 text-center">Tier IV (₹200)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {FEATURE_SPEC_DEFINITIONS.slice(0, 15).map((f) => {
-                  const t1 = SUBSCRIBER_TIERS[0].features[f.key];
-                  const t2 = SUBSCRIBER_TIERS[1].features[f.key];
-                  const t3 = SUBSCRIBER_TIERS[2].features[f.key];
-                  const t4 = SUBSCRIBER_TIERS[3].features[f.key];
-
-                  const renderVal = (val) => {
-                    if (val === true) return <Check className="h-4 w-4 text-emerald-600 mx-auto" />;
-                    if (val === false || val === "None") return <span className="text-slate-400">None</span>;
-                    return <span className="font-semibold text-slate-800">{String(val)}</span>;
-                  };
-
-                  return (
-                    <tr key={f.key} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 px-4 font-medium text-slate-800">
-                        {f.label}
-                      </td>
-                      <td className="py-2.5 px-3 text-center">{renderVal(t1)}</td>
-                      <td className="py-2.5 px-3 text-center">{renderVal(t2)}</td>
-                      <td className="py-2.5 px-3 text-center">{renderVal(t3)}</td>
-                      <td className="py-2.5 px-3 text-center">{renderVal(t4)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        {/* Official Rifah Connect Subscriber Models Matrix */}
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 px-1">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                Rifah Connect Subscriber Models Specification
+              </h3>
+              <p className="text-xs text-slate-500">
+                Detailed comparison of monthly entitlements, quotas, and feature access across Tier I, II, III, and IV.
+              </p>
+            </div>
           </div>
+
+          <SubscriberModelsTable
+            currentTierId={activePlanId}
+            onSelectTier={handleSelectTier}
+          />
         </div>
       </div>
     </AppShell>

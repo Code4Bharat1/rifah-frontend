@@ -68,6 +68,8 @@ export function RegisterUserPage() {
     businessName: "",
     category: "",
     subCategory: "",
+    // Multi-member membership linking (Tier IV enterprise roster)
+    membershipId: "",
     // Step 3: Tier selection
     selectedTier: "tier_1", // Default to Tier I (Free)
     agreeTerms: true,
@@ -346,6 +348,7 @@ export function RegisterUserPage() {
         organization: form.businessName.trim(),
         category: form.category,
         subCategory: form.subCategory,
+        membershipId: form.membershipId?.trim() ? form.membershipId.trim().toUpperCase() : undefined,
         subscriberTier: selectedPlanObj.name,
         accountType: "user",
         verifiedToken,
@@ -681,6 +684,31 @@ export function RegisterUserPage() {
                     </div>
                   </div>
 
+                  {/* Chamber Membership ID (If joining under existing Tier 4 Enterprise Membership) */}
+                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-3.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <Label htmlFor="membership-id" className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                        <Shield className="h-3.5 w-3.5 text-indigo-600" />
+                        <span>Chamber Membership ID</span>
+                        <span className="text-slate-400 font-normal">(Optional)</span>
+                      </Label>
+                      <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wider bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-full">
+                        Tier IV Roster
+                      </span>
+                    </div>
+                    <Input
+                      id="membership-id"
+                      type="text"
+                      placeholder="e.g. RIF-MEM-2025-XXXX or Company Membership ID"
+                      value={form.membershipId}
+                      onChange={(e) => handleChange("membershipId", e.target.value)}
+                      className="h-10 rounded-xl border-slate-200 text-xs sm:text-sm uppercase tracking-wide bg-white focus:border-indigo-500 focus:ring-indigo-500/20"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                      If registering as an additional member under a single company membership, provide the membership ID. <strong>All registered members must purchase an individual subscription.</strong>
+                    </p>
+                  </div>
+
                   {/* National vs International Toggle */}
                   <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-2xl">
                     <Label className="text-xs font-semibold text-slate-700 mb-2 block">
@@ -949,6 +977,11 @@ export function RegisterUserPage() {
                               Zero Cost
                             </span>
                           )}
+                          {tier.id === "tier_4" && (
+                            <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-purple-600 text-white text-[10px] font-bold tracking-wider uppercase">
+                              Multi-Member Enterprise
+                            </span>
+                          )}
 
                           <div>
                             <div className="flex items-center justify-between mb-1.5">
@@ -982,11 +1015,27 @@ export function RegisterUserPage() {
                                 </li>
                               ))}
                             </ul>
+
+                            {tier.id === "tier_4" && (
+                              <div className="mt-2.5 rounded-lg border border-purple-200 bg-purple-50/80 p-2 text-[10.5px] text-purple-900 leading-snug">
+                                <span className="font-semibold text-purple-950">Multi-Member Policy:</span> Multiple member registrations under single membership. All members have to purchase subscriptions.
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
                     })}
                   </div>
+
+                  {/* Tier IV Advisory Callout */}
+                  {form.selectedTier === "tier_4" && (
+                    <div className="rounded-2xl border border-purple-200/90 bg-purple-50/70 p-3.5 text-xs text-purple-900 flex items-start gap-2.5 animate-in fade-in-50">
+                      <Sparkles className="h-4 w-4 shrink-0 text-purple-600 mt-0.5" />
+                      <div>
+                        <strong className="font-bold text-purple-950">Tier IV Enterprise Subscription Terms:</strong> Multiple members can register under your single chamber membership. Note that every member on the roster must purchase an active subscription (₹200/mo) to unlock member privileges.
+                      </div>
+                    </div>
+                  )}
 
                   {/* Terms checkbox */}
                   <div className="pt-2">

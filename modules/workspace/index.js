@@ -20,3 +20,5 @@ export { BizAdvertisements } from "./components/biz-advertisements.jsx";
 export { UserDashboard } from "./components/user-dashboard.jsx";
 export { UserMembership } from "./components/user-membership.jsx";
 export { UserProfile } from "./components/user-profile.jsx";
+export { VisaReferralsList } from "./components/visa-referrals-list.jsx";
+

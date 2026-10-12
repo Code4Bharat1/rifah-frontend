@@ -25,6 +25,7 @@ import {
   Ticket,
   TrendingUp,
   Users,
+  Globe,
 } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -58,6 +59,7 @@ const adminModules = [
   { label: "Audit logs", to: "/admin/audit", icon: ScrollText },
   { label: "Roles & RBAC", to: "/admin/roles", icon: ShieldCheck },
   { label: "Verification", to: "/admin/verification", icon: ShieldCheck },
+  { label: "Visa Referrals", to: "/admin/visa-referrals", icon: Globe },
   { label: "LMS", to: "/admin/lms", icon: GraduationCap },
 ];
 
