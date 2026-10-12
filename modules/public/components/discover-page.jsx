@@ -16,7 +16,7 @@ import {
   BadgeCheck,
   Globe,
 } from "lucide-react";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { CATEGORIES_DATA, getMainCategories, getSubCategoriesFor } from "@shared/lib/categories-data";
 import { INTERNATIONAL_COUNTRIES_AND_CITIES } from "@shared/lib/international-countries-cities";
@@ -45,7 +45,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@shared/components/ui/sheet";
-import { useBusinesses, useChapters, useCategories, useCatalogue } from "@shared/hooks/use-rifah-api";
+import { useBusinesses, useChapters, useStates, useCountries, useCategories, useCatalogue } from "@shared/hooks/use-rifah-api";
 import { cn } from "@shared/lib/utils";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 
@@ -64,6 +64,83 @@ function DiscoverPage() {
   const windowScrollPosRef = useRef(0);
   const isNavigatingFilterRef = useRef(false);
   const t = useTranslations("Discover");
+
+  const setParam = useCallback((patch) => {
+    if (typeof window !== "undefined") {
+      const currentWinY = window.scrollY || window.pageYOffset || 0;
+      windowScrollPosRef.current = currentWinY;
+      isNavigatingFilterRef.current = true;
+    }
+    if (filterScrollRef.current) {
+      scrollPositionRef.current = filterScrollRef.current.scrollTop;
+    }
+    const current = new URLSearchParams(searchParams ? searchParams.toString() : "");
+    Object.entries(patch).forEach(([key, val]) => {
+      if (val === undefined || val === null || val === "" || val === "All" || val === "all" || val === "businesses") {
+        current.delete(key);
+      } else {
+        current.set(key, String(val));
+      }
+    });
+    const qs = current.toString();
+    const newUrl = qs ? `/discover?${qs}` : "/discover";
+
+    router.replace(newUrl, { scroll: false });
+
+    if (typeof window !== "undefined" && windowScrollPosRef.current > 0) {
+      const lockY = windowScrollPosRef.current;
+      window.scrollTo({ top: lockY, behavior: "instant" });
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: lockY, behavior: "instant" });
+      });
+      setTimeout(() => {
+        window.scrollTo({ top: lockY, behavior: "instant" });
+      }, 30);
+      setTimeout(() => {
+        window.scrollTo({ top: lockY, behavior: "instant" });
+      }, 100);
+    }
+  }, [searchParams, router]);
+
+  const resetFilters = useCallback(() => {
+    if (typeof window !== "undefined") {
+      const currentWinY = window.scrollY || window.pageYOffset || 0;
+      windowScrollPosRef.current = currentWinY;
+      isNavigatingFilterRef.current = true;
+      localStorage.setItem("rifah_selected_country", "All");
+      window.dispatchEvent(
+        new CustomEvent("rifah:country-changed", { detail: { country: "All" } })
+      );
+    }
+    if (filterScrollRef.current) {
+      scrollPositionRef.current = filterScrollRef.current.scrollTop;
+    }
+    router.replace("/discover", { scroll: false });
+    if (typeof window !== "undefined" && windowScrollPosRef.current > 0) {
+      const lockY = windowScrollPosRef.current;
+      window.scrollTo({ top: lockY, behavior: "instant" });
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: lockY, behavior: "instant" });
+      });
+      setTimeout(() => {
+        window.scrollTo({ top: lockY, behavior: "instant" });
+      }, 30);
+    }
+  }, [router]);
+
+  // Sync Discover page with Header Country Selector
+  useEffect(() => {
+    const handleCountryEvent = (e) => {
+      const selected = e.detail?.country;
+      if (selected && selected !== "All") {
+        setParam({ country: selected, state: undefined, chapter: undefined });
+      } else {
+        setParam({ country: undefined });
+      }
+    };
+    window.addEventListener("rifah:country-changed", handleCountryEvent);
+    return () => window.removeEventListener("rifah:country-changed", handleCountryEvent);
+  }, [setParam]);
 
   // Prevent automatic browser scroll-to-top on route query updates
   useEffect(() => {
@@ -171,22 +248,64 @@ function DiscoverPage() {
     []
   );
 
-  const { data: chaptersData } = useChapters();
-  const chaptersList = Array.isArray(chaptersData?.chapters)
-    ? chaptersData.chapters
-    : Array.isArray(chaptersData)
-    ? chaptersData
-    : [];
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const activeCountriesList = React.useMemo(() => {
+    const list = Array.isArray(countriesData?.countries)
+      ? countriesData.countries
+      : Array.isArray(countriesData)
+      ? countriesData
+      : [];
+    return list.map((c) => c.name).filter(Boolean);
+  }, [countriesData]);
 
-  const states = Array.from(
-    new Set(chaptersList.map((ch) => (ch.state || "").trim()).filter(Boolean))
-  ).sort();
+  const allCountryOptions = React.useMemo(() => {
+    const set = new Set(["India", ...activeCountriesList, ...internationalCountries]);
+    return Array.from(set).sort();
+  }, [activeCountriesList, internationalCountries]);
+
+  const { data: chaptersData } = useChapters();
+  const chaptersList = React.useMemo(() => {
+    return Array.isArray(chaptersData?.chapters)
+      ? chaptersData.chapters
+      : Array.isArray(chaptersData)
+      ? chaptersData
+      : [];
+  }, [chaptersData]);
+
+  const { data: statesData } = useStates(
+    search.country && search.country !== "all" ? { country: search.country } : undefined
+  );
+  const dbStates = React.useMemo(() => {
+    return Array.isArray(statesData?.states)
+      ? statesData.states
+      : Array.isArray(statesData)
+      ? statesData
+      : [];
+  }, [statesData]);
+
+  const filteredChaptersList = React.useMemo(() => {
+    let list = chaptersList;
+    if (search.country && search.country !== "all") {
+      const cLower = search.country.toLowerCase();
+      list = list.filter((ch) => {
+        if (!ch.country) return cLower === "india";
+        return ch.country.toLowerCase() === cLower;
+      });
+    }
+    return list;
+  }, [chaptersList, search.country]);
+
+  const states = React.useMemo(() => {
+    const fromChapters = filteredChaptersList.map((ch) => (ch.state || "").trim()).filter(Boolean);
+    const fromDb = dbStates.map((s) => (s.name || "").trim()).filter(Boolean);
+    return Array.from(new Set([...fromChapters, ...fromDb])).sort();
+  }, [filteredChaptersList, dbStates]);
 
   const chaptersForSelectedState = search.state
-    ? chaptersList.filter(
+    ? filteredChaptersList.filter(
         (ch) => (ch.state || "").trim().toLowerCase() === search.state.trim().toLowerCase()
       )
-    : chaptersList;
+    : filteredChaptersList;
 
   const { data: categoriesData } = useCategories();
   const categories = Array.isArray(categoriesData) ? categoriesData : [];
@@ -250,7 +369,13 @@ function DiscoverPage() {
     // Country filter
     if (search.country && search.country !== "all") {
       const c = `${b.country || ""} ${b.state || ""}`.toLowerCase();
-      if (!c.includes(search.country.toLowerCase())) return false;
+      const targetC = search.country.toLowerCase();
+      if (targetC === "india") {
+        const isIndia = !b.country || b.country.toLowerCase() === "india" || b.region !== "international";
+        if (!isIndia) return false;
+      } else {
+        if (!c.includes(targetC)) return false;
+      }
     }
 
     // Membership level filter (with legacy alias mapping)
@@ -309,7 +434,13 @@ function DiscoverPage() {
     // Country filter
     if (search.country && search.country !== "all") {
       const c = `${b.country || ""} ${b.state || ""}`.toLowerCase();
-      if (!c.includes(search.country.toLowerCase())) return false;
+      const targetC = search.country.toLowerCase();
+      if (targetC === "india") {
+        const isIndia = !b.country || b.country.toLowerCase() === "india" || b.region !== "international";
+        if (!isIndia) return false;
+      } else {
+        if (!c.includes(targetC)) return false;
+      }
     }
 
     return true;
@@ -372,77 +503,26 @@ function DiscoverPage() {
     };
   }, [query, allMainCategories, businessResults, catalogueResults]);
 
-  const setParam = (patch) => {
-    if (typeof window !== "undefined") {
-      const currentWinY = window.scrollY || window.pageYOffset || 0;
-      windowScrollPosRef.current = currentWinY;
-      isNavigatingFilterRef.current = true;
-    }
-    if (filterScrollRef.current) {
-      scrollPositionRef.current = filterScrollRef.current.scrollTop;
-    }
-    const current = new URLSearchParams(searchParams ? searchParams.toString() : "");
-    Object.entries(patch).forEach(([key, val]) => {
-      if (val === undefined || val === null || val === "" || val === "All" || val === "all" || val === "businesses") {
-        current.delete(key);
-      } else {
-        current.set(key, String(val));
-      }
-    });
-    const qs = current.toString();
-    const newUrl = qs ? `/discover?${qs}` : "/discover";
-
-    router.replace(newUrl, { scroll: false });
-
-    if (typeof window !== "undefined" && windowScrollPosRef.current > 0) {
-      const lockY = windowScrollPosRef.current;
-      window.scrollTo({ top: lockY, behavior: "instant" });
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: lockY, behavior: "instant" });
-      });
-      setTimeout(() => {
-        window.scrollTo({ top: lockY, behavior: "instant" });
-      }, 30);
-      setTimeout(() => {
-        window.scrollTo({ top: lockY, behavior: "instant" });
-      }, 100);
-    }
-  };
-
-  const resetFilters = () => {
-    if (typeof window !== "undefined") {
-      const currentWinY = window.scrollY || window.pageYOffset || 0;
-      windowScrollPosRef.current = currentWinY;
-      isNavigatingFilterRef.current = true;
-    }
-    if (filterScrollRef.current) {
-      scrollPositionRef.current = filterScrollRef.current.scrollTop;
-    }
-    router.replace("/discover", { scroll: false });
-    if (typeof window !== "undefined" && windowScrollPosRef.current > 0) {
-      const lockY = windowScrollPosRef.current;
-      window.scrollTo({ top: lockY, behavior: "instant" });
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: lockY, behavior: "instant" });
-      });
-      setTimeout(() => {
-        window.scrollTo({ top: lockY, behavior: "instant" });
-      }, 30);
-    }
-  };
-
   const activeChips = [
     isOfferingsView && {
       label: "Listing: Products & Services",
       clear: () => setParam({ type: undefined }),
     },
+    search.country && {
+      label: `Country: ${search.country}`,
+      clear: () => {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("rifah_selected_country", "All");
+          window.dispatchEvent(
+            new CustomEvent("rifah:country-changed", { detail: { country: "All" } })
+          );
+        }
+        setParam({ country: undefined, state: undefined, chapter: undefined });
+      },
+    },
     search.region && {
       label: search.region === "international" ? "Region: International (Global)" : "Region: National (India)",
       clear: () => setParam({ region: undefined, country: undefined }),
-    },
-    search.country && {
-      label: `Country: ${search.country}`,
-      clear: () => setParam({ country: undefined }),
     },
     search.industry && {
       label: `Industry: ${search.industry}`,
@@ -555,18 +635,54 @@ function DiscoverPage() {
         )}
       </div>
 
-      {/* 6. Region (National vs International Scope) */}
+      {/* 6. Country Filter */}
       <div>
         <div className="flex items-center justify-between">
-          <Label htmlFor="f-region" className="font-semibold text-xs text-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <Label htmlFor="f-country" className="font-semibold text-xs text-foreground uppercase tracking-wider flex items-center gap-1.5">
             <Globe className="h-3.5 w-3.5 text-primary" />
-            Region / Scope
+            Country
           </Label>
-          {search.region === "international" && (
-            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 px-1.5 py-0.5 rounded-md">
-              Global
+          {search.country && search.country !== "all" && (
+            <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">
+              {search.country}
             </span>
           )}
+        </div>
+        <SearchableFilterSelect
+          id="f-country"
+          value={search.country || "all"}
+          onValueChange={(v) => {
+            const nextCountry = v === "all" ? undefined : v;
+            if (typeof window !== "undefined") {
+              localStorage.setItem("rifah_selected_country", nextCountry || "All");
+              window.dispatchEvent(
+                new CustomEvent("rifah:country-changed", { detail: { country: nextCountry || "All" } })
+              );
+            }
+            const nextRegion = nextCountry
+              ? (nextCountry.toLowerCase() === "india" ? "national" : "international")
+              : undefined;
+            setParam({
+              country: nextCountry,
+              region: nextRegion,
+              state: undefined,
+              chapter: undefined,
+            });
+          }}
+          placeholder="All Countries"
+          searchPlaceholder="Search country (e.g. India, China, UAE)..."
+          allLabel="All Countries (Global Footprint)"
+          options={allCountryOptions}
+          className="mt-1.5 h-10 rounded-xl bg-background font-medium"
+        />
+      </div>
+
+      {/* 6.1. Region Scope (Optional Filter) */}
+      <div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="f-region" className="font-semibold text-xs text-foreground uppercase tracking-wider">
+            Region Scope
+          </Label>
         </div>
         <Select
           value={search.region || "all"}
@@ -574,101 +690,80 @@ function DiscoverPage() {
             const nextReg = v === "all" ? undefined : v;
             setParam({
               region: nextReg,
-              country: undefined,
-              state: nextReg === "international" ? undefined : search.state,
-              chapter: nextReg === "international" ? undefined : search.chapter,
+              country: nextReg === "national" ? "India" : (nextReg === "international" && search.country?.toLowerCase() === "india" ? undefined : search.country),
+              state: undefined,
+              chapter: undefined,
             });
           }}
         >
           <SelectTrigger id="f-region" className="mt-1.5 h-10 rounded-xl bg-background font-medium">
-            <SelectValue placeholder="All Regions (India & Global)" />
+            <SelectValue placeholder="All Scopes (National & Global)" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Regions (National &amp; Global)</SelectItem>
+            <SelectItem value="all">All Scopes (National &amp; Global)</SelectItem>
             <SelectItem value="national">National (India)</SelectItem>
             <SelectItem value="international">International (Global) 🌐</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* 6.1. International Country Filter (Shown when International Region is selected) */}
-      {search.region === "international" && (
-        <div className="animate-in fade-in slide-in-from-top-1">
-          <Label htmlFor="f-country" className="font-semibold text-xs text-foreground uppercase tracking-wider">
-            International Country
-          </Label>
-          <SearchableFilterSelect
-            id="f-country"
-            value={search.country || "all"}
-            onValueChange={(v) => setParam({ country: v === "all" ? undefined : v })}
-            placeholder="All International Countries"
-            searchPlaceholder="Search country (e.g. UAE, UK, USA)..."
-            allLabel="All International Countries"
-            options={internationalCountries}
-            className="mt-1.5 h-10 rounded-xl bg-background font-medium"
-          />
-        </div>
-      )}
+      {/* 7. State / Province (Cascaded from Country) */}
+      <div>
+        <Label htmlFor="f-state" className="font-semibold text-xs text-foreground uppercase tracking-wider">
+          {search.country && search.country.toLowerCase() !== "india" ? "State / Province" : t("state")}
+        </Label>
+        <Select
+          value={search.state || "all"}
+          onValueChange={(v) => {
+            const nextState = v === "all" ? undefined : v;
+            const chapterStillValid =
+              !search.chapter ||
+              filteredChaptersList.some(
+                (ch) =>
+                  ch.name === search.chapter &&
+                  (!nextState || (ch.state || "").trim().toLowerCase() === nextState.trim().toLowerCase())
+              );
+            setParam({ state: nextState, chapter: chapterStillValid ? search.chapter : undefined });
+          }}
+          disabled={states.length === 0}
+        >
+          <SelectTrigger id="f-state" className="mt-1.5 h-10 rounded-xl bg-background">
+            <SelectValue placeholder={states.length === 0 ? "No states listed" : (search.country && search.country.toLowerCase() !== "india" ? "All States / Provinces" : t("allStates"))} />
+          </SelectTrigger>
+          <SelectContent className="max-h-72">
+            <SelectItem value="all">{search.country && search.country.toLowerCase() !== "india" ? "All States / Provinces" : t("allStates")}</SelectItem>
+            {states.map((state) => (
+              <SelectItem key={state} value={state}>
+                {state}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* 7. State (Shown for National or All Regions) */}
-      {search.region !== "international" && (
-        <div>
-          <Label htmlFor="f-state" className="font-semibold text-xs text-foreground uppercase tracking-wider">
-            {t("state")}
-          </Label>
-          <Select
-            value={search.state || "all"}
-            onValueChange={(v) => {
-              const nextState = v === "all" ? undefined : v;
-              const chapterStillValid =
-                !search.chapter ||
-                chaptersList.some(
-                  (ch) =>
-                    ch.name === search.chapter &&
-                    (!nextState || (ch.state || "").trim().toLowerCase() === nextState.trim().toLowerCase())
-                );
-              setParam({ state: nextState, chapter: chapterStillValid ? search.chapter : undefined });
-            }}
-          >
-            <SelectTrigger id="f-state" className="mt-1.5 h-10 rounded-xl bg-background">
-              <SelectValue placeholder={t("allStates")} />
-            </SelectTrigger>
-            <SelectContent className="max-h-72">
-              <SelectItem value="all">{t("allStates")}</SelectItem>
-              {states.map((state) => (
-                <SelectItem key={state} value={state}>
-                  {state}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* 8. Chapter (Shown for National or All Regions) */}
-      {search.region !== "international" && (
-        <div>
-          <Label htmlFor="f-chapter" className="font-semibold text-xs text-foreground uppercase tracking-wider">
-            {t("chapter")}
-          </Label>
-          <Select
-            value={search.chapter || "all"}
-            onValueChange={(v) => setParam({ chapter: v === "all" ? undefined : v })}
-          >
-            <SelectTrigger id="f-chapter" className="mt-1.5 h-10 rounded-xl bg-background">
-              <SelectValue placeholder={t("allChapters")} />
-            </SelectTrigger>
-            <SelectContent className="max-h-72">
-              <SelectItem value="all">{t("allChapters")}</SelectItem>
-              {chaptersForSelectedState.map((ch) => (
-                <SelectItem key={ch._id || ch.name} value={ch.name}>
-                  {ch.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      {/* 8. Chapter (Cascaded from State & Country) */}
+      <div>
+        <Label htmlFor="f-chapter" className="font-semibold text-xs text-foreground uppercase tracking-wider">
+          {t("chapter")}
+        </Label>
+        <Select
+          value={search.chapter || "all"}
+          onValueChange={(v) => setParam({ chapter: v === "all" ? undefined : v })}
+          disabled={chaptersForSelectedState.length === 0}
+        >
+          <SelectTrigger id="f-chapter" className="mt-1.5 h-10 rounded-xl bg-background">
+            <SelectValue placeholder={chaptersForSelectedState.length === 0 ? "No chapters in region" : t("allChapters")} />
+          </SelectTrigger>
+          <SelectContent className="max-h-72">
+            <SelectItem value="all">{t("allChapters")}</SelectItem>
+            {chaptersForSelectedState.map((ch) => (
+              <SelectItem key={ch._id || ch.name} value={ch.name}>
+                {ch.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* 8. Verified Directory Badge */}
       {!isOfferingsView && (

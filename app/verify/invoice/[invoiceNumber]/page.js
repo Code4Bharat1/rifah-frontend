@@ -24,9 +24,11 @@ import { Button } from "@shared/components/ui/button";
 import { generateInvoiceHtml, downloadInvoicePdf } from "@shared/lib/invoice-generator";
 
 export default function InvoiceVerificationPage({ params }) {
-  // Unwrap Next.js dynamic route params
   const resolvedParams = use(params);
-  const invoiceNumber = resolvedParams?.invoiceNumber || "";
+  const rawInvoice = resolvedParams?.invoiceNumber;
+  const invoiceNumber = Array.isArray(rawInvoice)
+    ? rawInvoice.map(decodeURIComponent).join("/")
+    : decodeURIComponent(rawInvoice || "");
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
 

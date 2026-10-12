@@ -25,6 +25,7 @@ import { useTranslations } from "next-intl";
 
 import { RifahLogo } from "@shared/components/rifah/brand";
 import { LanguageSelector } from "@shared/components/rifah/language-selector";
+import { CountrySelector } from "@shared/components/rifah/country-selector";
 import { Button } from "@shared/components/ui/button";
 import {
   Sheet,
@@ -100,8 +101,8 @@ export function PublicHeader() {
             ? "/user"
             : "/user";
 
-  const [isScrolled, setIsScrolled] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
+  const [isScrolled, setIsScrolled] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
@@ -170,6 +171,7 @@ export function PublicHeader() {
           {mounted ? (
             isAuthenticated ? (
               <>
+                <CountrySelector />
                 <LanguageSelector />
                 <Button
                   asChild
@@ -193,6 +195,7 @@ export function PublicHeader() {
               </>
             ) : (
               <>
+                <CountrySelector />
                 <LanguageSelector />
                 <Button
                   asChild
@@ -212,6 +215,7 @@ export function PublicHeader() {
             )
           ) : (
             <>
+              <CountrySelector />
               <LanguageSelector />
               <div className="hidden md:inline-flex w-[60px] h-[36px] bg-muted/50 animate-pulse rounded-md" />
               <div className="hidden sm:inline-flex w-[80px] h-[36px] bg-muted/50 animate-pulse rounded-md" />

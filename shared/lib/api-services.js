@@ -209,7 +209,7 @@ export const categoryApi = {
 };
 
 export const chapterApi = {
-  list: () => apiClient("/chapters"),
+  list: (params = {}) => apiClient(`/chapters${toQueryString(params)}`),
   getById: (id) => apiClient(`/chapters/${id}`),
   getChapterDetails: (id) => apiClient(`/chapters/${id}/details`),
   create: (data) =>
@@ -243,7 +243,7 @@ export const chapterApi = {
 };
 
 export const stateApi = {
-  list: () => apiClient("/states"),
+  list: (params = {}) => apiClient(`/states${toQueryString(params)}`),
   getByName: (stateName) =>
     apiClient(`/states/${encodeURIComponent(stateName)}`),
   createState: (data) =>
@@ -1269,3 +1269,12 @@ export const visaReferralApi = {
   },
 };
 
+export const dignitaryApi = {
+  getAll: (params = {}) => apiClient(`/dignitaries${toQueryString(params)}`),
+  getById: (id) => apiClient(`/dignitaries/${id}`),
+  create: (data) =>
+    apiClient("/dignitaries", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) =>
+    apiClient(`/dignitaries/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/dignitaries/${id}`, { method: "DELETE" }),
+};

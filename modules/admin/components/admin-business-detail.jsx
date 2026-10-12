@@ -466,7 +466,9 @@ export function AdminBusinessDetail({ id }) {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Membership ID</span>
                 <span className="font-mono font-bold text-primary">
-                  {business.membershipId || `RIFAH-MEM-${business._id?.slice(-6).toUpperCase()}`}
+                  {business.membershipId && !business.membershipId.startsWith("RIFAH-MEM-")
+                    ? business.membershipId
+                    : `RIFAH-${(business.chapter || "PUN").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3) || "PUN"}-0001`}
                 </span>
               </div>
               <div className="flex items-center justify-between">

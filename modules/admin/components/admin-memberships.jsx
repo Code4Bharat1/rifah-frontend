@@ -63,9 +63,9 @@ function AdminMemberships() {
   const isRifahMember = (b) => !isFreeMember(b);
 
   const getRifahId = (b) => {
-    if (b?.membershipId) return b.membershipId;
-    if (b?._id) return `RIFAH-MEM-${String(b._id).slice(-6).toUpperCase()}`;
-    return "RIFAH-MEM-0001";
+    if (b?.membershipId && !b.membershipId.startsWith("RIFAH-MEM-")) return b.membershipId;
+    const code = (b?.chapter || "PUN").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3) || "PUN";
+    return `RIFAH-${code}-0001`;
   };
 
   const getMembershipExpiryInfo = (b) => {
@@ -169,7 +169,7 @@ function AdminMemberships() {
 
         paymentRecord = {
           _id: business._id,
-          invoiceNumber: `INV-${String(business.membershipId || business._id).replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase() || "1001"}`,
+          invoiceNumber: `RCCI/${new Date(business.joiningDate || business.createdAt || Date.now()).getMonth() >= 3 ? `${String(new Date(business.joiningDate || business.createdAt || Date.now()).getFullYear()).slice(-2)}-${String(new Date(business.joiningDate || business.createdAt || Date.now()).getFullYear() + 1).slice(-2)}` : `${String(new Date(business.joiningDate || business.createdAt || Date.now()).getFullYear() - 1).slice(-2)}-${String(new Date(business.joiningDate || business.createdAt || Date.now()).getFullYear()).slice(-2)}`}/0001`,
           amount: amount,
           subtotal: Math.round(amount / 1.18),
           gstRate: 18,

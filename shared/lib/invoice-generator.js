@@ -87,21 +87,50 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
     business?.city ||
     "";
 
-  const membershipId =
+  const issueDateObj = new Date(payment.paidAt || payment.createdAt || Date.now());
+  
+  // Calculate Indian Financial Year (1st April - 31st March)
+  const fyMonth = issueDateObj.getMonth();
+  const fyYear = issueDateObj.getFullYear();
+  const fyStart = fyMonth >= 3 ? fyYear : fyYear - 1;
+  const fyEnd = fyStart + 1;
+  const currentFy = `${String(fyStart).slice(-2)}-${String(fyEnd).slice(-2)}`;
+
+  // Chapter Code Resolution
+  const rawChapter = payment.chapter || business?.chapter || payment.business?.chapter || payment.payer?.chapter || "";
+  const cleanChap = rawChapter.toLowerCase().replace(/\b(chapter|chamber|branch|zone)\b/gi, "").replace(/[^a-z0-9]/g, "").trim();
+  const chapMap = {
+    pune: "PUN", mumbai: "MUM", delhi: "DEL", surat: "SUR", nagpur: "NAG",
+    gurugram: "GUR", gurgaon: "GUR", bengaluru: "BLR", bangalore: "BLR",
+    hyderabad: "HYD", ahmedabad: "AHM", kolkata: "KOL", chennai: "MAA",
+    jaipur: "JAI", lucknow: "LKO", kanpur: "KNP", patna: "PAT",
+    indore: "IND", bhopal: "BHO", thane: "THA", nashik: "NSK",
+    aurangabad: "AUR", sambhajinagar: "AUR", solapur: "SOL", kolhapur: "KLH",
+    "navi mumbai": "NVM", nanded: "NAN", amravati: "AMR", jalgaon: "JAL",
+    akola: "AKL", latur: "LAT", dhule: "DHU", ahmednagar: "AHG",
+  };
+  const resolvedChapCode = chapMap[cleanChap] || (rawChapter.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3) || "CEN");
+
+  const rawMem =
     business?.membershipId ||
     payment.business?.membershipId ||
     payment.payer?.membershipId ||
-    (payment._id ? `RIFAH-DIA-${String(payment._id).slice(-4).toUpperCase()}` : "");
+    "";
+  const membershipId =
+    rawMem && rawMem.startsWith("RIFAH-") && !rawMem.startsWith("RIFAH-MEM-") && !rawMem.startsWith("RIFAH-DIA-") && !rawMem.startsWith("RIFAH-CEN-")
+      ? rawMem
+      : `RIFAH-${resolvedChapCode}-0001`;
 
   const gstin = payment.gstin || business?.gstin || "";
+  const rawInvoice = payment.invoiceNumber || "";
   const invoiceNum =
-    payment.invoiceNumber ||
-    `INV-${String(payment._id || "").slice(-6).toUpperCase() || "0000"}`;
+    rawInvoice.startsWith("RCCI/")
+      ? rawInvoice
+      : `RCCI/${currentFy}/0001`;
   const sacCode = payment.sacCode || "9983";
   const quantity = payment.quantity || 1;
   const itemDescriptionSubtext = payment.notes || (isDelegation ? "Official Overseas Business Delegation installment payment under Section 206C (Includes 5% GST & 2% TCS)." : payment.isCustomInvoice ? "Official chamber accredited deliverables & verified transaction record." : "Full chamber access, directory listing, event credentials and business networking desk.");
 
-  const issueDateObj = new Date(payment.paidAt || payment.createdAt || Date.now());
   const formattedDate = issueDateObj.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -979,10 +1008,17 @@ export async function downloadInvoicePdf(payment, business = null) {
   const { jsPDF } = await import("jspdf");
   const html2canvas = (await import("html2canvas")).default;
 
+  const issueDateObj = new Date(payment.paidAt || payment.createdAt || Date.now());
+  const fyMonth = issueDateObj.getMonth();
+  const fyYear = issueDateObj.getFullYear();
+  const fyStart = fyMonth >= 3 ? fyYear : fyYear - 1;
+  const currentFy = `${String(fyStart).slice(-2)}-${String(fyStart + 1).slice(-2)}`;
+
   const invNo =
     payment.invoiceNumber ||
-    `INV-${String(payment._id || "").slice(-6).toUpperCase() || "0000"}`;
-  const fileName = `RIFAH_Invoice_${invNo}.pdf`;
+    `RCCI/${currentFy}/0001`;
+  const safeFilename = invNo.replace(/[\/\\?%*:|"<>]/g, "_");
+  const fileName = `RIFAH_Invoice_${safeFilename}.pdf`;
 
   const iframe = document.createElement("iframe");
   iframe.id = "rifah-invoice-export-frame";

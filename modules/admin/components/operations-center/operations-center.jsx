@@ -75,7 +75,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@shared/providers/auth-provider";
-import { eventApi, followupApi, chapterApi, userApi, documentApi } from "@shared/lib/api-services";
+import { eventApi, followupApi, chapterApi, userApi, documentApi, dignitaryApi } from "@shared/lib/api-services";
 import { resolveMediaUrl, downloadFile, getBackendServerBase } from "@shared/lib/api-client";
 import { getSocket } from "@shared/lib/socket";
 import { Button } from "@shared/components/ui/button";
@@ -332,6 +332,27 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     topic: "",
   });
   const [savingSpeaker, setSavingSpeaker] = useState(false);
+  const [speakerSubTab, setSpeakerSubTab] = useState("event"); // "event" | "master"
+  const [masterDignitaries, setMasterDignitaries] = useState([]);
+  const [loadingMaster, setLoadingMaster] = useState(false);
+  const [masterSearchQuery, setMasterSearchQuery] = useState("");
+  const [masterDialogOpen, setMasterDialogOpen] = useState(false);
+  const [masterPickerOpen, setMasterPickerOpen] = useState(false);
+  const [assigningId, setAssigningId] = useState(null);
+  const [newMasterDignitary, setNewMasterDignitary] = useState({
+    name: "",
+    category: "",
+    mobile: "",
+    email: "",
+    org: "",
+    designation: "",
+    type: "Guest Speaker",
+    topic: "",
+    city: "",
+  });
+  const [savingMaster, setSavingMaster] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { type: "event_speaker" | "master_dignitary", id: string, name: string }
+  const [deletingSpeaker, setDeletingSpeaker] = useState(false);
 
   // Team & Operations
   const [teamRoles, setTeamRoles] = useState({
@@ -1035,6 +1056,24 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       if (selectedEventId) {
         await eventApi.updateOperations(selectedEventId, { speakers: updatedSpeakers });
       }
+
+      // Automatically sync speaker to Master List (global directory across all events & admins)
+      try {
+        await dignitaryApi.create({
+          name: newSpeaker.name,
+          category: newSpeaker.category,
+          mobile: newSpeaker.mobile,
+          email: newSpeaker.email,
+          org: newSpeaker.org,
+          designation: newSpeaker.designation,
+          type: newSpeaker.type || "Guest Speaker",
+          topic: newSpeaker.topic,
+        });
+        fetchMasterDignitaries();
+      } catch (e) {
+        console.error("Auto-sync to master list error:", e);
+      }
+
       toast.success(`Speaker ${newSpeaker.name} saved!`);
       setSpeakerDialogOpen(false);
       setNewSpeaker({ name: "", category: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
@@ -1045,26 +1084,150 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     }
   };
 
+  const fetchMasterDignitaries = async () => {
+    try {
+      setLoadingMaster(true);
+      const res = await dignitaryApi.getAll();
+      const list = Array.isArray(res) ? res : res?.data || [];
+      setMasterDignitaries(list);
+    } catch (err) {
+      console.warn("Warning loading master dignitaries (transient):", err?.message || err);
+    } finally {
+      setLoadingMaster(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentTab === "speakers-guests") {
+      fetchMasterDignitaries();
+    }
+  }, [currentTab]);
+
+  const handleAssignToEvent = async (dignitary) => {
+    if (!selectedEventId) {
+      toast.error("Please select an active event first.");
+      return;
+    }
+    const alreadyAdded = speakers.some(
+      (sp) =>
+        (sp.dignitaryId && sp.dignitaryId === (dignitary._id || dignitary.id)) ||
+        (sp.name?.toLowerCase() === dignitary.name?.toLowerCase() && sp.mobile === dignitary.mobile)
+    );
+    if (alreadyAdded) {
+      toast.info(`${dignitary.name} is already added to this event.`);
+      return;
+    }
+    try {
+      setAssigningId(dignitary._id || dignitary.id);
+      const updatedSpeakers = [
+        ...speakers,
+        {
+          id: `sp-${Date.now()}`,
+          dignitaryId: dignitary._id || dignitary.id,
+          name: dignitary.name,
+          category: dignitary.category || "",
+          mobile: dignitary.mobile || "",
+          email: dignitary.email || "",
+          org: dignitary.org || "",
+          designation: dignitary.designation || "",
+          type: dignitary.type || "Guest Speaker",
+          topic: dignitary.topic || "",
+        },
+      ];
+      setSpeakers(updatedSpeakers);
+      await eventApi.updateOperations(selectedEventId, { speakers: updatedSpeakers });
+      toast.success(`${dignitary.name} added to this event!`);
+    } catch (err) {
+      toast.error("Failed to assign dignitary to event.");
+    } finally {
+      setAssigningId(null);
+    }
+  };
+
+  const handleSaveMasterDignitary = async (e) => {
+    e.preventDefault();
+    if (!newMasterDignitary.name || !newMasterDignitary.name.trim()) {
+      toast.error("Please enter the dignitary name.");
+      return;
+    }
+    if (newMasterDignitary.email && !isValidEmail(newMasterDignitary.email)) {
+      toast.error("Enter a valid email address.");
+      return;
+    }
+    try {
+      setSavingMaster(true);
+      if (newMasterDignitary._id) {
+        await dignitaryApi.update(newMasterDignitary._id, newMasterDignitary);
+        toast.success("Dignitary updated in Master List!");
+      } else {
+        await dignitaryApi.create(newMasterDignitary);
+        toast.success("Dignitary added to Master List!");
+      }
+      setMasterDialogOpen(false);
+      setNewMasterDignitary({
+        name: "",
+        category: "",
+        mobile: "",
+        email: "",
+        org: "",
+        designation: "",
+        type: "Guest Speaker",
+        topic: "",
+        city: "",
+      });
+      fetchMasterDignitaries();
+    } catch (err) {
+      toast.error(err.data?.error?.message || err.message || "Failed to save dignitary to Master List.");
+    } finally {
+      setSavingMaster(false);
+    }
+  };
+
+  const handleEditMasterDignitaryClick = (d) => {
+    setNewMasterDignitary({
+      _id: d._id || d.id,
+      name: d.name || "",
+      category: d.category || "",
+      mobile: d.mobile || "",
+      email: d.email || "",
+      org: d.org || "",
+      designation: d.designation || "",
+      type: d.type || "Guest Speaker",
+      topic: d.topic || "",
+      city: d.city || "",
+    });
+    setMasterDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setDeletingSpeaker(true);
+      if (deleteTarget.type === "master_dignitary") {
+        await dignitaryApi.delete(deleteTarget.id);
+        toast.success(`"${deleteTarget.name}" deleted from Master List!`);
+        fetchMasterDignitaries();
+      } else {
+        const updatedSpeakers = speakers.filter((sp) => sp.id !== deleteTarget.id);
+        setSpeakers(updatedSpeakers);
+        if (selectedEventId) {
+          await eventApi.updateOperations(selectedEventId, { speakers: updatedSpeakers });
+        }
+        toast.success(`Speaker "${deleteTarget.name}" removed from this event!`, {
+          description: "They are still safely preserved in your Master List.",
+        });
+      }
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error("Failed to remove: " + (err.message || "Unknown error"));
+    } finally {
+      setDeletingSpeaker(false);
+    }
+  };
+
   const handleEditSpeakerClick = (s) => {
     setNewSpeaker(s);
     setSpeakerDialogOpen(true);
-  };
-
-  const handleDeleteSpeaker = async (speakerId) => {
-    if (!window.confirm("Are you sure you want to remove this speaker?")) return;
-    try {
-      setSavingSpeaker(true);
-      const updatedSpeakers = speakers.filter(sp => sp.id !== speakerId);
-      setSpeakers(updatedSpeakers);
-      if (selectedEventId) {
-        await eventApi.updateOperations(selectedEventId, { speakers: updatedSpeakers });
-      }
-      toast.success("Speaker removed!");
-    } catch (err) {
-      toast.error("Failed to remove speaker.");
-    } finally {
-      setSavingSpeaker(false);
-    }
   };
 
   const handleSaveFollowupHistory = async (e) => {
@@ -1432,34 +1595,162 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
 
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [lastScanResult, setLastScanResult] = useState(null);
+  const [scanStats, setScanStats] = useState({ success: 0, duplicate: 0 });
+  const lastScannedTicketRef = useRef({ code: "", timestamp: 0 });
+  const isProcessingRef = useRef(false);
+
+  const playScanBeep = (type = "success") => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      if (type === "success") {
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.18);
+      } else {
+        osc.frequency.setValueAtTime(320, ctx.currentTime);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.25);
+      }
+    } catch {
+      // Audio fails gracefully if user gesture restriction
+    }
+  };
+
+  const handleCloseScanner = () => {
+    setIsScannerOpen(false);
+    setIsScanning(false);
+    isProcessingRef.current = false;
+    lastScannedTicketRef.current = { code: "", timestamp: 0 };
+    setLastScanResult(null);
+  };
 
   const handleQrScan = async (result) => {
-    // result comes as an object { rawValue: string } or string depending on version, handle both
-    const text = typeof result === "object" ? result[0]?.rawValue || result?.rawValue : result;
-    if (text && !isScanning) {
-      setIsScanning(true);
-      try {
-        // Extract ticket ID from a full URL if it exists
-        // Example QR content: http://localhost:3000/verify/ticket/RIFAH-EVT-2026-B4F911?token=...
-        let ticketId = text;
-        if (text.includes("/verify/ticket/")) {
-          const parts = text.split("/verify/ticket/");
-          if (parts.length > 1) {
-            ticketId = parts[1].split("?")[0].replace(/\//g, ""); // extracts RIFAH-EVT-2026-B4F911
-          }
-        }
+    // result comes as an array of objects ({ rawValue: string }) in v2.6.0, or object, or string
+    let rawText = "";
+    if (Array.isArray(result) && result.length > 0) {
+      rawText = result[0]?.rawValue || "";
+    } else if (typeof result === "object" && result !== null) {
+      rawText = result.rawValue || "";
+    } else if (typeof result === "string") {
+      rawText = result;
+    }
 
-        const response = await eventApi.scanCheckInTicket(ticketId);
-        if (response.alreadyCheckedIn) {
-          toast.error(response.message);
-        } else {
-          toast.success(response.message || `Entry allowed for ${response.attendeeName || "Attendee"}!`);
-        }
-        fetchOperationsData(selectedEventId);
-      } catch (err) {
-        toast.error(err.data?.error?.message || err.message || "Invalid QR Code or Ticket not found.");
+    if (!rawText) return;
+
+    // Extract ticket ID from a full URL if it exists
+    let ticketId = String(rawText).trim();
+    if (ticketId.includes("/verify/ticket/")) {
+      const parts = ticketId.split("/verify/ticket/");
+      if (parts.length > 1) {
+        ticketId = parts[1].split("?")[0].replace(/\//g, "").trim();
       }
-      setTimeout(() => setIsScanning(false), 2500); // Prevent double scans rapidly
+    }
+
+    if (!ticketId) return;
+
+    const now = Date.now();
+    // Prevent rapid repeated scan of the EXACT same ticket while held in front of the lens (3.5s cooldown)
+    if (
+      lastScannedTicketRef.current.code === ticketId &&
+      now - lastScannedTicketRef.current.timestamp < 3500
+    ) {
+      return;
+    }
+
+    // If already processing another ticket, skip
+    if (isProcessingRef.current) return;
+
+    isProcessingRef.current = true;
+    setIsScanning(true);
+    lastScannedTicketRef.current = { code: ticketId, timestamp: now };
+
+    try {
+      const response = await eventApi.scanCheckInTicket(ticketId);
+      const isAlready = response?.alreadyCheckedIn || response?.data?.alreadyCheckedIn;
+      const attendeeName =
+        response?.attendeeName ||
+        response?.data?.attendeeName ||
+        response?.data?.name ||
+        "Attendee";
+
+      if (isAlready) {
+        playScanBeep("warning");
+        const msg = response?.message || `${attendeeName} is already checked in!`;
+        toast.warning(msg);
+        setLastScanResult({
+          type: "warning",
+          name: attendeeName,
+          ticketId,
+          message: msg,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        });
+        setScanStats((prev) => ({ ...prev, duplicate: prev.duplicate + 1 }));
+      } else {
+        playScanBeep("success");
+        const msg = response?.message || `Entry allowed for ${attendeeName}!`;
+        toast.success(msg);
+        setLastScanResult({
+          type: "success",
+          name: attendeeName,
+          ticketId,
+          message: msg,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        });
+        setScanStats((prev) => ({ ...prev, success: prev.success + 1 }));
+      }
+      fetchOperationsData(selectedEventId);
+    } catch (err) {
+      playScanBeep("error");
+      const errMsg =
+        err?.data?.message ||
+        err?.data?.error?.message ||
+        err?.message ||
+        "Invalid QR Code or Ticket not found.";
+
+      const isAlready =
+        err?.status === 409 ||
+        err?.data?.data?.alreadyCheckedIn ||
+        errMsg?.toLowerCase()?.includes("already checked in");
+
+      if (isAlready) {
+        const attendeeName = err?.data?.data?.attendeeName || "Attendee";
+        toast.warning(errMsg);
+        setLastScanResult({
+          type: "warning",
+          name: attendeeName,
+          ticketId,
+          message: errMsg,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        });
+        setScanStats((prev) => ({ ...prev, duplicate: prev.duplicate + 1 }));
+      } else {
+        toast.error(errMsg);
+        setLastScanResult({
+          type: "error",
+          name: "Ticket Error",
+          ticketId,
+          message: errMsg,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        });
+      }
+    } finally {
+      // Cooldown for next scan: allow next ticket almost immediately (800ms)
+      setTimeout(() => {
+        isProcessingRef.current = false;
+        setIsScanning(false);
+      }, 800);
     }
   };
 
@@ -3153,34 +3444,113 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
             </div>
 
             {/* QR Scanner Modal */}
-            <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Scan Attendee Ticket</DialogTitle>
-                  <DialogDescription>
-                    Point the camera at the attendee's ticket QR code to verify and allow entry automatically.
+            <Dialog
+              open={isScannerOpen}
+              onOpenChange={(open) => {
+                if (!open) handleCloseScanner();
+                else setIsScannerOpen(true);
+              }}
+            >
+              <DialogContent className="sm:max-w-md max-w-[95vw] p-4 sm:p-6 overflow-hidden">
+                <DialogHeader className="pb-1">
+                  <div className="flex items-center justify-between">
+                    <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
+                      <QrCode className="h-5 w-5 text-primary" />
+                      Continuous QR Scanner
+                    </DialogTitle>
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Continuous Mode
+                    </span>
+                  </div>
+                  <DialogDescription className="text-xs text-muted-foreground">
+                    Point camera at visitor tickets. Keep scanning one-by-one without closing this window.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="flex flex-col items-center justify-center aspect-square sm:aspect-[4/3] w-full bg-black rounded-lg overflow-hidden relative border border-border/50">
+
+                {/* Scanner Frame */}
+                <div className="flex flex-col items-center justify-center aspect-square sm:aspect-[4/3] w-full bg-black rounded-lg overflow-hidden relative border border-border/50 shadow-inner">
                   {isScannerOpen && (
                     <Scanner
                       onScan={handleQrScan}
                       onError={(error) => console.log(error?.message)}
-                      options={{ delayBetweenScanAttempts: 1500 }}
+                      allowMultiple={true}
+                      scanDelay={1000}
+                      paused={!isScannerOpen}
+                      formats={["qr_code"]}
                     />
                   )}
+
+                  {/* Processing Badge Overlay (Non-blocking, top right) */}
                   {isScanning && (
-                    <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 flex-col gap-2 backdrop-blur-sm">
-                      <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                      <p className="text-foreground font-semibold text-sm">Verifying Ticket...</p>
+                    <div className="absolute top-3 right-3 bg-black/85 backdrop-blur-md text-white text-xs px-2.5 py-1.5 rounded-full flex items-center gap-2 border border-white/20 shadow-lg z-20">
+                      <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                      <span className="font-medium">Verifying Ticket...</span>
                     </div>
                   )}
+
+                  {/* Helper overlay on camera bottom */}
+                  <div className="absolute bottom-2 inset-x-2 bg-black/60 backdrop-blur-xs text-white/80 text-[11px] py-1 px-2.5 rounded text-center z-10 pointer-events-none">
+                    Keep camera steady • Auto-scans next ticket automatically
+                  </div>
                 </div>
-                <DialogFooter className="sm:justify-center">
-                  <Button variant="outline" onClick={() => setIsScannerOpen(false)} className="w-full sm:w-auto">
-                    Close Scanner
+
+                {/* Live Scan Result Card */}
+                {lastScanResult ? (
+                  <div
+                    className={cn(
+                      "p-3 rounded-lg border flex items-start gap-3 transition-all",
+                      lastScanResult.type === "success" && "bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200",
+                      lastScanResult.type === "warning" && "bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40 text-amber-900 dark:text-amber-200",
+                      lastScanResult.type === "error" && "bg-rose-50/70 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/40 text-rose-900 dark:text-rose-200"
+                    )}
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {lastScanResult.type === "success" && <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+                      {lastScanResult.type === "warning" && <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
+                      {lastScanResult.type === "error" && <X className="h-5 w-5 text-rose-600 dark:text-rose-400" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-xs sm:text-sm truncate">
+                          {lastScanResult.name || (lastScanResult.type === "success" ? "Entry Allowed" : "Scan Alert")}
+                        </p>
+                        <span className="text-[10px] opacity-75 shrink-0 font-mono">
+                          {lastScanResult.time}
+                        </span>
+                      </div>
+                      <p className="text-xs opacity-90 line-clamp-2 mt-0.5">
+                        {lastScanResult.message}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-lg border border-dashed border-border/80 bg-muted/30 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Ready to scan. Present attendee's digital pass or printed QR code.
+                    </p>
+                  </div>
+                )}
+
+                {/* Session Counter / Footer */}
+                <div className="flex items-center justify-between pt-1 text-xs">
+                  <div className="flex items-center gap-3 text-muted-foreground text-[11px]">
+                    <span className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
+                      Entries: <strong className="text-foreground">{scanStats.success}</strong>
+                    </span>
+                    {scanStats.duplicate > 0 && (
+                      <span className="flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
+                        Repeats: <strong className="text-foreground">{scanStats.duplicate}</strong>
+                      </span>
+                    )}
+                  </div>
+
+                  <Button variant="outline" size="sm" onClick={handleCloseScanner} className="h-8 text-xs">
+                    Done Scanning
                   </Button>
-                </DialogFooter>
+                </div>
               </DialogContent>
             </Dialog>
 
@@ -3963,115 +4333,386 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
       {currentTab === "speakers-guests" && (
         <div className="space-y-6">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-5">
-              <div>
-                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  <Mic className="h-5 w-5 text-primary" />
-                  Speakers, Dignitaries & Guests
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Stage schedule, bio, contact details, and keynote topics
-                </p>
+            {/* Sub-Tabs Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center p-1 bg-muted/60 rounded-xl border border-border/60">
+                  <button
+                    type="button"
+                    onClick={() => setSpeakerSubTab("event")}
+                    className={cn(
+                      "flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                      speakerSubTab === "event"
+                        ? "bg-background text-foreground shadow-xs border border-border/40"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Mic className="h-3.5 w-3.5 text-primary" />
+                    <span>Event Guests</span>
+                    <span className={cn(
+                      "px-1.5 py-0.2 rounded-full text-[10px] font-bold",
+                      speakerSubTab === "event" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                    )}>
+                      {speakers.length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSpeakerSubTab("master");
+                      fetchMasterDignitaries();
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                      speakerSubTab === "master"
+                        ? "bg-background text-foreground shadow-xs border border-border/40"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Building2 className="h-3.5 w-3.5 text-indigo-500" />
+                    <span>Master List</span>
+                    <span className={cn(
+                      "px-1.5 py-0.2 rounded-full text-[10px] font-bold",
+                      speakerSubTab === "master" ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" : "bg-muted text-muted-foreground"
+                    )}>
+                      {masterDignitaries.length}
+                    </span>
+                  </button>
+                </div>
               </div>
 
-              <Button
-                onClick={() => {
-                  setNewSpeaker({ name: "", category: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
-                  setSpeakerDialogOpen(true);
-                }}
-                className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Add Dignitary / Speaker</span>
-              </Button>
+              {/* Subtab Specific Action Buttons */}
+              {speakerSubTab === "event" ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    onClick={() => {
+                      setNewSpeaker({ name: "", category: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
+                      setSpeakerDialogOpen(true);
+                    }}
+                    className="font-semibold text-xs h-9 gap-1.5 shadow-xs"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Dignitary / Speaker</span>
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="relative w-48 sm:w-60">
+                    <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search master list..."
+                      value={masterSearchQuery}
+                      onChange={(e) => setMasterSearchQuery(e.target.value)}
+                      className="h-9 pl-8 text-xs"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setNewMasterDignitary({
+                        name: "",
+                        category: "",
+                        mobile: "",
+                        email: "",
+                        org: "",
+                        designation: "",
+                        type: "Guest Speaker",
+                        topic: "",
+                        city: "",
+                      });
+                      setMasterDialogOpen(true);
+                    }}
+                    className="font-semibold text-xs h-9 gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add to Master List</span>
+                  </Button>
+                </div>
+              )}
             </div>
 
-            {speakers.length === 0 ? (
-              <div className="p-8 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
-                No speakers or dignitaries configured yet. Click &ldquo;Add Dignitary / Speaker&rdquo; above to add.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {speakers.map((s) => (
-                  <div
-                    key={s.id}
-                    className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all flex items-start gap-3.5"
-                  >
-                    <div className="h-12 w-12 rounded-xl bg-primary-soft text-primary flex items-center justify-center font-black text-lg shrink-0">
-                      {(s.name || "S").slice(0, 1)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between flex-wrap gap-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
-                            {s.type || "Guest Speaker"}
-                          </span>
-                          {s.category === "Government Official" && (
-                            <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
-                              🏛️ Govt Official
-                            </span>
-                          )}
-                          {s.category === "Foreign Delegation" && (
-                            <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
-                              🌐 Foreign Delegation
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] text-muted-foreground font-mono">{s.mobile}</span>
-                      </div>
-                      <h4 className="font-bold text-sm text-foreground mt-1 truncate">{s.name}</h4>
-                      <p className="text-xs text-muted-foreground">
-                        {s.designation || ""} {s.org ? `· ${s.org}` : ""}
-                      </p>
-                      {s.topic && (
-                        <p className="text-xs text-primary font-medium mt-1.5 bg-muted/40 px-2 py-1 rounded">
-                          Topic: &ldquo;{s.topic}&rdquo;
-                        </p>
-                      )}
+            {/* SUBTAB 1: EVENT GUESTS */}
+            {speakerSubTab === "event" && (
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Speakers and dignitaries confirmed for the stage schedule of <strong className="text-foreground">{activeEvent?.title || "this event"}</strong>.
+                  </p>
+                </div>
 
-                      <div className="flex items-center gap-2 mt-3">
-                        {s.mobile && (
-                          <>
-                            <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
-                              <a href={`tel:${s.mobile}`}>
-                                <Phone className="h-3 w-3" /> Call
-                              </a>
-                            </Button>
-                            <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1 text-emerald-600">
-                              <a href={`https://api.whatsapp.com/send?phone=91${s.mobile}`} target="_blank">
-                                WhatsApp
-                              </a>
-                            </Button>
-                          </>
-                        )}
-                        <div className="flex-1"></div>
-                        <Button size="sm" variant="ghost" onClick={() => handleEditSpeakerClick(s)} className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleDeleteSpeaker(s.id)} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
-                          <Trash className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                {speakers.length === 0 ? (
+                  <div className="p-10 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground space-y-3">
+                    <Mic className="h-8 w-8 mx-auto text-muted-foreground/40" />
+                    <p className="font-medium text-foreground">No speakers configured for this event yet.</p>
+                    <p className="text-xs max-w-sm mx-auto">
+                      Add a new dignitary for this event, or quickly pick an existing one from the Master List.
+                    </p>
+                    <div className="flex items-center justify-center gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          fetchMasterDignitaries();
+                          setMasterPickerOpen(true);
+                        }}
+                        className="text-xs h-8 gap-1.5"
+                      >
+                        <Building2 className="h-3.5 w-3.5 text-indigo-500" /> Pick from Master List
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setNewSpeaker({ name: "", category: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
+                          setSpeakerDialogOpen(true);
+                        }}
+                        className="text-xs h-8 gap-1.5"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add New Speaker
+                      </Button>
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {speakers.map((s) => (
+                      <div
+                        key={s.id}
+                        className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all flex items-start gap-3.5 shadow-xs"
+                      >
+                        <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-lg shrink-0">
+                          {(s.name || "S").slice(0, 1)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between flex-wrap gap-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
+                                {s.type || "Guest Speaker"}
+                              </span>
+                              {s.category === "Government Official" && (
+                                <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
+                                  🏛️ Govt Official
+                                </span>
+                              )}
+                              {s.category === "Foreign Delegation" && (
+                                <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
+                                  🌐 Foreign Delegation
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground font-mono">{s.mobile}</span>
+                          </div>
+                          <h4 className="font-bold text-sm text-foreground mt-1 truncate">{s.name}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {s.designation || ""} {s.org ? `· ${s.org}` : ""}
+                          </p>
+                          {s.topic && (
+                            <p className="text-xs text-primary font-medium mt-1.5 bg-muted/40 px-2 py-1 rounded">
+                              Topic: &ldquo;{s.topic}&rdquo;
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-2 mt-3">
+                            {s.mobile && (
+                              <>
+                                <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
+                                  <a href={`tel:${s.mobile}`}>
+                                    <Phone className="h-3 w-3" /> Call
+                                  </a>
+                                </Button>
+                                <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1 text-emerald-600">
+                                  <a href={`https://api.whatsapp.com/send?phone=91${s.mobile}`} target="_blank">
+                                    WhatsApp
+                                  </a>
+                                </Button>
+                              </>
+                            )}
+                            <div className="flex-1"></div>
+                            <Button size="sm" variant="ghost" onClick={() => handleEditSpeakerClick(s)} className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setDeleteTarget({ type: "event_speaker", id: s.id, name: s.name })} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
+                              <Trash className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUBTAB 2: MASTER LIST */}
+            {speakerSubTab === "master" && (
+              <div>
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Central directory of all VIP dignitaries and keynote speakers. Accessible across all admin panels.
+                  </p>
+                  <span className="text-[11px] text-muted-foreground font-medium">
+                    Showing {masterDignitaries.filter(d => !masterSearchQuery || d.name?.toLowerCase().includes(masterSearchQuery.toLowerCase()) || d.org?.toLowerCase().includes(masterSearchQuery.toLowerCase())).length} of {masterDignitaries.length} Dignitaries
+                  </span>
+                </div>
+
+                {loadingMaster ? (
+                  <div className="p-12 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <span>Loading Master Dignitaries Directory...</span>
+                  </div>
+                ) : masterDignitaries.length === 0 ? (
+                  <div className="p-10 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground space-y-3">
+                    <Building2 className="h-8 w-8 mx-auto text-muted-foreground/40" />
+                    <p className="font-medium text-foreground">Master Dignitaries List is empty.</p>
+                    <p className="text-xs max-w-sm mx-auto">
+                      Add permanent VIP guests, foreign delegates, and speakers that can be reused across any RIFAH event.
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setNewMasterDignitary({
+                          name: "",
+                          category: "",
+                          mobile: "",
+                          email: "",
+                          org: "",
+                          designation: "",
+                          type: "Guest Speaker",
+                          topic: "",
+                          city: "",
+                        });
+                        setMasterDialogOpen(true);
+                      }}
+                      className="text-xs h-8 gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add First Dignitary to Master List
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {masterDignitaries
+                      .filter((d) => {
+                        const q = masterSearchQuery.toLowerCase();
+                        return (
+                          !q ||
+                          d.name?.toLowerCase().includes(q) ||
+                          d.org?.toLowerCase().includes(q) ||
+                          d.designation?.toLowerCase().includes(q) ||
+                          d.topic?.toLowerCase().includes(q) ||
+                          d.mobile?.includes(q)
+                        );
+                      })
+                      .map((d) => {
+                        const isAlreadyAssigned = speakers.some(
+                          (sp) =>
+                            (sp.dignitaryId && sp.dignitaryId === (d._id || d.id)) ||
+                            (sp.name?.toLowerCase() === d.name?.toLowerCase() && sp.mobile === d.mobile)
+                        );
+                        return (
+                          <div
+                            key={d._id || d.id}
+                            className="p-4 rounded-xl border border-border bg-card hover:border-indigo-500/40 transition-all flex items-start gap-3.5 shadow-xs"
+                          >
+                            <div className="h-12 w-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-lg shrink-0">
+                              {(d.name || "D").slice(0, 1)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between flex-wrap gap-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
+                                    {d.type || "Guest Speaker"}
+                                  </span>
+                                  {d.category === "Government Official" && (
+                                    <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
+                                      🏛️ Govt Official
+                                    </span>
+                                  )}
+                                  {d.category === "Foreign Delegation" && (
+                                    <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
+                                      🌐 Foreign Delegation
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-muted-foreground font-mono">{d.mobile}</span>
+                              </div>
+
+                              <h4 className="font-bold text-sm text-foreground mt-1 truncate">{d.name}</h4>
+                              <p className="text-xs text-muted-foreground">
+                                {d.designation || ""} {d.org ? `· ${d.org}` : ""}
+                              </p>
+                              {d.topic && (
+                                <p className="text-xs text-primary font-medium mt-1.5 bg-muted/40 px-2 py-1 rounded">
+                                  Topic: &ldquo;{d.topic}&rdquo;
+                                </p>
+                              )}
+
+                              <div className="flex items-center gap-2 mt-3 pt-1 border-t border-border/50">
+                                {d.mobile && (
+                                  <>
+                                    <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
+                                      <a href={`tel:${d.mobile}`}>
+                                        <Phone className="h-3 w-3" /> Call
+                                      </a>
+                                    </Button>
+                                    <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1 text-emerald-600">
+                                      <a href={`https://api.whatsapp.com/send?phone=91${d.mobile}`} target="_blank">
+                                        WhatsApp
+                                      </a>
+                                    </Button>
+                                  </>
+                                )}
+
+                                <div className="flex-1"></div>
+
+                                {/* 1-Click Assign to Current Event Button */}
+                                {isAlreadyAssigned ? (
+                                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md">
+                                    <Check className="h-3 w-3" /> In Event
+                                  </span>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleAssignToEvent(d)}
+                                    disabled={assigningId === (d._id || d.id)}
+                                    className="h-7 text-xs px-2.5 gap-1 bg-primary text-primary-foreground font-semibold"
+                                  >
+                                    {assigningId === (d._id || d.id) ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Plus className="h-3 w-3" />
+                                    )}
+                                    Assign to Event
+                                  </Button>
+                                )}
+
+                                <Button size="sm" variant="ghost" onClick={() => handleEditMasterDignitaryClick(d)} className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
+                                  <Edit className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => setDeleteTarget({ type: "master_dignitary", id: d._id || d.id, name: d.name })} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
+                                  <Trash className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Add Speaker Dialog */}
+          {/* Dialog 1: Add/Edit Event Speaker Dialog */}
           <Dialog open={speakerDialogOpen} onOpenChange={setSpeakerDialogOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Add Dignitary / Speaker</DialogTitle>
+                <DialogTitle>{newSpeaker.id ? "Edit Event Speaker" : "Add Dignitary / Speaker"}</DialogTitle>
                 <DialogDescription>
-                  Add a guest of honour, keynote speaker, or dignitary to the event stage schedule in MongoDB.
+                  Configure speaker for this event's stage schedule and live projector display.
                 </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleAddSpeaker} className="space-y-3.5 py-1">
                 <div>
-                  <Label className="text-xs font-semibold">Full Name</Label>
+                  <Label className="text-xs font-semibold">Full Name *</Label>
                   <Input
                     placeholder="e.g. Dr. Farhan Qureshi"
                     value={newSpeaker.name}
@@ -4081,7 +4722,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   />
                 </div>
 
-                {/* Optional Category: Government Official & Foreign Delegation */}
+                {/* Optional Category */}
                 <div className="py-0.5">
                   <div className="flex items-center justify-between mb-1.5">
                     <Label className="text-xs font-semibold text-foreground">
@@ -4198,6 +4839,13 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   </div>
                 </div>
 
+                <div className="flex items-center gap-1.5 pt-1 pb-1 text-[11px] text-muted-foreground bg-muted/30 px-2.5 py-1.5 rounded-md border border-border/50">
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                  <span>
+                    Auto-syncs into <strong className="text-foreground font-semibold">Master List</strong> across all events & admins
+                  </span>
+                </div>
+
                 <DialogFooter className="pt-2">
                   <Button
                     type="button"
@@ -4216,6 +4864,277 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
                   </Button>
                 </DialogFooter>
               </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog 2: Add/Edit Master List Dignitary Dialog */}
+          <Dialog open={masterDialogOpen} onOpenChange={setMasterDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>{newMasterDignitary._id ? "Edit Master Dignitary" : "Add to Master List"}</DialogTitle>
+                <DialogDescription>
+                  This dignitary will be saved in the global directory and visible to all admins across RIFAH.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleSaveMasterDignitary} className="space-y-3.5 py-1">
+                <div>
+                  <Label className="text-xs font-semibold">Full Name *</Label>
+                  <Input
+                    placeholder="e.g. Dr. Farhan Qureshi"
+                    value={newMasterDignitary.name}
+                    onChange={(e) => setNewMasterDignitary((prev) => ({ ...prev, name: e.target.value }))}
+                    className="mt-1 h-9 text-xs"
+                    required
+                  />
+                </div>
+
+                {/* Category Selection */}
+                <div className="py-0.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Category <span className="text-muted-foreground font-normal text-[11px]">(Optional)</span>
+                    </Label>
+                    {newMasterDignitary.category && (
+                      <button
+                        type="button"
+                        onClick={() => setNewMasterDignitary((prev) => ({ ...prev, category: "" }))}
+                        className="text-[11px] text-muted-foreground hover:text-destructive underline cursor-pointer"
+                      >
+                        Clear selection
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-6 mt-1">
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground select-none">
+                      <input
+                        type="radio"
+                        name="masterCategory"
+                        value="Government Official"
+                        checked={newMasterDignitary.category === "Government Official"}
+                        onChange={() => setNewMasterDignitary((prev) => ({ ...prev, category: "Government Official" }))}
+                        className="h-4 w-4 text-primary accent-primary cursor-pointer"
+                      />
+                      <span>Government Official</span>
+                    </label>
+
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground select-none">
+                      <input
+                        type="radio"
+                        name="masterCategory"
+                        value="Foreign Delegation"
+                        checked={newMasterDignitary.category === "Foreign Delegation"}
+                        onChange={() => setNewMasterDignitary((prev) => ({ ...prev, category: "Foreign Delegation" }))}
+                        className="h-4 w-4 text-primary accent-primary cursor-pointer"
+                      />
+                      <span>Foreign Delegation</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Mobile Number</Label>
+                    <PhoneInput
+                      placeholder="98200 00000"
+                      value={newMasterDignitary.mobile}
+                      onChange={(e) => setNewMasterDignitary((prev) => ({ ...prev, mobile: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="speaker@example.com"
+                      value={newMasterDignitary.email}
+                      onChange={(e) => setNewMasterDignitary((prev) => ({ ...prev, email: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Organization / Business</Label>
+                    <Input
+                      placeholder="e.g. Chamber of Commerce"
+                      value={newMasterDignitary.org}
+                      onChange={(e) => setNewMasterDignitary((prev) => ({ ...prev, org: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">Designation</Label>
+                    <Input
+                      placeholder="e.g. President / Director"
+                      value={newMasterDignitary.designation}
+                      onChange={(e) => setNewMasterDignitary((prev) => ({ ...prev, designation: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Role / Type</Label>
+                    <Select
+                      value={newMasterDignitary.type}
+                      onValueChange={(val) => setNewMasterDignitary((prev) => ({ ...prev, type: val }))}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Guest Speaker">Guest Speaker</SelectItem>
+                        <SelectItem value="Keynote Speaker">Keynote Speaker</SelectItem>
+                        <SelectItem value="Hero of Event">Hero of Event</SelectItem>
+                        <SelectItem value="Chief Guest">Chief Guest</SelectItem>
+                        <SelectItem value="Dignitary">Dignitary</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold">City / Location</Label>
+                    <Input
+                      placeholder="e.g. Mumbai"
+                      value={newMasterDignitary.city}
+                      onChange={(e) => setNewMasterDignitary((prev) => ({ ...prev, city: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Keynote / Speech Topic</Label>
+                  <Input
+                    placeholder="e.g. International Trade & MSME Policy"
+                    value={newMasterDignitary.topic}
+                    onChange={(e) => setNewMasterDignitary((prev) => ({ ...prev, topic: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+
+                <DialogFooter className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setMasterDialogOpen(false)}
+                    className="text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={savingMaster}
+                    className="font-semibold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                  >
+                    {savingMaster ? "Saving..." : "Save to Master List"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog 3: Quick Picker Modal ("Add from Master List" to Event) */}
+          <Dialog open={masterPickerOpen} onOpenChange={setMasterPickerOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-indigo-500" />
+                  Select from Master Dignitaries List
+                </DialogTitle>
+                <DialogDescription>
+                  Pick any dignitary from the global directory to add to <strong className="text-foreground">{activeEvent?.title || "this event"}</strong>.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-3 py-2">
+                <div className="relative">
+                  <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name, organization, designation..."
+                    value={masterSearchQuery}
+                    onChange={(e) => setMasterSearchQuery(e.target.value)}
+                    className="h-9 pl-8 text-xs"
+                  />
+                </div>
+
+                <div className="max-h-[340px] overflow-y-auto space-y-2 pr-1 divide-y divide-border/40">
+                  {masterDignitaries.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-muted-foreground">
+                      No dignitaries in Master List yet.
+                    </div>
+                  ) : (
+                    masterDignitaries
+                      .filter((d) => {
+                        const q = masterSearchQuery.toLowerCase();
+                        return (
+                          !q ||
+                          d.name?.toLowerCase().includes(q) ||
+                          d.org?.toLowerCase().includes(q) ||
+                          d.designation?.toLowerCase().includes(q)
+                        );
+                      })
+                      .map((d) => {
+                        const isAlreadyAssigned = speakers.some(
+                          (sp) =>
+                            (sp.dignitaryId && sp.dignitaryId === (d._id || d.id)) ||
+                            (sp.name?.toLowerCase() === d.name?.toLowerCase() && sp.mobile === d.mobile)
+                        );
+                        return (
+                          <div
+                            key={d._id || d.id}
+                            className="flex items-center justify-between gap-3 pt-2 pb-2 hover:bg-muted/30 px-2 rounded-lg transition-colors"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-foreground truncate">{d.name}</span>
+                                <span className="text-[10px] px-1.5 py-0.2 bg-muted text-muted-foreground rounded font-medium">
+                                  {d.type || "Guest Speaker"}
+                                </span>
+                                {d.category === "Government Official" && (
+                                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                                    🏛️ Govt
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {d.designation || ""} {d.org ? `· ${d.org}` : ""}
+                              </p>
+                            </div>
+
+                            {isAlreadyAssigned ? (
+                              <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1 shrink-0">
+                                <Check className="h-3.5 w-3.5" /> Added
+                              </span>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => handleAssignToEvent(d)}
+                                disabled={assigningId === (d._id || d.id)}
+                                className="h-7 text-xs px-2.5 gap-1 shrink-0 font-semibold"
+                              >
+                                {assigningId === (d._id || d.id) ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Plus className="h-3 w-3" />
+                                )}
+                                Add to Event
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => setMasterPickerOpen(false)} className="text-xs">
+                  Done
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
 
@@ -4779,6 +5698,68 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
               className="bg-rose-600 text-white font-bold"
             >
               Confirm Reset
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Delete Speaker / Dignitary Confirmation Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <Trash className="h-5 w-5 text-rose-600" />
+              {deleteTarget?.type === "master_dignitary"
+                ? "Delete Dignitary from Master List?"
+                : "Remove Speaker from Event?"}
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-sm text-foreground/80">
+              {deleteTarget?.type === "master_dignitary" ? (
+                <>
+                  Are you sure you want to permanently delete{" "}
+                  <strong className="text-foreground">{deleteTarget?.name}</strong> from the
+                  Master List directory?
+                  <span className="block mt-2 text-xs text-muted-foreground">
+                    This action will remove them permanently for all admins across all events.
+                  </span>
+                </>
+              ) : (
+                <>
+                  Are you sure you want to remove{" "}
+                  <strong className="text-foreground">{deleteTarget?.name}</strong> from the schedule of{" "}
+                  <strong className="text-foreground">{activeEvent?.title || "this event"}</strong>?
+                  <span className="block mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                    ✨ Note: They will still remain safely preserved in your Master List.
+                  </span>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deletingSpeaker}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deletingSpeaker}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-semibold"
+            >
+              {deletingSpeaker ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  Removing...
+                </>
+              ) : (
+                deleteTarget?.type === "master_dignitary" ? "Delete Permanently" : "Confirm Remove"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
