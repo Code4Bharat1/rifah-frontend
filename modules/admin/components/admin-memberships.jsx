@@ -137,7 +137,15 @@ function AdminMemberships() {
   const handleDownloadCertificate = async (business) => {
     const toastId = toast.loading(`Generating certificate for ${business.name}...`);
     try {
-      await downloadCertificatePdf(business);
+      const enrichedBiz = {
+        ...business,
+        contactPerson: (business?.contactPerson && !/^raj\s*sharma$/i.test(business.contactPerson.trim()))
+          ? business.contactPerson
+          : (business?.owner?.name || ""),
+      };
+      await downloadCertificatePdf(enrichedBiz, null, {
+        ownerName: enrichedBiz.contactPerson || enrichedBiz.owner?.name,
+      });
       toast.success("Certificate downloaded successfully", { id: toastId });
     } catch (err) {
       console.error("Certificate download error:", err);

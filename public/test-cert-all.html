@@ -135,10 +135,10 @@
     /* Metallic Box */
     .unified-meta-box {
       position: absolute;
-      left: 440px;
-      top: 201px;
-      width: 512px;
-      height: 33px;
+      left: 444px;
+      top: 207px;
+      width: 524px;
+      height: 34px;
       border-radius: 3px;
       box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.85), 0 1px 3px rgba(0, 0, 0, 0.12);
       z-index: 6;
@@ -162,6 +162,8 @@
       display: inline-flex;
       align-items: baseline;
       gap: 6px;
+      position: relative;
+      top: -3.5px;
     }
 
     .meta-lbl {
@@ -336,7 +338,7 @@
     <div class="tier-badge-pill pill-gold">2. Gold Tier Certificate</div>
     <div class="cert-outer-wrapper">
       <div class="certificate-container">
-        <img src="/certificate-gold.jpg" class="template-base-img" alt="Gold Certificate" />
+        <img src="/certificate-gold-perfect.jpg" class="template-base-img" alt="Gold Certificate" />
         <div class="unified-meta-box"
           style="border: 1.2px solid #b45309; background: linear-gradient(180deg, #fefce8 0%, #ffffff 50%, #fef3c7 100%);">
           <div class="meta-col"><span class="meta-lbl">Membership ID:</span><span class="meta-val">RIFAH-HYD-0002</span>
@@ -431,7 +433,7 @@
             authorized representative of the organization, as stated in the membership application, is:
           </div>
           <div class="rep-name-line" style="color: #004b87;">
-            Raj Sharma
+            Zubair Khan
           </div>
         </div>
         <div class="unified-validity-area">
@@ -441,6 +443,36 @@
       </div>
     </div>
   </div>
+
+  <script>
+    // Dynamically fetch actual registered business owners from backend API if available
+    (async function fetchLiveOwners() {
+      try {
+        const res = await fetch("http://localhost:5000/api/v1/businesses?limit=4");
+        if (!res.ok) return;
+        const data = await res.json();
+        const businesses = data?.data || data?.businesses || [];
+        if (!Array.isArray(businesses) || businesses.length === 0) return;
+
+        const sections = document.querySelectorAll(".cert-section");
+        sections.forEach((sec, idx) => {
+          const biz = businesses[idx];
+          if (!biz) return;
+          const ownerName = biz.contactPerson || biz.owner?.name || biz.ownerName;
+          if (ownerName && !/^raj\s*sharma$/i.test(ownerName.trim())) {
+            const repEl = sec.querySelector(".rep-name-line");
+            if (repEl) repEl.textContent = ownerName.trim();
+          }
+          if (biz.name) {
+            const nameEl = sec.querySelector(".certify-line span:nth-child(2)");
+            if (nameEl) nameEl.textContent = biz.name.trim();
+          }
+        });
+      } catch (e) {
+        // Fallback to static realistic members
+      }
+    })();
+  </script>
 </body>
 
 </html>

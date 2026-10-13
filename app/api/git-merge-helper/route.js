@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
@@ -7,48 +6,39 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const cwd = process.cwd();
-    const gitCmd = '"C:\\Program Files\\Git\\bin\\git.exe"';
-    const scratchDir = "C:\\Users\\HP\\.gemini\\antigravity-ide\\brain\\1f6988f7-ff98-463d-a7ea-5c2a0b4407d8\\scratch";
+    const pubDir = path.join(process.cwd(), "public");
 
-    if (!fs.existsSync(scratchDir)) {
-      fs.mkdirSync(scratchDir, { recursive: true });
+    // Ensure silver perfect exists
+    const silverSrc = path.join(pubDir, "certificate-silver.jpg");
+    const silverDst = path.join(pubDir, "certificate-silver-perfect.jpg");
+    if (fs.existsSync(silverSrc) && !fs.existsSync(silverDst)) {
+      fs.copyFileSync(silverSrc, silverDst);
     }
 
-    const files = [
-      "modules/admin/components/admin-businesses.jsx",
-      "modules/admin/components/admin-settings.jsx",
-      "modules/admin/components/operations-center/operations-center.jsx",
-      "modules/workspace/components/biz-membership.jsx",
+    // Ensure all variants exist for all 4 tiers
+    const templates = [
+      "certificate-silver-perfect.jpg",
+      "certificate-silver.jpg",
+      "certificate-gold-perfect.jpg",
+      "certificate-gold.jpg",
+      "certificate-platinum-perfect.jpg",
+      "certificate-platinum.jpg",
+      "certificate-diamond-perfect.jpg",
+      "certificate-diamond.jpg",
+      "certificate-diamond.png",
     ];
 
-    const results = {};
-    for (const f of files) {
-      const base = path.basename(f, path.extname(f));
-      // 1. What origin/main has vs HEAD
-      const diffCommit = execSync(`${gitCmd} diff -U3 HEAD origin/main -- "${f}"`, { cwd, encoding: "utf-8" });
-      fs.writeFileSync(path.join(scratchDir, `${base}-origin-diff.patch`), diffCommit, "utf-8");
-
-      // 2. What working tree has vs HEAD
-      const diffLocal = execSync(`${gitCmd} diff -U3 HEAD -- "${f}"`, { cwd, encoding: "utf-8" });
-      fs.writeFileSync(path.join(scratchDir, `${base}-local-diff.patch`), diffLocal, "utf-8");
-
-      // 3. Dump the origin/main version of the file
-      try {
-        const originContent = execSync(`${gitCmd} show origin/main:"${f}"`, { cwd, encoding: "utf-8" });
-        fs.writeFileSync(path.join(scratchDir, `${base}-origin.jsx`), originContent, "utf-8");
-      } catch (e) {
-        // ignore
-      }
-
-      results[base] = {
-        originDiffLen: diffCommit.length,
-        localDiffLen: diffLocal.length,
+    const status = {};
+    for (const t of templates) {
+      const p = path.join(pubDir, t);
+      status[t] = {
+        exists: fs.existsSync(p),
+        size: fs.existsSync(p) ? fs.statSync(p).size : 0,
       };
     }
 
-    return NextResponse.json({ ok: true, results });
-  } catch (e) {
-    return NextResponse.json({ error: e.message });
+    return NextResponse.json({ success: true, status });
+  } catch (err) {
+    return NextResponse.json({ error: err.message });
   }
 }

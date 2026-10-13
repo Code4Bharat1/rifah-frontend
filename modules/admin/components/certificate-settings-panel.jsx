@@ -22,6 +22,7 @@ import { Textarea } from "@shared/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@shared/components/ui/tabs";
 import { generateCertificateHtml } from "@shared/lib/certificate-generator";
+import { useAuth } from "@shared/providers/auth-provider";
 
 const DEFAULT_CERTIFICATE_SETTINGS = {
   signatory1: {
@@ -50,7 +51,7 @@ const DEFAULT_CERTIFICATE_SETTINGS = {
     gold: {
       badgeName: "GOLD",
       accentColor: "#8b1d1d",
-      templateUrl: "/certificate-gold.jpg",
+      templateUrl: "/certificate-gold-perfect.jpg",
     },
     platinum: {
       badgeName: "PLATINUM",
@@ -212,6 +213,7 @@ function SignaturePadModal({ open, onOpenChange, onSave, signatoryTitle }) {
 }
 
 export function CertificateSettingsPanel({ initialSettings, onSave, isSaving }) {
+  const { user } = useAuth();
   const [certSettings, setCertSettings] = useState(() => ({
     ...DEFAULT_CERTIFICATE_SETTINGS,
     ...(initialSettings || {}),
@@ -293,12 +295,14 @@ export function CertificateSettingsPanel({ initialSettings, onSave, isSaving }) 
   };
 
   const handleOpenPreview = () => {
+    const ownerName = user?.name || "Tariq Ansari";
     const mockBusiness = {
-      name: "TATA Power Enterprise",
-      chapter: "MUM",
+      name: user?.businessName || user?.organization || "Ansari Precision Engineering Works",
+      chapter: user?.chapter || "Mumbai Chapter",
       membershipId: "RCCI/MH/0001",
-      fullAddress: "30 Number Ground Floor, Millennium Commercial Tower, Ring Road, Surat, Gujarat",
-      contactPerson: "Raj Sharma",
+      fullAddress: "30 Number Ground Floor, Millennium Commercial Tower, Ring Road, Mumbai, Maharashtra",
+      contactPerson: ownerName,
+      owner: { name: ownerName },
       membership: activeTier,
       createdAt: new Date("2025-07-03"),
     };
@@ -312,6 +316,8 @@ export function CertificateSettingsPanel({ initialSettings, onSave, isSaving }) 
       isPreview: true,
       tier: activeTier,
       customSettings: certSettings,
+      user,
+      ownerName,
     });
     setPreviewHtml(html);
     setPreviewOpen(true);

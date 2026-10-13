@@ -30,7 +30,7 @@ export const DEFAULT_CERTIFICATE_SETTINGS = {
     gold: {
       badgeName: "GOLD",
       accentColor: "#8b1d1d",
-      templateUrl: "/certificate-gold.jpg",
+      templateUrl: "/certificate-gold-perfect.jpg",
     },
     platinum: {
       badgeName: "PLATINUM",
@@ -256,10 +256,10 @@ export function getTierDesign(rawTier = "diamond", origin = "", customSettings =
     tierKey === "silver" ? "linear-gradient(180deg, #edf1f5 0%, #ffffff 50%, #e2e7ec 100%)" :
     "transparent";
 
-  const metaBoxLeft = tierKey === "silver" ? "468px" : tierKey === "platinum" ? "444px" : "442px";
-  const metaBoxTop = tierKey === "silver" ? "182px" : tierKey === "platinum" ? "207px" : "215px";
-  const metaBoxWidth = tierKey === "silver" ? "485px" : tierKey === "platinum" ? "524px" : "500px";
-  const metaBoxHeight = tierKey === "silver" ? "34px" : tierKey === "platinum" ? "34px" : "28px";
+  const metaBoxLeft = tierKey === "silver" ? "468px" : "444px";
+  const metaBoxTop = tierKey === "silver" ? "182px" : "207px";
+  const metaBoxWidth = tierKey === "silver" ? "485px" : "524px";
+  const metaBoxHeight = "34px";
   const metaBoxShadow = tierKey === "diamond" ? "none" : "inset 0 1px 2px rgba(255, 255, 255, 0.85), 0 2px 4px rgba(0, 0, 0, 0.15)";
 
   const bodyBg = "transparent";
@@ -302,6 +302,90 @@ export function getTierDesign(rawTier = "diamond", origin = "", customSettings =
     sigSlotBg,
     officeBg,
   };
+}
+
+/**
+ * Resolves the real business owner / representative name dynamically for all 4 certificate tiers.
+ * Strictly guarantees that no dummy placeholders (such as "Raj Sharma" or generic placeholders) are returned.
+ */
+export function resolveCertificateRepresentativeName(business, options = {}) {
+  const isInvalidOrDummy = (str) => {
+    if (!str || typeof str !== "string") return true;
+    const clean = str.trim().toLowerCase();
+    return (
+      clean === "" ||
+      clean === "raj sharma" ||
+      clean === "dummy" ||
+      clean === "dummy name" ||
+      clean === "member" ||
+      clean === "undefined" ||
+      clean === "null"
+    );
+  };
+
+  // 1. Explicit options overrides (passed by caller e.g. auth context or explicit ownerName)
+  const optionCandidates = [
+    options?.representativeName,
+    options?.ownerName,
+    options?.user?.name,
+    options?.user?.fullName,
+    options?.currentUser?.name,
+    options?.currentUser?.fullName,
+  ];
+  for (const name of optionCandidates) {
+    if (!isInvalidOrDummy(name)) {
+      return name.trim();
+    }
+  }
+
+  // 2. Business document properties
+  if (business) {
+    // 2a. Populated owner object (name or fullName)
+    if (business.owner && typeof business.owner === "object") {
+      if (!isInvalidOrDummy(business.owner.name)) {
+        return business.owner.name.trim();
+      }
+      if (!isInvalidOrDummy(business.owner.fullName)) {
+        return business.owner.fullName.trim();
+      }
+    }
+
+    // 2b. If owner field is a non-ObjectId string (e.g. string name)
+    if (typeof business.owner === "string" && !/^[0-9a-fA-F]{24}$/.test(business.owner.trim())) {
+      if (!isInvalidOrDummy(business.owner)) {
+        return business.owner.trim();
+      }
+    }
+
+    // 2c. contactPerson
+    if (!isInvalidOrDummy(business.contactPerson)) {
+      return business.contactPerson.trim();
+    }
+
+    // 2d. ownerName, representative, user object, contactPersonName, authorizedSignatory
+    const otherCandidates = [
+      business.ownerName,
+      business.representative,
+      business.user?.name,
+      business.user?.fullName,
+      business.contactPersonName,
+      business.authorizedSignatory,
+      business.founder,
+      business.proprietor,
+    ];
+    for (const name of otherCandidates) {
+      if (!isInvalidOrDummy(name)) {
+        return name.trim();
+      }
+    }
+  }
+
+  // 3. Fallback: If business has an official trade name, use business name with "(Authorized Representative)"
+  if (business?.name && typeof business.name === "string" && business.name.trim()) {
+    return `${business.name.trim()} (Authorized Representative)`;
+  }
+
+  return "Authorized Representative";
 }
 
 export function generateCertificateHtml(business, membershipData = null, options = {}) {
@@ -354,13 +438,8 @@ export function generateCertificateHtml(business, membershipData = null, options
   // Format address cleanly without duplication, dummy zeroes, or collapsed spaces
   const formattedAddress = formatCertificateAddress(business);
 
-  const repName =
-    business.contactPerson ||
-    business.owner?.name ||
-    business.ownerName ||
-    business.representative ||
-    business.user?.name ||
-    "Raj Sharma";
+  // Dynamically resolve real business owner name across all 4 tiers (silver, gold, platinum, diamond)
+  const repName = resolveCertificateRepresentativeName(business, options);
 
   // Check Central Admin Customizations
   const effectiveSettings = {
@@ -586,6 +665,8 @@ export function generateCertificateHtml(business, membershipData = null, options
           display: inline-flex;
           align-items: baseline;
           gap: 6px;
+          position: relative;
+          top: -3.5px;
         }
         .meta-lbl {
           color: #991b1b;
@@ -1039,6 +1120,7 @@ export async function downloadCertificatePdf(business, membershipData = null, op
       isExport: true,
       customSettings,
       tier: rawTier,
+      ...options,
     });
 
     const doc = iframe.contentDocument || iframe.contentWindow.document;

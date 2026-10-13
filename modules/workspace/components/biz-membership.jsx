@@ -78,6 +78,7 @@ import { cn } from "@shared/lib/utils";
 import { SUBSCRIBER_TIERS, normalizeUserTier } from "@shared/lib/subscription-models";
 import { downloadCertificatePdf } from "@shared/lib/certificate-generator";
 import { formatInvoiceNumber } from "@shared/lib/indian-states-cities";
+import { useAuth } from "@shared/providers/auth-provider";
 
 const docTemplates = [
   {
@@ -312,7 +313,7 @@ function handleDownloadAllInvoices(payments) {
   toast.success("All invoices downloaded as CSV successfully");
 }
 
-async function handleDownloadCertificate(business, membershipData) {
+async function handleDownloadCertificate(business, membershipData, currentUser = null) {
   const tier = (membershipData?.planName || membershipData?.planId || business?.membership || "").toLowerCase();
   if (tier === "free" || (!membershipData && !business?.membership) || membershipData?.tier === "free") {
     toast.info("Accreditation Required", {
@@ -323,7 +324,18 @@ async function handleDownloadCertificate(business, membershipData) {
 
   try {
     toast.loading("Downloading certificate PDF...", { id: "cert-dl" });
-    await downloadCertificatePdf(business, membershipData);
+    const enrichedBusiness = {
+      ...business,
+      owner: (typeof business?.owner === "object" && business?.owner?.name) ? business.owner : (currentUser || business?.owner),
+      contactPerson: (business?.contactPerson && !/^raj\s*sharma$/i.test(business.contactPerson.trim()))
+        ? business.contactPerson
+        : (business?.owner?.name || currentUser?.name || ""),
+    };
+    await downloadCertificatePdf(enrichedBusiness, membershipData, {
+      user: currentUser,
+      currentUser,
+      ownerName: enrichedBusiness.owner?.name || currentUser?.name,
+    });
     toast.success("Certificate downloaded successfully", { id: "cert-dl" });
   } catch (err) {
     console.error("Certificate download error:", err);
@@ -332,6 +344,7 @@ async function handleDownloadCertificate(business, membershipData) {
 }
 
 function BizMembership() {
+  const { user } = useAuth();
   const { data: business, refetch: refetchBiz } = useMyBusiness();
   const hasBusinessProfile = Boolean(
     business &&
@@ -2196,7 +2209,7 @@ function BizMembership() {
                             });
                             return;
                           }
-                          handleDownloadCertificate(business, membershipData);
+                          handleDownloadCertificate(business, membershipData, user);
                         }}
                         className={cn(
                           "w-full flex items-center justify-between p-3.5 rounded-2xl border text-left cursor-pointer group transition-all",

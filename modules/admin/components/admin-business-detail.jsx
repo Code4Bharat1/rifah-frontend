@@ -60,7 +60,16 @@ export function AdminBusinessDetail({ id }) {
     try {
       setDownloadingDoc(true);
       toast.loading("Downloading certificate PDF...", { id: "cert-dl" });
-      await downloadCertificatePdf(business, null, { customSettings: globalSettings?.certificateSettings });
+      const enrichedBiz = {
+        ...business,
+        contactPerson: (business?.contactPerson && !/^raj\s*sharma$/i.test(business.contactPerson.trim()))
+          ? business.contactPerson
+          : (business?.owner?.name || ""),
+      };
+      await downloadCertificatePdf(enrichedBiz, null, {
+        customSettings: globalSettings?.certificateSettings,
+        ownerName: enrichedBiz.contactPerson || enrichedBiz.owner?.name,
+      });
       toast.success("Certificate downloaded successfully", { id: "cert-dl" });
     } catch (err) {
       console.error(err);
@@ -506,6 +515,7 @@ export function AdminBusinessDetail({ id }) {
                   html: generateCertificateHtml(business, null, {
                     isPreview: true,
                     customSettings: globalSettings?.certificateSettings,
+                    ownerName: business?.contactPerson || business?.owner?.name,
                   }),
                   onDownload: handleDownloadCert,
                 })}
