@@ -82,11 +82,17 @@ function AdminUsers() {
   // Central Admin defaults to India (they ARE the India Admin).
   // Country Admins are locked to their non-India country.
   const [countryFilter, setCountryFilter] = useState(
-    isCountryAdmin ? currentUser?.country || "India" : "India"
+    isCountryAdmin ? currentUser?.country || "" : "India"
   );
 
+  useEffect(() => {
+    if (isCountryAdmin && currentUser?.country && countryFilter !== currentUser.country) {
+      setCountryFilter(currentUser.country);
+    }
+  }, [isCountryAdmin, currentUser?.country]);
+
   const activeCountry = isCountryAdmin
-    ? currentUser?.country || "India"
+    ? currentUser?.country || (countryFilter !== "all" ? countryFilter : null)
     : countryFilter === "all"
     ? null
     : countryFilter;

@@ -114,6 +114,11 @@ export function AuthProvider({ children }) {
         ? { email: emailOrCredentials, password: passwordArg }
         : emailOrCredentials;
 
+    requestIdRef.current++; // Invalidate any pending in-flight fetchCurrentUser
+    localStorage.removeItem("rifah_access_token");
+    localStorage.removeItem("rifah_refresh_token");
+    localStorage.removeItem("rifah_user");
+
     const res = await authApi.login(credentials);
     const payload = res.data || res;
     const loggedInUser = payload.user;
@@ -122,7 +127,7 @@ export function AuthProvider({ children }) {
     if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
     if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
     if (loggedInUser) {
-      requestIdRef.current++; // invalidate any in-flight fetchCurrentUser (BUG-013)
+      requestIdRef.current++; // Invalidate any concurrent requests
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
     }

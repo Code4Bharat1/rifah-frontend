@@ -635,12 +635,12 @@ export function usePublicStats() {
   });
 }
 
-export function useAdminOverview() {
+export function useAdminOverview(params = {}) {
   const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
   return useQuery({
-    queryKey: ["admin-overview"],
+    queryKey: ["admin-overview", params],
     queryFn: async () => {
-      const res = await reportApi.getOverview();
+      const res = await reportApi.getOverview(params);
       return res?.data || res;
     },
     enabled: Boolean(token),

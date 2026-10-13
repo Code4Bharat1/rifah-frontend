@@ -201,11 +201,17 @@ function AdminBusinesses() {
   const availableCountries = Array.from(new Set(["India", ...dbCountryNames]));
 
   const [countryFilter, setCountryFilter] = useState(
-    isCountryAdmin ? user?.country || "India" : "all"
+    isCountryAdmin ? user?.country || "" : "all"
   );
 
+  useEffect(() => {
+    if (isCountryAdmin && user?.country && countryFilter !== user.country) {
+      setCountryFilter(user.country);
+    }
+  }, [isCountryAdmin, user?.country]);
+
   const activeCountry = isCountryAdmin
-    ? user?.country || "India"
+    ? user?.country || (countryFilter !== "all" ? countryFilter : null)
     : countryFilter === "all"
     ? null
     : countryFilter;

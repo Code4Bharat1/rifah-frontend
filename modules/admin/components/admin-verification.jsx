@@ -78,10 +78,17 @@ function AdminVerification() {
   const availableCountries = Array.from(new Set(["India", ...dbCountryNames]));
 
   const [countryFilter, setCountryFilter] = useState(
-    isCountryAdmin ? user?.country || "India" : "all"
+    isCountryAdmin ? user?.country || "" : "all"
   );
+
+  useEffect(() => {
+    if (isCountryAdmin && user?.country && countryFilter !== user.country) {
+      setCountryFilter(user.country);
+    }
+  }, [isCountryAdmin, user?.country]);
+
   const activeCountry = isCountryAdmin
-    ? user?.country || "India"
+    ? user?.country || (countryFilter !== "all" ? countryFilter : null)
     : countryFilter === "all"
     ? null
     : countryFilter;
@@ -95,16 +102,17 @@ function AdminVerification() {
   const [activeTab, setActiveTab] = useState("pending");
 
   const { data: queueData, error, isLoading, refetch } = useVerificationQueue({
+    country: activeCountry || undefined,
     state: stateFilter === "all" ? undefined : stateFilter,
     chapter: chapterFilter === "all" ? undefined : chapterFilter,
     search: searchQuery.trim() || undefined,
   });
   const queue = Array.isArray(queueData) ? queueData : (queueData?.verifications || []);
 
-  const { data: statesData } = useStates();
+  const { data: statesData } = useStates(activeCountry ? { country: activeCountry } : undefined);
   const rawStates = Array.isArray(statesData) ? statesData : statesData?.states || [];
 
-  const { data: chaptersData } = useChapters();
+  const { data: chaptersData } = useChapters(activeCountry ? { country: activeCountry } : undefined);
   const rawChapters = Array.isArray(chaptersData) ? chaptersData : chaptersData?.chapters || [];
 
   const availableStates = useMemo(() => {
@@ -251,8 +259,13 @@ function AdminVerification() {
       const biz = item?.business;
       if (countryFilter !== "all") {
         const bCountry = (biz?.country || "").trim().toLowerCase();
-        if (!bCountry && countryFilter.toLowerCase() !== "india") return false;
-        if (bCountry && bCountry !== countryFilter.toLowerCase()) return false;
+        const bCountryId = biz?.countryId ? String(biz.countryId) : "";
+        const uCountryId = user?.countryId ? String(user.countryId) : "";
+        const matchesId = isCountryAdmin && uCountryId && bCountryId && uCountryId === bCountryId;
+        if (!matchesId) {
+          if (!bCountry && countryFilter.toLowerCase() !== "india") return false;
+          if (bCountry && bCountry !== countryFilter.toLowerCase()) return false;
+        }
       }
       if (stateFilter !== "all") {
         const bState = (biz?.state || "").trim().toLowerCase();

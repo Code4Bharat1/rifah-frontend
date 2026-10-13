@@ -44,8 +44,15 @@ import { courseApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@shared/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@shared/components/ui/dialog";
+import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminLms({ role = "admin" }) {
+  const { user } = useAuth();
+  const effectiveRole = user?.role || role;
+  const isCentral = ["admin", "central_admin", "super_admin"].includes(effectiveRole);
+  const isCountry = effectiveRole === "country_admin";
+  const canDirectPublish = isCentral || isCountry;
+
   // Navigation / Drill-Down States
   // Level 1: Course Library (activeCourseId === null)
   // Level 2: Chapters View (activeCourseId !== null && activeChapterIdx === null)
@@ -157,7 +164,7 @@ function AdminLms({ role = "admin" }) {
   const activeChapter = (activeCourse && activeChapterIdx !== null) ? activeCourse.chapters?.[activeChapterIdx] : null;
 
   // Auto-derive scope strictly from the logged-in role
-  const derivedScope = role === "chapter_admin" ? "chapter" : role === "state_admin" ? "state" : "centre";
+  const derivedScope = effectiveRole === "chapter_admin" ? "chapter" : effectiveRole === "state_admin" ? "state" : effectiveRole === "country_admin" ? "country" : "centre";
 
   // --- Handlers: All-in-One Creation Modal ---
   const handleOpenCreateModal = () => {
@@ -274,16 +281,15 @@ function AdminLms({ role = "admin" }) {
       return toast.error("Please add at least 1 lesson before submitting or publishing the course.");
     }
 
-    if (role === "admin" && newIsPaid) {
+    if (canDirectPublish && newIsPaid) {
       const priceNum = Number(newPrice);
       if (isNaN(priceNum) || priceNum <= 0) {
-        return toast.error("Paid courses must have a valid price greater than ₹0.");
+        return toast.error("Paid courses must have a valid price greater than 0.");
       }
     }
 
     setSavingCourse(true);
     try {
-      const isCentral = role === "admin";
       const payload = {
         title: newTitle.trim(),
         description: newDescription.trim(),
@@ -291,20 +297,22 @@ function AdminLms({ role = "admin" }) {
         subcategory: newSubcategory === "all" ? "" : newSubcategory,
         scope: derivedScope,
         visibilityScope: derivedScope,
-        isPaid: isCentral ? Boolean(newIsPaid) : false,
-        price: isCentral && newIsPaid ? Math.round(Number(newPrice)) : 0,
+        country: user?.country || undefined,
+        countryId: user?.countryId || undefined,
+        isPaid: canDirectPublish ? Boolean(newIsPaid) : false,
+        price: canDirectPublish && newIsPaid ? Math.round(Number(newPrice)) : 0,
         chapters: stagedChapters,
-        status: (isCentral && shouldPublish) ? "published" : "draft",
-        isActive: isCentral ? Boolean(shouldPublish) : false,
+        status: (canDirectPublish && shouldPublish) ? "published" : "draft",
+        isActive: canDirectPublish ? Boolean(shouldPublish) : false,
       };
 
       await courseApi.create(payload);
-      if (isCentral) {
+      if (canDirectPublish) {
         toast.success(shouldPublish ? "Course published successfully!" : "Course saved as draft!");
       } else {
         toast.success(
           shouldPublish 
-            ? "Course submitted for Central Admin approval! It will go live once approved." 
+            ? "Course submitted for approval! It will go live once approved." 
             : "Course draft saved successfully!"
         );
       }
@@ -509,10 +517,10 @@ function AdminLms({ role = "admin" }) {
   const handleSaveCourseInfo = async (e) => {
     if (e) e.preventDefault();
     if (!editTitle.trim()) return toast.error("Course title is required.");
-    if (role === "admin" && editIsPaid) {
+    if (canDirectPublish && editIsPaid) {
       const priceNum = Number(editPrice);
       if (isNaN(priceNum) || priceNum <= 0) {
-        return toast.error("Paid courses must have a valid price greater than ₹0.");
+        return toast.error("Paid courses must have a valid price greater than 0.");
       }
     }
     setSavingEditInfo(true);
@@ -523,7 +531,7 @@ function AdminLms({ role = "admin" }) {
         category: editCategory === "all" ? "" : editCategory,
         subcategory: editSubcategory === "all" ? "" : editSubcategory,
       };
-      if (role === "admin") {
+      if (canDirectPublish) {
         payload.isPaid = Boolean(editIsPaid);
         payload.price = editIsPaid ? Math.round(Number(editPrice)) : 0;
       }
@@ -601,7 +609,7 @@ function AdminLms({ role = "admin" }) {
       const currentIsActive = course.isActive || course.status === "published";
       const nextActive = !currentIsActive;
 
-      if (nextActive && role !== "admin" && course.approvalStatus !== "approved" && course.approvalStatus !== "not_required") {
+      if (nextActive && !canDirectPublish && course.approvalStatus !== "approved" && course.approvalStatus !== "not_required") {
         toast.error("This course cannot go live until approved by Central Admin.");
         return;
       }
@@ -630,7 +638,7 @@ function AdminLms({ role = "admin" }) {
   };
 
   return (
-    <AppShell role={role} title="Learning Management System" subtitle="Create courses, organize chapters, and attach materials">
+    <AppShell role={effectiveRole} title="Learning Management System" subtitle="Create courses, organize chapters, and attach materials">
       <div className="space-y-6">
 
         {/* --- Interactive Breadcrumb Navigation Bar --- */}
@@ -686,7 +694,7 @@ function AdminLms({ role = "admin" }) {
 
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Central Admin Scope Filter */}
-                {role === "admin" && (
+                {isCentral && (
                   <Select value={adminScopeFilter} onValueChange={setAdminScopeFilter}>
                     <SelectTrigger className="h-9 text-xs w-[130px]">
                       <SelectValue placeholder="All Scopes" />
@@ -754,11 +762,7 @@ function AdminLms({ role = "admin" }) {
                   </>
                 )}
 
-                {/* BUG-062: LMS course creation is Central Admin exclusive now — State and
-                    Chapter Admins used to get this same button and a free-course approval
-                    workflow; the backend route now 403s them, so the button is hidden here
-                    instead of inviting a failed submit. */}
-                {role === "admin" && (
+                {canDirectPublish && (
                   <Button onClick={handleOpenCreateModal} className="h-9">
                     <Plus className="mr-1.5 h-4 w-4" /> Create Course
                   </Button>
@@ -790,11 +794,11 @@ function AdminLms({ role = "admin" }) {
                     ? `No courses matching the "${adminApprovalFilter}" approval status.`
                     : adminCategoryFilter !== "all"
                     ? `No courses found under "${adminCategoryFilter}${adminSubcategoryFilter !== "all" ? ` → ${adminSubcategoryFilter}` : ""}".`
-                    : role === "admin"
+                    : canDirectPublish
                     ? "Click the button below to create your course, set up chapters, and upload video lectures and PDFs."
                     : "Courses are created and published by Central Admin."}
                 </p>
-                {role === "admin" && (
+                {canDirectPublish && (
                   <Button onClick={handleOpenCreateModal}>
                     <Plus className="mr-2 h-4 w-4" /> Create Course
                   </Button>
@@ -894,7 +898,7 @@ function AdminLms({ role = "admin" }) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-56">
-                            {role === "admin" && isPending && (
+                            {canDirectPublish && isPending && (
                               <>
                                 <DropdownMenuItem onClick={() => handleApproveCourse(course._id)} className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30">
                                   <CheckCircle2 className="mr-2 h-4 w-4" /> Approve & Go Live
@@ -977,7 +981,7 @@ function AdminLms({ role = "admin" }) {
                         )}
 
                         {/* Non-Admin Pending Notification on Card */}
-                        {isPending && role !== "admin" && (
+                        {isPending && !canDirectPublish && (
                           <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                             <Clock className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">Awaiting Central Admin approval before going live</span>
@@ -1003,8 +1007,8 @@ function AdminLms({ role = "admin" }) {
                         </div>
                       </div>
 
-                      {/* Central Admin Quick Moderation Buttons Strip */}
-                      {role === "admin" && isPending && (
+                      {/* Quick Moderation Buttons Strip */}
+                      {canDirectPublish && isPending && (
                         <div className="px-4 pb-2 pt-0 flex items-center gap-2">
                           <Button 
                             size="sm" 
@@ -1409,15 +1413,15 @@ function AdminLms({ role = "admin" }) {
                 </div>
               </div>
 
-              {/* Course Pricing (Central Admin Only) / Free Policy Notice (Chapter & State Admins) */}
-              {role === "admin" ? (
+              {/* Course Pricing (Central & Country Admins) / Free Policy Notice (Chapter & State Admins) */}
+              {canDirectPublish ? (
                 <div className="pt-2 border-t space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold flex items-center gap-1.5">
                       <CreditCard className="h-3.5 w-3.5 text-primary" /> Course Fee & Access Type
                     </Label>
                     <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
-                      Central Admin Feature
+                      {isCentral ? "Central Admin Feature" : "Country Admin Feature"}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
@@ -1456,7 +1460,7 @@ function AdminLms({ role = "admin" }) {
                           />
                         </div>
                         <p className="text-[10px] text-muted-foreground">
-                          One-time price in INR. Learners must pay to unlock lessons.
+                          Learners must pay to unlock lessons.
                         </p>
                       </div>
                     )}
@@ -1476,7 +1480,7 @@ function AdminLms({ role = "admin" }) {
                         </span>
                       </p>
                       <p className="text-muted-foreground text-[11px] leading-relaxed">
-                        Courses created by {role === "chapter_admin" ? "Chapter" : "State"} Admins are strictly <strong>Free</strong> for all members and will be submitted for <strong>Central Admin approval</strong> before going live.
+                        Courses created by {effectiveRole === "chapter_admin" ? "Chapter" : "State"} Admins are strictly <strong>Free</strong> for all members and will be submitted for <strong>Central Admin approval</strong> before going live.
                       </p>
                     </div>
                   </div>
@@ -1682,7 +1686,7 @@ function AdminLms({ role = "admin" }) {
                 disabled={savingCourse || isUploadingStaged}
               >
                 {savingCourse ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-                {role === "admin" ? (
+                {canDirectPublish ? (
                   <>
                     <span className="sm:hidden truncate">Publish</span>
                     <span className="hidden sm:inline truncate">Create & Publish</span>
@@ -1852,7 +1856,7 @@ function AdminLms({ role = "admin" }) {
                 </div>
               )}
 
-              {courseToEdit?.approvalStatus === "pending" && role !== "admin" && (
+              {courseToEdit?.approvalStatus === "pending" && !canDirectPublish && (
                 <div className="p-2.5 rounded-lg border border-amber-500/25 bg-amber-500/5 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
                   <Clock className="h-4 w-4 shrink-0" />
                   <span>This course is currently pending Central Admin approval. Updates will be reflected in the review.</span>
@@ -1913,15 +1917,15 @@ function AdminLms({ role = "admin" }) {
                   </Select>
                 </div>
               </div>
-              {/* Course Pricing (Central Admin Only) */}
-              {role === "admin" && (
+              {/* Course Pricing (Central & Country Admins) */}
+              {canDirectPublish && (
                 <div className="pt-2 border-t space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold flex items-center gap-1.5">
                       <CreditCard className="h-3.5 w-3.5 text-primary" /> Course Fee & Access Type
                     </Label>
                     <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
-                      Central Admin
+                      {isCentral ? "Central Admin" : "Country Admin"}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2016,7 +2020,7 @@ function AdminLms({ role = "admin" }) {
                 </DialogDescription>
               </div>
 
-              {role === "admin" && (
+              {canDirectPublish && (
                 <Button size="sm" onClick={() => setManualEnrollOpen(true)} className="gap-1.5 text-xs h-8">
                   <Plus className="h-3.5 w-3.5" /> Manual Enroll
                 </Button>

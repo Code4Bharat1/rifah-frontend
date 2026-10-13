@@ -29,13 +29,15 @@ function AdminHome() {
   }, []);
 
   const isCentralAdmin = mounted && user?.role === "central_admin";
+  const isCountryAdmin = mounted && user?.role === "country_admin";
+  const countryParam = isCountryAdmin && user?.country ? { country: user.country } : {};
 
-  const { data: overviewData, refetch: refetchOverview } = useAdminOverview();
-  const { data: queueData, refetch: refetchQueue } = useVerificationQueue();
-  const { data: enquiriesData } = useAllEnquiries();
-  const { data: chaptersData } = useChapters();
-  const { data: auditData } = useAuditLogs();
-  const { data: paymentsData } = useAllPayments();
+  const { data: overviewData, refetch: refetchOverview } = useAdminOverview(countryParam);
+  const { data: queueData, refetch: refetchQueue } = useVerificationQueue(countryParam);
+  const { data: enquiriesData } = useAllEnquiries(countryParam);
+  const { data: chaptersData } = useChapters(countryParam);
+  const { data: auditData } = useAuditLogs(countryParam);
+  const { data: paymentsData } = useAllPayments(countryParam);
 
   const kpi = overviewData?.kpi || {};
   const queue = Array.isArray(queueData) ? queueData : (queueData?.verifications || []);
@@ -55,8 +57,8 @@ function AdminHome() {
   return (
     <AppShell
       role="admin"
-      title="Central administration"
-      subtitle="RIFAH Central Admin · all chapters"
+      title={isCountryAdmin ? `${user?.country || "Country"} administration` : "Central administration"}
+      subtitle={isCountryAdmin ? `RIFAH ${user?.country || "Country"} Admin · national chapters` : "RIFAH Central Admin · all chapters"}
       actions={
         <div className="flex items-center gap-1.5 sm:gap-2">
           <Button asChild variant="outline" size="sm" className="rounded-full h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm shrink-0">
