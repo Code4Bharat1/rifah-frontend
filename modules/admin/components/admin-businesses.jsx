@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { formatMembershipId } from "@shared/lib/indian-states-cities";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
@@ -353,10 +354,12 @@ function AdminBusinesses() {
         ...item,
         srNo: idx + 1,
         chapter: resolvedChapter,
-        membershipId:
-          item.membershipId && !item.membershipId.startsWith("RIFAH-MEM-")
-            ? item.membershipId
-            : `RIFAH-${(resolvedChapter || "PUN").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3) || "PUN"}-${String(idx + 1).padStart(4, "0")}`,
+        membershipId: formatMembershipId(
+          item.membershipId,
+          item.state,
+          resolvedChapter,
+          item.city
+        ),
         lastActionDateFormatted: formatDate(
           item.lastActionDate || item.updatedAt || item.createdAt
         ),

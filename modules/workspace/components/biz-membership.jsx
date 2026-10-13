@@ -77,6 +77,7 @@ import { resolveMediaUrl } from "@shared/lib/api-client";
 import { cn } from "@shared/lib/utils";
 import { SUBSCRIBER_TIERS, normalizeUserTier } from "@shared/lib/subscription-models";
 import { downloadCertificatePdf } from "@shared/lib/certificate-generator";
+import { formatInvoiceNumber } from "@shared/lib/indian-states-cities";
 
 const docTemplates = [
   {
@@ -229,7 +230,7 @@ function handleDownloadInvoicePDF(payment) {
               </div>
               <div style="text-align: right;">
                 <div class="invoice-title">OFFICIAL INVOICE</div>
-                <div class="invoice-number"># ${payment.invoiceNumber || "INV-0000"}</div>
+                <div class="invoice-number"># ${formatInvoiceNumber(payment.invoiceNumber, payment.paidAt || payment.createdAt)}</div>
                 <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Issued: ${new Date(payment.paidAt || payment.createdAt || Date.now()).toLocaleDateString(locale)}</div>
               </div>
             </div>
@@ -2957,7 +2958,7 @@ function BizMembership() {
                 {
                   key: "invoiceNumber",
                   header: "INVOICE NO.",
-                  cell: (r) => <span className="font-bold text-xs text-foreground">{r.invoiceNumber || (r._id ? `INV-${String(r._id).slice(-6).toUpperCase()}` : "INV—")}</span>,
+                  cell: (r) => <span className="font-bold text-xs text-foreground">{formatInvoiceNumber(r.invoiceNumber, r.paidAt || r.createdAt)}</span>,
                 },
                 {
                   key: "purpose",
@@ -3030,7 +3031,7 @@ function BizMembership() {
                 return (
                   <div className="rounded-xl border border-border p-3.5 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-foreground">{r.invoiceNumber || (r._id ? `INV-${String(r._id).slice(-6).toUpperCase()}` : "INV—")}</span>
+                      <span className="text-xs font-bold text-foreground">{formatInvoiceNumber(r.invoiceNumber, r.paidAt || r.createdAt)}</span>
                       <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5">
                         {r.status || "Paid"}
                       </span>
