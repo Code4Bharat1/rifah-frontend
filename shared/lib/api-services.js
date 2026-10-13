@@ -117,6 +117,11 @@ export const userApi = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  assignAdminRole: (id, role) =>
+    apiClient(`/users/${id}/admin-role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
   deactivateAccount: (data = {}) =>
     apiClient("/users/me/deactivate", {
       method: "POST",
@@ -209,7 +214,7 @@ export const categoryApi = {
 };
 
 export const chapterApi = {
-  list: () => apiClient("/chapters"),
+  list: (params = {}) => apiClient(`/chapters${toQueryString(params)}`),
   getById: (id) => apiClient(`/chapters/${id}`),
   getChapterDetails: (id) => apiClient(`/chapters/${id}/details`),
   create: (data) =>
@@ -243,7 +248,7 @@ export const chapterApi = {
 };
 
 export const stateApi = {
-  list: () => apiClient("/states"),
+  list: (params = {}) => apiClient(`/states${toQueryString(params)}`),
   getByName: (stateName) =>
     apiClient(`/states/${encodeURIComponent(stateName)}`),
   createState: (data) =>
@@ -1242,4 +1247,39 @@ export const ticketApi = {
     formData.append("photo", file);
     return apiClient("/tickets/upload", { method: "POST", body: formData });
   },
+};
+
+export const visaReferralApi = {
+  create: (data) =>
+    apiClient("/visa-referrals", { method: "POST", body: JSON.stringify(data) }),
+  listMy: () => apiClient("/visa-referrals/my"),
+  listAdmin: (params = {}) =>
+    apiClient(`/visa-referrals${toQueryString(params)}`),
+  getStats: () => apiClient("/visa-referrals/stats"),
+  getById: (id) => apiClient(`/visa-referrals/${id}`),
+  updateStatus: (id, data) =>
+    apiClient(`/visa-referrals/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  deliverLetter: (id, data) =>
+    apiClient(`/visa-referrals/${id}/deliver`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  uploadDocument: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient("/visa-referrals/upload", { method: "POST", body: formData });
+  },
+};
+
+export const dignitaryApi = {
+  getAll: (params = {}) => apiClient(`/dignitaries${toQueryString(params)}`),
+  getById: (id) => apiClient(`/dignitaries/${id}`),
+  create: (data) =>
+    apiClient("/dignitaries", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) =>
+    apiClient(`/dignitaries/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id) => apiClient(`/dignitaries/${id}`, { method: "DELETE" }),
 };

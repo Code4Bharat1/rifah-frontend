@@ -89,7 +89,7 @@ import {
   DialogDescription,
 } from "@shared/components/ui/dialog";
 
-import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
+import { MembershipBadge, MemberSubscriberBadges, Pill, VerificationBadge, isMemberAndSubscriber } from "@shared/components/rifah/badges";
 import { BusinessCard } from "@shared/components/rifah/business-card";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { FieldRow, Panel, SectionHeader } from "@shared/components/rifah/ui-bits";
@@ -877,8 +877,9 @@ function BusinessProfile() {
                       </p>
                     )}
                     <div className="mt-3 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <VerificationBadge status={business.verification} />
-                      <MembershipBadge tier={business.membership} />
+                      {isMemberAndSubscriber(business) && (
+                        <MemberSubscriberBadges business={business} compact={false} />
+                      )}
                       {business.industry && (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                           {business.industry}

@@ -965,6 +965,12 @@ function Checkout() {
                               </span>
                             </div>
                             <span className="mt-0.5 block text-xs text-muted-foreground">{p.summary}</span>
+                            {String(p.id || "").toLowerCase() === "tier_4" && (
+                              <div className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-[10px] font-semibold text-purple-700">
+                                <Sparkles className="h-2.5 w-2.5" />
+                                <span>Multiple members under single membership · Per-member subscription required</span>
+                              </div>
+                            )}
                             {pAmt > 0 && itemGstAmt > 0 && (
                               <span className="mt-0.5 block text-[10px] text-muted-foreground">
                                 + {isIntl ? `$ ${itemGstAmt.toLocaleString("en-US")} USD` : `₹ ${itemGstAmt.toLocaleString("en-IN")}`} GST ({itemGstRate}%) = {isIntl ? `$ ${itemTotalPayable.toLocaleString("en-US")} USD` : `₹ ${itemTotalPayable.toLocaleString("en-IN")}`} total payable
@@ -975,6 +981,15 @@ function Checkout() {
                       );
                     })}
                   </div>
+
+                  {selected === "tier_4" && (
+                    <div className="mt-3.5 rounded-xl border border-purple-200/90 bg-purple-50/70 p-3 text-xs text-purple-900 flex items-start gap-2.5">
+                      <Sparkles className="h-4 w-4 shrink-0 text-purple-600 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-purple-950">Enterprise Multi-Member Policy:</span> Tier IV allows multiple member registrations under your single company membership. Each individual member joining your roster must purchase an active subscription.
+                      </div>
+                    </div>
+                  )}
                 </Panel>
               )}
 

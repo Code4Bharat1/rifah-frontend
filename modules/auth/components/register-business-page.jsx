@@ -84,7 +84,7 @@ import {
   getPostalCodeLabel,
   getPostalCodePlaceholder,
 } from "@shared/lib/international-countries-cities";
-import { useChapters, useMembershipPlans, useCategories } from "@shared/hooks/use-rifah-api";
+import { useChapters, useMembershipPlans, useCategories, useCountries, useStates } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
 import { authApi, paymentApi, businessApi, verificationApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
@@ -163,14 +163,27 @@ function RegisterBusiness({ isAdmin = false }) {
   
   const { registerBusiness, user } = useAuth();
   const { data: chaptersData } = useChapters();
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const { data: statesData } = useStates();
   const { data: plansData } = useMembershipPlans();
 
   const chapters = chaptersData || [];
 
-  const states = React.useMemo(() => {
-    const chapterStates = chapters.map((c) => (c.state || "").trim()).filter(Boolean);
-    return Array.from(new Set([...ALL_INDIAN_STATES, ...chapterStates])).sort((a, b) => a.localeCompare(b));
-  }, [chapters]);
+  const activeCountriesList = React.useMemo(() => {
+    return Array.isArray(countriesData)
+      ? countriesData
+      : countriesData?.countries || countriesData?.data || [];
+  }, [countriesData]);
+
+  const countryOptions = React.useMemo(() => {
+    const dbNames = activeCountriesList.map((c) => (c.name || "").trim()).filter(Boolean);
+    const combined = Array.from(new Set(["India", ...dbNames]));
+    return combined.sort((a, b) => {
+      if (a === "India") return -1;
+      if (b === "India") return 1;
+      return a.localeCompare(b);
+    });
+  }, [activeCountriesList]);
   
   const plans = React.useMemo(() => {
     const source = Array.isArray(plansData)
@@ -228,6 +241,8 @@ function RegisterBusiness({ isAdmin = false }) {
     address: "",
     city: "",
     pincode: "",
+    country: "India",
+    countryId: "",
     state: "",
     chapter: "",
     dob: "",
@@ -235,6 +250,30 @@ function RegisterBusiness({ isAdmin = false }) {
     timezone: typeof window !== "undefined" ? (Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata") : "Asia/Kolkata",
     region: "national",
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("rifah_selected_country");
+      if (stored && stored !== "All" && stored !== formData.country) {
+        const found = activeCountriesList.find((c) => (c.name || "").toLowerCase() === stored.toLowerCase());
+        setFormData((prev) => ({
+          ...prev,
+          country: stored,
+          countryId: found?._id || found?.id || prev.countryId || "",
+          region: stored.toLowerCase() === "india" ? "national" : "international",
+        }));
+      }
+    }
+  }, [activeCountriesList]);
+
+  useEffect(() => {
+    if (formData.country && !formData.countryId && activeCountriesList.length > 0) {
+      const found = activeCountriesList.find((c) => (c.name || "").toLowerCase() === formData.country.toLowerCase());
+      if (found) {
+        setFormData((prev) => ({ ...prev, countryId: found._id || found.id }));
+      }
+    }
+  }, [formData.country, formData.countryId, activeCountriesList]);
 
   useEffect(() => {
     if (plans.length > 0 && !plans.some((plan) => plan.id === tier)) {
@@ -448,66 +487,130 @@ function RegisterBusiness({ isAdmin = false }) {
     };
   }, [categoriesData, formData.industry]);
 
-  const chaptersForSelectedState = React.useMemo(() => {
-    if (!formData.state) return chapters;
-    return chapters.filter(
-      (c) => (c.state || "").trim().toLowerCase() === formData.state.trim().toLowerCase()
-    );
-  }, [chapters, formData.state]);
+  const availableStates = React.useMemo(() => {
+    const isIndia = !formData.country || formData.country.toLowerCase() === "india";
+    const curCountry = (formData.country || "").trim().toLowerCase();
+
+    // 1. States from StateProfiles
+    const rawStatesList = Array.isArray(statesData) ? statesData : statesData?.data || [];
+    const dbStates = rawStatesList
+      .filter((s) => {
+        if (!formData.country) return true;
+        const sCountry = (s.countryName || s.country || "").trim().toLowerCase();
+        if (sCountry && sCountry === curCountry) return true;
+        if (s.countryId && formData.countryId && String(s.countryId) === String(formData.countryId)) return true;
+        return isIndia;
+      })
+      .map((s) => s.state || s.name)
+      .filter(Boolean);
+
+    // 2. States from chapters
+    const chapterStates = chapters
+      .filter((c) => {
+        if (!formData.country) return true;
+        const cCountry = (c.country || "").trim().toLowerCase();
+        if (cCountry && cCountry === curCountry) return true;
+        if (c.countryId && formData.countryId && String(c.countryId) === String(formData.countryId)) return true;
+        return isIndia;
+      })
+      .map((c) => (c.state || "").trim())
+      .filter(Boolean);
+
+    // 3. Indian states if India
+    const baseStates = isIndia ? ALL_INDIAN_STATES : [];
+
+    return Array.from(new Set([...dbStates, ...chapterStates, ...baseStates])).sort((a, b) => a.localeCompare(b));
+  }, [formData.country, formData.countryId, statesData, chapters]);
+
+  const availableChapters = React.useMemo(() => {
+    const isIndia = !formData.country || formData.country.toLowerCase() === "india";
+    const curCountry = (formData.country || "").trim().toLowerCase();
+    const curState = (formData.state || "").trim().toLowerCase();
+
+    return chapters.filter((c) => {
+      // Country match
+      const cCountry = (c.country || "").trim().toLowerCase();
+      const matchCountry = !formData.country
+        ? true
+        : (formData.countryId && c.countryId && String(c.countryId) === String(formData.countryId))
+        ? true
+        : cCountry
+        ? cCountry === curCountry
+        : isIndia;
+      if (!matchCountry) return false;
+
+      // State match (if state is selected)
+      if (curState) {
+        const cState = (c.state || "").trim().toLowerCase();
+        if (cState && cState !== curState) return false;
+      }
+      return true;
+    });
+  }, [chapters, formData.country, formData.countryId, formData.state]);
 
   const availableCities = React.useMemo(() => {
     if (formData.region === "international") {
-      const intlCities = getCitiesForInternationalCountry(formData.state);
-      return intlCities;
+      const intlCities = getCitiesForInternationalCountry(formData.country || formData.state);
+      const chapterCities = availableChapters
+        .map((c) => (c.city || "").trim())
+        .filter(Boolean);
+      return Array.from(new Set([...intlCities, ...chapterCities])).sort((a, b) => a.localeCompare(b));
     }
     const stateCities = getCitiesForState(formData.state);
-    const chapterCities = chapters
-      .filter((c) => !formData.state || (c.state || "").trim().toLowerCase() === (formData.state || "").trim().toLowerCase())
+    const chapterCities = availableChapters
       .map((c) => (c.city || "").trim())
       .filter(Boolean);
     return Array.from(new Set([...stateCities, ...chapterCities])).sort((a, b) => a.localeCompare(b));
-  }, [formData.state, formData.region, chapters]);
+  }, [formData.country, formData.state, formData.region, availableChapters]);
 
-  const handleStateChange = (selectedStateOrCountry) => {
-    if (formData.region === "international") {
-      const newCities = getCitiesForInternationalCountry(selectedStateOrCountry);
-      const currentCityStillValid = newCities.some((c) => c.toLowerCase() === (formData.city || "").trim().toLowerCase());
-      
-      const countryObj = getCountryObjByName(selectedStateOrCountry);
-      
-      setFormData((prev) => {
-        let updatedPhone = prev.phone;
-        if (countryObj && countryObj.dialCode) {
-          const parsed = parsePhoneNumber(prev.phone || "");
-          if (!parsed.nationalNumber) {
-            updatedPhone = `${countryObj.dialCode} `;
-          } else {
-            updatedPhone = `${countryObj.dialCode} ${parsed.nationalNumber}`;
-          }
-        }
-        return {
-          ...prev,
-          state: selectedStateOrCountry,
-          city: currentCityStillValid ? prev.city : "",
-          pincode: currentCityStillValid ? prev.pincode : "",
-          phone: updatedPhone,
-        };
-      });
-      setError("");
-      return;
-    }
-
-    const chapterStillValid = chapters.some(
-      (c) => c.name === formData.chapter && (c.state || "").trim().toLowerCase() === (selectedStateOrCountry || "").trim().toLowerCase()
+  const handleCountryChange = (selectedCountryName) => {
+    const isIndia = !selectedCountryName || selectedCountryName.toLowerCase() === "india";
+    const countryObj = activeCountriesList.find(
+      (c) => (c.name || "").toLowerCase() === (selectedCountryName || "").toLowerCase()
     );
-    const newCities = getCitiesForState(selectedStateOrCountry);
-    const currentCityStillValid = newCities.some((c) => c.toLowerCase() === (formData.city || "").trim().toLowerCase());
+    const countryId = countryObj?._id || countryObj?.id || "";
+
+    // Sync phone dial code
+    let updatedPhone = formData.phone;
+    const countryObjIntl = getCountryObjByName(selectedCountryName);
+    if (countryObjIntl && countryObjIntl.dialCode) {
+      const parsed = parsePhoneNumber(formData.phone || "");
+      if (!parsed.nationalNumber) {
+        updatedPhone = `${countryObjIntl.dialCode} `;
+      } else {
+        updatedPhone = `${countryObjIntl.dialCode} ${parsed.nationalNumber}`;
+      }
+    } else if (isIndia) {
+      const parsed = parsePhoneNumber(formData.phone || "");
+      if (parsed.nationalNumber) {
+        updatedPhone = `+91 ${parsed.nationalNumber}`;
+      }
+    }
 
     setFormData((prev) => ({
       ...prev,
-      state: selectedStateOrCountry,
-      city: currentCityStillValid ? prev.city : "",
-      pincode: currentCityStillValid ? prev.pincode : "",
+      country: selectedCountryName,
+      countryId,
+      state: "",
+      chapter: "",
+      city: "",
+      pincode: "",
+      phone: updatedPhone,
+      region: isIndia ? "national" : "international",
+    }));
+    setError("");
+  };
+
+  const handleStateChange = (selectedState) => {
+    const chapterStillValid = availableChapters.some(
+      (c) => c.name === formData.chapter && (!c.state || c.state.toLowerCase() === (selectedState || "").toLowerCase())
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      state: selectedState,
+      city: "",
+      pincode: "",
       chapter: chapterStillValid ? prev.chapter : "",
     }));
     setError("");
@@ -516,17 +619,15 @@ function RegisterBusiness({ isAdmin = false }) {
   const handleCityChange = (selectedCity) => {
     let autoPin = "";
     if (formData.region === "international") {
-      autoPin = getPincodeForInternationalCity(formData.state, selectedCity);
+      autoPin = getPincodeForInternationalCity(formData.country || formData.state, selectedCity);
     } else {
       autoPin = getPincodeForCity(selectedCity);
     }
 
-    const inferredState = (formData.region === "national" && !formData.state) ? getStateForCity(selectedCity) : "";
-
     // Auto-match chapter if one exists for this city
     let matchedChapter = formData.chapter;
     if (!matchedChapter) {
-      const directChapter = chapters.find(
+      const directChapter = availableChapters.find(
         (c) => (c.city || "").trim().toLowerCase() === (selectedCity || "").trim().toLowerCase() ||
                (c.name || "").trim().toLowerCase().includes((selectedCity || "").trim().toLowerCase())
       );
@@ -536,7 +637,6 @@ function RegisterBusiness({ isAdmin = false }) {
     setFormData((prev) => ({
       ...prev,
       city: selectedCity,
-      state: prev.state || inferredState || prev.state,
       pincode: autoPin || prev.pincode,
       chapter: matchedChapter,
     }));
@@ -1062,6 +1162,8 @@ function RegisterBusiness({ isAdmin = false }) {
           businessEmail: (formData.businessEmail || formData.email).toLowerCase().trim(),
           email: formData.email.toLowerCase().trim(),
           phone: formData.phone,
+          country: formData.country || "India",
+          countryId: formData.countryId || undefined,
           chapter: formData.chapter || finalCollectingChapter,
           industry: formData.industry,
           subCategory: formData.subCategory,
@@ -1119,6 +1221,8 @@ function RegisterBusiness({ isAdmin = false }) {
         industry: formData.industry,
         subCategory: formData.subCategory,
         businessType: formData.businessType,
+        country: formData.country || "India",
+        countryId: formData.countryId || undefined,
         city: formData.city,
         state: isInternational ? (formData.state || "International") : (formData.state || ""),
         address: formData.address,
@@ -1560,13 +1664,13 @@ function RegisterBusiness({ isAdmin = false }) {
                     return;
                   }
                 }
-                // Location validation: State (National) or Country (International), then City
-                if (formData.region === "national" && (!formData.state || !formData.state.trim())) {
-                  setError("State is mandatory. Please select your business state.");
+                // Location validation: Country, State, then City
+                if (!formData.country || !formData.country.trim()) {
+                  setError("Country is mandatory. Please select your business country.");
                   return;
                 }
-                if (formData.region === "international" && (!formData.state || !formData.state.trim())) {
-                  setError("Country is mandatory. Please select or enter your business country.");
+                if (!formData.state || !formData.state.trim()) {
+                  setError("State / Province is mandatory. Please select your business state.");
                   return;
                 }
                 if (!formData.city || formData.city.trim().length < 2) {
@@ -1575,8 +1679,8 @@ function RegisterBusiness({ isAdmin = false }) {
                 }
 
                 // Pincode / Postal Code Validation (Field-specific error)
-                const currentPostalLabel = getPostalCodeLabel(formData.state, formData.region);
-                if (formData.region === "national") {
+                const currentPostalLabel = getPostalCodeLabel(formData.country || formData.state, formData.region);
+                if (!formData.country || formData.country.toLowerCase() === "india") {
                   if (formData.pincode && !/^\d{6}$/.test(formData.pincode.trim())) {
                     setPincodeError("Please enter a valid 6-digit PIN code.");
                     const el = document.getElementById("bpincode");
@@ -1588,7 +1692,7 @@ function RegisterBusiness({ isAdmin = false }) {
                   }
                 } else {
                   const cleanPin = (formData.pincode || "").trim();
-                  if (cleanPin && cleanPin.length > 12) {
+                  if (cleanPin && cleanPin.length > 16) {
                     setPincodeError(`Please enter a valid ${currentPostalLabel}.`);
                     const el = document.getElementById("bpincode");
                     if (el) {
@@ -2386,53 +2490,92 @@ function RegisterBusiness({ isAdmin = false }) {
                       Public email displayed on your business directory card & catalogue for buyer RFQs and customer enquiries. (If left blank, your owner login email will be used).
                     </p>
                   </div>
-                  {/* 1. State (for National/INR) or Country / Region (for International/USD) */}
+                  {/* 1. Country Selection (Cascaded Tier 1) */}
                   <div className="space-y-1.5 sm:col-span-2">
-                    {formData.region === "national" ? (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="bstate" className="font-semibold text-slate-800 dark:text-slate-200">
-                            State *
-                          </Label>
-                          <span className="text-[11px] text-muted-foreground font-medium">
-                            Select first
-                          </span>
-                        </div>
-                        <CreatableCombobox
-                          id="bstate"
-                          value={formData.state}
-                          onValueChange={handleStateChange}
-                          options={states}
-                          placeholder="Select your business state"
-                          emptyText="No matching state. Type to enter a custom state."
-                          className="h-11"
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="bstate" className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                            <Globe className="h-3.5 w-3.5 text-primary" />
-                            <span>Country / Region *</span>
-                          </Label>
-                          <span className="text-[11px] text-muted-foreground font-medium">
-                            Select country
-                          </span>
-                        </div>
-                        <CreatableCombobox
-                          id="bstate"
-                          value={formData.state}
-                          onValueChange={handleStateChange}
-                          options={ALL_INTERNATIONAL_COUNTRIES}
-                          placeholder="Select or search country (e.g. United Arab Emirates, Saudi Arabia, USA, UK)"
-                          emptyText="No matching country found. Type to enter a custom country."
-                          className="h-11"
-                        />
-                      </>
-                    )}
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="bcountry" className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <Globe className="h-3.5 w-3.5 text-primary" />
+                        <span>Country *</span>
+                      </Label>
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        Tier 1 · Chamber Jurisdiction
+                      </span>
+                    </div>
+                    <CreatableCombobox
+                      id="bcountry"
+                      value={formData.country}
+                      onValueChange={handleCountryChange}
+                      options={countryOptions}
+                      placeholder="Select business country (e.g. India, China, United Arab Emirates...)"
+                      emptyText="No country found. Type to enter country name."
+                      className="h-11"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Businesses across all countries are welcome — RFQs and buyer connections reach members worldwide.
+                    </p>
                   </div>
 
-                  {/* 2. City (Searchable Dropdown, Cascaded from State / Country) */}
+                  {/* 2. State / City (Cascaded Tier 2) */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="bstate" className="font-semibold text-slate-800 dark:text-slate-200">
+                        {formData.country && formData.country.toLowerCase() !== "india" ? "State / City *" : "State / Province *"}
+                      </Label>
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        {formData.country ? (formData.country.toLowerCase() !== "india" ? `State / City in ${formData.country}` : `States in ${formData.country}`) : "Select country first"}
+                      </span>
+                    </div>
+                    <CreatableCombobox
+                      id="bstate"
+                      value={formData.state}
+                      onValueChange={handleStateChange}
+                      options={availableStates}
+                      placeholder={formData.country ? (formData.country.toLowerCase() !== "india" ? `Select or enter state/city in ${formData.country}` : `Select or enter state in ${formData.country}`) : "Select country first"}
+                      emptyText={formData.country ? (formData.country.toLowerCase() !== "india" ? `No preset state/city for ${formData.country}. Type to enter custom state or city.` : `No preset state for ${formData.country}. Type to enter custom state.`) : "Please select country first."}
+                      className="h-11"
+                    />
+                  </div>
+
+                  {/* 3. RIFAH Chapter (Cascaded Tier 3) */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="bchapter" className="font-semibold text-slate-800 dark:text-slate-200">
+                        RIFAH Chapter <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
+                      </Label>
+                      {availableChapters.length > 0 && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                          {availableChapters.length} active chapter{availableChapters.length > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                    <Select
+                      value={formData.chapter || "unassigned"}
+                      onValueChange={(v) => {
+                        setFormData({ ...formData, chapter: v === "unassigned" ? "" : v });
+                        setError("");
+                      }}
+                    >
+                      <SelectTrigger id="bchapter" className="h-11">
+                        <SelectValue placeholder={
+                          availableChapters.length > 0
+                            ? "Select local chapter (Optional)"
+                            : formData.state
+                            ? "No chapters formed in this state yet"
+                            : "Select country & state first"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        <SelectItem value="unassigned">Direct / Unassigned</SelectItem>
+                        {availableChapters.map((c) => (
+                          <SelectItem key={c._id || c.name} value={c.name}>
+                            {c.name} {c.city ? `(${c.city})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* 4. City (Searchable Dropdown) */}
                   <div className="space-y-1.5">
                     <Label htmlFor="bcity" className="font-semibold text-slate-800 dark:text-slate-200">
                       City *
@@ -2444,24 +2587,24 @@ function RegisterBusiness({ isAdmin = false }) {
                       options={availableCities}
                       placeholder={
                         !formData.state
-                          ? (formData.region === "international" ? "Select country first (or search city)" : "Select state first (or search city)")
-                          : (formData.region === "international" ? `Select or search city in ${formData.state}` : "Select or search city")
+                          ? "Select state/province first (or search city)"
+                          : `Select or enter city in ${formData.state}`
                       }
                       emptyText={
                         formData.state
-                          ? `No preset city found for ${formData.state}. Type to enter a custom city.`
-                          : "Please select a country/state first."
+                          ? `No preset city for ${formData.state}. Type to enter custom city.`
+                          : "Please select state/province first."
                       }
                       className="h-11"
                     />
-                    {formData.region === "international" && formData.state && availableCities.length > 0 && (
+                    {availableCities.length > 0 && (
                       <p className="text-[10px] text-muted-foreground">
-                        Showing major commercial cities for {formData.state} (or type custom city).
+                        Showing major commercial cities or type custom city.
                       </p>
                     )}
                   </div>
 
-                  {/* 3. Pincode / Postal code (Auto-captured based on City, Editable) */}
+                  {/* 5. Pincode / Postal code */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label
@@ -2471,7 +2614,7 @@ function RegisterBusiness({ isAdmin = false }) {
                           pincodeError && "text-red-600 dark:text-red-400 font-bold"
                         )}
                       >
-                        {getPostalCodeLabel(formData.state, formData.region)}
+                        {getPostalCodeLabel(formData.country || formData.state, formData.region)}
                       </Label>
                       {formData.pincode && !pincodeError && (
                         <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
@@ -2487,7 +2630,7 @@ function RegisterBusiness({ isAdmin = false }) {
                         setPincodeError("");
                         setError("");
                       }}
-                      placeholder={getPostalCodePlaceholder(formData.state, formData.region)}
+                      placeholder={getPostalCodePlaceholder(formData.country || formData.state, formData.region)}
                       className={cn(
                         "h-11 transition-all duration-200",
                         pincodeError && "border-red-500 ring-2 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20 text-red-900 dark:text-red-200"
@@ -2501,7 +2644,7 @@ function RegisterBusiness({ isAdmin = false }) {
                     )}
                   </div>
 
-                  {/* 4. Address */}
+                  {/* 6. Address */}
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="baddress" className="font-semibold text-slate-800 dark:text-slate-200">
                       Address <span className="text-muted-foreground font-normal text-xs">(Street, area, premises)</span>
@@ -2513,30 +2656,6 @@ function RegisterBusiness({ isAdmin = false }) {
                       placeholder="Street, area, premises"
                       className="h-11"
                     />
-                  </div>
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="bchapter">
-                      RIFAH Chapter <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
-                    </Label>
-                    <Select
-                      value={formData.chapter}
-                      onValueChange={(v) => {
-                        setFormData({ ...formData, chapter: v });
-                        setError("");
-                      }}
-                    >
-                      <SelectTrigger id="bchapter" className="h-11">
-                        <SelectValue placeholder={formData.region === "national" && !formData.state ? "Select a state first (Optional)" : "Select chapter (Optional)"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(formData.region === "national" ? chaptersForSelectedState : chapters).map((c) => (
-                          <SelectItem key={c._id || c.name} value={c.name}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-muted-foreground">Optional: Select your local RIFAH chamber chapter for regional networking and chapter governance.</p>
                   </div>
 
                   {/* Online & Social Presence (Optional) */}

@@ -61,6 +61,7 @@ import {
   CalendarPlus,
   Award,
   Bot,
+  Globe,
 } from "lucide-react";
 import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
 import { Button } from "@shared/components/ui/button";
@@ -110,6 +111,7 @@ const navs = {
       { label: "Events", to: "/user/events", icon: CalendarDays },
       { label: "LMS", to: "/user/lms", icon: GraduationCap },
       { label: "Membership Tiers", to: "/user/membership", icon: Star },
+      { label: "Visa Referral", to: "/user/visa-referrals", icon: Globe },
       { label: "My Profile", to: "/user/profile", icon: UserRound },
       { label: "Notifications", to: "/user/notifications", icon: Bell },
     ],
@@ -131,9 +133,10 @@ const navs = {
       { label: "Advertisements", to: "/biz/advertisements", icon: Megaphone },
       { label: "Events", to: "/biz/events", icon: CalendarDays },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
-      { label: "My Profile", to: "/biz/profile", icon: UserRound },
-      { label: "Support", to: "/biz/tickets", icon: LifeBuoy },
       { label: "Membership", to: "/biz/membership", icon: Star },
+      { label: "Visa Referral", to: "/biz/visa-referrals", icon: Globe },
+      { label: "Support", to: "/biz/tickets", icon: LifeBuoy },
+      { label: "My Profile", to: "/biz/profile", icon: UserRound },
       { label: "Notifications", to: "/biz/notifications", icon: Bell },
       { label: "LMS", to: "/biz/lms", icon: GraduationCap },
     ],
@@ -158,6 +161,7 @@ const navs = {
       { label: "Memberships", to: "/admin/memberships", icon: Star },
       { label: "Advertisements", to: "/admin/advertisements", icon: Megaphone },
       { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
+      { label: "Visa Referrals", to: "/admin/visa-referrals", icon: Globe },
       { label: "Support", to: "/admin/tickets", icon: LifeBuoy },
       { label: "Countries", to: "/admin/countries", icon: MapPinned },
       { label: "States", to: "/admin/states", icon: MapPin },
@@ -441,6 +445,36 @@ function useResolvedNav(role) {
     };
   }
 
+  // 5. Customize module access & labels for Country Admin
+  if (user?.role === "country_admin") {
+    const isNonIndia = user?.country && user.country.toLowerCase() !== "india";
+    const mappedMore = (baseNav.more || [])
+      .filter((item) => item.to !== "/admin/central-admin")
+      .map((item) => {
+        if (item.to === "/admin/countries") {
+          return { ...item, label: user?.country ? `${user.country}` : "My Country" };
+        }
+        if (item.to === "/admin/states" && isNonIndia) {
+          return { ...item, label: "States / Cities" };
+        }
+        return item;
+      });
+
+    const mappedPrimary = (baseNav.primary || []).map((item) => {
+      if (item.to === "/admin/states" && isNonIndia) {
+        return { ...item, label: "States / Cities" };
+      }
+      return item;
+    });
+
+    return {
+      ...baseNav,
+      title: user?.country ? `RIFAH • ${user.country} Administration` : "Country Administration",
+      primary: mappedPrimary,
+      more: mappedMore,
+    };
+  }
+
   return baseNav;
 }
 
@@ -538,7 +572,10 @@ function isAccessibleUnverifiedPath(pathname) {
     clean === "/biz/messages" ||
     clean.startsWith("/biz/messages/") ||
     clean === "/biz/my-duty" ||
-    clean.startsWith("/biz/my-duty/")
+    clean.startsWith("/biz/my-duty/") ||
+    clean === "/biz/visa-referrals" ||
+    clean.startsWith("/biz/visa-referrals/") ||
+    clean === "/visa-referral"
   );
 }
 
@@ -1339,7 +1376,7 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
                   effectiveUser.previousRole === effectiveUser?.role) &&
                 (!effectiveUser?.availableWorkspaces ||
                   effectiveUser.availableWorkspaces.length <= 1) &&
-                ["central_admin", "state_admin", "chapter_admin"].includes(
+                ["central_admin", "country_admin", "state_admin", "chapter_admin"].includes(
                   effectiveUser?.role,
                 ) &&
                 (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
@@ -2056,7 +2093,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
     setOpen(false);
     const resultingRole = res?.role || targetRole;
     if (
-      ["central_admin", "admin", "super_admin", "secretariat"].includes(
+      ["central_admin", "country_admin", "admin", "super_admin", "secretariat"].includes(
         resultingRole,
       )
     )
@@ -2067,6 +2104,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
   };
   const switchBackLabel = [
     "central_admin",
+    "country_admin",
     "admin",
     "super_admin",
     "secretariat",
@@ -2265,7 +2303,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
                 effectiveUser.previousRole === effectiveUser?.role) &&
               (!effectiveUser?.availableWorkspaces ||
                 effectiveUser.availableWorkspaces.length <= 1) &&
-              ["central_admin", "state_admin", "chapter_admin"].includes(
+              ["central_admin", "country_admin", "state_admin", "chapter_admin"].includes(
                 effectiveUser?.role,
               ) &&
               (effectiveUser?.businessId || effectiveUser?.businessSlug) && (

@@ -22,6 +22,7 @@ import {
   contactApi,
   settingsApi,
   stateApi,
+  countryApi,
   centralAdminApi,
   oneToOneApi,
   thankYouNoteApi,
@@ -119,15 +120,39 @@ export function useCategories() {
   });
 }
 
-export function useChapters() {
+export function useChapters(params = {}) {
   return useQuery({
-    queryKey: ["chapters"],
+    queryKey: ["chapters", params],
     queryFn: async () => {
-      const res = await chapterApi.list();
+      const res = await chapterApi.list(params);
       return res?.data?.chapters || res?.data || res;
     },
     staleTime: 1000 * 60 * 30, // Scaled for 10k users: 30 minutes in RAM
     gcTime: 1000 * 60 * 60,    // Retain in cache for 1 hour
+  });
+}
+
+export function useStates(params = {}) {
+  return useQuery({
+    queryKey: ["states", params],
+    queryFn: async () => {
+      const res = await stateApi.list(params);
+      return res?.data?.states || res?.states || res?.data || res;
+    },
+    staleTime: 1000 * 60 * 30, // Scaled for 10k users: 30 minutes in RAM
+    gcTime: 1000 * 60 * 60,    // Retain in cache for 1 hour
+  });
+}
+
+export function useCountries(params = {}) {
+  return useQuery({
+    queryKey: ["countries", params],
+    queryFn: async () => {
+      const res = await countryApi.list(params);
+      return res?.data?.countries || res?.data || res;
+    },
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
   });
 }
 
@@ -166,18 +191,6 @@ export function useCertificates(params = {}) {
   return useQuery({
     queryKey: ["certificates", params],
     queryFn: () => courseApi.getCertificates(params),
-  });
-}
-
-export function useStates() {
-  return useQuery({
-    queryKey: ["states"],
-    queryFn: async () => {
-      const res = await stateApi.list();
-      return res?.data?.states || res?.data || res;
-    },
-    staleTime: 1000 * 60 * 30, // Scaled for 10k users: 30 minutes in RAM
-    gcTime: 1000 * 60 * 60,    // Retain in cache for 1 hour
   });
 }
 

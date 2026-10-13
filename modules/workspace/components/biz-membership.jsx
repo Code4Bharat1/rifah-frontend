@@ -49,6 +49,7 @@ import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { ChamberMembershipTiers } from "@shared/components/rifah/chamber-membership-tiers";
+import { SubscriberModelsTable } from "@shared/components/rifah/subscriber-models-table";
 import { MembershipBadge, Pill, VerificationBadge } from "@shared/components/rifah/badges";
 import { ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { downloadInvoicePdf, generateInvoiceHtml } from "@shared/lib/invoice-generator";
@@ -656,11 +657,9 @@ function BizMembership() {
 
   const plans = plansData || {};
   const rawTierIdentifier = (
-    membershipData?.subscriberTier ||
-    membershipData?.planId ||
-    membershipData?.planName ||
     business?.subscriberTier ||
-    business?.membership ||
+    membershipData?.subscriberTier ||
+    (String(membershipData?.planId || "").toLowerCase().startsWith("tier_") ? membershipData?.planId : null) ||
     "tier_1"
   ).toLowerCase();
 
@@ -1557,6 +1556,27 @@ function BizMembership() {
                 <span>Compare All Plans & Tiers</span>
                 <ChevronRight className="h-3.5 w-3.5 ml-1" />
               </Button>
+            </div>
+
+            {/* Official Rifah Connect Subscriber Models Specification Table */}
+            <div className="mt-8 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 px-1">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    Rifah Connect Subscriber Models Specification
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Complete monthly entitlements, feature allowances, and operational quotas across all 4 subscriber tiers.
+                  </p>
+                </div>
+              </div>
+
+              <SubscriberModelsTable
+                currentTierId={subscriberTierKey}
+                onSelectTier={(tier) => {
+                  window.location.href = `/membership/checkout?plan=${tier.id}`;
+                }}
+              />
             </div>
           </>
         ) : (

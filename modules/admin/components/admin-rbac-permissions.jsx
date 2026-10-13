@@ -24,6 +24,7 @@ import {
   Layers,
   MapPin,
   Lock,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@shared/components/ui/button";
@@ -146,6 +147,7 @@ const SIDEBAR_FEATURES_BY_LEVEL = {
         { route: "/admin/states", label: "State Chapters", icon: MapPin, desc: "Manage states and territorial divisions" },
         { route: "/admin/chapters", label: "Chapter Desks", icon: Layers, desc: "National chapter directory" },
         { route: "/admin/central-admin", label: "Central Administration", icon: ShieldCheck, desc: "Core chamber administration" },
+        { route: "/admin/visa-referrals", label: "Visa Referrals Desk", icon: Globe, desc: "Diplomatic consular recommendation letters (Central Admin only)" },
       ],
     },
     {

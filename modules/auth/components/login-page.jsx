@@ -525,13 +525,13 @@ export default function LoginPage() {
                 className="text-2xl xl:text-3xl text-sky-200/90 leading-[1.1] font-bold"
                 style={{ fontFamily: "'Caveat', cursive, sans-serif" }}
               >
-                <span>Stronger</span>
+                <span>{t("heroSkyStronger") || "Stronger"}</span>
                 <br />
-                <span>Businesses</span>
+                <span>{t("heroSkyBusinesses") || "Businesses"}</span>
                 <br />
-                <span>A Brighter</span>
+                <span>{t("heroSkyABrighter") || "A Brighter"}</span>
                 <br />
-                <span>Tomorrow</span>
+                <span>{t("heroSkyTomorrow") || "Tomorrow"}</span>
               </div>
               <div className="flex justify-end mt-1">
                 <svg width="105" height="12" viewBox="0 0 105 12" fill="none">
@@ -557,16 +557,15 @@ export default function LoginPage() {
           {/* Middle Content: Heading, Subtitle, 4 Pillars & Stats */}
           <div className="relative z-10 my-auto space-y-4 xl:space-y-5 max-w-xl py-2">
             <h1 className="text-2xl sm:text-3xl xl:text-[36px] 2xl:text-[40px] font-extrabold tracking-tight text-white leading-[1.18]">
-              One chamber network
+              {t("heroHeading1") || "One chamber network"}
               <br />
-              for discovery, enquiries
+              {t("heroHeading2") || "for discovery, enquiries"}
               <br />
-              and <span className="text-[#38bdf8]">verified trade.</span>
+              {t("heroHeading3Prefix") || "and "}<span className="text-[#38bdf8]">{t("heroHeading3Highlight") || "verified trade."}</span>
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-300/90 leading-relaxed max-w-md">
-              Members receive matched buyer enquiries, manage their catalogue
-              and participate in chapter events from a single workspace.
+              {t("heroSubheading") || "Members receive matched buyer enquiries, manage their catalogue and participate in chapter events from a single workspace."}
             </p>
 
             {/* 4 Feature Badges in a row */}
@@ -576,7 +575,7 @@ export default function LoginPage() {
                   <Users className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-200 leading-tight">
-                  Verified Network
+                  {t("verifiedNetwork") || "Verified Network"}
                 </span>
               </div>
               <div className="flex flex-col items-start gap-1.5">
@@ -584,7 +583,7 @@ export default function LoginPage() {
                   <BarChart3 className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-200 leading-tight">
-                  Business Opportunities
+                  {t("businessOpportunities") || "Business Opportunities"}
                 </span>
               </div>
               <div className="flex flex-col items-start gap-1.5">
@@ -592,7 +591,7 @@ export default function LoginPage() {
                   <Calendar className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-200 leading-tight">
-                  Events & Collaborations
+                  {t("eventsCollaborations") || "Events & Collaborations"}
                 </span>
               </div>
               <div className="flex flex-col items-start gap-1.5">
@@ -600,7 +599,7 @@ export default function LoginPage() {
                   <ShieldCheck className="h-4 w-4 xl:h-5 xl:w-5 stroke-[2]" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-200 leading-tight">
-                  Trusted Ecosystem
+                  {t("trustedEcosystem") || "Trusted Ecosystem"}
                 </span>
               </div>
             </div>
@@ -615,7 +614,7 @@ export default function LoginPage() {
                     5,000+
                   </div>
                   <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">
-                    Verified Members
+                    {t("verifiedMembers") || "Verified Members"}
                   </div>
                 </div>
               </div>
@@ -630,7 +629,7 @@ export default function LoginPage() {
                     28+
                   </div>
                   <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">
-                    Chapters Across India
+                    {t("chaptersAcrossIndia") || "Chapters Across India"}
                   </div>
                 </div>
               </div>
@@ -645,7 +644,7 @@ export default function LoginPage() {
                     50+
                   </div>
                   <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">
-                    Events Every Year
+                    {t("eventsEveryYear") || "Events Every Year"}
                   </div>
                 </div>
               </div>
@@ -660,7 +659,7 @@ export default function LoginPage() {
                     100+
                   </div>
                   <div className="text-[10px] xl:text-[11px] text-slate-300 font-medium mt-0.5">
-                    Business Categories
+                    {t("businessCategories") || "Business Categories"}
                   </div>
                 </div>
               </div>
@@ -673,7 +672,7 @@ export default function LoginPage() {
             <div className="flex items-center gap-2">
               <div className="h-0.5 w-6 bg-[#dc2626]" />
               <span className="text-[10px] font-semibold tracking-[0.22em] text-slate-400 uppercase">
-                TOGETHER FOR A SUSTAINABLE FUTURE
+                {t("tagline") || "TOGETHER FOR A SUSTAINABLE FUTURE"}
               </span>
             </div>
 
@@ -683,7 +682,7 @@ export default function LoginPage() {
                 “
               </span>
               <p className="mt-1 text-xs font-semibold text-slate-100 leading-snug">
-                Building connections today for a stronger tomorrow.
+                {t("quote") || "Building connections today for a stronger tomorrow."}
               </p>
               <div className="mt-2.5 h-0.5 w-8 rounded-full bg-[#dc2626]" />
             </div>
@@ -727,9 +726,9 @@ export default function LoginPage() {
                 />
               </svg>
               <div className="absolute top-5 right-6 flex flex-col items-start gap-1 text-[11px] font-semibold text-slate-400/90 leading-tight">
-                <span>Connect</span>
-                <span>Collaborate</span>
-                <span>Grow</span>
+                <span>{t("watermarkConnect") || "Connect"}</span>
+                <span>{t("watermarkCollaborate") || "Collaborate"}</span>
+                <span>{t("watermarkGrow") || "Grow"}</span>
               </div>
             </div>
 
@@ -767,7 +766,7 @@ export default function LoginPage() {
                   htmlFor="email"
                   className="text-xs font-semibold text-slate-700"
                 >
-                  Email
+                  {t("emailLabel") || "Email"}
                 </Label>
                 <div className="relative flex items-center rounded-xl bg-[#f0f4f9] border border-transparent focus-within:border-[#0077e6] focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all px-3.5 py-2.5">
                   <Mail className="h-4 w-4 text-slate-400 mr-2.5 shrink-0 pointer-events-none" />
@@ -777,7 +776,7 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter email"
+                    placeholder={t("emailPlaceholder") || "Enter email"}
                     className="w-full bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none"
                   />
                 </div>
@@ -790,7 +789,7 @@ export default function LoginPage() {
                     htmlFor="password"
                     className="text-xs font-semibold text-slate-700"
                   >
-                    Password
+                    {t("passwordLabel") || "Password"}
                   </Label>
                   <button
                     type="button"
@@ -806,7 +805,7 @@ export default function LoginPage() {
                     }}
                     className="text-xs font-semibold text-[#0077e6] hover:underline"
                   >
-                    Forgot password?
+                    {t("forgotPassword") || "Forgot password?"}
                   </button>
                 </div>
                 <div className="relative flex items-center rounded-xl bg-[#f0f4f9] border border-transparent focus-within:border-[#0077e6] focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all px-3.5 py-2.5">
@@ -843,7 +842,7 @@ export default function LoginPage() {
                   className="h-4 w-4 rounded border-slate-300 text-[#0077e6] focus:ring-[#0077e6] accent-[#0077e6] cursor-pointer"
                 />
                 <span className="text-xs text-slate-600">
-                  Keep me signed in
+                  {t("keepSignedIn") || "Keep me signed in"}
                 </span>
               </label>
 
@@ -853,17 +852,11 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full h-10 sm:h-11 rounded-xl bg-[#0077e6] hover:bg-[#0066cc] text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition-all mt-0.5"
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                    {t("signingIn")}
-                  </>
-                ) : (
-                  <>
-                    <span>Sign in</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />}
+                <span className="notranslate" translate="no">
+                  {loading ? t("signingIn") : t("signInButton")}
+                </span>
+                {!loading && <ArrowRight className="h-4 w-4 shrink-0" />}
               </Button>
             </form>
 
@@ -873,7 +866,7 @@ export default function LoginPage() {
                 <div className="w-full border-t border-slate-200" />
               </div>
               <span className="relative bg-white px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                OR
+                {t("or") || "OR"}
               </span>
             </div>
 
@@ -881,7 +874,7 @@ export default function LoginPage() {
             <div className="relative z-10">
               <GoogleAuthButton
                 roleTarget="business_owner"
-                text="Continue with Google"
+                text={t("continueWithGoogle") || "Continue with Google"}
                 className="w-full h-10 sm:h-10.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm shadow-2xs transition-all flex items-center justify-center gap-2.5"
                 onError={(msg) => setError(msg)}
               />
@@ -890,7 +883,7 @@ export default function LoginPage() {
             {/* Don't have an account? Section */}
             <div className="mt-3.5 sm:mt-4 rounded-2xl border border-slate-100 bg-[#f8fafc] p-2.5 sm:p-3 space-y-1.5 relative z-10">
               <p className="text-xs font-bold text-slate-800 px-1">
-                Don&apos;t have an account?
+                {t("noAccount") || "Don't have an account?"}
               </p>
               <div className="grid gap-1.5">
                 <Link
@@ -907,10 +900,10 @@ export default function LoginPage() {
                     </div>
                     <div>
                       <span className="block text-xs font-bold text-slate-800">
-                        Register as Member / User
+                        {t("registerUserTitle") || "Register as Member / User"}
                       </span>
                       <span className="block text-[10px] text-slate-500">
-                        Chamber networking, member tiers & business discovery
+                        {t("registerUserDesc") || "Chamber networking, member tiers & business discovery"}
                       </span>
                     </div>
                   </div>
@@ -927,10 +920,10 @@ export default function LoginPage() {
                     </div>
                     <div>
                       <span className="block text-xs font-bold text-slate-800">
-                        Register your business
+                        {t("registerBusinessTitle") || "Register your business"}
                       </span>
                       <span className="block text-[10px] text-slate-500">
-                        Join chamber directory & receive sales leads
+                        {t("registerBusinessDesc") || "Join chamber directory & receive sales leads"}
                       </span>
                     </div>
                   </div>
@@ -972,11 +965,11 @@ export default function LoginPage() {
               </div>
               <div>
                 <DialogTitle className="text-xl font-bold text-slate-900 leading-tight">
-                  Select Your <span className="text-[#0060df]">Panel</span>
+                  {t("roleModal.title") || "Select Your Panel"}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-sm text-slate-500 leading-snug">
-                  Welcome back! Your account has access to multiple panels.
-                  Choose where you&apos;d like to log in.
+                  {t("roleModal.subtitle") ||
+                    "Welcome back! Your account has access to multiple panels. Choose where you'd like to log in."}
                 </DialogDescription>
               </div>
             </div>
@@ -988,15 +981,46 @@ export default function LoginPage() {
                     const isOrgRole = ws.type === "org_role";
                     const isLoading = roleSwitchLoading;
 
-                    let label = ws.roleName || "Workspace";
+                    let label =
+                      ws.workspaceId === "chapter_admin" || ws.panelType === "chapter-admin"
+                        ? t("roleModal.chapterAdminTitle") || "Chapter Admin Panel"
+                        : ws.workspaceId === "business_owner" || ws.workspaceId === "business" || ws.panelType === "business"
+                          ? t("roleModal.businessOwnerTitle") || "Business Owner Panel"
+                          : ws.workspaceId === "state_admin" || ws.panelType === "state-admin"
+                            ? t("roleModal.stateAdminTitle") || "State Admin Panel"
+                            : ws.workspaceId === "central_admin" || ws.panelType === "central-admin"
+                              ? t("roleModal.centralAdminTitle") || "Central Admin Panel"
+                              : ws.workspaceId === "customer" || ws.panelType === "customer"
+                                ? t("roleModal.customerTitle") || "Customer Portal"
+                                : ws.roleName || t("roleModal.workspace") || "Workspace";
+
                     let badge = isOrgRole
-                      ? `${(ws.level || "ORG").toUpperCase()} ROLE`
-                      : "PANEL";
+                      ? `${(ws.level || "ORG").toUpperCase()} ${t("roleModal.orgRoleBadge") || "ROLE"}`
+                      : ws.workspaceId === "chapter_admin" || ws.panelType === "chapter-admin"
+                        ? t("roleModal.chapterAdminBadge") || "CHAPTER"
+                        : ws.workspaceId === "business_owner" || ws.workspaceId === "business" || ws.panelType === "business"
+                          ? t("roleModal.businessOwnerBadge") || "BUSINESS"
+                          : ws.workspaceId === "state_admin" || ws.panelType === "state-admin"
+                            ? t("roleModal.stateAdminBadge") || "STATE LEVEL"
+                            : ws.workspaceId === "central_admin" || ws.panelType === "central-admin"
+                              ? t("roleModal.centralAdminBadge") || "FULL ACCESS"
+                              : ws.workspaceId === "customer" || ws.panelType === "customer"
+                                ? t("roleModal.customerBadge") || "BUYER"
+                                : t("roleModal.panelBadge") || "PANEL";
+
                     let desc = isOrgRole
-                      ? `${ws.chapterName ? `${ws.chapterName} • ` : ws.state ? `${ws.state} State • ` : ""}Assigned administrative features & operations`
-                      : ws.workspaceId === "business_owner"
-                        ? "Manage your business profile, enquiries, catalogue & B2B networking"
-                        : "Administrative command center & monitoring";
+                      ? `${ws.chapterName ? `${ws.chapterName} • ` : ws.state ? `${ws.state} State • ` : ""}${t("roleModal.orgRoleDesc") || "Assigned administrative features & operations"}`
+                      : ws.workspaceId === "chapter_admin" || ws.panelType === "chapter-admin"
+                        ? t("roleModal.chapterAdminDesc") || "Manage your chapter members, events, verifications and chapter-level operations"
+                        : ws.workspaceId === "business_owner" || ws.workspaceId === "business" || ws.panelType === "business"
+                          ? t("roleModal.businessOwnerDesc") || "Manage your business profile, enquiries, catalogue & B2B networking"
+                          : ws.workspaceId === "state_admin" || ws.panelType === "state-admin"
+                            ? t("roleModal.stateAdminDesc") || "Oversee all chapters, members and businesses within your state jurisdiction"
+                            : ws.workspaceId === "central_admin" || ws.panelType === "central-admin"
+                              ? t("roleModal.centralAdminDesc") || "Manage entire RIFAH platform — businesses, chapters, states, members & all operations"
+                              : ws.workspaceId === "customer" || ws.panelType === "customer"
+                                ? t("roleModal.customerDesc") || "Discover businesses, send requirements, receive quotations & track orders"
+                                : t("roleModal.adminCommandCenterDesc") || "Administrative command center & monitoring";
                     let bg = isOrgRole
                       ? ws.level === "Chapter"
                         ? "bg-cyan-50/70 hover:bg-cyan-100/70 border-cyan-200 hover:border-cyan-400"
@@ -1112,9 +1136,9 @@ export default function LoginPage() {
 
                     const ROLE_META = {
                       central_admin: {
-                        label: "Central Admin Panel",
-                        badge: "FULL ACCESS",
-                        desc: "Manage entire RIFAH platform — businesses, chapters, states, members & all operations",
+                        label: t("roleModal.centralAdminTitle") || "Central Admin Panel",
+                        badge: t("roleModal.centralAdminBadge") || "FULL ACCESS",
+                        desc: t("roleModal.centralAdminDesc") || "Manage entire RIFAH platform — businesses, chapters, states, members & all operations",
                         gradient: "from-blue-600 to-indigo-700",
                         bg: "bg-blue-50 hover:bg-blue-100/70 border-blue-200 hover:border-blue-400",
                         badgeBg: "bg-blue-600 text-white",
@@ -1134,9 +1158,9 @@ export default function LoginPage() {
                         ),
                       },
                       state_admin: {
-                        label: "State Admin Panel",
-                        badge: "STATE LEVEL",
-                        desc: "Oversee all chapters, members and businesses within your state jurisdiction",
+                        label: t("roleModal.stateAdminTitle") || "State Admin Panel",
+                        badge: t("roleModal.stateAdminBadge") || "STATE LEVEL",
+                        desc: t("roleModal.stateAdminDesc") || "Oversee all chapters, members and businesses within your state jurisdiction",
                         gradient: "from-emerald-600 to-teal-700",
                         bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
                         badgeBg: "bg-emerald-600 text-white",
@@ -1157,9 +1181,9 @@ export default function LoginPage() {
                         ),
                       },
                       chapter_admin: {
-                        label: "Chapter Admin Panel",
-                        badge: "CHAPTER",
-                        desc: "Manage your chapter members, events, verifications and chapter-level operations",
+                        label: t("roleModal.chapterAdminTitle") || "Chapter Admin Panel",
+                        badge: t("roleModal.chapterAdminBadge") || "CHAPTER",
+                        desc: t("roleModal.chapterAdminDesc") || "Manage your chapter members, events, verifications and chapter-level operations",
                         gradient: "from-cyan-600 to-sky-700",
                         bg: "bg-cyan-50 hover:bg-cyan-100/70 border-cyan-200 hover:border-cyan-400",
                         badgeBg: "bg-cyan-600 text-white",
@@ -1182,9 +1206,40 @@ export default function LoginPage() {
                         ),
                       },
                       business_owner: {
-                        label: "Business Owner Panel",
-                        badge: "BUSINESS",
-                        desc: "Manage your business profile, enquiries, catalogue, analytics and B2B networking",
+                        label: t("roleModal.businessOwnerTitle") || "Business Owner Panel",
+                        badge: t("roleModal.businessOwnerBadge") || "BUSINESS",
+                        desc: t("roleModal.businessOwnerDesc") || "Manage your business profile, enquiries, catalogue, analytics and B2B networking",
+                        gradient: "from-orange-500 to-amber-600",
+                        bg: "bg-amber-50 hover:bg-amber-100/70 border-amber-200 hover:border-amber-400",
+                        badgeBg: "bg-amber-500 text-white",
+                        iconBg: "bg-amber-100 text-amber-700",
+                        icon: (
+                          <svg
+                            className="h-6 w-6"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect
+                              x="2"
+                              y="3"
+                              width="20"
+                              height="14"
+                              rx="2"
+                              ry="2"
+                            />
+                            <line x1="8" y1="21" x2="16" y2="21" />
+                            <line x1="12" y1="17" x2="12" y2="21" />
+                          </svg>
+                        ),
+                      },
+                      business: {
+                        label: t("roleModal.businessOwnerTitle") || "Business Owner Panel",
+                        badge: t("roleModal.businessOwnerBadge") || "BUSINESS",
+                        desc: t("roleModal.businessOwnerDesc") || "Manage your business profile, enquiries, catalogue, analytics and B2B networking",
                         gradient: "from-orange-500 to-amber-600",
                         bg: "bg-amber-50 hover:bg-amber-100/70 border-amber-200 hover:border-amber-400",
                         badgeBg: "bg-amber-500 text-white",
@@ -1213,9 +1268,9 @@ export default function LoginPage() {
                         ),
                       },
                       customer: {
-                        label: "Customer Portal",
-                        badge: "BUYER",
-                        desc: "Discover businesses, send requirements, receive quotations & track orders",
+                        label: t("roleModal.customerTitle") || "Customer Portal",
+                        badge: t("roleModal.customerBadge") || "BUYER",
+                        desc: t("roleModal.customerDesc") || "Discover businesses, send requirements, receive quotations & track orders",
                         gradient: "from-emerald-500 to-teal-600",
                         bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
                         badgeBg: "bg-emerald-500 text-white",
@@ -1223,9 +1278,9 @@ export default function LoginPage() {
                         icon: <ShoppingBag className="h-6 w-6" />,
                       },
                       buyer: {
-                        label: "Customer Portal",
-                        badge: "BUYER",
-                        desc: "Discover businesses, send requirements, receive quotations & track orders",
+                        label: t("roleModal.customerTitle") || "Customer Portal",
+                        badge: t("roleModal.customerBadge") || "BUYER",
+                        desc: t("roleModal.customerDesc") || "Discover businesses, send requirements, receive quotations & track orders",
                         gradient: "from-emerald-500 to-teal-600",
                         bg: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 hover:border-emerald-400",
                         badgeBg: "bg-emerald-500 text-white",
@@ -1235,9 +1290,9 @@ export default function LoginPage() {
                     };
 
                     const meta = ROLE_META[normalizedRole] || {
-                      label: role || "Workspace",
-                      badge: "ACCESS",
-                      desc: "Access your workspace",
+                      label: role || t("roleModal.workspace") || "Workspace",
+                      badge: t("roleModal.accessBadge") || "ACCESS",
+                      desc: t("roleModal.accessWorkspaceDesc") || "Access your workspace",
                       bg: "bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-400",
                       badgeBg: "bg-slate-600 text-white",
                       iconBg: "bg-slate-100 text-slate-700",
@@ -1329,8 +1384,8 @@ export default function LoginPage() {
 
             {/* Footer note */}
             <p className="mt-5 text-center text-[11px] text-slate-400 leading-relaxed">
-              You can switch between panels anytime from the sidebar after
-              logging in.
+              {t("roleModal.switchNote") ||
+                "You can switch between panels anytime from the sidebar after logging in."}
             </p>
           </div>
         </DialogContent>

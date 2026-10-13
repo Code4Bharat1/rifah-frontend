@@ -80,7 +80,10 @@ export function LanguageSelector() {
                 className="justify-between cursor-pointer"
               >
                 <span>
-                  {lang.name} <span className="text-muted-foreground text-xs ml-1">({lang.nativeName})</span>
+                  {lang.name}{" "}
+                  <span className="notranslate text-muted-foreground text-xs ml-1" translate="no">
+                    ({lang.nativeName !== lang.name ? `${lang.nativeName} (${lang.name})` : lang.name})
+                  </span>
                 </span>
                 {locale === lang.code && <Check className="h-4 w-4" />}
               </DropdownMenuItem>

@@ -107,26 +107,27 @@ export const SUBSCRIBER_TIERS = [
     costingInr: 0,
     costingUsd: 0,
     period: "month",
-    usersCount: 1,
+    usersCount: 0,
     isPopular: false,
     colorScheme: "slate",
-    subtitle: "1 User Included",
+    subtitle: "0 Users / Individual Access",
     summary: "Basic community discovery, browsing, and fundamental listing for new members.",
     features: {
-      users: "1",
+      costing: "0",
+      users: "0",
       chatbot_support: true,
       profile_listing: true,
       business_discovery: true,
       product_browsing: true,
       service_browsing: true,
       feed_check: true,
-      feed_posting: "None",
-      chat: "None",
-      networking_groups: "None",
+      feed_posting: false,
+      chat: "0",
+      networking_groups: false,
       enquiry_posting: "2",
       lead_unlock: "1",
-      quotation_chat: "None",
-      meeting_request: "None",
+      quotation_chat: false,
+      meeting_request: false,
       meeting_accept: false,
       product_listing: "1",
       service_listing: "1",
@@ -135,20 +136,21 @@ export const SUBSCRIBER_TIERS = [
       featured_products: false,
       priority_visibility: false,
       analytics: "Basic",
-      lms: "None",
-      team_members: "None",
-      multiple_locations: "None",
-      support: "None",
+      lms: false,
+      team_members: false,
+      multiple_locations: false,
+      support: false,
       carry_forward: false,
-      event_notifications: "None",
-      event_announcements: "None",
+      event_notifications: false,
+      event_announcements: false,
       whatsapp_integration: false,
       thank_you_note: true,
       language_support: true,
     },
     bulletPoints: [
+      "Users: 0",
       "Feed Posting: None",
-      "Direct Chat: None",
+      "Direct Chat: 0",
       "Inquiry Posting: 2",
       "Lead Unlock: 1",
       "Catalogue Products: 1",
@@ -163,13 +165,14 @@ export const SUBSCRIBER_TIERS = [
     costingInr: 50,
     costingUsd: 1,
     period: "month",
-    usersCount: 1,
+    usersCount: 0,
     isPopular: false,
     colorScheme: "emerald",
-    subtitle: "1 User Included",
-    summary: "Active networking, lead unlock access, 5 monthly posts and direct chat engagements.",
+    subtitle: "50/- per month",
+    summary: "Active networking, 15 chats, 5 monthly posts, and direct lead unlocks.",
     features: {
-      users: "1",
+      costing: "50/- per month",
+      users: "0",
       chatbot_support: true,
       profile_listing: true,
       business_discovery: true,
@@ -177,7 +180,7 @@ export const SUBSCRIBER_TIERS = [
       service_browsing: true,
       feed_check: true,
       feed_posting: "5 per month",
-      chat: "5",
+      chat: "15",
       networking_groups: "5 join",
       enquiry_posting: "10",
       lead_unlock: "5",
@@ -192,8 +195,8 @@ export const SUBSCRIBER_TIERS = [
       priority_visibility: false,
       analytics: "Basic",
       lms: "Free Content",
-      team_members: "None",
-      multiple_locations: "None",
+      team_members: false,
+      multiple_locations: false,
       support: "Standard",
       carry_forward: false,
       event_notifications: "5",
@@ -203,8 +206,9 @@ export const SUBSCRIBER_TIERS = [
       language_support: true,
     },
     bulletPoints: [
+      "Users: 0",
       "Feed Posting: 5 per month",
-      "Direct Chat: 5",
+      "Direct Chat: 15",
       "Inquiry Posting: 10",
       "Lead Unlock: 5",
       "Catalogue Products: 5",
@@ -219,14 +223,15 @@ export const SUBSCRIBER_TIERS = [
     costingInr: 100,
     costingUsd: 2,
     period: "month",
-    usersCount: 1,
+    usersCount: 0,
     isPopular: true,
     badgeText: "Most Popular",
     colorScheme: "blue",
-    subtitle: "1 User Included",
-    summary: "Featured visibility, WhatsApp alerts, 30 enquiries, 15 leads & advanced business.",
+    subtitle: "100/- per month",
+    summary: "Featured visibility, WhatsApp alerts, 30 enquiries, 30 chats & advanced analytics.",
     features: {
-      users: "1",
+      costing: "100/- per month",
+      users: "0",
       chatbot_support: true,
       profile_listing: true,
       business_discovery: true,
@@ -234,7 +239,7 @@ export const SUBSCRIBER_TIERS = [
       service_browsing: true,
       feed_check: true,
       feed_posting: "10 per month",
-      chat: "15",
+      chat: "30",
       networking_groups: "5 Join + Create",
       enquiry_posting: "30",
       lead_unlock: "15",
@@ -260,8 +265,9 @@ export const SUBSCRIBER_TIERS = [
       language_support: true,
     },
     bulletPoints: [
+      "Users: 0",
       "Feed Posting: 10 per month",
-      "Direct Chat: 15",
+      "Direct Chat: 30",
       "Inquiry Posting: 30",
       "Lead Unlock: 15",
       "Catalogue Products: 10",
@@ -276,13 +282,14 @@ export const SUBSCRIBER_TIERS = [
     costingInr: 200,
     costingUsd: 3,
     period: "month",
-    usersCount: 5,
+    usersCount: "Multiple",
     isPopular: false,
     colorScheme: "purple",
-    subtitle: "5 Team Users Included",
-    summary: "5 team seats, unlimited leads, unlimited chats, full LMS, and dedicated priority support.",
+    subtitle: "200/- per month per member",
+    summary: "Multiple member registrations under a single membership (All members have to purchase subscriptions), unlimited leads, unlimited chats, full LMS, and dedicated priority support.",
     features: {
-      users: "5",
+      costing: "200/- per month",
+      users: "Multiple (All members must purchase subscriptions)",
       chatbot_support: true,
       profile_listing: true,
       business_discovery: true,
@@ -305,8 +312,8 @@ export const SUBSCRIBER_TIERS = [
       priority_visibility: true,
       analytics: "Enterprise",
       lms: "Full",
-      team_members: "Full",
-      multiple_locations: true,
+      team_members: "Multiple (All members must purchase subscriptions)",
+      multiple_locations: "Full",
       support: "Priority",
       carry_forward: true,
       event_notifications: "Unlimited",
@@ -316,6 +323,8 @@ export const SUBSCRIBER_TIERS = [
       language_support: true,
     },
     bulletPoints: [
+      "Users: Multiple registrations under single membership",
+      "Subscriptions: All members have to purchase subscriptions",
       "Feed Posting: 20 per month",
       "Direct Chat: Unlimited",
       "Inquiry Posting: Unlimited",
@@ -327,7 +336,8 @@ export const SUBSCRIBER_TIERS = [
 ];
 
 export const FEATURE_SPEC_DEFINITIONS = [
-  { key: "users", label: "Users / Seats", category: "Core Access" },
+  { key: "costing", label: "Costing", category: "Pricing" },
+  { key: "users", label: "Users", category: "Core Access" },
   { key: "chatbot_support", label: "Chatbot Support", category: "Core Access" },
   { key: "profile_listing", label: "Business Profile Listing", category: "Core Access" },
   { key: "business_discovery", label: "Business Discovery", category: "Core Access" },
@@ -335,66 +345,64 @@ export const FEATURE_SPEC_DEFINITIONS = [
   { key: "service_browsing", label: "Service Browsing", category: "Core Access" },
   { key: "feed_check", label: "General Feed Check", category: "Core Access" },
   { key: "feed_posting", label: "Feed Posting", category: "Engagement & Content" },
-  { key: "chat", label: "Direct Chat", category: "Engagement & Content" },
+  { key: "chat", label: "Chat", category: "Engagement & Content" },
   { key: "networking_groups", label: "Networking Groups", category: "Engagement & Content" },
   { key: "enquiry_posting", label: "Enquiry Posting", category: "Leads & Commerce" },
   { key: "lead_unlock", label: "Accept & Unlock Lead", category: "Leads & Commerce" },
-  { key: "quotation_chat", label: "Quotation Posting + Chat", category: "Leads & Commerce" },
-  { key: "meeting_request", label: "1-to-1 Meeting Request", category: "Networking" },
-  { key: "meeting_accept", label: "1-to-1 Meeting Accept", category: "Networking" },
+  { key: "quotation_chat", label: "Quotation Posting+Chat", category: "Leads & Commerce" },
+  { key: "meeting_request", label: "One-to-One Meeting Request", category: "Networking" },
+  { key: "meeting_accept", label: "One-to-One Meeting Accept", category: "Networking" },
   { key: "product_listing", label: "Catalogue Products Listing", category: "Catalogue" },
   { key: "service_listing", label: "Services Listing", category: "Catalogue" },
   { key: "business_verification", label: "Business Verification", category: "Trust & Compliance" },
-  { key: "featured_business", label: "Featured Business Badge", category: "Visibility & Marketing" },
+  { key: "featured_business", label: "Featured Business", category: "Visibility & Marketing" },
   { key: "featured_products", label: "Featured Products", category: "Visibility & Marketing" },
   { key: "priority_visibility", label: "Priority Visibility", category: "Visibility & Marketing" },
-  { key: "analytics", label: "Analytics Level", category: "Intelligence" },
-  { key: "lms", label: "LMS & Learning Content", category: "Intelligence" },
-  { key: "team_members", label: "Team Members Listing", category: "Enterprise" },
+  { key: "analytics", label: "Analytics", category: "Intelligence" },
+  { key: "lms", label: "LMS", category: "Intelligence" },
+  { key: "team_members", label: "Team Members Listing", category: "Enterprise", isHighlight: true },
   { key: "multiple_locations", label: "Multiple Locations Listing", category: "Enterprise" },
-  { key: "support", label: "Customer Support Desk", category: "Enterprise" },
+  { key: "support", label: "Support", category: "Enterprise" },
   { key: "carry_forward", label: "Carry Forward Plans", category: "Enterprise" },
   { key: "event_notifications", label: "Event Notifications", category: "Events" },
-  { key: "event_announcements", label: "Event Announcements", category: "Events" },
-  { key: "whatsapp_integration", label: "WhatsApp Integration", category: "Integrations" },
+  { key: "event_announcements", label: "Event Announcement", category: "Events" },
+  { key: "whatsapp_integration", label: "Whatsapp Integration", category: "Integrations" },
   { key: "thank_you_note", label: "Thank You Note", category: "Integrations" },
   { key: "language_support", label: "Language Support", category: "Integrations" },
 ];
 
 /**
- * Normalizes user membership tier identifier
+ * Normalizes user subscriber tier identifier.
+ * Chamber members (Silver/Gold/Platinum/Diamond) without an explicit subscriber tier
+ * are intentionally treated as "tier_1" (Free).
  */
 export function normalizeUserTier(tierString) {
   if (!tierString) return "tier_1";
   const s = String(tierString).toLowerCase().trim();
   if (
-    s.includes("diamond") ||
-    s.includes("platinum") ||
     s.includes("tier iv") ||
     s.includes("tier 4") ||
     s.includes("tier_4") ||
     s.includes("tier-4") ||
-    s.includes("enterprise")
+    s === "enterprise"
   ) {
     return "tier_4";
   }
   if (
-    s.includes("gold") ||
     s.includes("tier iii") ||
     s.includes("tier 3") ||
     s.includes("tier_3") ||
     s.includes("tier-3") ||
-    s.includes("growth")
+    s === "growth"
   ) {
     return "tier_3";
   }
   if (
-    s.includes("silver") ||
     s.includes("tier ii") ||
     s.includes("tier 2") ||
     s.includes("tier_2") ||
     s.includes("tier-2") ||
-    s.includes("starter")
+    s === "starter"
   ) {
     return "tier_2";
   }
@@ -417,11 +425,11 @@ export function checkFeatureAccess(userPlanName, featureKey, isExpired = false) 
   const tier = SUBSCRIBER_TIERS.find((t) => t.id === tierId) || SUBSCRIBER_TIERS[0];
   const value = tier.features[featureKey];
 
-  if (value === false || value === "None" || value === undefined) {
+  if (value === false || value === "None" || value === "0" || value === undefined) {
     return {
       isAllowed: false,
       isExpired: false,
-      value: "None",
+      value: value || "None",
       reason: `Locked on ${tier.name}. Upgrade to an advanced tier to unlock.`,
     };
   }

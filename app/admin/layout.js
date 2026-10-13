@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@shared/providers/auth-provider";
 
 // secretariat is central_admin's equal (see backend roles.js / login-page.jsx)
-const ALLOWED_ROLES = ["central_admin", "secretariat", "admin", "super_admin"];
+const ALLOWED_ROLES = ["central_admin", "country_admin", "secretariat", "admin", "super_admin"];
 
 function isRoutePermitted(pathname, allowedRoutes) {
   if (!Array.isArray(allowedRoutes) || allowedRoutes.length === 0) return false;
@@ -55,6 +55,13 @@ export default function AdminLayout({ children }) {
     if (user.activeWorkspace?.panelType === "central-admin") {
       return;
     }
+
+    // Country Admin is prevented from accessing /admin/central-admin
+    if (user.role === "country_admin" && pathname?.startsWith("/admin/central-admin")) {
+      router.replace("/admin");
+      return;
+    }
+
     if (user.role === "state_admin") {
       router.replace("/state-admin");
     } else if (user.role === "chapter_admin") {
@@ -70,6 +77,10 @@ export default function AdminLayout({ children }) {
       const allowed = user.activeWorkspace.allowedNavRoutes || [];
       if (!isRoutePermitted(pathname, allowed)) return null;
     } else if (user.activeWorkspace?.panelType !== "central-admin" && !ALLOWED_ROLES.includes(user.role)) {
+      return null;
+    }
+
+    if (user.role === "country_admin" && pathname?.startsWith("/admin/central-admin")) {
       return null;
     }
   }

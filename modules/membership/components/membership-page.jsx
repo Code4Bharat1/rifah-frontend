@@ -20,6 +20,7 @@ import { Button } from "@shared/components/ui/button";
 import { useMembershipPlans } from "@shared/hooks/use-rifah-api";
 import { cn } from "@shared/lib/utils";
 import { ChamberMembershipTiers } from "@shared/components/rifah/chamber-membership-tiers";
+import { SubscriberModelsTable } from "@shared/components/rifah/subscriber-models-table";
 import { PolicyDialog } from "@shared/components/rifah/policy-dialog";
 
 const POLICY_ITEMS = [
@@ -117,6 +118,25 @@ function MembershipPage() {
             currency={currency}
             showHeader={false}
           />
+        </div>
+
+        {/* Rifah Connect Subscriber Models Specification Table */}
+        <div className="mt-14 scroll-mt-24" id="subscriber-models">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-border/80 pb-4 mb-6">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                Subscriber Models &amp; Quota Matrix
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Official entitlement matrix for Tier I (Free), Tier II (Starter), Tier III (Growth), and Tier IV (Enterprise).
+              </p>
+            </div>
+            <span className="text-xs font-medium text-muted-foreground self-start sm:self-auto">
+              33 Specified Privileges
+            </span>
+          </div>
+
+          <SubscriberModelsTable />
         </div>
 
         {/* Chamber Policies & FAQs Section with interactive modal dialog */}
