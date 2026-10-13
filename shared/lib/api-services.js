@@ -495,15 +495,17 @@ export const paymentApi = {
     apiClient(`/payments/admin/all${toQueryString(params)}`),
   getAll: (params = {}) =>
     apiClient(`/payments/admin/all${toQueryString(params)}`),
-  createOrder: (data) =>
+  createOrder: (data, options = {}) =>
     apiClient("/payments/order", {
       method: "POST",
       body: JSON.stringify(data),
+      ...options,
     }),
-  verifyPayment: (data) =>
+  verifyPayment: (data, options = {}) =>
     apiClient("/payments/verify", {
       method: "POST",
       body: JSON.stringify(data),
+      ...options,
     }),
   verifyByAdmin: (id) =>
     apiClient(`/payments/${id}/verify-by-admin`, { method: "POST" }),
@@ -585,15 +587,17 @@ export const eventApi = {
       body: JSON.stringify(data),
     }),
   getGoogleMeetAuthUrl: () => apiClient("/events/google/auth-url"),
-  register: (id) =>
+  register: (id, options = {}) =>
     apiClient(`/events/${id}/register`, {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify(options?.body || {}),
+      ...options,
     }),
-  registerPaid: (id, data) =>
+  registerPaid: (id, data, options = {}) =>
     apiClient(`/events/${id}/register-paid`, {
       method: "POST",
       body: JSON.stringify(data),
+      ...options,
     }),
   payDelegationInstallment: (id, data) =>
     apiClient(`/events/${id}/delegation/pay-installment`, {
