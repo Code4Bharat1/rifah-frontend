@@ -23,6 +23,7 @@ import { businessApi, membershipApi, paymentApi } from "@shared/lib/api-services
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@shared/providers/auth-provider";
+import { formatMembershipId } from "@shared/lib/indian-states-cities";
 import { downloadCertificatePdf } from "@shared/lib/certificate-generator";
 import { downloadInvoicePdf } from "@shared/lib/invoice-generator";
 
@@ -63,9 +64,7 @@ function AdminMemberships() {
   const isRifahMember = (b) => !isFreeMember(b);
 
   const getRifahId = (b) => {
-    if (b?.membershipId && !b.membershipId.startsWith("RIFAH-MEM-")) return b.membershipId;
-    const code = (b?.chapter || "PUN").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3) || "PUN";
-    return `RIFAH-${code}-0001`;
+    return formatMembershipId(b?.membershipId, b?.state, b?.chapter, b?.city);
   };
 
   const getMembershipExpiryInfo = (b) => {
