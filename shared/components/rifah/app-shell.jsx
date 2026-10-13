@@ -193,11 +193,6 @@ const roleNavs = {
       },
       { label: "Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
-      {
-        label: "Advertisements",
-        to: "/chapter-admin/advertisements",
-        icon: Megaphone,
-      },
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
       { label: "Support", to: "/chapter-admin/tickets", icon: LifeBuoy },
       {
@@ -216,11 +211,6 @@ const roleNavs = {
       },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
       { label: "Roles & RBAC", to: "/chapter-admin/roles", icon: Award },
-      {
-        label: "Live Event Control",
-        to: "/chapter-admin/live-control",
-        icon: Sparkles,
-      },
       {
         label: "Notifications",
         to: "/chapter-admin/notifications",
@@ -249,11 +239,6 @@ const roleNavs = {
       { label: "Members", to: "/state-admin/members", icon: Users },
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
       { label: "Support", to: "/state-admin/tickets", icon: LifeBuoy },
-      {
-        label: "Advertisements",
-        to: "/state-admin/advertisements",
-        icon: Megaphone,
-      },
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
