@@ -22,7 +22,7 @@ import {
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Button } from "@shared/components/ui/button";
 import { useAuth } from "@shared/providers/auth-provider";
-import { userApi } from "@shared/lib/api-services";
+import { userApi, membershipApi } from "@shared/lib/api-services";
 import { SUBSCRIBER_TIERS, FEATURE_SPEC_DEFINITIONS } from "@shared/lib/subscription-models";
 import { SubscriberModelsTable } from "@shared/components/rifah/subscriber-models-table";
 import { useFeatureAccess } from "@shared/hooks/use-feature-access";
@@ -43,6 +43,12 @@ export function UserMembership() {
       return;
     }
 
+    // For paid tiers (Tier II, Tier III, Tier IV), redirect to Razorpay payment checkout
+    if (Number(tier.costingInr) > 0) {
+      window.location.href = `/membership/checkout?plan=${tier.id}`;
+      return;
+    }
+
     setUpgradingTier(tier.id);
     try {
       // Update user subscriberTier & membershipPlan
@@ -50,6 +56,12 @@ export function UserMembership() {
         subscriberTier: tier.name,
         membershipPlan: tier.name,
       });
+
+      try {
+        await membershipApi.upgradePlan({
+          planId: tier.id,
+        });
+      } catch (_) {}
 
       if (refreshUser) {
         await refreshUser();

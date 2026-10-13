@@ -30,17 +30,32 @@ export function useFeatureAccess() {
   const planLoading = bizLoading || memLoading;
 
   // Prioritize explicit subscriber tier (tier_1, tier_2, tier_3, tier_4).
-  // Members who only purchased a Chamber membership (Silver/Gold/Platinum/Diamond)
-  // but no subscription are treated as Tier I (Free) for subscriber features & quotas.
-  const subscriberTierName =
-    business?.subscriberTier ||
-    user?.subscriberTier ||
-    membershipData?.subscriberTier ||
-    (String(membershipData?.planId || "").toLowerCase().startsWith("tier_") ? (membershipData?.planName || membershipData?.planId) : null) ||
-    (String(user?.membershipPlan || "").toLowerCase().startsWith("tier_") ? user?.membershipPlan : null) ||
-    "Tier I (Free)";
+  // Check candidates across user, business, and membership, selecting the highest valid tier
+  // so that a stale free-tier record on a business never overrides an upgraded user tier.
+  const candidates = [
+    user?.subscriberTier,
+    business?.subscriberTier,
+    membershipData?.subscriberTier,
+    (String(membershipData?.planId || "").toLowerCase().startsWith("tier_") ? (membershipData?.planName || membershipData?.planId) : null),
+    (String(user?.membershipPlan || "").toLowerCase().startsWith("tier_") ? user?.membershipPlan : null),
+    (String(business?.membership || "").toLowerCase().startsWith("tier_") ? business?.membership : null),
+  ].filter(Boolean);
 
-  const tierId = normalizeUserTier(subscriberTierName);
+  const TIER_RANKS = { tier_1: 1, tier_2: 2, tier_3: 3, tier_4: 4 };
+
+  let highestTierId = "tier_1";
+  let maxRank = 1;
+
+  for (const cand of candidates) {
+    const tid = normalizeUserTier(cand);
+    const rank = TIER_RANKS[tid] || 1;
+    if (rank > maxRank) {
+      maxRank = rank;
+      highestTierId = tid;
+    }
+  }
+
+  const tierId = highestTierId;
   const currentTier = SUBSCRIBER_TIERS.find((t) => t.id === tierId) || SUBSCRIBER_TIERS[0];
   const planName = currentTier.name;
 
