@@ -7,10 +7,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const pubDir = path.join(process.cwd(), "public");
-    const goldPath = path.join(pubDir, "certificate-gold.jpg");
-    const { data, info } = await sharp(goldPath).raw().toBuffer({ resolveWithObject: true });
-    
     const { generateCertificateHtml, resolveCertificateRepresentativeName } = await import("@shared/lib/certificate-generator");
 
     const sampleBusinesses = [

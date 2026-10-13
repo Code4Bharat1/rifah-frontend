@@ -258,8 +258,14 @@ export function getTierDesign(rawTier = "diamond", origin = "", customSettings =
 
   const metaBoxLeft = tierKey === "silver" ? "468px" : "444px";
   const metaBoxTop = tierKey === "silver" ? "182px" : "207px";
-  const metaBoxWidth = tierKey === "silver" ? "485px" : "524px";
+  const metaBoxWidth =
+    tierKey === "silver" ? "485px" :
+    tierKey === "diamond" ? "514px" :
+    "524px";
   const metaBoxHeight = "34px";
+  const metaBoxPadding = tierKey === "diamond" ? "0 22px" : "0 16px";
+  const metaColTop = "-3.5px";
+
   const metaBoxShadow = tierKey === "diamond" ? "none" : "inset 0 1px 2px rgba(255, 255, 255, 0.85), 0 2px 4px rgba(0, 0, 0, 0.15)";
 
   const bodyBg = "transparent";
@@ -293,6 +299,8 @@ export function getTierDesign(rawTier = "diamond", origin = "", customSettings =
     metaBoxTop,
     metaBoxWidth,
     metaBoxHeight,
+    metaBoxPadding,
+    metaColTop,
     bodyBg,
     bodyShadow,
     validityBg,
@@ -656,7 +664,7 @@ export function generateCertificateHtml(business, membershipData = null, options
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 16px;
+          padding: ${tierDesign.metaBoxPadding || "0 16px"};
           font-family: 'Plus Jakarta Sans', Arial, sans-serif;
           font-size: 13.5px;
           white-space: nowrap;
@@ -666,7 +674,7 @@ export function generateCertificateHtml(business, membershipData = null, options
           align-items: baseline;
           gap: 6px;
           position: relative;
-          top: -3.5px;
+          top: ${tierDesign.metaColTop || "-3.5px"};
         }
         .meta-lbl {
           color: #991b1b;

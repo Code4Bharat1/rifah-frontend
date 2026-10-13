@@ -79,6 +79,7 @@ import { SUBSCRIBER_TIERS, normalizeUserTier } from "@shared/lib/subscription-mo
 import { downloadCertificatePdf } from "@shared/lib/certificate-generator";
 import { formatInvoiceNumber } from "@shared/lib/indian-states-cities";
 import { useAuth } from "@shared/providers/auth-provider";
+import { Skeleton } from "@shared/components/ui/skeleton";
 
 const docTemplates = [
   {
@@ -344,8 +345,8 @@ async function handleDownloadCertificate(business, membershipData, currentUser =
 }
 
 function BizMembership() {
-  const { user } = useAuth();
-  const { data: business, refetch: refetchBiz } = useMyBusiness();
+  const { user, loading: authLoading } = useAuth();
+  const { data: business, isLoading: bizLoading, isPending: bizPending, refetch: refetchBiz } = useMyBusiness();
   const hasBusinessProfile = Boolean(
     business &&
     business._id &&
@@ -353,8 +354,8 @@ function BizMembership() {
      (typeof business.title === "string" && business.title.trim().length > 0) ||
      (typeof business.legalName === "string" && business.legalName.trim().length > 0))
   );
-  const { data: membershipData } = useMyMembership();
-  const { data: plansData } = useMembershipPlans();
+  const { data: membershipData, isLoading: membershipLoading, isPending: membershipPending } = useMyMembership();
+  const { data: plansData, isLoading: plansLoading } = useMembershipPlans();
   const { data: paymentsData } = useMyPayments();
   const { data: chaptersData } = useChapters();
 
@@ -371,6 +372,11 @@ function BizMembership() {
   const [replacingType, setReplacingType] = useState(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [submittingVerification, setSubmittingVerification] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [autoRenew, setAutoRenew] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -693,6 +699,10 @@ function BizMembership() {
   ) || plans[currentTier];
 
   const isSubscriberTier = useMemo(() => {
+    // If business or membership data is not yet loaded, never flash subscriber UI
+    if (!membershipData && !business) {
+      return false;
+    }
     const planKey = (
       membershipData?.subscriberTier ||
       membershipData?.planId ||
@@ -706,16 +716,13 @@ function BizMembership() {
     if (planCategory === "chamber") return false;
     if (["silver", "gold", "platinum", "diamond"].includes(planKey)) return false;
     if (
-      planKey.startsWith("tier_") ||
-      planKey === "free" ||
-      (matchedPlan?.name || "").toLowerCase().includes("tier") ||
-      (matchedPlan?.name || "").toLowerCase() === "free" ||
-      currentTier.includes("tier") ||
-      currentTier === "free"
+      (business?.subscriberTier && String(business.subscriberTier).toLowerCase().startsWith("tier_")) ||
+      (membershipData?.subscriberTier && String(membershipData.subscriberTier).toLowerCase().startsWith("tier_")) ||
+      (String(membershipData?.planId || "").toLowerCase().startsWith("tier_"))
     ) {
       return true;
     }
-    return true;
+    return false;
   }, [membershipData, business, currentTier, matchedPlan]);
 
   const isChamberPlan = !isSubscriberTier;
@@ -1019,6 +1026,43 @@ function BizMembership() {
       };
     });
   }, [plansData]);
+
+  const isInitialLoading =
+    !mounted ||
+    ((bizLoading || bizPending || membershipLoading || membershipPending || authLoading) &&
+      !business &&
+      !membershipData);
+
+  if (isInitialLoading) {
+    return (
+      <AppShell role="business" title="" subtitle="">
+        <div id="overview" className="space-y-6 max-w-[1380px] mx-auto pb-12">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-40 rounded-md" />
+              <Skeleton className="h-8 w-60 rounded-xl" />
+              <Skeleton className="h-4 w-80 rounded-md" />
+            </div>
+            <div className="flex items-center gap-2.5">
+              <Skeleton className="h-9 w-32 rounded-xl" />
+              <Skeleton className="h-9 w-28 rounded-xl" />
+            </div>
+          </div>
+
+          {/* Cards Grid Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <Skeleton className="h-56 rounded-3xl" />
+            <Skeleton className="h-56 rounded-3xl" />
+            <Skeleton className="h-56 rounded-3xl" />
+          </div>
+
+          {/* Milestone Progress Skeleton */}
+          <Skeleton className="h-64 rounded-3xl" />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell

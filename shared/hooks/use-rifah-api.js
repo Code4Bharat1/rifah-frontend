@@ -73,11 +73,9 @@ export function useMyBusiness() {
     queryKey: ["my-business"],
     queryFn: async () => {
       const res = await businessApi.getMyBusiness();
-      // BUG-FIX: use ?? null so that when the API returns { data: null }
-      // we correctly return null instead of falling back to the entire
-      // response wrapper object (which is truthy and broke admin sidebar locking).
       return res?.data ?? null;
     },
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -449,6 +447,7 @@ export function useMyMembership() {
       return res?.data || res;
     },
     retry: false,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
