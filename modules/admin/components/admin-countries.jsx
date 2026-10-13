@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   MapPinned,
@@ -23,6 +23,7 @@ import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
+import { cn } from "@shared/lib/utils";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
@@ -44,6 +45,8 @@ export function AdminCountries() {
     user?.role === "central_admin" ||
     user?.role === "super_admin" ||
     user?.role === "secretariat";
+  const isCountryAdmin = user?.role === "country_admin";
+  const canAccess = isSuperCentralAdmin || isCountryAdmin;
 
   const { data: businessesData } = useBusinesses({ limit: 200 });
   const rawBusinesses = Array.isArray(businessesData)
@@ -83,7 +86,7 @@ export function AdminCountries() {
   }, []);
 
   useEffect(() => {
-    if (!isSuperCentralAdmin) {
+    if (!canAccess) {
       return;
     }
 
@@ -92,7 +95,7 @@ export function AdminCountries() {
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [fetchCountries, isSuperCentralAdmin]);
+  }, [fetchCountries, canAccess]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -232,12 +235,12 @@ export function AdminCountries() {
     }
   };
 
-  if (!isSuperCentralAdmin) {
+  if (!canAccess) {
     return (
       <AppShell
         role="admin"
         title="Countries"
-        subtitle="Global Super Central Admin exclusive"
+        subtitle="Access Restricted"
       >
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900 shadow-xs">
           <div className="flex items-center gap-3 font-semibold text-amber-950">
@@ -245,11 +248,309 @@ export function AdminCountries() {
             <span>Country Module Access Restricted</span>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-amber-800">
-            The Country Module is reserved exclusively for the Global Super
-            Central Admin. Country Central Admins govern within their own
-            assigned national boundaries and do not have access to global
-            country creation or administration.
+            This module is reserved for Central Administrators and Country Administrators.
           </p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (isCountryAdmin) {
+    const userCountryName = (user?.country || "").toLowerCase().trim();
+    const userCountryId = user?.countryId ? String(user?.countryId) : "";
+    const myCountry =
+      countries.find(
+        (c) =>
+          (userCountryId && String(c._id || c.id) === userCountryId) ||
+          (userCountryName && c.name?.toLowerCase().trim() === userCountryName),
+      ) ||
+      (user?.country
+        ? {
+            name: user.country,
+            code: "NAT",
+            status: "Active",
+            statesCount: 0,
+            chaptersCount: 0,
+            businessesCount: 0,
+            membersCount: 0,
+            assignedAdmin: {
+              name: user.name,
+              email: user.email,
+              phone: user.phone,
+            },
+          }
+        : null);
+
+    const isNonIndia = myCountry?.name?.toLowerCase() !== "india";
+    const stateOrCityLabel = isNonIndia ? "States / Cities" : "States";
+    const countryDisplayName = myCountry?.name || user?.country || "National";
+
+    return (
+      <AppShell
+        role="admin"
+        title={`${countryDisplayName} National Platform`}
+        subtitle={`National administration and governance hub for ${countryDisplayName}`}
+      >
+        <div className="space-y-6">
+          {/* KPI Banner */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-medium uppercase tracking-wider">
+                  Platform Status
+                </span>
+                <Globe2 className="h-4 w-4 text-primary" />
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-xl font-bold text-slate-900 truncate">
+                  {countryDisplayName}
+                </span>
+                <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
+                  {myCountry?.status || "Active"}
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-medium uppercase tracking-wider">
+                  {stateOrCityLabel}
+                </span>
+                <MapPin className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div className="mt-2 text-2xl font-bold text-slate-900">
+                {myCountry?.statesCount || 0}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-medium uppercase tracking-wider">
+                  National Chapters
+                </span>
+                <Layers className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="mt-2 text-2xl font-bold text-slate-900">
+                {myCountry?.chaptersCount || 0}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-medium uppercase tracking-wider">
+                  Registered Businesses
+                </span>
+                <Building2 className="h-4 w-4 text-violet-600" />
+              </div>
+              <div className="mt-2 text-2xl font-bold text-slate-900">
+                {myCountry?.businessesCount || 0}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Management Desks */}
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">
+              National Administrative Desks
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Link
+                href="/admin/states"
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                      Manage →
+                    </span>
+                  </div>
+                  <h3 className="mt-3 font-bold text-slate-900 text-base">
+                    {stateOrCityLabel} Desk
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                    Appoint {isNonIndia ? "State/City Admins" : "State Admins"} and oversee regional operations.
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/chapters"
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                      <Layers className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                      Manage →
+                    </span>
+                  </div>
+                  <h3 className="mt-3 font-bold text-slate-900 text-base">
+                    Chapters Desk
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                    Create chapters, appoint Chapter Admins, and structure local units.
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/businesses"
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                      <Building2 className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                      Manage →
+                    </span>
+                  </div>
+                  <h3 className="mt-3 font-bold text-slate-900 text-base">
+                    Business Directory
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                    Audit businesses registered in {countryDisplayName}, verify profiles, and manage tiers.
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/users"
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                      Manage →
+                    </span>
+                  </div>
+                  <h3 className="mt-3 font-bold text-slate-900 text-base">
+                    Users & Members
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                    Oversee customer, member, and admin accounts across the national roster.
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/revenue-sharing"
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                      <ShieldCheck className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                      Manage →
+                    </span>
+                  </div>
+                  <h3 className="mt-3 font-bold text-slate-900 text-base">
+                    Revenue Sharing
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                    Review national revenue claims, rules, and regional sharing disbursements.
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                href="/admin/visa-referrals"
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                      <Globe2 className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                      Manage →
+                    </span>
+                  </div>
+                  <h3 className="mt-3 font-bold text-slate-900 text-base">
+                    Visa Referral Assistance
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                    Monitor trade delegations, verification documents, and business referrals.
+                  </p>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* National Chamber Profile Info Panel */}
+          <Panel title="National Chamber Authority" icon={ShieldCheck}>
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-bold text-primary text-base">
+                    {myCountry?.code || "NAT"}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-slate-900 text-lg">
+                        {myCountry?.name || countryDisplayName}
+                      </h3>
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
+                        {myCountry?.code || "NAT"}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      National Jurisdiction · Governing Central Country Admin
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Assigned Country Admin Box */}
+              <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white shadow-xs">
+                    {(user?.name || "CA")
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900 text-sm">
+                        {user?.name || "Country Admin"}
+                      </span>
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                        Active Country Admin
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 mt-1">
+                      {user?.email && (
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {user.email}
+                        </span>
+                      )}
+                      {user?.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {user.phone}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Panel>
         </div>
       </AppShell>
     );

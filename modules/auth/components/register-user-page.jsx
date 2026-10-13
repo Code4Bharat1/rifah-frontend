@@ -41,6 +41,7 @@ import { CATEGORIES_DATA } from "@shared/lib/categories-data";
 import { INDIAN_STATES_AND_CITIES } from "@shared/lib/indian-states-cities";
 import { INTERNATIONAL_COUNTRIES_AND_CITIES } from "@shared/lib/international-countries-cities";
 import { SUBSCRIBER_TIERS } from "@shared/lib/subscription-models";
+import { useCountries } from "@shared/hooks/use-rifah-api";
 import { toast } from "sonner";
 
 export function RegisterUserPage() {
@@ -48,6 +49,7 @@ export function RegisterUserPage() {
   const searchParams = useSearchParams();
   const redirectParam = searchParams?.get("redirect");
   const { register } = useAuth();
+  const { countries: dbCountries = [] } = useCountries({ status: "Active" });
 
   // Multi-step: 1 = Contact & Security, 2 = Business & Location, 3 = Membership Tier
   const [step, setStep] = useState(1);
@@ -235,8 +237,13 @@ export function RegisterUserPage() {
     return Array.from(new Set(cities)).sort();
   }, [form.state]);
 
-  // International Countries & Cities
-  const internationalCountries = useMemo(() => Object.keys(INTERNATIONAL_COUNTRIES_AND_CITIES).sort(), []);
+  // International Countries (Admin-created active countries only)
+  const internationalCountries = useMemo(() => {
+    const list = (dbCountries || [])
+      .map((c) => c?.name?.trim())
+      .filter((n) => Boolean(n) && n.toLowerCase() !== "india");
+    return Array.from(new Set(list)).sort();
+  }, [dbCountries]);
   const internationalCities = useMemo(() => {
     if (!form.country || !INTERNATIONAL_COUNTRIES_AND_CITIES[form.country]) return [];
     const cities = INTERNATIONAL_COUNTRIES_AND_CITIES[form.country].map((c) =>
@@ -839,27 +846,37 @@ export function RegisterUserPage() {
                         </div>
                       </div>
 
-                      {/* International City */}
+                      {/* International State / City */}
                       <div>
                         <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                          City *
+                          State / City *
                         </Label>
-                        <div className="relative">
-                          <select
+                        {internationalCities.length > 0 ? (
+                          <div className="relative">
+                            <select
+                              value={form.city}
+                              onChange={(e) => handleChange("city", e.target.value)}
+                              disabled={!form.country}
+                              className="w-full h-11 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer disabled:bg-slate-50 disabled:text-slate-400"
+                            >
+                              <option value="">{form.country ? "Select State / City" : "Choose country first"}</option>
+                              {internationalCities.map((ct) => (
+                                <option key={ct} value={ct}>
+                                  {ct}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                          </div>
+                        ) : (
+                          <Input
                             value={form.city}
                             onChange={(e) => handleChange("city", e.target.value)}
                             disabled={!form.country}
-                            className="w-full h-11 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer disabled:bg-slate-50 disabled:text-slate-400"
-                          >
-                            <option value="">{form.country ? "Select City" : "Choose country first"}</option>
-                            {internationalCities.map((ct) => (
-                              <option key={ct} value={ct}>
-                                {ct}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                        </div>
+                            placeholder={form.country ? `Enter State / City in ${form.country}` : "Choose country first"}
+                            className="h-11 rounded-xl border-slate-200 text-xs sm:text-sm"
+                          />
+                        )}
                       </div>
                     </div>
                   )}

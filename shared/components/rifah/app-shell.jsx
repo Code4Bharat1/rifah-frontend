@@ -445,13 +445,33 @@ function useResolvedNav(role) {
     };
   }
 
-  // 5. Hide Countries module for Country Admin (exclusive to Super Central Admin)
+  // 5. Customize module access & labels for Country Admin
   if (user?.role === "country_admin") {
+    const isNonIndia = user?.country && user.country.toLowerCase() !== "india";
+    const mappedMore = (baseNav.more || [])
+      .filter((item) => item.to !== "/admin/central-admin")
+      .map((item) => {
+        if (item.to === "/admin/countries") {
+          return { ...item, label: user?.country ? `${user.country}` : "My Country" };
+        }
+        if (item.to === "/admin/states" && isNonIndia) {
+          return { ...item, label: "States / Cities" };
+        }
+        return item;
+      });
+
+    const mappedPrimary = (baseNav.primary || []).map((item) => {
+      if (item.to === "/admin/states" && isNonIndia) {
+        return { ...item, label: "States / Cities" };
+      }
+      return item;
+    });
+
     return {
       ...baseNav,
       title: user?.country ? `RIFAH • ${user.country} Administration` : "Country Administration",
-      primary: (baseNav.primary || []).filter((item) => item.to !== "/admin/countries"),
-      more: (baseNav.more || []).filter((item) => item.to !== "/admin/countries"),
+      primary: mappedPrimary,
+      more: mappedMore,
     };
   }
 
@@ -1356,7 +1376,7 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
                   effectiveUser.previousRole === effectiveUser?.role) &&
                 (!effectiveUser?.availableWorkspaces ||
                   effectiveUser.availableWorkspaces.length <= 1) &&
-                ["central_admin", "state_admin", "chapter_admin"].includes(
+                ["central_admin", "country_admin", "state_admin", "chapter_admin"].includes(
                   effectiveUser?.role,
                 ) &&
                 (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
@@ -2073,7 +2093,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
     setOpen(false);
     const resultingRole = res?.role || targetRole;
     if (
-      ["central_admin", "admin", "super_admin", "secretariat"].includes(
+      ["central_admin", "country_admin", "admin", "super_admin", "secretariat"].includes(
         resultingRole,
       )
     )
@@ -2084,6 +2104,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
   };
   const switchBackLabel = [
     "central_admin",
+    "country_admin",
     "admin",
     "super_admin",
     "secretariat",
@@ -2282,7 +2303,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
                 effectiveUser.previousRole === effectiveUser?.role) &&
               (!effectiveUser?.availableWorkspaces ||
                 effectiveUser.availableWorkspaces.length <= 1) &&
-              ["central_admin", "state_admin", "chapter_admin"].includes(
+              ["central_admin", "country_admin", "state_admin", "chapter_admin"].includes(
                 effectiveUser?.role,
               ) &&
               (effectiveUser?.businessId || effectiveUser?.businessSlug) && (

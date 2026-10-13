@@ -8,8 +8,10 @@ import {
   Building2,
   ShoppingBag,
   ShieldCheck,
+  Globe,
+  MapPin,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 function useDebounce(value, delay) {
@@ -36,6 +38,13 @@ import {
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@shared/components/ui/select";
+import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -51,7 +60,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@shared/components/ui/dialog";
-import { useAdminUsers } from "@shared/hooks/use-rifah-api";
+import { useAdminUsers, useCountries, useStates } from "@shared/hooks/use-rifah-api";
 import { userApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { useRouter } from "next/navigation";
@@ -59,7 +68,54 @@ import { useRouter } from "next/navigation";
 function AdminUsers() {
   const router = useRouter();
   const { user: currentUser } = useAuth();
+  const isCentralAdmin = currentUser?.role === "central_admin";
+  const isCountryAdmin = currentUser?.role === "country_admin";
   const isChapterAdmin = currentUser?.role === "chapter_admin";
+
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const rawCountries = Array.isArray(countriesData)
+    ? countriesData
+    : countriesData?.countries || countriesData?.data || [];
+  const dbCountryNames = rawCountries.map((c) => c.name).filter(Boolean);
+  const availableCountries = Array.from(new Set(["India", ...dbCountryNames]));
+
+  // Central Admin defaults to India (they ARE the India Admin).
+  // Country Admins are locked to their non-India country.
+  const [countryFilter, setCountryFilter] = useState(
+    isCountryAdmin ? currentUser?.country || "India" : "India"
+  );
+
+  const activeCountry = isCountryAdmin
+    ? currentUser?.country || "India"
+    : countryFilter === "all"
+    ? null
+    : countryFilter;
+
+  const isNonIndia = Boolean(
+    activeCountry && activeCountry.toLowerCase() !== "india"
+  );
+
+  const [stateFilter, setStateFilter] = useState("all");
+
+  const { data: statesData } = useStates(
+    activeCountry ? { country: activeCountry } : undefined
+  );
+  const rawStates = Array.isArray(statesData) ? statesData : statesData?.states || [];
+  const availableStates = useMemo(() => {
+    let list = rawStates;
+    if (activeCountry) {
+      list = list.filter((s) => {
+        const sCountry = (s?.countryName || s?.country || "").trim().toLowerCase();
+        if (!sCountry) return activeCountry.toLowerCase() === "india";
+        return sCountry === activeCountry.toLowerCase();
+      });
+    }
+    const names = list
+      .map((s) => (typeof s === "string" ? s : s?.state || s?.name))
+      .filter(Boolean);
+    return Array.from(new Set(names)).sort();
+  }, [rawStates, activeCountry]);
+
   const [q, setQ] = useState("");
   const debouncedQ = useDebounce(q, 300);
   const {
@@ -67,7 +123,11 @@ function AdminUsers() {
     refetch,
     isLoading,
     error,
-  } = useAdminUsers({ search: debouncedQ || undefined });
+  } = useAdminUsers({
+    search: debouncedQ || undefined,
+    country: activeCountry || undefined,
+    state: stateFilter === "all" ? undefined : stateFilter,
+  });
 
   // Try to extract users from various possible response formats
   let rows = [];
@@ -86,23 +146,36 @@ function AdminUsers() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState(null);
 
-  const totalCount = rows.length;
-  const businessOwnersCount = rows.filter(
+  let displayRows = rows.filter((u) => {
+    if (activeCountry) {
+      const uCountry = (u.country || "").trim().toLowerCase();
+      const targetCountry = activeCountry.trim().toLowerCase();
+      if (uCountry && uCountry !== targetCountry) return false;
+      if (!uCountry && targetCountry !== "india") return false;
+    }
+    if (stateFilter !== "all") {
+      const uState = (u.state || "").trim().toLowerCase();
+      if (uState !== stateFilter.trim().toLowerCase()) return false;
+    }
+    return true;
+  });
+
+  const totalCount = displayRows.length;
+  const businessOwnersCount = displayRows.filter(
     (u) => u.role === "business_owner",
   ).length;
-  const buyersCount = rows.filter((u) => u.role === "customer").length;
-  const adminCount = rows.filter((u) =>
-    ["central_admin", "state_admin", "chapter_admin"].includes(u.role),
+  const buyersCount = displayRows.filter((u) => u.role === "customer").length;
+  const adminCount = displayRows.filter((u) =>
+    ["central_admin", "country_admin", "state_admin", "chapter_admin"].includes(u.role),
   ).length;
 
-  let displayRows = rows;
   if (roleFilter === "business_owner") {
-    displayRows = rows.filter((u) => u.role === "business_owner");
+    displayRows = displayRows.filter((u) => u.role === "business_owner");
   } else if (roleFilter === "customer") {
-    displayRows = rows.filter((u) => u.role === "customer");
+    displayRows = displayRows.filter((u) => u.role === "customer");
   } else if (roleFilter === "admin") {
-    displayRows = rows.filter((u) =>
-      ["central_admin", "state_admin", "chapter_admin"].includes(u.role),
+    displayRows = displayRows.filter((u) =>
+      ["central_admin", "country_admin", "state_admin", "chapter_admin"].includes(u.role),
     );
   }
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -110,15 +183,9 @@ function AdminUsers() {
   const [isInviting, setIsInviting] = useState(false);
 
   const handleChangeRole = async (user, newRole) => {
-    const responsibilityRoles = [
-      "central_admin",
-      "country_admin",
-      "state_admin",
-      "chapter_admin",
-    ];
-    const hasExistingResponsibilityRole = responsibilityRoles.includes(
-      user.role,
-    );
+    const adminTiers = ["central_admin", "country_admin", "state_admin", "chapter_admin"];
+    const responsibilityRoles = [...adminTiers];
+    const hasExistingResponsibilityRole = responsibilityRoles.includes(user.role);
     const newRoleIsResponsibility = responsibilityRoles.includes(newRole);
 
     if (
@@ -133,8 +200,14 @@ function AdminUsers() {
     }
 
     try {
-      await userApi.updateUserStatus(user._id, { role: newRole });
-      toast.success(`Role updated to ${newRole}`);
+      if (adminTiers.includes(newRole)) {
+        // Use the dedicated admin role assignment endpoint (hierarchy-enforced)
+        await userApi.assignAdminRole(user._id, newRole);
+      } else {
+        // Use the generic status endpoint for customer / business_owner
+        await userApi.updateUserStatus(user._id, { role: newRole });
+      }
+      toast.success(`Role updated to ${newRole.replace(/_/g, " ")}`);
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to update role.");
@@ -215,14 +288,65 @@ function AdminUsers() {
           />
         </div>
 
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search users by name, email or role"
-            className="h-11 pl-10"
-          />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search users by name, email or role"
+              className="h-11 pl-10"
+            />
+          </div>
+
+          {/* Country Filter */}
+          <div className="w-full sm:w-48">
+            {isCountryAdmin ? (
+              <div className="flex h-11 items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 text-xs font-semibold text-foreground">
+                <Globe className="h-4 w-4 text-primary shrink-0" />
+                <span className="truncate">{currentUser?.country || "Your Country"}</span>
+              </div>
+            ) : (
+              <Select
+                value={countryFilter}
+                onValueChange={(v) => {
+                  setCountryFilter(v);
+                  setStateFilter("all");
+                }}
+              >
+                <SelectTrigger className="h-11 rounded-xl">
+                  <Globe className="h-4 w-4 text-muted-foreground mr-1 shrink-0" />
+                  <SelectValue placeholder="All Countries" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Countries</SelectItem>
+                  {availableCountries.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* State / City Filter */}
+          <div className="w-full sm:w-52">
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <MapPin className="h-4 w-4 text-muted-foreground mr-1 shrink-0" />
+                <SelectValue placeholder={isNonIndia ? "All States / Cities" : "All States"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isNonIndia ? "All States / Cities" : "All States"}</SelectItem>
+                {availableStates.map((st) => (
+                  <SelectItem key={st} value={st}>
+                    {st}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <Panel>
@@ -261,15 +385,17 @@ function AdminUsers() {
                   const roleName =
                     r.role === "central_admin"
                       ? "Central Admin"
-                      : r.role === "state_admin"
-                        ? "State Admin"
-                        : r.role === "chapter_admin"
-                          ? "Chapter Admin"
-                          : r.role === "business_owner"
-                            ? "Business Owner"
-                            : r.role === "customer"
-                              ? "Buyer"
-                              : r.role;
+                      : r.role === "country_admin"
+                        ? "Country Admin"
+                        : r.role === "state_admin"
+                          ? (r.country && r.country.toLowerCase() !== "india" ? "State/City Admin" : "State Admin")
+                          : r.role === "chapter_admin"
+                            ? "Chapter Admin"
+                            : r.role === "business_owner"
+                              ? "Business Owner"
+                              : r.role === "customer"
+                                ? "Buyer"
+                                : r.role;
                   return <Pill tone="primary">{roleName}</Pill>;
                 },
               },
@@ -337,16 +463,29 @@ function AdminUsers() {
                               onClick={() => handleChangeRole(r, "state_admin")}
                               disabled={r.role === "state_admin"}
                             >
-                              Make State Admin
+                              {r.country && r.country.toLowerCase() !== "india" ? "Make State/City Admin" : "Make State Admin"}
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleChangeRole(r, "central_admin")
-                              }
-                              disabled={r.role === "central_admin"}
-                            >
-                              Make Central Admin
-                            </DropdownMenuItem>
+                            {/* Make Country Admin — only for Central Admins assigning to non-India users */}
+                            {isCentralAdmin && (r.country && r.country.toLowerCase() !== "india") && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleChangeRole(r, "country_admin")
+                                }
+                                disabled={r.role === "country_admin"}
+                              >
+                                Make Country Admin
+                              </DropdownMenuItem>
+                            )}
+                            {isCentralAdmin && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleChangeRole(r, "central_admin")
+                                }
+                                disabled={r.role === "central_admin"}
+                              >
+                                Make Central Admin
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
                         <DropdownMenuSeparator />
@@ -392,11 +531,13 @@ function AdminUsers() {
                     <Pill tone="primary">
                       {r.role === "central_admin"
                         ? "Central Admin"
-                        : r.role === "state_admin"
-                          ? "State Admin"
-                          : r.role === "chapter_admin"
-                            ? "Chapter Admin"
-                            : r.role}
+                        : r.role === "country_admin"
+                          ? "Country Admin"
+                          : r.role === "state_admin"
+                            ? (r.country && r.country.toLowerCase() !== "india" ? "State/City Admin" : "State Admin")
+                            : r.role === "chapter_admin"
+                              ? "Chapter Admin"
+                              : r.role}
                     </Pill>
                     <Button
                       variant="outline"
@@ -450,6 +591,14 @@ function AdminUsers() {
                 </p>
                 <p className="text-sm font-semibold mt-0.5 capitalize">
                   {selectedUser?.role?.replace("_", " ")}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Country & State / City
+                </p>
+                <p className="text-sm font-semibold mt-0.5">
+                  {selectedUser?.country || "India"} {selectedUser?.state ? `• ${selectedUser.state}` : ""}
                 </p>
               </div>
               <div>

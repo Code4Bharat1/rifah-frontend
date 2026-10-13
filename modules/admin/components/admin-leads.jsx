@@ -1,13 +1,13 @@
 "use client";
-import { useState } from "react";
-import { Target, Download, Lock, Send, Megaphone, Route, Image as ImageIcon, Eye } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Target, Download, Lock, Send, Megaphone, Route, Image as ImageIcon, Eye, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
-import { useAllEnquiries, useBusinesses, useChapters } from "@shared/hooks/use-rifah-api";
+import { useAllEnquiries, useBusinesses, useChapters, useCountries } from "@shared/hooks/use-rifah-api";
 import { leadApi, enquiryApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { Button } from "@shared/components/ui/button";
@@ -19,10 +19,29 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminLeads() {
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
+  const isCountryAdmin = user?.role === "country_admin";
+  const isCentralAdmin = user?.role === "central_admin";
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const rawCountries = Array.isArray(countriesData)
+    ? countriesData
+    : countriesData?.countries || countriesData?.data || [];
+  const dbCountryNames = rawCountries.map((c) => c.name).filter(Boolean);
+  const availableCountries = Array.from(new Set(["India", ...dbCountryNames]));
+
+  const [countryFilter, setCountryFilter] = useState(
+    isCountryAdmin ? user?.country || "India" : "all"
+  );
+
+  const activeCountry = isCountryAdmin
+    ? user?.country || "India"
+    : countryFilter === "all"
+    ? null
+    : countryFilter;
+
   const [chapterFilter, setChapterFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("total");
 
@@ -31,6 +50,7 @@ function AdminLeads() {
     status: statusFilter,
     type: typeFilter,
     chapter: chapterFilter,
+    country: activeCountry || undefined,
   });
   const enquiries = Array.isArray(enquiriesData) ? enquiriesData : [];
   
@@ -41,13 +61,27 @@ function AdminLeads() {
   const [routingSearch, setRoutingSearch] = useState("");
   const [previewImage, setPreviewImage] = useState(null);
 
-  // Fetch businesses for routing (in a real app, you'd filter by category or allow search)
+  // Fetch businesses for routing
   const { data: businessesData } = useBusinesses();
   const { data: chaptersData } = useChapters();
   const chapters = Array.isArray(chaptersData) ? chaptersData : [];
   const businesses = Array.isArray(businessesData) ? businessesData : [];
 
+  const filteredChapters = useMemo(() => {
+    if (!activeCountry) return chapters;
+    return chapters.filter((c) => {
+      const cCountry = (c?.country || "").trim().toLowerCase();
+      if (!cCountry) return activeCountry.toLowerCase() === "india";
+      return cCountry === activeCountry.toLowerCase();
+    });
+  }, [chapters, activeCountry]);
+
   const filteredEnquiries = enquiries.filter(e => {
+    if (activeCountry) {
+      const eCountry = (e.country || e.business?.country || "").trim().toLowerCase();
+      if (eCountry && eCountry !== activeCountry.toLowerCase()) return false;
+      if (!eCountry && activeCountry.toLowerCase() !== "india") return false;
+    }
     if (activeTab === "direct") return !!e.business;
     if (activeTab === "broadcast") return !e.business;
     return true;
@@ -56,6 +90,12 @@ function AdminLeads() {
   const canRouteLead = (lead) => {
     if (!lead) return false;
     if (isCentralAdmin) return lead.status === "Escalated";
+    if (isCountryAdmin) {
+      if (lead.status === "Escalated") return true;
+      const leadCountry = (lead.country || lead.business?.country || "").trim().toLowerCase();
+      const userCountry = (user?.country || "").trim().toLowerCase();
+      return !leadCountry || leadCountry === userCountry;
+    }
     return Boolean(lead.chapterId) && String(lead.chapterId) === String(user?.chapterId) && lead.status !== "Escalated";
   };
 
@@ -222,14 +262,45 @@ function AdminLeads() {
               <SelectItem value="broadcast">Broadcast RFQs</SelectItem>
             </SelectContent>
           </Select>
-          {isCentralAdmin ? (
+          {/* Country Filter */}
+          {(isCentralAdmin || isCountryAdmin) && (
+            <div className="w-full sm:max-w-[180px]">
+              {isCountryAdmin ? (
+                <div className="flex h-10 items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-xs font-semibold text-foreground">
+                  <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="truncate">{user?.country || "Your Country"}</span>
+                </div>
+              ) : (
+                <Select
+                  value={countryFilter}
+                  onValueChange={(v) => {
+                    setCountryFilter(v);
+                    setChapterFilter("all");
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <Globe className="h-3.5 w-3.5 text-muted-foreground mr-1 shrink-0" />
+                    <SelectValue placeholder="All Countries" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Countries</SelectItem>
+                    {availableCountries.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
+
+          {isCentralAdmin || isCountryAdmin ? (
             <Select value={chapterFilter} onValueChange={setChapterFilter}>
               <SelectTrigger className="sm:max-w-[180px]">
                 <SelectValue placeholder="Filter by chapter" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Chapters</SelectItem>
-                {chapters.map((ch) => (
+                {filteredChapters.map((ch) => (
                   <SelectItem key={ch._id || ch.name} value={ch.name}>{ch.name}</SelectItem>
                 ))}
               </SelectContent>

@@ -243,11 +243,6 @@ function DiscoverPage() {
     { enabled: isOfferingsView }
   );
 
-  const internationalCountries = React.useMemo(
-    () => Object.keys(INTERNATIONAL_COUNTRIES_AND_CITIES).sort(),
-    []
-  );
-
   const { data: countriesData } = useCountries({ status: "Active" });
   const activeCountriesList = React.useMemo(() => {
     const list = Array.isArray(countriesData?.countries)
@@ -259,9 +254,9 @@ function DiscoverPage() {
   }, [countriesData]);
 
   const allCountryOptions = React.useMemo(() => {
-    const set = new Set(["India", ...activeCountriesList, ...internationalCountries]);
+    const set = new Set(["India", ...activeCountriesList]);
     return Array.from(set).sort();
-  }, [activeCountriesList, internationalCountries]);
+  }, [activeCountriesList]);
 
   const { data: chaptersData } = useChapters();
   const chaptersList = React.useMemo(() => {

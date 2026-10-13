@@ -177,14 +177,10 @@ function RegisterBusiness({ isAdmin = false }) {
 
   const countryOptions = React.useMemo(() => {
     const dbNames = activeCountriesList.map((c) => (c.name || "").trim()).filter(Boolean);
-    const combined = Array.from(new Set([...dbNames, ...ALL_INTERNATIONAL_COUNTRIES, "India"]));
+    const combined = Array.from(new Set(["India", ...dbNames]));
     return combined.sort((a, b) => {
       if (a === "India") return -1;
       if (b === "India") return 1;
-      const isDbA = dbNames.includes(a);
-      const isDbB = dbNames.includes(b);
-      if (isDbA && !isDbB) return -1;
-      if (!isDbA && isDbB) return 1;
       return a.localeCompare(b);
     });
   }, [activeCountriesList]);
@@ -2519,14 +2515,14 @@ function RegisterBusiness({ isAdmin = false }) {
                     </p>
                   </div>
 
-                  {/* 2. State / Province (Cascaded Tier 2) */}
+                  {/* 2. State / City (Cascaded Tier 2) */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="bstate" className="font-semibold text-slate-800 dark:text-slate-200">
-                        State / Province *
+                        {formData.country && formData.country.toLowerCase() !== "india" ? "State / City *" : "State / Province *"}
                       </Label>
                       <span className="text-[11px] text-muted-foreground font-medium">
-                        {formData.country ? `States in ${formData.country}` : "Select country first"}
+                        {formData.country ? (formData.country.toLowerCase() !== "india" ? `State / City in ${formData.country}` : `States in ${formData.country}`) : "Select country first"}
                       </span>
                     </div>
                     <CreatableCombobox
@@ -2534,8 +2530,8 @@ function RegisterBusiness({ isAdmin = false }) {
                       value={formData.state}
                       onValueChange={handleStateChange}
                       options={availableStates}
-                      placeholder={formData.country ? `Select or enter state in ${formData.country}` : "Select country first"}
-                      emptyText={formData.country ? `No preset state for ${formData.country}. Type to enter custom state.` : "Please select country first."}
+                      placeholder={formData.country ? (formData.country.toLowerCase() !== "india" ? `Select or enter state/city in ${formData.country}` : `Select or enter state in ${formData.country}`) : "Select country first"}
+                      emptyText={formData.country ? (formData.country.toLowerCase() !== "india" ? `No preset state/city for ${formData.country}. Type to enter custom state or city.` : `No preset state for ${formData.country}. Type to enter custom state.`) : "Please select country first."}
                       className="h-11"
                     />
                   </div>

@@ -117,6 +117,11 @@ export const userApi = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  assignAdminRole: (id, role) =>
+    apiClient(`/users/${id}/admin-role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
   deactivateAccount: (data = {}) =>
     apiClient("/users/me/deactivate", {
       method: "POST",

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { reportApi, eventApi } from "@shared/lib/api-services";
 import { toast } from "sonner";
-import { FileDown, Receipt, Users, Megaphone, Eye, Loader2, UserCircle, MapPin, Calendar, Clock, Building2, RotateCcw } from "lucide-react";
+import { FileDown, Receipt, Users, Megaphone, Eye, Loader2, UserCircle, MapPin, Calendar, Clock, Building2, RotateCcw, Globe } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
@@ -16,7 +16,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 import { Pill } from "@shared/components/rifah/badges";
 import { ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
 import { CreatableCombobox } from "@shared/components/rifah/creatable-combobox";
-import { useStates, useChapters } from "@shared/hooks/use-rifah-api";
+import { useStates, useChapters, useCountries } from "@shared/hooks/use-rifah-api";
 import { ArrowLeft } from "lucide-react";
 
 function EventAnalyticsDetailView({ event, onBack }) {
@@ -242,7 +242,33 @@ function EventAnalyticsDetailView({ event, onBack }) {
 
 function EventAnalyticsTab() {
   const { user } = useAuth();
-  const [filters, setFilters] = useState({ state: "All", chapter: "All", status: "All" });
+  const isCountryAdmin = user?.role === "country_admin";
+  const isCentralAdmin = user?.role === "central_admin";
+
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const rawCountries = Array.isArray(countriesData)
+    ? countriesData
+    : countriesData?.countries || countriesData?.data || [];
+  const dbCountryNames = rawCountries.map((c) => c.name).filter(Boolean);
+  const availableCountries = Array.from(new Set(["India", ...dbCountryNames]));
+
+  const [filters, setFilters] = useState({
+    country: isCountryAdmin ? (user?.country || "India") : "All",
+    state: "All",
+    chapter: "All",
+    status: "All"
+  });
+
+  const activeCountry = isCountryAdmin
+    ? user?.country || "India"
+    : filters.country === "All" || !filters.country
+    ? null
+    : filters.country;
+
+  const isNonIndia = Boolean(
+    activeCountry && activeCountry.toLowerCase() !== "india"
+  );
+
   const [viewMode, setViewMode] = useState("grid"); // "grid" or "table"
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [downloadingAnalytics, setDownloadingAnalytics] = useState(false);
@@ -259,8 +285,8 @@ function EventAnalyticsTab() {
     }
   };
 
-  const { data: statesData } = useStates();
-  const { data: chaptersData } = useChapters();
+  const { data: statesData } = useStates(activeCountry ? { country: activeCountry } : undefined);
+  const { data: chaptersData } = useChapters(activeCountry ? { country: activeCountry } : undefined);
 
   const { data, isLoading } = useQuery({
     queryKey: ["event_analytics", filters],
@@ -273,14 +299,36 @@ function EventAnalyticsTab() {
   const kpis = data?.kpis || { totalEvents: 0, totalRegisteredOverall: 0, overallAttendanceRate: 0 };
   const events = data?.events || [];
 
-  const stateOptions = ["All", ...(statesData?.map(s => s.state || s.name || s).filter(Boolean) || [])];
-  
-  // Filter chapters based on selected state if needed, or just show all
-  let filteredChapters = chaptersData || [];
-  if (filters.state !== "All" && filters.state) {
-    filteredChapters = filteredChapters.filter(c => c.state === filters.state);
-  }
-  const chapterOptions = ["All", ...filteredChapters.map(c => c.name || c).filter(Boolean)];
+  const stateOptions = useMemo(() => {
+    let list = statesData || [];
+    if (activeCountry) {
+      list = list.filter((s) => {
+        const sCountry = (s?.countryName || s?.country || "").trim().toLowerCase();
+        if (!sCountry) return activeCountry.toLowerCase() === "india";
+        return sCountry === activeCountry.toLowerCase();
+      });
+    }
+    const names = list.map((s) => s.state || s.name || s).filter(Boolean);
+    return ["All", ...Array.from(new Set(names)).sort()];
+  }, [statesData, activeCountry]);
+
+  // Filter chapters based on selected country & state
+  const filteredChapters = useMemo(() => {
+    let list = chaptersData || [];
+    if (activeCountry) {
+      list = list.filter((c) => {
+        const cCountry = (c?.country || "").trim().toLowerCase();
+        if (!cCountry) return activeCountry.toLowerCase() === "india";
+        return cCountry === activeCountry.toLowerCase();
+      });
+    }
+    if (filters.state !== "All" && filters.state) {
+      list = list.filter((c) => (c.state || "").trim().toLowerCase() === filters.state.trim().toLowerCase());
+    }
+    return list;
+  }, [chaptersData, activeCountry, filters.state]);
+
+  const chapterOptions = ["All", ...Array.from(new Set(filteredChapters.map((c) => c.name || c).filter(Boolean))).sort()];
 
   const leaderboard = data?.leaderboard || [];
 
@@ -298,19 +346,39 @@ function EventAnalyticsTab() {
           </div>
           <h3 className="font-semibold text-foreground">Global Filters</h3>
         </div>
-        
-        {(user?.role === "central_admin") && (
+
+        {/* Country Filter */}
+        {(isCentralAdmin || isCountryAdmin) && (
           <div className="w-full sm:w-64">
-            <Label className="text-xs mb-1.5 block font-medium text-muted-foreground uppercase tracking-wider">State</Label>
+            <Label className="text-xs mb-1.5 block font-medium text-muted-foreground uppercase tracking-wider">Country</Label>
+            {isCountryAdmin ? (
+              <div className="flex h-10 items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 text-xs font-semibold text-foreground">
+                <Globe className="h-4 w-4 text-primary shrink-0" />
+                <span className="truncate">{user?.country || "Your Country"}</span>
+              </div>
+            ) : (
+              <CreatableCombobox 
+                options={["All", ...availableCountries]}
+                value={filters.country || "All"}
+                onValueChange={(val) => setFilters(prev => ({ ...prev, country: val || "All", state: "All", chapter: "All" }))}
+                placeholder="Search country..."
+              />
+            )}
+          </div>
+        )}
+
+        {(isCentralAdmin || isCountryAdmin) && (
+          <div className="w-full sm:w-64">
+            <Label className="text-xs mb-1.5 block font-medium text-muted-foreground uppercase tracking-wider">{isNonIndia ? "State / City" : "State"}</Label>
             <CreatableCombobox 
               options={stateOptions}
               value={filters.state}
               onValueChange={(val) => setFilters(prev => ({ ...prev, state: val || "All", chapter: "All" }))}
-              placeholder="Search state..."
+              placeholder={isNonIndia ? "Search state / city..." : "Search state..."}
             />
           </div>
         )}
-        {["central_admin", "state_admin"].includes(user?.role) && (
+        {["central_admin", "country_admin", "state_admin"].includes(user?.role) && (
           <div className="w-full sm:w-64">
             <Label className="text-xs mb-1.5 block font-medium text-muted-foreground uppercase tracking-wider">Chapter</Label>
             <CreatableCombobox 
