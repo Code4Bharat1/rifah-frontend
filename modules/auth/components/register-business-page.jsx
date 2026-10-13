@@ -169,6 +169,12 @@ function RegisterBusiness({ isAdmin = false }) {
 
   const chapters = chaptersData || [];
 
+  const states = React.useMemo(() => {
+    const list = Array.isArray(statesData) ? statesData.map((s) => s.name || s).filter(Boolean) : [];
+    if (list.length > 0) return Array.from(new Set(list)).sort();
+    return Array.from(new Set(chapters.map((c) => c.state).filter(Boolean))).sort();
+  }, [statesData, chapters]);
+
   const activeCountriesList = React.useMemo(() => {
     return Array.isArray(countriesData)
       ? countriesData

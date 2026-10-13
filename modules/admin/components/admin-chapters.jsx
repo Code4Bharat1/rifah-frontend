@@ -64,9 +64,11 @@ function AdminChapters() {
     !authLoading &&
     (user?.role === "central_admin" ||
       user?.role === "super_admin" ||
-      user?.role === "secretariat");
+      user?.role === "secretariat" ||
+      user?.role === "admin");
+  const isCentralAdmin = isSuperCentralAdmin;
   const isCountryAdmin = !authLoading && user?.role === "country_admin";
-  const canManageChapters = isSuperCentralAdmin || isCountryAdmin;
+  const canManageChapters = isCentralAdmin || isCountryAdmin;
 
   const [countryFilter, setCountryFilter] = useState(
     isCountryAdmin ? user?.country || "India" : "all"
@@ -400,7 +402,7 @@ function AdminChapters() {
                 key: "act",
                 header: "",
                 cell: (r) =>
-                  isCentralAdmin ? (
+                  canManageChapters ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">

@@ -71,7 +71,7 @@ function AdminEnquiries() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
 
-  const { data: enquiriesData } = useAllEnquiries({
+  const { data: enquiriesData, refetch } = useAllEnquiries({
     search: debouncedSearch || undefined,
     status: statusFilter,
     type: typeFilter,

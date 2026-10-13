@@ -102,6 +102,7 @@ export function AdminAdvertisementsDesk({
 
   // Sub-filters for state and chapter
   const [selectedState, setSelectedState] = useState("all");
+  const [selectedChapter, setSelectedChapter] = useState("all");
   const isCountryAdmin = user?.role === "country_admin";
   const userCountry = (user?.country || "India").trim();
   const isNonIndia = userCountry.toLowerCase() !== "india";

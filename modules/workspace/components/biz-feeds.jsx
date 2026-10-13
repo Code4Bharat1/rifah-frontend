@@ -407,6 +407,10 @@ const InstagramPostCard = RifahFeedCard;
 function FeedFilterBar({
   filterMode,
   setFilterMode,
+  selectedCountry = "",
+  setSelectedCountry = () => {},
+  availableCountries = [],
+  isUserNonIndia = false,
   selectedState,
   setSelectedState,
   selectedChapter,
@@ -423,6 +427,7 @@ function FeedFilterBar({
 }) {
   const isFiltering =
     filterMode !== "all" ||
+    Boolean(selectedCountry) ||
     Boolean(selectedState) ||
     Boolean(selectedChapter) ||
     Boolean(searchQuery.trim());
@@ -826,6 +831,7 @@ export function BizFeeds() {
   // Handlers for quick interactive filtering
   const handleResetFilter = () => {
     setFilterMode("all");
+    setSelectedCountry("");
     setSelectedState("");
     setSelectedChapter("");
     setSearchQuery("");
@@ -1266,6 +1272,10 @@ export function BizFeeds() {
           <FeedFilterBar
             filterMode={filterMode}
             setFilterMode={setFilterMode}
+            selectedCountry={selectedCountry}
+            setSelectedCountry={setSelectedCountry}
+            availableCountries={availableCountries}
+            isUserNonIndia={isUserNonIndia}
             selectedState={selectedState}
             setSelectedState={setSelectedState}
             selectedChapter={selectedChapter}
