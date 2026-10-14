@@ -419,6 +419,8 @@ export function BizNewEnquiry() {
             {/* Conditional: Specific Business — cascading Country → State/City → Chapter → Business */}
             {targetType === "business" && (
               <div className="space-y-3 rounded-xl border border-border bg-surface-raised p-4">
+                {/* ==========================================
+                    [COUNTRY_MODULE_DISABLED] Country Step
                 <div>
                   <Label htmlFor="biz-country-select" className="text-sm font-semibold">
                     Step 1 — Select Country *
@@ -443,6 +445,7 @@ export function BizNewEnquiry() {
                     </SelectContent>
                   </Select>
                 </div>
+                ========================================== */}
 
                 <div>
                   <Label htmlFor="biz-state-select" className="text-sm font-semibold">

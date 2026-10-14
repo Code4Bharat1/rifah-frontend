@@ -89,7 +89,8 @@ export function MembersDirectoryPage() {
         <div className="rifah-container">
 
           <div className="mb-10 bg-background p-4 rounded-2xl border border-border shadow-sm flex flex-col md:flex-row items-center gap-4 max-w-5xl mx-auto -mt-20 relative z-20">
-            {/* Country Filter */}
+            {/* ==========================================
+                [COUNTRY_MODULE_DISABLED] Country Filter
             <div className="flex-1 w-full">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block px-1">Country</label>
               <Select value={countryFilter} onValueChange={(val) => {
@@ -108,6 +109,7 @@ export function MembersDirectoryPage() {
                 </SelectContent>
               </Select>
             </div>
+            ========================================== */}
 
             <div className="w-px h-12 bg-border hidden md:block"></div>
 

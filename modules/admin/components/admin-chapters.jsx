@@ -308,7 +308,8 @@ function AdminChapters() {
       }
     >
       <div className="space-y-4">
-        {/* Country Filter Selector for Central Admin */}
+        {/* ==========================================
+            [COUNTRY_MODULE_DISABLED] Country Filter Selector
         {isSuperCentralAdmin && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
@@ -335,6 +336,7 @@ function AdminChapters() {
             </div>
           </div>
         )}
+        ========================================== */}
 
         {isCountryAdmin && (
           <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs text-emerald-900 shadow-2xs">
@@ -556,6 +558,8 @@ function AdminChapters() {
                 }
               />
             </div>
+            {/* ==========================================
+                [COUNTRY_MODULE_DISABLED] Country Input Field
             <div className="space-y-1.5">
               <Label htmlFor="ch-country">Country</Label>
               <select
@@ -574,6 +578,7 @@ function AdminChapters() {
                 ))}
               </select>
             </div>
+            ========================================== */}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

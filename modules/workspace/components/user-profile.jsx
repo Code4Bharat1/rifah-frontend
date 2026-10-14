@@ -270,6 +270,8 @@ export function UserProfile() {
                 <span>Geographical Location</span>
               </h3>
 
+              {/* ==========================================
+                  [COUNTRY_MODULE_DISABLED] Region Tabs
               <div className="grid grid-cols-2 gap-2 mb-4">
                 <button
                   type="button"
@@ -298,6 +300,7 @@ export function UserProfile() {
                   <span>International (Global)</span>
                 </button>
               </div>
+              ========================================== */}
 
               {form.regionType === "national" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

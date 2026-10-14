@@ -354,7 +354,8 @@ function AdminEnquiries() {
               <SelectItem value="broadcast">Broadcast RFQs</SelectItem>
             </SelectContent>
           </Select>
-          {/* Country Filter */}
+          {/* ==========================================
+              [COUNTRY_MODULE_DISABLED] Country Filter
           {(isCentralAdmin || isCountryAdmin) && (
             <div className="w-full sm:max-w-[180px]">
               {isCountryAdmin ? (
@@ -384,6 +385,7 @@ function AdminEnquiries() {
               )}
             </div>
           )}
+          ========================================== */}
 
           <Select value={chapterFilter} onValueChange={setChapterFilter}>
             <SelectTrigger className="sm:max-w-[180px]">

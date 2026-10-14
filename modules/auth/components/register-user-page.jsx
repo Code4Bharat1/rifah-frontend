@@ -717,6 +717,8 @@ export function RegisterUserPage() {
                   </div>
 
                   {/* National vs International Toggle */}
+                  {/* ==========================================
+                      [COUNTRY_MODULE_DISABLED] Region Selection
                   <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-2xl">
                     <Label className="text-xs font-semibold text-slate-700 mb-2 block">
                       Region / Geographical Presence *
@@ -767,6 +769,7 @@ export function RegisterUserPage() {
                       </button>
                     </div>
                   </div>
+                  ========================================== */}
 
                   {/* Cascading State/Country & City Selection */}
                   {form.regionType === "national" ? (

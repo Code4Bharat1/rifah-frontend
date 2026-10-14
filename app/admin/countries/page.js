@@ -1,9 +1,24 @@
-import { AdminCountries } from "@modules/admin/components/admin-countries";
+// ==========================================
+// [COUNTRY_MODULE_DISABLED]
+// import { AdminCountries } from "@modules/admin/components/admin-countries";
+//
+// export const metadata = {
+//   title: "Countries | Admin",
+// };
+//
+// export default function CountriesPage() {
+//   return <AdminCountries />;
+// }
+// ==========================================
+
+import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Countries | Admin",
+  title: "Admin",
 };
 
 export default function CountriesPage() {
-  return <AdminCountries />;
+  redirect("/admin");
+  return null;
 }
+

@@ -164,7 +164,8 @@ function AdminLms({ role = "admin" }) {
   const activeChapter = (activeCourse && activeChapterIdx !== null) ? activeCourse.chapters?.[activeChapterIdx] : null;
 
   // Auto-derive scope strictly from the logged-in role
-  const derivedScope = effectiveRole === "chapter_admin" ? "chapter" : effectiveRole === "state_admin" ? "state" : effectiveRole === "country_admin" ? "country" : "centre";
+  // [COUNTRY_MODULE_DISABLED] effectiveRole === "country_admin" ? "country" :
+  const derivedScope = effectiveRole === "chapter_admin" ? "chapter" : effectiveRole === "state_admin" ? "state" : "centre";
 
   // --- Handlers: All-in-One Creation Modal ---
   const handleOpenCreateModal = () => {
@@ -1421,7 +1422,8 @@ function AdminLms({ role = "admin" }) {
                       <CreditCard className="h-3.5 w-3.5 text-primary" /> Course Fee & Access Type
                     </Label>
                     <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
-                      {isCentral ? "Central Admin Feature" : "Country Admin Feature"}
+                      {/* [COUNTRY_MODULE_DISABLED] : "Country Admin Feature" */}
+                      Central Admin Feature
                     </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
@@ -1925,7 +1927,8 @@ function AdminLms({ role = "admin" }) {
                       <CreditCard className="h-3.5 w-3.5 text-primary" /> Course Fee & Access Type
                     </Label>
                     <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
-                      {isCentral ? "Central Admin" : "Country Admin"}
+                      {/* [COUNTRY_MODULE_DISABLED] : "Country Admin" */}
+                      Central Admin
                     </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

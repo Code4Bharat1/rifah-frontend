@@ -631,6 +631,8 @@ function DiscoverPage() {
       </div>
 
       {/* 6. Country Filter */}
+      {/* ==========================================
+          [COUNTRY_MODULE_DISABLED] Country Filter
       <div>
         <div className="flex items-center justify-between">
           <Label htmlFor="f-country" className="font-semibold text-xs text-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -671,6 +673,7 @@ function DiscoverPage() {
           className="mt-1.5 h-10 rounded-xl bg-background font-medium"
         />
       </div>
+      ========================================== */}
 
       {/* 6.1. Region Scope (Optional Filter) */}
       <div>
