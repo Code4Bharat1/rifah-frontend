@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useMemo, useState } from "react";
+import { useTransition, useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Check, Globe, Search } from "lucide-react";
@@ -12,13 +12,32 @@ import {
 } from "@shared/components/ui/dropdown-menu";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { cn } from "@shared/lib/utils";
 import { LANGUAGES } from "../../config/languages";
 
-export function LanguageSelector() {
+export function LanguageSelector({ className }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const locale = useLocale();
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeLocale, setActiveLocale] = useState(locale || "en");
+
+  useEffect(() => {
+    // Check googtrans cookie or localStorage
+    const match = document.cookie.match(/googtrans=\/en\/([a-zA-Z-]+)/);
+    if (match && match[1]) {
+      setActiveLocale(match[1]);
+    } else {
+      try {
+        const stored = localStorage.getItem("rifah_locale");
+        if (stored) {
+          setActiveLocale(stored);
+        } else if (locale) {
+          setActiveLocale(locale);
+        }
+      } catch (e) {}
+    }
+  }, [locale]);
 
   const filteredLanguages = useMemo(() => {
     if (!searchQuery) return LANGUAGES;
@@ -32,6 +51,10 @@ export function LanguageSelector() {
 
   const handleLanguageChange = (newLocale) => {
     startTransition(() => {
+      try {
+        localStorage.setItem("rifah_locale", newLocale);
+      } catch (e) {}
+
       // Set NEXT_LOCALE for any remaining next-intl functionality
       document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
       
@@ -56,8 +79,14 @@ export function LanguageSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-muted-foreground" disabled={isPending}>
-          <Globe className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("text-muted-foreground", className)}
+          disabled={isPending}
+          aria-label="Select Language"
+        >
+          <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
           <span className="sr-only">Toggle Language</span>
         </Button>
       </DropdownMenuTrigger>
@@ -85,7 +114,9 @@ export function LanguageSelector() {
                     ({lang.nativeName !== lang.name ? `${lang.nativeName} (${lang.name})` : lang.name})
                   </span>
                 </span>
-                {locale === lang.code && <Check className="h-4 w-4" />}
+                {(activeLocale === lang.code || (!activeLocale && lang.code === 'en')) && (
+                  <Check className="h-4 w-4 text-brand" />
+                )}
               </DropdownMenuItem>
             ))
           ) : (
