@@ -243,7 +243,8 @@ export function AdminStates() {
       }
     >
       <div className="space-y-6">
-        {/* Delegation Architecture Info Banner */}
+        {/* ==========================================
+            [COUNTRY_MODULE_DISABLED] Country Banner & Filter
         <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900 shadow-xs dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
           <p className="font-semibold text-sm">
             {isNonIndia ? "4-Tier International Governance Hierarchy" : "3-Tier Geographic Delegation System"}
@@ -255,7 +256,6 @@ export function AdminStates() {
           </p>
         </div>
 
-        {/* Country Filter Selector for Central Admin */}
         {isSuperCentralAdmin && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
@@ -282,6 +282,7 @@ export function AdminStates() {
             </div>
           </div>
         )}
+        ========================================== */}
 
         {isCountryAdmin && (
           <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs text-emerald-900 shadow-2xs">
@@ -437,6 +438,8 @@ export function AdminStates() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddState} className="space-y-4 pt-2">
+            {/* ==========================================
+                [COUNTRY_MODULE_DISABLED] Country Jurisdiction Field
             {isSuperCentralAdmin && !activeCountry && (
               <div className="space-y-1.5">
                 <Label htmlFor="st-country">Country Jurisdiction *</Label>
@@ -457,6 +460,7 @@ export function AdminStates() {
                 </Select>
               </div>
             )}
+            ========================================== */}
 
             <div className="space-y-1.5">
               <Label htmlFor="st-name">{entityNoun} Name *</Label>

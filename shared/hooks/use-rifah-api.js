@@ -143,17 +143,23 @@ export function useStates(params = {}) {
   });
 }
 
-export function useCountries(params = {}) {
-  return useQuery({
-    queryKey: ["countries", params],
-    queryFn: async () => {
-      const res = await countryApi.list(params);
-      return res?.data?.countries || res?.data || res;
-    },
-    staleTime: 1000 * 60 * 30,
-    gcTime: 1000 * 60 * 60,
-  });
+// ==========================================
+// [COUNTRY_MODULE_DISABLED]
+// export function useCountries(params = {}) {
+//   return useQuery({
+//     queryKey: ["countries", params],
+//     queryFn: async () => {
+//       const res = await countryApi.list(params);
+//       return res?.data?.countries || res?.data || res;
+//     },
+//     staleTime: 1000 * 60 * 30,
+//     gcTime: 1000 * 60 * 60,
+//   });
+// }
+export function useCountries() {
+  return { data: [], countries: [], isLoading: false };
 }
+// ==========================================
 
 export function useChapterDetails(id) {
   return useQuery({

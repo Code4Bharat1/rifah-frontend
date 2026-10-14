@@ -347,7 +347,8 @@ function EventAnalyticsTab() {
           <h3 className="font-semibold text-foreground">Global Filters</h3>
         </div>
 
-        {/* Country Filter */}
+        {/* ==========================================
+            [COUNTRY_MODULE_DISABLED] Country Filter
         {(isCentralAdmin || isCountryAdmin) && (
           <div className="w-full sm:w-64">
             <Label className="text-xs mb-1.5 block font-medium text-muted-foreground uppercase tracking-wider">Country</Label>
@@ -366,6 +367,7 @@ function EventAnalyticsTab() {
             )}
           </div>
         )}
+        ========================================== */}
 
         {(isCentralAdmin || isCountryAdmin) && (
           <div className="w-full sm:w-64">

@@ -418,7 +418,7 @@ function handleDownloadPDF(payment) {
                   </span>
                 </div>
                 <div class="info-detail">Transaction ID: <strong>${escapeHtml(payment.transactionId || "N/A")}</strong></div>
-                <div class="info-detail">Payment Method: <strong>${escapeHtml(payment.method || "Online (Razorpay)")}</strong></div>
+                <div class="info-detail">Payment Method: <strong>${escapeHtml(payment.method || ((payment.currency || "").toUpperCase() === "USD" ? "Stripe International" : "Online (Razorpay)"))}</strong></div>
               </div>
             </div>
 

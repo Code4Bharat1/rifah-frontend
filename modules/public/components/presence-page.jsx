@@ -176,7 +176,8 @@ export function PresencePage() {
             </button>
           </div>
 
-          {/* Country Filter Dropdown */}
+          {/* ==========================================
+              [COUNTRY_MODULE_DISABLED] Country Filter
           <div className="w-full sm:w-auto">
             <Select
               value={countryFilter}
@@ -195,6 +196,7 @@ export function PresencePage() {
               </SelectContent>
             </Select>
           </div>
+          ========================================== */}
 
           {/* Quick Search with Clear Button (Right Side) */}
           <div className="relative w-full sm:w-80 md:w-96 shrink-0">

@@ -64,6 +64,7 @@ import {
   Globe,
 } from "lucide-react";
 import { LogoMark, RifahLogo } from "@shared/components/rifah/brand";
+import { LanguageSelector } from "@shared/components/rifah/language-selector";
 import { Button } from "@shared/components/ui/button";
 import {
   Sheet,
@@ -165,7 +166,8 @@ const navs = {
       { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
       { label: "Visa Referrals", to: "/admin/visa-referrals", icon: Globe },
       { label: "Support", to: "/admin/tickets", icon: LifeBuoy },
-      { label: "Countries", to: "/admin/countries", icon: MapPinned },
+      // [COUNTRY_MODULE_DISABLED]
+      // { label: "Countries", to: "/admin/countries", icon: MapPinned },
       { label: "States", to: "/admin/states", icon: MapPin },
       { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
       { label: "Events", to: "/admin/events", icon: Ticket },
@@ -432,35 +434,36 @@ function useResolvedNav(role) {
     };
   }
 
-  // 5. Customize module access & labels for Country Admin
-  if (user?.role === "country_admin") {
-    const isNonIndia = user?.country && user.country.toLowerCase() !== "india";
-    const mappedMore = (baseNav.more || [])
-      .filter((item) => item.to !== "/admin/central-admin")
-      .map((item) => {
-        if (item.to === "/admin/countries") {
-          return { ...item, label: user?.country ? `${user.country}` : "My Country" };
-        }
-        if (item.to === "/admin/states" && isNonIndia) {
-          return { ...item, label: "States / Cities" };
-        }
-        return item;
-      });
-
-    const mappedPrimary = (baseNav.primary || []).map((item) => {
-      if (item.to === "/admin/states" && isNonIndia) {
-        return { ...item, label: "States / Cities" };
-      }
-      return item;
-    });
-
-    return {
-      ...baseNav,
-      title: user?.country ? `RIFAH • ${user.country} Administration` : "Country Administration",
-      primary: mappedPrimary,
-      more: mappedMore,
-    };
-  }
+  // [COUNTRY_MODULE_DISABLED]
+  // // 5. Customize module access & labels for Country Admin
+  // if (user?.role === "country_admin") {
+  //   const isNonIndia = user?.country && user.country.toLowerCase() !== "india";
+  //   const mappedMore = (baseNav.more || [])
+  //     .filter((item) => item.to !== "/admin/central-admin")
+  //     .map((item) => {
+  //       if (item.to === "/admin/countries") {
+  //         return { ...item, label: user?.country ? `${user.country}` : "My Country" };
+  //       }
+  //       if (item.to === "/admin/states" && isNonIndia) {
+  //         return { ...item, label: "States / Cities" };
+  //       }
+  //       return item;
+  //     });
+  // 
+  //   const mappedPrimary = (baseNav.primary || []).map((item) => {
+  //     if (item.to === "/admin/states" && isNonIndia) {
+  //       return { ...item, label: "States / Cities" };
+  //     }
+  //     return item;
+  //   });
+  // 
+  //   return {
+  //     ...baseNav,
+  //     title: user?.country ? `RIFAH • ${user.country} Administration` : "Country Administration",
+  //     primary: mappedPrimary,
+  //     more: mappedMore,
+  //   };
+  // }
 
   return baseNav;
 }
@@ -1436,6 +1439,7 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
                   <Search className="h-5 w-5" />
                 </Link>
               </Button>
+              <LanguageSelector />
               <Button asChild variant="ghost" size="icon" className="relative">
                 <Link
                   href={

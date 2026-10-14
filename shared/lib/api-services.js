@@ -490,6 +490,7 @@ export const membershipApi = {
 };
 
 export const paymentApi = {
+  getConfig: () => apiClient("/payments/config"),
   getMyPayments: () => apiClient("/payments/me"),
   getAllPayments: (params = {}) =>
     apiClient(`/payments/admin/all${toQueryString(params)}`),
@@ -501,8 +502,20 @@ export const paymentApi = {
       body: JSON.stringify(data),
       ...options,
     }),
+  createStripeSession: (data, options = {}) =>
+    apiClient("/payments/stripe/create-session", {
+      method: "POST",
+      body: JSON.stringify(data),
+      ...options,
+    }),
   verifyPayment: (data, options = {}) =>
     apiClient("/payments/verify", {
+      method: "POST",
+      body: JSON.stringify(data),
+      ...options,
+    }),
+  verifyStripeSession: (data, options = {}) =>
+    apiClient("/payments/stripe/verify", {
       method: "POST",
       body: JSON.stringify(data),
       ...options,

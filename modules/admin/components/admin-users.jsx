@@ -305,7 +305,8 @@ function AdminUsers() {
             />
           </div>
 
-          {/* Country Filter */}
+          {/* ==========================================
+              [COUNTRY_MODULE_DISABLED] Country Filter
           <div className="w-full sm:w-48">
             {isCountryAdmin ? (
               <div className="flex h-11 items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 text-xs font-semibold text-foreground">
@@ -335,6 +336,7 @@ function AdminUsers() {
               </Select>
             )}
           </div>
+          ========================================== */}
 
           {/* State / City Filter */}
           <div className="w-full sm:w-52">
@@ -471,7 +473,8 @@ function AdminUsers() {
                             >
                               {r.country && r.country.toLowerCase() !== "india" ? "Make State/City Admin" : "Make State Admin"}
                             </DropdownMenuItem>
-                            {/* Make Country Admin — only for Central Admins assigning to non-India users */}
+                            {/* ==========================================
+                                [COUNTRY_MODULE_DISABLED] Make Country Admin
                             {isCentralAdmin && (r.country && r.country.toLowerCase() !== "india") && (
                               <DropdownMenuItem
                                 onClick={() =>
@@ -482,6 +485,7 @@ function AdminUsers() {
                                 Make Country Admin
                               </DropdownMenuItem>
                             )}
+                            ========================================== */}
                             {isCentralAdmin && (
                               <DropdownMenuItem
                                 onClick={() =>

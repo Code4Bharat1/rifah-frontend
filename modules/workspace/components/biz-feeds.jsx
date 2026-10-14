@@ -459,6 +459,8 @@ function FeedFilterBar({
               <span>All</span>
             </button>
 
+            {/* ==========================================
+                [COUNTRY_MODULE_DISABLED] Country Filter Button
             <button
               type="button"
               onClick={() => {
@@ -476,6 +478,7 @@ function FeedFilterBar({
               <Globe className="h-3.5 w-3.5 shrink-0" />
               <span>Country</span>
             </button>
+            ========================================== */}
 
             <button
               type="button"
@@ -509,7 +512,8 @@ function FeedFilterBar({
             </button>
           </div>
 
-          {/* Contextual Selector: Country Mode */}
+          {/* ==========================================
+              [COUNTRY_MODULE_DISABLED] Country Mode Selector
           {filterMode === "country" && (
             <div className="flex items-center gap-1.5">
               <Select
@@ -531,6 +535,7 @@ function FeedFilterBar({
               </Select>
             </div>
           )}
+          ========================================== */}
 
           {/* Contextual Selector: State Mode */}
           {filterMode === "state" && (

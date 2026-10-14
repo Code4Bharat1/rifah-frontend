@@ -2496,7 +2496,8 @@ function RegisterBusiness({ isAdmin = false }) {
                       Public email displayed on your business directory card & catalogue for buyer RFQs and customer enquiries. (If left blank, your owner login email will be used).
                     </p>
                   </div>
-                  {/* 1. Country Selection (Cascaded Tier 1) */}
+                  {/* ==========================================
+                      [COUNTRY_MODULE_DISABLED] Country Selection
                   <div className="space-y-1.5 sm:col-span-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="bcountry" className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
@@ -2520,6 +2521,7 @@ function RegisterBusiness({ isAdmin = false }) {
                       Businesses across all countries are welcome — RFQs and buyer connections reach members worldwide.
                     </p>
                   </div>
+                  ========================================== */}
 
                   {/* 2. State / City (Cascaded Tier 2) */}
                   <div className="space-y-1.5">

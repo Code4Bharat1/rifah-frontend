@@ -771,7 +771,8 @@ function AdminVerification() {
             />
           </div>
 
-          {/* Country Filter */}
+          {/* ==========================================
+              [COUNTRY_MODULE_DISABLED] Country Filter
           {isCountryAdmin ? (
             <div className="h-10 px-3 py-2 border rounded-md bg-muted/50 text-muted-foreground flex items-center text-xs font-semibold cursor-not-allowed">
               {user?.country || "Country Assigned"}
@@ -798,6 +799,7 @@ function AdminVerification() {
               </SelectContent>
             </Select>
           )}
+          ========================================== */}
 
           {/* Cascading State Dropdown */}
           <Select
