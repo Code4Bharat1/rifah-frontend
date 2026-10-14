@@ -198,6 +198,16 @@ export const businessApi = {
     });
   },
   getNewChapterMembers: () => apiClient("/businesses/new-members"),
+  getLinkableBusinesses: (params = {}) => apiClient(`/businesses/linkable${toQueryString(params)}`),
+  sendMemberOtp: (businessId) =>
+    apiClient(`/businesses/${businessId}/send-member-otp`, {
+      method: "POST",
+    }),
+  verifyMemberOtp: (businessId, otp) =>
+    apiClient(`/businesses/${businessId}/verify-member-otp`, {
+      method: "POST",
+      body: JSON.stringify({ otp }),
+    }),
 };
 
 export const categoryApi = {

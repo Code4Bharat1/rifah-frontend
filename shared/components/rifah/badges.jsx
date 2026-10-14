@@ -283,40 +283,86 @@ export function isVerifiedBusiness(business) {
 }
 
 /**
- * Rule: The 2 Tags ([Verified] and [Premium member]) are ONLY shown for Members + Subscribers.
- * Must be verified, hold Chamber Membership, AND have an active Subscriber Tier.
+ * Badge Eligibility Rule (Section 4):
+ * On the Discover Page and all other pages that display business listings,
+ * show the Membership and Verified badges ONLY for businesses that meet BOTH of these conditions:
+ * 1. The business has an active Chamber Membership (Silver, Gold, Platinum, Diamond); AND
+ * 2. The business has an active subscription at Tier 2, Tier 3, or Tier 4.
+ *
+ * Neither badge is displayed for businesses with no membership, no active subscription,
+ * a Free/Tier 1 subscription, or an expired/inactive membership or subscription.
  */
 export function isMemberAndSubscriber(business) {
   if (!business) return false;
-  return isVerifiedBusiness(business) && isChamberMember(business) && isPaidSubscriber(business);
+
+  // 1. Must have an accredited Chamber Membership (Silver, Gold, Platinum, Diamond)
+  const isChamber = isChamberMember(business);
+  if (!isChamber) return false;
+
+  // Active business status (not suspended, rejected, or draft)
+  const s = String(business.status || "").toLowerCase();
+  if (s === "suspended" || s === "rejected" || s === "draft") {
+    return false;
+  }
+
+  // Not expired/inactive membership
+  const mStatus = String(business.membershipStatus || "").toLowerCase();
+  if (mStatus === "expired" || mStatus === "cancelled" || mStatus === "inactive") {
+    return false;
+  }
+
+  // 2. Must have an active subscription at Tier 2, Tier 3, or Tier 4
+  const subTier = String(
+    business.subscriberTier ||
+    business.subscriber_tier ||
+    business.subscriptionTier ||
+    business.planId ||
+    ""
+  ).trim().toLowerCase();
+
+  const isTier2to4 =
+    subTier === "tier_2" ||
+    subTier === "tier_3" ||
+    subTier === "tier_4" ||
+    subTier === "tier-2" ||
+    subTier === "tier-3" ||
+    subTier === "tier-4" ||
+    subTier === "tier 2" ||
+    subTier === "tier 3" ||
+    subTier === "tier 4" ||
+    subTier.includes("tier ii") ||
+    subTier.includes("tier iii") ||
+    subTier.includes("tier iv");
+
+  if (!isTier2to4) {
+    return false;
+  }
+
+  // Not expired/inactive subscription
+  const subStatus = String(business.subscriptionStatus || "").toLowerCase();
+  if (subStatus === "expired" || subStatus === "cancelled" || subStatus === "inactive") {
+    return false;
+  }
+
+  return true;
 }
 
 /**
- * Renders the 2 Tags for businesses that are BOTH Members + Subscribers:
- * 1. [✔ Verified] (Green pill)
- * 2. [☆ Premium member] (Rose/Brand pill) or specific tier ([👑 Diamond member], [👑 Platinum member])
+ * Renders BOTH Membership and Verified badges for businesses meeting Section 4 eligibility.
+ * 1. [✔ Verified]
+ * 2. Chamber Membership badge reflecting actual tier: Silver, Gold, Platinum, or Diamond
  */
 export function MemberSubscriberBadges({ business, compact = true, className }) {
   if (!isMemberAndSubscriber(business)) {
     return null;
   }
 
-  const rawMem = String(business?.membership || "").toLowerCase();
-  const isDiamond = rawMem.includes("diamond");
-  const isPlatinum = rawMem.includes("platinum");
+  const chamberTier = business?.membership || "Silver";
 
   return (
     <div className={cn("inline-flex flex-wrap items-center gap-1.5", className)}>
       <VerificationBadge status="verified" compact={compact} />
-      {isDiamond ? (
-        <MembershipBadge tier="Diamond" />
-      ) : isPlatinum ? (
-        <MembershipBadge tier="Platinum" />
-      ) : (
-        <Pill tone="brand" icon={<Star className="h-3.5 w-3.5" />}>
-          Premium member
-        </Pill>
-      )}
+      <MembershipBadge tier={chamberTier} />
     </div>
   );
 }

@@ -51,10 +51,9 @@ export function UserMembership() {
 
     setUpgradingTier(tier.id);
     try {
-      // Update user subscriberTier & membershipPlan
+      // Update user subscriberTier (preserving chamber membershipPlan)
       await userApi.updateProfile({
         subscriberTier: tier.name,
-        membershipPlan: tier.name,
       });
 
       try {
@@ -70,7 +69,6 @@ export function UserMembership() {
         if (stored) {
           const u = JSON.parse(stored);
           u.subscriberTier = tier.name;
-          u.membershipPlan = tier.name;
           localStorage.setItem("rifah_user", JSON.stringify(u));
         }
       }

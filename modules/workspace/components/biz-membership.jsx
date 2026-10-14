@@ -44,6 +44,10 @@ import {
   Bell,
   HelpCircle,
   ArrowUpRight,
+  Mail,
+  Phone,
+  Copy,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -725,22 +729,89 @@ function BizMembership() {
     return false;
   }, [membershipData, business, currentTier, matchedPlan]);
 
-  const isChamberPlan = !isSubscriberTier;
+  // Chamber Plan details
+  const chamberPlanName = useMemo(() => {
+    const raw = (
+      membershipData?.chamberPlanName ||
+      (membershipData?.category === "chamber" ? (membershipData?.planName || membershipData?.planId) : null) ||
+      business?.membership ||
+      (matchedPlan?.category === "chamber" ? matchedPlan?.name : null) ||
+      "Not Enrolled"
+    );
+    if (!raw || raw.toLowerCase() === "free") return "Free Chamber Directory";
+    return raw;
+  }, [membershipData, business, matchedPlan]);
 
-  const currentPlan = matchedPlan || {
-    name: isSubscriberTier ? activeSubscriberModel.name : (membershipData?.planName || (currentTier === "free" ? "Free" : tierName) || "Free"),
-    price: isSubscriberTier ? activeSubscriberModel.costingInr : (membershipData?.price ?? 0),
-    summary: isSubscriberTier ? activeSubscriberModel.summary : (membershipData?.summary || (currentTier === "free" ? "Get started on RIFAH Connect with basic directory presence." : "Active Chamber Membership")),
-    features: membershipData?.features?.length > 0 ? membershipData.features : (isSubscriberTier ? activeSubscriberModel.bulletPoints : [
-      "Directory listing on RIFAH Connect",
-      "Basic business presence",
-      "Search visibility",
-    ]),
+  const hasActiveChamber = useMemo(() => {
+    const name = String(chamberPlanName || "").toLowerCase();
+    return ["silver", "gold", "platinum", "diamond"].some((k) => name.includes(k));
+  }, [chamberPlanName]);
+
+  const chamberPlan = useMemo(() => {
+    const chamberKey = (
+      membershipData?.chamberPlanName ||
+      (membershipData?.category === "chamber" ? (membershipData?.planId || membershipData?.planName) : null) ||
+      business?.membership ||
+      ""
+    ).toLowerCase();
+
+    const matched = Object.values(plans).find(
+      (p) => (p.id || p.planId || "").toLowerCase() === chamberKey || (p.name || "").toLowerCase() === chamberKey
+    );
+
+    return matched || {
+      name: chamberPlanName,
+      price: membershipData?.category === "chamber" ? (membershipData?.price ?? 0) : 0,
+      summary: membershipData?.summary || "RIFAH Chamber of Commerce official accreditation & membership record.",
+      features: (membershipData?.features?.length > 0) ? membershipData.features : [
+        "Directory listing on RIFAH Connect",
+        "Statutory business verification & trust badge",
+        "Chamber network access & regional chapter participation",
+      ],
+    };
+  }, [plans, membershipData, business, chamberPlanName]);
+
+  // View Mode: "chamber" (Accreditation & Documents) vs "subscription" (Tier & Quotas)
+  const [activeViewTab, setActiveViewTab] = useState("subscription");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab") || params.get("view");
+      const hash = window.location.hash || "";
+      if (tabParam === "chamber" || tabParam === "subscription") {
+        setActiveViewTab(tabParam);
+      } else if (hash.includes("verification") || hasActiveChamber) {
+        setActiveViewTab("chamber");
+      } else if (isSubscriberTier) {
+        setActiveViewTab("subscription");
+      }
+    }
+  }, [hasActiveChamber, isSubscriberTier]);
+
+  const handleSwitchView = (tabKey) => {
+    setActiveViewTab(tabKey);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", tabKey);
+      window.history.replaceState({}, "", url.toString());
+    }
   };
 
-  const isFreeTier = isSubscriberTier
-    ? subscriberTierKey === "tier_1" || activeSubscriberModel.costingInr === 0
-    : (currentTier === "free" || (currentPlan?.name || "").toLowerCase() === "free");
+  const isChamberPlan = activeViewTab === "chamber";
+
+  const currentPlan = activeViewTab === "chamber"
+    ? chamberPlan
+    : (matchedPlan || {
+        name: activeSubscriberModel.name,
+        price: activeSubscriberModel.costingInr,
+        summary: activeSubscriberModel.summary,
+        features: activeSubscriberModel.bulletPoints,
+      });
+
+  const isFreeTier = activeViewTab === "chamber"
+    ? (!hasActiveChamber)
+    : (subscriberTierKey === "tier_1" || activeSubscriberModel.costingInr === 0);
 
   const payments = Array.isArray(paymentsData) ? paymentsData : (paymentsData?.payments || []);
 
@@ -761,22 +832,60 @@ function BizMembership() {
 
   const startDate = startDateRaw ? new Date(startDateRaw) : new Date();
 
-  const renewDateRaw =
-    membershipData?.endDate ||
-    membershipData?.expiresAt ||
-    membershipData?.renewalDate;
+  const chamberDurationYears = useMemo(() => {
+    const rawYears = Number(chamberPlan?.durationYears);
+    if (rawYears && rawYears > 0) return rawYears;
+    const name = String(chamberPlanName || "").toLowerCase();
+    if (name.includes("diamond")) return 25;
+    if (name.includes("platinum")) return 10;
+    if (name.includes("gold")) return 2;
+    return 1;
+  }, [chamberPlan, chamberPlanName]);
+
+  const chamberRenewDate = useMemo(() => {
+    if (!hasActiveChamber || !isPaidMembership) return null;
+    if (membershipData?.chamberEndDate) {
+      return new Date(membershipData.chamberEndDate);
+    }
+    const d = new Date(startDate);
+    d.setFullYear(d.getFullYear() + chamberDurationYears);
+    return d;
+  }, [hasActiveChamber, isPaidMembership, membershipData?.chamberEndDate, startDate, chamberDurationYears]);
+
+  const subscriptionRenewDate = useMemo(() => {
+    if (subscriberTierKey === "tier_1") return null;
+    if (membershipData?.subscriptionEndDate) {
+      return new Date(membershipData.subscriptionEndDate);
+    }
+    if (membershipData?.endDate && (membershipData.billingCycle?.toLowerCase().includes("month") || !hasActiveChamber)) {
+      return new Date(membershipData.endDate);
+    }
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d;
+  }, [subscriberTierKey, membershipData, hasActiveChamber]);
 
   const renewDate = useMemo(() => {
-    if (isFreeTier || !isPaidMembership) return null;
-    if (renewDateRaw) return new Date(renewDateRaw);
-    return null;
-  }, [isFreeTier, isPaidMembership, renewDateRaw]);
+    if (isFreeTier) return null;
+    if (activeViewTab === "chamber") {
+      return chamberRenewDate;
+    }
+    return subscriptionRenewDate;
+  }, [isFreeTier, activeViewTab, chamberRenewDate, subscriptionRenewDate]);
 
   const formattedStarted = startDate.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
+
+  const activeMembersList = useMemo(() => {
+    if (!Array.isArray(business?.gstGroupMembers)) return [];
+    return business.gstGroupMembers.filter((m) => m && m.status !== "removed");
+  }, [business?.gstGroupMembers]);
+
+  const totalTeamCount = 1 + activeMembersList.length;
+  const maxTeamSlots = subscriberTierKey === "tier_4" ? 5 : 1;
 
   const formattedRenews = useMemo(() => {
     if (!renewDate) return "—";
@@ -789,30 +898,41 @@ function BizMembership() {
 
   const renewalCycleLabel = useMemo(() => {
     if (isFreeTier) return "Lifetime validity";
-    if (membershipData?.billingCycle && membershipData.billingCycle.toLowerCase() !== "free") {
-      return `${membershipData.billingCycle} renewal`;
+    if (activeViewTab === "chamber") {
+      return chamberDurationYears === 1 ? "1-Year Chamber Term" : `${chamberDurationYears}-Year Chamber Term`;
     }
-    const years = Number(currentPlan?.durationYears) || 1;
-    return years === 1 ? "Annual renewal" : `${years}-Year renewal`;
-  }, [isFreeTier, membershipData, currentPlan]);
+    return "Monthly renewal";
+  }, [isFreeTier, activeViewTab, chamberDurationYears]);
 
   const now = new Date();
   const isExpired = Boolean(membershipData?.isExpired || membershipData?.status === "Expired" || (renewDate && renewDate < now && currentTier !== "free"));
+
   const daysRemaining = useMemo(() => {
-    if (isFreeTier || !isPaidMembership || !renewDate) return 0;
-    if (typeof membershipData?.daysRemaining === "number") {
-      return membershipData.daysRemaining;
+    if (isFreeTier || !renewDate) return 0;
+    if (activeViewTab === "chamber" && typeof membershipData?.chamberDaysRemaining === "number") {
+      return membershipData.chamberDaysRemaining;
     }
     return Math.max(0, Math.ceil((renewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-  }, [isFreeTier, isPaidMembership, renewDate, membershipData, now]);
+  }, [isFreeTier, renewDate, activeViewTab, membershipData, now]);
 
-  const totalDaysInCycle = (Number(currentPlan?.durationYears) || 1) * 365;
+  const cycleRemainingLabel = useMemo(() => {
+    if (isFreeTier) return "Lifetime directory access";
+    const count = Number(daysRemaining || 0);
+    const formattedDays = count.toLocaleString("en-IN");
+    return `${formattedDays} ${count === 1 ? "day" : "days"} remaining in current cycle`;
+  }, [isFreeTier, daysRemaining]);
+
+  const totalDaysInCycle = activeViewTab === "chamber" ? chamberDurationYears * 365 : 30;
   const daysProgress = useMemo(() => {
-    if (isFreeTier || !isPaidMembership || !renewDate) return 0;
+    if (isFreeTier || !renewDate) return 0;
     return Math.max(5, Math.min(100, Math.round(((totalDaysInCycle - Math.min(totalDaysInCycle, daysRemaining)) / totalDaysInCycle) * 100)));
-  }, [isFreeTier, isPaidMembership, renewDate, totalDaysInCycle, daysRemaining]);
+  }, [isFreeTier, renewDate, totalDaysInCycle, daysRemaining]);
 
-  const isExpiringSoon = !isExpired && currentTier !== "free" && isPaidMembership && (membershipData?.isExpiringSoon || (daysRemaining <= 15 && daysRemaining > 0));
+  const isExpiringSoon = !isExpired && currentTier !== "free" && isPaidMembership && (
+    activeViewTab === "chamber"
+      ? (daysRemaining <= 60 && daysRemaining > 0)
+      : (membershipData?.isExpiringSoon || (daysRemaining <= 7 && daysRemaining > 0))
+  );
 
   // Verification status logic & uploaded documents
   const uploadedDocs = useMemo(() => {
@@ -1072,9 +1192,124 @@ function BizMembership() {
     >
       <div id="overview" className="space-y-6 max-w-[1380px] mx-auto pb-12">
         {/* ========================================================================= */}
-        {/* BRANCH 1: SUBSCRIBER PLAN UI (No Verification / No Document Uploads)    */}
+        {/* TOP DUAL-TIER STATUS & VIEW SWITCHER: CHAMBER MEMBERSHIP & SUBSCRIPTION  */}
         {/* ========================================================================= */}
-        {isSubscriberTier ? (
+        <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-r from-card via-card to-muted/20 p-4 sm:p-5 shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* Dual Status Interactive Tab Cards */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              {/* Chamber Membership Tab Card */}
+              <button
+                type="button"
+                onClick={() => handleSwitchView("chamber")}
+                className={cn(
+                  "group flex items-center gap-3 rounded-2xl border px-4 py-2.5 transition-all text-left cursor-pointer",
+                  activeViewTab === "chamber"
+                    ? "border-amber-400 bg-amber-50/70 dark:bg-amber-950/40 shadow-xs ring-2 ring-amber-400/25"
+                    : "border-border/70 bg-card hover:bg-muted/40 hover:border-border opacity-70 hover:opacity-100"
+                )}
+              >
+                <div className={cn(
+                  "grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-all",
+                  hasActiveChamber
+                    ? "bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-xs"
+                    : "bg-muted text-muted-foreground group-hover:bg-amber-500/20 group-hover:text-amber-600"
+                )}>
+                  <Crown className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 pr-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Chamber Membership</span>
+                    {isVerified ? (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[9px] font-bold px-1.5 py-0.5">
+                        <Check className="h-2.5 w-2.5" /> Verified
+                      </span>
+                    ) : hasActiveChamber ? (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[9px] font-bold px-1.5 py-0.5">
+                        <Clock className="h-2.5 w-2.5" /> Under Review
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-bold px-1.5 py-0.5">
+                        Standard
+                      </span>
+                    )}
+                    {activeViewTab === "chamber" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 text-white text-[9px] font-extrabold px-1.5 py-0.2 shadow-2xs">
+                        Viewing
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs sm:text-sm font-extrabold text-foreground truncate mt-0.5">
+                    {chamberPlanName}
+                  </p>
+                </div>
+              </button>
+
+              {/* Platform Subscriber Tier Tab Card */}
+              <button
+                type="button"
+                onClick={() => handleSwitchView("subscription")}
+                className={cn(
+                  "group flex items-center gap-3 rounded-2xl border px-4 py-2.5 transition-all text-left cursor-pointer",
+                  activeViewTab === "subscription"
+                    ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-xs ring-2 ring-primary/20"
+                    : "border-border/70 bg-card hover:bg-muted/40 hover:border-border opacity-70 hover:opacity-100"
+                )}
+              >
+                <div className={cn(
+                  "grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-all",
+                  subscriberTierKey === "tier_4"
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : subscriberTierKey === "tier_3"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : subscriberTierKey === "tier_2"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "bg-primary text-white shadow-xs"
+                )}>
+                  {subscriberTierKey === "tier_4" ? <Crown className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
+                </div>
+                <div className="min-w-0 pr-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Platform Quotas</span>
+                    <span className={cn(
+                      "inline-flex items-center gap-0.5 rounded-full text-[9px] font-bold px-1.5 py-0.5",
+                      subscriberTierKey === "tier_1"
+                        ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                        : "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300"
+                    )}>
+                      {subscriberTierKey === "tier_1" ? "Free Quotas" : "Monthly Plan"}
+                    </span>
+                    {activeViewTab === "subscription" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.2 shadow-2xs">
+                        Viewing
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs sm:text-sm font-extrabold text-foreground truncate mt-0.5">
+                    {activeSubscriberModel.name}
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* Right: Quick Action Button */}
+            <div className="flex items-center gap-2 self-start lg:self-auto">
+              <Button
+                type="button"
+                onClick={() => setUpgradeDialogOpen(true)}
+                className="gap-1.5 rounded-xl font-bold text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer"
+              >
+                <Crown className="h-3.5 w-3.5" />
+                <span>Compare All Plans</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* BRANCH 1: SUBSCRIBER PLAN UI (Monthly Quotas, Lead Unlocks & Limits)      */}
+        {/* ========================================================================= */}
+        {activeViewTab === "subscription" ? (
           <>
             {/* Top Page Header for Subscriber */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1122,8 +1357,8 @@ function BizMembership() {
                   onClick={() => setUpgradeDialogOpen(true)}
                   className="gap-1.5 rounded-xl font-bold text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer"
                 >
-                  <Crown className="h-3.5 w-3.5" />
-                  <span>{isFreeTier ? "Upgrade Plan" : "Change Plan"}</span>
+                  <Zap className="h-3.5 w-3.5" />
+                  <span>{isFreeTier ? "Upgrade Tier" : "Change Tier"}</span>
                 </Button>
               </div>
             </div>
@@ -1209,6 +1444,11 @@ function BizMembership() {
                             <RotateCcw className="h-3.5 w-3.5" />
                             <span>Monthly Auto-Renewing Subscription</span>
                           </span>
+                          <span className="text-border">•</span>
+                          <span className="flex items-center gap-1.5 text-foreground font-semibold">
+                            <Clock className="h-3.5 w-3.5 text-amber-500" />
+                            <span>Cycle renews: {formattedRenews} ({daysRemaining} days left)</span>
+                          </span>
                         </>
                       )}
                     </div>
@@ -1252,6 +1492,22 @@ function BizMembership() {
               >
                 <Layers className="h-4 w-4" />
                 <span>Overview & Quotas</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToAnchor("team-roster")}
+                className={cn(
+                  "flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
+                  activeAnchor === "team-roster"
+                    ? "bg-background text-foreground shadow-xs border border-border/80"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                )}
+              >
+                <Users className="h-4 w-4 text-purple-500" />
+                <span>Authorized Team Members</span>
+                <span className="rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[10px] font-bold px-2 py-0.2">
+                  {totalTeamCount} {totalTeamCount === 1 ? "Member" : "Members"}
+                </span>
               </button>
               <button
                 type="button"
@@ -1591,6 +1847,190 @@ function BizMembership() {
               </div>
             </div>
 
+            {/* Authorized Team Members (Multi-Member Roster) */}
+            <div id="team-roster" className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/80">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <div className="h-8 w-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 flex items-center justify-center">
+                      <Users className="h-4.5 w-4.5" />
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground">
+                      Authorized Team Members
+                    </h3>
+                    <span className={cn(
+                      "rounded-full text-[10px] font-bold px-2.5 py-0.5 border",
+                      subscriberTierKey === "tier_4"
+                        ? "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200"
+                        : "bg-muted text-muted-foreground border-border"
+                    )}>
+                      {totalTeamCount} of {maxTeamSlots} {maxTeamSlots === 1 ? "Slot" : "Slots"} Used
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+                    Members registered under {business?.name || "your business"} and GST account. Authorized team members can manage catalogue listings, respond to enquiries, and represent your company across RIFAH Connect.
+                  </p>
+                </div>
+
+                {subscriberTierKey === "tier_4" ? (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (typeof navigator !== "undefined" && navigator.clipboard) {
+                          const regUrl = `${window.location.origin}/register`;
+                          navigator.clipboard.writeText(regUrl);
+                          toast.success("Registration link copied! Ask your colleague to select 'Register as Business Member' and select your business.");
+                        }
+                      }}
+                      className="gap-1.5 rounded-xl text-xs font-semibold border-border hover:bg-muted cursor-pointer"
+                    >
+                      <Copy className="h-3.5 w-3.5 text-primary" />
+                      <span>Copy Registration Link</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setUpgradeDialogOpen(true)}
+                    className="gap-1.5 rounded-xl font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer"
+                  >
+                    <Crown className="h-3.5 w-3.5" />
+                    <span>Upgrade to Tier IV for 5 Members</span>
+                  </Button>
+                )}
+              </div>
+
+              {/* Members Roster List */}
+              <div className="space-y-3">
+                {/* 1. Primary Business Owner Card */}
+                <div className="p-4 rounded-2xl border border-primary/20 bg-primary/5 dark:bg-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-center gap-3.5">
+                    <div className="h-11 w-11 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
+                      {((business?.owner?.name || user?.name || "O")[0] || "O").toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm font-bold text-foreground">
+                          {business?.owner?.name || user?.name || "Business Owner"}
+                        </h4>
+                        <span className="rounded-full bg-primary/15 text-primary text-[10px] font-extrabold px-2 py-0.5 border border-primary/30">
+                          Primary Business Owner
+                        </span>
+                        <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5">
+                          Active
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>{business?.owner?.email || user?.email || business?.email || "—"}</span>
+                        </span>
+                        {(business?.owner?.phone || user?.phone || business?.phone) && (
+                          <>
+                            <span className="text-border">•</span>
+                            <span className="flex items-center gap-1">
+                              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>{business?.owner?.phone || user?.phone || business?.phone}</span>
+                            </span>
+                          </>
+                        )}
+                        <span className="text-border">•</span>
+                        <span>Designation: <strong className="text-foreground">{business?.owner?.designation || user?.designation || "Founder / Primary Signatory"}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-left sm:text-right shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
+                    <span className="text-[11px] text-muted-foreground block">Account Role</span>
+                    <span className="text-xs font-bold text-foreground">Root Administrator</span>
+                  </div>
+                </div>
+
+                {/* 2. Additional Linked Team Members */}
+                {activeMembersList.length > 0 ? (
+                  activeMembersList.map((member, idx) => {
+                    const memberUser = typeof member.user === "object" && member.user !== null ? member.user : {};
+                    const memberName = memberUser.name || member.name || "Authorized Member";
+                    const memberEmail = memberUser.email || member.email || "—";
+                    const memberPhone = memberUser.phone || member.phone || "—";
+                    const memberDesignation = memberUser.designation || member.role || "Team Member";
+                    const joinedDateStr = member.joinedAt
+                      ? new Date(member.joinedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                      : "Recently Linked";
+
+                    return (
+                      <div key={member._id || memberUser._id || idx} className="p-4 rounded-2xl border border-border bg-card hover:bg-muted/30 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                        <div className="flex items-center gap-3.5">
+                          <div className="h-10 w-10 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-sm shrink-0">
+                            {(memberName[0] || "M").toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-sm font-bold text-foreground">{memberName}</h4>
+                              <span className="rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/80 text-[10px] font-bold px-2 py-0.5">
+                                {member.role === "owner" ? "Co-Owner" : "Linked Team Member"}
+                              </span>
+                              <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5">
+                                {member.status || "Active"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <Mail className="h-3.5 w-3.5" />
+                                <span>{memberEmail}</span>
+                              </span>
+                              {memberPhone && memberPhone !== "—" && (
+                                <>
+                                  <span className="text-border">•</span>
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="h-3.5 w-3.5" />
+                                    <span>{memberPhone}</span>
+                                  </span>
+                                </>
+                              )}
+                              <span className="text-border">•</span>
+                              <span>Role: <strong className="text-foreground">{memberDesignation}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-left sm:text-right shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
+                          <span className="text-[11px] text-muted-foreground block">Linked Since</span>
+                          <span className="text-xs font-semibold text-foreground">{joinedDateStr}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 p-6 text-center space-y-2">
+                    <Users className="h-8 w-8 mx-auto text-muted-foreground opacity-50" />
+                    <h4 className="text-sm font-bold text-foreground">No Additional Team Members Linked Yet</h4>
+                    <p className="text-xs text-muted-foreground max-w-lg mx-auto">
+                      {subscriberTierKey === "tier_4"
+                        ? "Your Tier IV Enterprise subscription allows up to 5 team member accounts under your business profile and GST. When new colleagues register as business members under your company, they will be listed here automatically."
+                        : "Team member linking (up to 5 accounts under single GST) is included with the Tier IV Enterprise Plan. All registered operations currently map to your primary business owner account."}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Instructions footer note */}
+              <div className="rounded-2xl bg-muted/40 border border-border/60 p-4 text-xs text-muted-foreground space-y-1.5">
+                <div className="flex items-center gap-1.5 font-bold text-foreground">
+                  <Info className="h-4 w-4 text-primary shrink-0" />
+                  <span>How can a team member add themselves to this business?</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-1 pl-1 text-[11px] leading-relaxed">
+                  <li>Direct them to register at <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-[10px] text-primary">/register</code></li>
+                  <li>Click on <strong>&quot;Register as Business Member&quot;</strong> and search for <strong className="text-foreground">{business?.name || "your company name"}</strong>.</li>
+                  <li>An authorization OTP will be sent to the business owner&apos;s email to confirm authorization before adding them to your team roster.</li>
+                </ol>
+              </div>
+            </div>
+
             {/* Quick Upgrade Callout */}
             <div className="rounded-3xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-transparent p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
@@ -1681,15 +2121,27 @@ function BizMembership() {
                 )}
 
                 {isFreeTier ? (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setUpgradeDialogOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                    className="gap-1.5 rounded-xl font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-sm shadow-amber-600/20 cursor-pointer"
                   >
-                    <span className="h-2 w-2 rounded-full bg-slate-400" />
-                    <span>Free Basic Plan</span>
-                  </button>
-                ) : isVerified ? (
+                    <Crown className="h-3.5 w-3.5" />
+                    <span>Upgrade Chamber Plan</span>
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setUpgradeDialogOpen(true)}
+                    className="gap-1.5 rounded-xl font-bold text-xs border-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-800 dark:text-amber-200 shadow-2xs cursor-pointer"
+                  >
+                    <Crown className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Change Chamber Plan</span>
+                  </Button>
+                )}
+
+                {isVerified ? (
                   <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-3.5 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-2xs">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -1909,7 +2361,7 @@ function BizMembership() {
                           <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground mb-1">
                             <span className="flex items-center gap-1 text-foreground font-bold">
                               <Clock className="h-3 w-3 text-amber-500" />
-                              <span>{daysRemaining} days remaining in current cycle</span>
+                              <span>{cycleRemainingLabel}</span>
                             </span>
                             <span className="text-muted-foreground font-normal">Renews {formattedRenews}</span>
                           </div>
@@ -1946,7 +2398,11 @@ function BizMembership() {
                             className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-foreground hover:text-primary transition-colors cursor-pointer group"
                             title="Click to toggle auto-renewal"
                           >
-                            <span>{membershipData?.billingCycle || (currentPlan?.durationYears ? `${currentPlan.durationYears} Years` : "Annual")}</span>
+                            <span>
+                              {activeViewTab === "chamber"
+                                ? `${chamberDurationYears} Year${chamberDurationYears > 1 ? "s" : ""} Validity`
+                                : (subscriberTierKey === "tier_1" ? "Free Tier" : "Monthly Renewal")}
+                            </span>
                             <span
                               className={cn(
                                 "inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold border transition-all shadow-2xs",
@@ -2145,7 +2601,7 @@ function BizMembership() {
                         <span className="text-muted-foreground font-medium flex items-center gap-2">
                           <Wallet className="h-3.5 w-3.5 text-violet-500" /> Billing Cycle
                         </span>
-                        <span className="font-bold text-foreground">Annual Subscription</span>
+                        <span className="font-bold text-foreground">{renewalCycleLabel}</span>
                       </div>
                     )}
 
@@ -2293,6 +2749,35 @@ function BizMembership() {
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all shrink-0 ml-2" />
                       </button>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSwitchView("subscription");
+                        setTimeout(() => scrollToAnchor("team-roster"), 150);
+                      }}
+                      className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-purple-200/80 bg-gradient-to-r from-purple-50/70 to-card dark:border-purple-900/40 dark:from-purple-950/20 dark:to-card hover:bg-purple-100/70 hover:border-purple-300 hover:shadow-md hover:-translate-y-0.5 transition-all text-left cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white shadow-sm shadow-purple-500/20 group-hover:scale-105 transition-transform">
+                          <Users className="h-4.5 w-4.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                              Authorized Team Members
+                            </p>
+                            <span className="rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 text-[9px] font-extrabold px-1.5 py-0.2">
+                              {totalTeamCount} {totalTeamCount === 1 ? "Member" : "Members"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                            Manage linked colleague accounts under your GST
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all shrink-0 ml-2" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -3592,8 +4077,8 @@ function BizMembership() {
 
           <ChamberMembershipTiers
             showHeader={false}
-            defaultCategory="user"
-            currentTier={subscriberTierKey}
+            defaultCategory={activeViewTab === "chamber" ? "chamber" : "user"}
+            currentTier={activeViewTab === "chamber" ? (chamberPlan?.id || currentTier) : subscriberTierKey}
             plansData={plansData}
             onSelectPlan={(plan) => {
               setUpgradeDialogOpen(false);
