@@ -108,6 +108,7 @@ const navs = {
       { label: "Networking", to: "/user/networking", icon: Handshake },
       { label: "Power Networking", to: "/user/power-networking", icon: Zap },
       { label: "Messages", to: "/user/messages", icon: MessageSquare },
+      { label: "Branches", to: "/user/branches", icon: MapPin },
       { label: "Events", to: "/user/events", icon: CalendarDays },
       { label: "LMS", to: "/user/lms", icon: GraduationCap },
       { label: "Membership Tiers", to: "/user/membership", icon: Star },
@@ -131,6 +132,7 @@ const navs = {
       { label: "Power Networking", to: "/biz/power-networking", icon: Zap },
       { label: "Messages", to: "/biz/messages", icon: MessageSquare },
       { label: "Advertisements", to: "/biz/advertisements", icon: Megaphone },
+      { label: "Branches", to: "/biz/branches", icon: MapPin },
       { label: "Events", to: "/biz/events", icon: CalendarDays },
       { label: "Analytics", to: "/biz/analytics", icon: ChartNoAxesColumn },
       { label: "Membership", to: "/biz/membership", icon: Star },
@@ -892,7 +894,6 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
   const isRoutePlanLocked =
     (isBusinessRole &&
       !isBizLoading &&
-      !isAdminSwitchedToBusiness &&
       isRouteLocked(path)) ||
     isUserRouteLocked;
   const isVerificationLocked =
@@ -1067,7 +1068,6 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
             const isItemPlanLocked =
               isBusinessRole &&
               !isBizLoading &&
-              !isAdminSwitchedToBusiness &&
               isRouteLocked(item.to);
             const isItemUnverifiedLocked =
               isBusinessRole &&

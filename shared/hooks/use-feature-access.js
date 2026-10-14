@@ -13,10 +13,12 @@ const ROUTE_FEATURE_MAP = {
   "/biz/lms": "lms",
   "/biz/advertisements": "featured_business",
   "/biz/events": "event_announcements",
+  "/biz/branches": "multiple_locations",
   // User portal routes mapped to SUBSCRIBER_TIERS
   "/user/messages": "chat",
   "/user/networking": "networking_groups",
   "/user/power-networking": "meeting_request",
+  "/user/branches": "multiple_locations",
   "/user/lms": "lms",
   "/user/events": "event_announcements",
 };
@@ -30,32 +32,23 @@ export function useFeatureAccess() {
   const planLoading = bizLoading || memLoading;
 
   // Prioritize explicit subscriber tier (tier_1, tier_2, tier_3, tier_4).
-  // Check candidates across user, business, and membership, selecting the highest valid tier
-  // so that a stale free-tier record on a business never overrides an upgraded user tier.
-  const candidates = [
-    user?.subscriberTier,
-    business?.subscriberTier,
-    membershipData?.subscriberTier,
-    (String(membershipData?.planId || "").toLowerCase().startsWith("tier_") ? (membershipData?.planName || membershipData?.planId) : null),
-    (String(user?.membershipPlan || "").toLowerCase().startsWith("tier_") ? user?.membershipPlan : null),
-    (String(business?.membership || "").toLowerCase().startsWith("tier_") ? business?.membership : null),
-  ].filter(Boolean);
+  // For business workspaces, the business's own subscriberTier is authoritative.
+  const bizTierDirect =
+    business?.subscriberTier ||
+    (String(business?.membership || "").toLowerCase().startsWith("tier_") ? business?.membership : null) ||
+    membershipData?.subscriberTier ||
+    (String(membershipData?.planId || "").toLowerCase().startsWith("tier_") ? (membershipData?.planName || membershipData?.planId) : null);
 
-  const TIER_RANKS = { tier_1: 1, tier_2: 2, tier_3: 3, tier_4: 4 };
+  const userTierDirect =
+    user?.subscriberTier ||
+    (String(user?.membershipPlan || "").toLowerCase().startsWith("tier_") ? user?.membershipPlan : null);
 
-  let highestTierId = "tier_1";
-  let maxRank = 1;
-
-  for (const cand of candidates) {
-    const tid = normalizeUserTier(cand);
-    const rank = TIER_RANKS[tid] || 1;
-    if (rank > maxRank) {
-      maxRank = rank;
-      highestTierId = tid;
-    }
+  let tierId = "tier_1";
+  if (bizTierDirect) {
+    tierId = normalizeUserTier(bizTierDirect);
+  } else if (userTierDirect) {
+    tierId = normalizeUserTier(userTierDirect);
   }
-
-  const tierId = highestTierId;
   const currentTier = SUBSCRIBER_TIERS.find((t) => t.id === tierId) || SUBSCRIBER_TIERS[0];
   const planName = currentTier.name;
 
@@ -81,12 +74,24 @@ export function useFeatureAccess() {
   /**
    * Check if a specific feature key is accessible
    */
+  const isBusinessContext =
+    user?.role === "business_owner" ||
+    user?.role === "business" ||
+    Boolean(user?.previousRole);
+
+  /**
+   * Check if a specific feature key is accessible
+   */
   const canAccess = (featureKey) => {
-    // Central Admin & Super Admin have universal bypass
+    // If plans are still loading, keep open temporarily
     if (planLoading) {
       return { isAllowed: true, isExpired: false, value: "", tierName: "Loading" };
     }
-    if (user?.role === "central_admin" || user?.role === "super_admin" || user?.role === "admin") {
+    // Universal admin bypass applies only when in administrative panels, not when operating inside business/user workspace testing tiers
+    if (
+      !isBusinessContext &&
+      (user?.role === "central_admin" || user?.role === "super_admin" || user?.role === "admin")
+    ) {
       return { isAllowed: true, isExpired: false, value: "Unlimited", tierName: "Admin Bypass" };
     }
 
@@ -100,13 +105,18 @@ export function useFeatureAccess() {
     if (!pathname || planLoading) return false;
     const clean = pathname.split("?")[0].replace(/\/$/, "");
 
-    // Central & Chapter Admins have route bypass
+    const isBizOrUserRoute = clean.startsWith("/biz") || clean.startsWith("/user");
+
+    // Central & Chapter Admins have route bypass in administrative contexts,
+    // but routes inside /biz/* and /user/* must respect subscriber tier
     if (
-      user?.role === "central_admin" ||
-      user?.role === "super_admin" ||
-      user?.role === "admin" ||
-      user?.role === "chapter_admin" ||
-      user?.role === "state_admin"
+      !isBizOrUserRoute &&
+      !isBusinessContext &&
+      (user?.role === "central_admin" ||
+        user?.role === "super_admin" ||
+        user?.role === "admin" ||
+        user?.role === "chapter_admin" ||
+        user?.role === "state_admin")
     ) {
       return false;
     }
@@ -162,6 +172,7 @@ export function useFeatureAccess() {
   };
 
   return {
+    tierId,
     planName,
     currentTier,
     isExpired,

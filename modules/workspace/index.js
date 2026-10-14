@@ -21,4 +21,6 @@ export { UserDashboard } from "./components/user-dashboard.jsx";
 export { UserMembership } from "./components/user-membership.jsx";
 export { UserProfile } from "./components/user-profile.jsx";
 export { VisaReferralsList } from "./components/visa-referrals-list.jsx";
+export { BizBranches } from "./components/biz-branches.jsx";
+
 

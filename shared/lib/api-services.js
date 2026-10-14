@@ -1287,3 +1287,36 @@ export const dignitaryApi = {
     apiClient(`/dignitaries/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id) => apiClient(`/dignitaries/${id}`, { method: "DELETE" }),
 };
+
+export const branchApi = {
+  getMyBranches: () => apiClient("/branches/my"),
+  createBranch: (data) =>
+    apiClient("/branches", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateBranch: (id, data) =>
+    apiClient(`/branches/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  toggleVisibility: (id) =>
+    apiClient(`/branches/${id}/visibility`, {
+      method: "PATCH",
+    }),
+  deleteBranch: (id) =>
+    apiClient(`/branches/${id}`, {
+      method: "DELETE",
+    }),
+  getPublicBranches: (businessId) =>
+    apiClient(`/branches/business/${businessId}`),
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    return apiClient("/branches/upload", {
+      method: "POST",
+      body: formData,
+    });
+  },
+};
+

@@ -29,6 +29,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Quote,
+  Store,
+  ArrowRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -105,6 +107,7 @@ import {
   useBusinessCatalogue,
   useBusinessReviews,
   useBusinesses,
+  useBusinessBranches,
 } from "@shared/hooks/use-rifah-api";
 import { reviewApi, userApi, enquiryApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
@@ -249,6 +252,7 @@ function BusinessProfile() {
   const { data: business, isLoading } = useBusinessDetail(businessId);
   const { data: catalogueItems } = useBusinessCatalogue(business?._id);
   const { data: reviewsData } = useBusinessReviews(business?._id);
+  const { data: publicBranches = [] } = useBusinessBranches(business?._id || businessId);
   const industryOrCat = business?.industry || (Array.isArray(business?.categories) ? business.categories[0] : business?.category) || "";
   const { data: relatedData } = useBusinesses({
     industry: industryOrCat || undefined,
@@ -281,12 +285,12 @@ function BusinessProfile() {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const urlTab = urlParams.get("tab")?.toLowerCase();
-      if (urlTab && ["catalogue", "about", "gallery", "info", "reviews"].includes(urlTab)) return urlTab;
+      if (urlTab && ["catalogue", "about", "branches", "gallery", "info", "reviews"].includes(urlTab)) return urlTab;
       const hash = window.location.hash.replace("#", "").toLowerCase();
-      if (["catalogue", "about", "gallery", "info", "reviews"].includes(hash)) return hash;
+      if (["catalogue", "about", "branches", "gallery", "info", "reviews"].includes(hash)) return hash;
     }
     const tabFromQuery = searchParams?.get("tab")?.toLowerCase();
-    if (tabFromQuery && ["catalogue", "about", "gallery", "info", "reviews"].includes(tabFromQuery)) return tabFromQuery;
+    if (tabFromQuery && ["catalogue", "about", "branches", "gallery", "info", "reviews"].includes(tabFromQuery)) return tabFromQuery;
     return "about";
   });
   const [selectedCatalogueItem, setSelectedCatalogueItem] = useState(null);
@@ -985,6 +989,11 @@ function BusinessProfile() {
               <TabsList className="w-full justify-start overflow-x-auto no-scrollbar">
                 <TabsTrigger value="about">About</TabsTrigger>
                 <TabsTrigger value="catalogue">Catalogue ({catalogue.length})</TabsTrigger>
+                {publicBranches.length > 0 && (
+                  <TabsTrigger value="branches">
+                    Branches ({publicBranches.length})
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="gallery">Gallery</TabsTrigger>
                 <TabsTrigger value="info">Business info</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews ({effectiveTotalReviews})</TabsTrigger>
@@ -1221,6 +1230,124 @@ function BusinessProfile() {
                 </Panel>
               </TabsContent>
 
+              {publicBranches.length > 0 && (
+                <TabsContent value="branches" className="mt-4 space-y-4">
+                  <Panel
+                    title="Our Branch Network"
+                    description={`Physical branch locations, regional offices, and authorized centers of ${business.name}`}
+                  >
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {publicBranches.map((branch) => {
+                        const bImg = resolveMediaUrl(branch.image);
+                        return (
+                          <div
+                            key={branch._id}
+                            className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-2xs hover:shadow-xs transition-all duration-300 flex flex-col justify-between"
+                          >
+                            <div className="relative h-44 w-full bg-muted overflow-hidden">
+                              {bImg ? (
+                                <img
+                                  src={bImg}
+                                  alt={branch.name}
+                                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-muted to-muted/60 text-muted-foreground">
+                                  <Store className="h-9 w-9 mb-1 opacity-50" />
+                                  <span className="text-[11px] font-semibold">{branch.name}</span>
+                                </div>
+                              )}
+                              <div className="absolute top-2.5 left-2.5">
+                                <span className="px-2.5 py-0.5 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wide">
+                                  {branch.branchType || "Branch"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                              <div>
+                                <h4 className="font-bold text-base text-foreground leading-snug">
+                                  {branch.name}
+                                </h4>
+                                <p className="text-xs font-semibold text-primary mt-0.5">
+                                  {branch.city}{branch.state ? `, ${branch.state}` : ""}{branch.country ? ` (${branch.country})` : ""}
+                                </p>
+
+                                <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+                                  {branch.address && (
+                                    <div className="flex items-start gap-2">
+                                      <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                                      <span className="line-clamp-2">
+                                        {branch.address}{branch.pincode ? ` - ${branch.pincode}` : ""}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {branch.contactPerson && (
+                                    <div className="flex items-center gap-2">
+                                      <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                      <span className="font-medium text-foreground truncate">
+                                        {branch.contactPerson}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {branch.phone && (
+                                    <div className="flex items-center gap-2">
+                                      <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                      <a
+                                        href={`tel:${branch.phone}`}
+                                        className="text-primary hover:underline font-semibold"
+                                      >
+                                        {branch.phone}
+                                      </a>
+                                    </div>
+                                  )}
+
+                                  {branch.email && (
+                                    <div className="flex items-center gap-2">
+                                      <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                      <a
+                                        href={`mailto:${branch.email}`}
+                                        className="hover:underline truncate"
+                                      >
+                                        {branch.email}
+                                      </a>
+                                    </div>
+                                  )}
+
+                                  {branch.timings && (
+                                    <div className="flex items-center gap-2 text-muted-foreground/80">
+                                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                                      <span className="text-[11px] truncate">{branch.timings}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {branch.mapUrl && (
+                                <div className="pt-2 border-t border-border/60">
+                                  <a
+                                    href={branch.mapUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center w-full gap-1.5 py-2 px-3 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors shadow-2xs"
+                                  >
+                                    <MapPin className="h-3.5 w-3.5" />
+                                    <span>Get Directions</span>
+                                    <ExternalLink className="h-3 w-3 ml-0.5" />
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Panel>
+                </TabsContent>
+              )}
+
               <TabsContent value="info" className="mt-4 space-y-4">
                 <Panel title="Business information">
                   <dl>
@@ -1258,6 +1385,29 @@ function BusinessProfile() {
                       />
                     )}
                     <FieldRow label="Address" value={`${business.address || ""}, ${business.city}, ${business.state}`} />
+                    {publicBranches.length > 0 && (
+                      <FieldRow
+                        label="Branch locations"
+                        value={
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground">
+                              {publicBranches.length} Active {publicBranches.length === 1 ? "Branch" : "Branches"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("branches");
+                                document.getElementById("profile-tabs")?.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-0.5"
+                            >
+                              <span>View all branches</span>
+                              <ArrowRight className="h-3 w-3" />
+                            </button>
+                          </div>
+                        }
+                      />
+                    )}
                     {business.instagram && (
                       <FieldRow
                         label="Instagram"

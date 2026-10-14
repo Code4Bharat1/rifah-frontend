@@ -34,6 +34,7 @@ import {
   powerNetworkingApi,
   postsApi,
   advertisementApi,
+  branchApi,
 } from "../lib/api-services";
 import { useAuth } from "../providers/auth-provider";
 
@@ -1034,5 +1035,30 @@ export function useDeleteAdvertisement() {
     },
   });
 }
+
+// ==================== BRANCHES HOOKS ====================
+
+export function useMyBranches() {
+  return useQuery({
+    queryKey: ["my-branches"],
+    queryFn: async () => {
+      const res = await branchApi.getMyBranches();
+      return res?.data ?? res;
+    },
+  });
+}
+
+export function useBusinessBranches(businessId) {
+  return useQuery({
+    queryKey: ["business-branches", businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const res = await branchApi.getPublicBranches(businessId);
+      return res?.data ?? res ?? [];
+    },
+    enabled: Boolean(businessId),
+  });
+}
+
 
 
