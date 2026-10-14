@@ -297,7 +297,7 @@ export function BusinessCard({
     ...(business.categories || []),
   ];
 
-  const locationText = [business.industry, business.city].filter(Boolean).join(" · ") || business.category || "Verified Business";
+  const locationText = [business.industry, business.city].filter(Boolean).join(" · ") || business.category || "Registered Business";
 
   return (
     <article className="group relative flex h-full flex-col rounded-2xl border border-border bg-surface p-4.5 transition-all duration-200 hover:border-primary/40 hover:shadow-md sm:p-5">
@@ -410,7 +410,7 @@ export function PremiumBusinessCard({ business }) {
 
   const [coverErr, setCoverErr] = useState(false);
   const coverUrl = business?.coverImage && !coverErr ? resolveMediaUrl(business.coverImage) : "";
-  const locationText = [business.industry, business.city].filter(Boolean).join(" · ") || business.category || "Verified Business";
+  const locationText = [business.industry, business.city].filter(Boolean).join(" · ") || business.category || "Registered Business";
 
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xs transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:-translate-y-2 will-change-transform">

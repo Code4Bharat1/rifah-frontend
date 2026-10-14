@@ -89,7 +89,7 @@ import {
   DialogDescription,
 } from "@shared/components/ui/dialog";
 
-import { MembershipBadge, MemberSubscriberBadges, Pill, VerificationBadge, isMemberAndSubscriber } from "@shared/components/rifah/badges";
+import { MembershipBadge, MemberSubscriberBadges, Pill, VerificationBadge, isMemberAndSubscriber, isSubscriberTier, isChamberMember } from "@shared/components/rifah/badges";
 import { BusinessCard } from "@shared/components/rifah/business-card";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { FieldRow, Panel, SectionHeader } from "@shared/components/rifah/ui-bits";
@@ -1229,7 +1229,9 @@ function BusinessProfile() {
                     <FieldRow label="Industry" value={business.industry} />
                     <FieldRow label="RIFAH chapter" value={business.chapter} />
                     <FieldRow label="Membership" value={<MembershipBadge tier={business.membership} />} />
-                    <FieldRow label="Verification" value={<VerificationBadge status={business.verification} />} />
+                    {isChamberMember(business) && (
+                      <FieldRow label="Verification" value={<VerificationBadge status={business.verification} business={business} />} />
+                    )}
                     <FieldRow
                       label="Business hours"
                       value={
@@ -1563,10 +1565,12 @@ function BusinessProfile() {
                   <span className="text-muted-foreground">Membership</span>
                   <MembershipBadge tier={business.membership} />
                 </li>
-                <li className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Verification</span>
-                  <VerificationBadge status={business.verification} compact />
-                </li>
+                {isChamberMember(business) && (
+                  <li className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Verification</span>
+                    <VerificationBadge status={business.verification} business={business} compact />
+                  </li>
+                )}
                 <li className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">Chapter</span>
                   <span className="font-medium">{business.chapter}</span>

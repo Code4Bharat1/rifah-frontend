@@ -39,7 +39,7 @@ import {
 import { businessApi } from "@shared/lib/api-services";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
-import { MembershipBadge, Pill, StatusBadge, VerificationBadge } from "@shared/components/rifah/badges";
+import { MembershipBadge, Pill, StatusBadge, VerificationBadge, isChamberMember } from "@shared/components/rifah/badges";
 import { MoreLink, Panel, StatCard } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
 import { Progress } from "@shared/components/ui/progress";
@@ -1109,10 +1109,12 @@ function BusinessHome() {
             {/* Box 2: Verification & Membership */}
             <Panel title="Verification & membership">
               <ul className="space-y-3 text-xs">
-                <li className="flex items-center justify-between gap-3">
-                  <span className="text-slate-500 font-medium">Verification</span>
-                  <VerificationBadge status={safeText(business?.verification || business?.verificationStatus, "pending")} compact />
-                </li>
+                {isChamberMember(business) && (
+                  <li className="flex items-center justify-between gap-3">
+                    <span className="text-slate-500 font-medium">Verification</span>
+                    <VerificationBadge status={safeText(business?.verification || business?.verificationStatus, "unverified")} business={business} compact />
+                  </li>
+                )}
                 <li className="flex items-center justify-between gap-3">
                   <span className="text-slate-500 font-medium">Plan</span>
                   <MembershipBadge tier={safeText(business?.membership?.tier || business?.membership, "Free Listing")} />
@@ -1131,7 +1133,9 @@ function BusinessHome() {
                       ? "Active Verified"
                       : business?.verification === "rejected"
                         ? "Rejected"
-                        : "Pending Verification"}
+                        : (business?.subscriberTier || String(business?.membership || "").includes("Tier") || business?.membership === "Free")
+                          ? "Active (Unverified)"
+                          : "Pending Verification"}
                   </span>
                 </li>
               </ul>

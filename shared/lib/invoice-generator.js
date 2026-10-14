@@ -184,10 +184,17 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
 
   const transactionId = payment.transactionId || `pay_${String(payment._id || "3J9H7F49Q28").slice(-11)}`;
   
-  const rawMethod = payment.method || "Razorpay (UPI)";
+  const isStripeOrUsd = isUsd || /stripe/i.test(payment.method || "");
+  const rawMethod = payment.method || (isStripeOrUsd ? "Stripe International" : "Razorpay (UPI)");
   const isCard = /card/i.test(rawMethod);
   const isUpi = /upi/i.test(rawMethod);
-  const paymentMethodLabel = isCard ? "Razorpay (Card)" : isUpi ? "Razorpay (UPI)" : rawMethod;
+  const paymentMethodLabel = isStripeOrUsd
+    ? (/stripe/i.test(rawMethod) ? rawMethod : "Stripe International (Card / Apple Pay)")
+    : isCard
+    ? "Razorpay (Card)"
+    : isUpi
+    ? "Razorpay (UPI)"
+    : rawMethod;
 
   const verificationToken = payment.verificationToken || "";
   const tokenQuery = verificationToken ? `?token=${encodeURIComponent(verificationToken)}` : "";
