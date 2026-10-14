@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Sparkles,
   Star,
+  Globe,
 } from "lucide-react";
 import { cn } from "@shared/lib/utils";
 import { useMembershipPlans } from "@shared/hooks/use-rifah-api";
@@ -542,13 +543,15 @@ export function ChamberMembershipTiers({
   className,
 }) {
   const isIntl = currency === "USD";
-  const [selectedCategory, setSelectedCategory] = React.useState(defaultCategory || "business");
+  const [selectedCategory, setSelectedCategory] = React.useState(isIntl ? "user" : (defaultCategory || "business"));
   
   React.useEffect(() => {
-    if (defaultCategory) {
+    if (isIntl) {
+      setSelectedCategory("user");
+    } else if (defaultCategory) {
       setSelectedCategory(defaultCategory);
     }
-  }, [defaultCategory]);
+  }, [defaultCategory, isIntl]);
 
   const { data: fetchedPlansData } = useMembershipPlans();
   const effectivePlansData = plansData ?? fetchedPlansData;
@@ -618,6 +621,11 @@ export function ChamberMembershipTiers({
 
         const isUserTier = idKey.startsWith("tier_");
 
+        // When in International mode, businesses purchase Tier Plans, NOT multi-year Chamber subscriptions
+        if (isIntl) {
+          return isUserTier;
+        }
+
         if (selectedCategory === "business") {
           return !isUserTier;
         }
@@ -640,7 +648,7 @@ export function ChamberMembershipTiers({
         if (orderA !== orderB) return orderA - orderB;
         return (Number(a.price) || 0) - (Number(b.price) || 0);
       });
-  }, [allMergedPlans, selectedCategory, showInactive]);
+  }, [allMergedPlans, selectedCategory, showInactive, isIntl]);
 
   return (
     <div className={cn("w-full flex flex-col gap-6", className)}>
@@ -653,10 +661,12 @@ export function ChamberMembershipTiers({
             </div>
             <div>
               <h2 className="text-xl font-bold text-foreground tracking-tight leading-tight">
-                RIFAH Membership &amp; Subscription Plans
+                {isIntl ? "International Tier Membership Plans" : "RIFAH Membership & Subscription Plans"}
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                Select the right plan to match your business growth &amp; networking needs. Applicable taxes are shown for each plan.
+                {isIntl
+                  ? "Select a monthly tier plan for global networking, direct buyer chats, and lead unlocks in USD."
+                  : "Select the right plan to match your business growth & networking needs. Applicable taxes are shown for each plan."}
               </p>
             </div>
           </div>
@@ -664,7 +674,7 @@ export function ChamberMembershipTiers({
       )}
 
       {/* ── Category Switcher Tab Bar (Business Multi-Year vs Member Monthly) ── */}
-      {showCategoryToggle && (
+      {showCategoryToggle && !isIntl && (
         <div className="flex items-center justify-center pt-1">
           <div className="inline-flex items-center rounded-2xl border border-border/80 bg-muted/60 p-1.5 shadow-2xs">
             <button
@@ -699,6 +709,17 @@ export function ChamberMembershipTiers({
                 1 Month
               </span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {showCategoryToggle && isIntl && (
+        <div className="flex items-center justify-center pt-1">
+          <div className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/40 px-4 py-2 text-xs font-medium text-blue-900 dark:text-blue-200 shadow-2xs">
+            <Globe className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span>
+              <strong>International Plans:</strong> International businesses and members subscribe via monthly quota-based Tier Plans ($ USD).
+            </span>
           </div>
         </div>
       )}

@@ -117,24 +117,33 @@ function Checkout() {
       });
   }, [plansData]);
 
+  const initialCurrency = searchParams?.get("currency") || (business?.region === "international" || business?.currency === "USD" ? "USD" : "INR");
+  const [currency, setCurrency] = useState(initialCurrency);
+  const isIntl = currency === "USD";
+
   const initialCategory = useMemo(() => {
+    if (isIntl) return "user";
     const p = String(planParam || "").toLowerCase();
     if (p.startsWith("tier_")) return "user";
     if (["silver", "gold", "platinum", "diamond"].includes(p)) return "business";
     if (currentUser?.role === "subscriber" || currentUser?.role === "user") return "user";
     return "business";
-  }, [planParam, currentUser?.role]);
+  }, [planParam, currentUser?.role, isIntl]);
 
   const [category, setCategory] = useState(initialCategory);
 
   useEffect(() => {
+    if (isIntl) {
+      setCategory("user");
+      return;
+    }
     const p = String(planParam || "").toLowerCase();
     if (p.startsWith("tier_")) {
       setCategory("user");
     } else if (["silver", "gold", "platinum", "diamond"].includes(p)) {
       setCategory("business");
     }
-  }, [planParam]);
+  }, [planParam, isIntl]);
 
   const displayedPlans = useMemo(() => {
     return plans.filter((p) => {
@@ -143,13 +152,19 @@ function Checkout() {
       if (["basic", "premium", "enterprise", "free"].includes(idKey)) return false;
 
       const isUserTier = p.category === "user" || idKey.startsWith("tier_");
+
+      // International plans: strictly Tier Plans (Tier I - IV), NOT Chamber multi-year subscriptions
+      if (isIntl) {
+        return isUserTier;
+      }
+
       if (category === "user") {
         return isUserTier;
       }
       // Business Chamber Plans: ONLY show official Chamber tiers (Silver, Gold, Platinum, Diamond)
       return ["silver", "gold", "platinum", "diamond"].includes(idKey);
     });
-  }, [plans, category]);
+  }, [plans, category, isIntl]);
 
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(planParam);
@@ -157,6 +172,10 @@ function Checkout() {
 
   useEffect(() => {
     if (!displayedPlans || displayedPlans.length === 0) return;
+
+    if (isIntl && category !== "user") {
+      setCategory("user");
+    }
 
     if (!planInitializedRef.current) {
       planInitializedRef.current = true;
@@ -179,7 +198,7 @@ function Checkout() {
         if (fallback) setSelected(fallback.id);
       }
     }
-  }, [displayedPlans, planParam, category]);
+  }, [displayedPlans, planParam, category, isIntl]);
   const [method, setMethod] = useState("razorpay");
   const [loading, setLoading] = useState(false);
   const [invoiceId, setInvoiceId] = useState("");
@@ -197,10 +216,6 @@ function Checkout() {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [gstLoading, setGstLoading] = useState(false);
   const [gstSuccess, setGstSuccess] = useState("");
-
-  const initialCurrency = searchParams?.get("currency") || (business?.region === "international" || business?.currency === "USD" ? "USD" : "INR");
-  const [currency, setCurrency] = useState(initialCurrency);
-  const isIntl = currency === "USD";
 
   const active = plans.find((p) => p.id === selected) || plans[0] || {};
 
@@ -409,7 +424,9 @@ function Checkout() {
         currency,
         planId: selected,
         itemType: "Membership",
-        description: `${active.name} Membership Subscription (${currency})`,
+        description: isIntl
+          ? `${active.name} International Tier Plan (${currency})`
+          : `${active.name} Membership Subscription (${currency})`,
       });
 
       const orderData = orderRes?.data || orderRes;
@@ -423,7 +440,9 @@ function Checkout() {
         amount: orderData.amount,
         currency: orderData.currency || currency,
         name: "RIFAH Chamber of Commerce",
-        description: `${active.name} Membership Subscription (${currency})`,
+        description: isIntl
+          ? `${active.name} International Tier Plan (${currency})`
+          : `${active.name} Membership Subscription (${currency})`,
         order_id: orderData.orderId,
         handler: async function (response) {
           try {
@@ -440,7 +459,9 @@ function Checkout() {
               gstAmount: gstAmount,
               currency,
               itemType: "Membership",
-              description: `${active.name} Membership Subscription (${currency})`,
+              description: isIntl
+                ? `${active.name} International Tier Plan (${currency})`
+                : `${active.name} Membership Subscription (${currency})`,
               billingEmail: billingEmail || business?.email || "",
               billingPhone: billingPhone || business?.phone || currentUser?.phone || "",
               businessName: legalName || business?.name || "",
@@ -767,7 +788,7 @@ function Checkout() {
                   <div class="info-card-header">PAYMENT & CHAMBER DETAILS</div>
                   <div style="font-size: 10.5px; color: #0f172a;">Issuer: <strong>RIFAH Chamber Central Admin</strong></div>
                   <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Payment Mode: <strong>Razorpay Online (Txn Verified)</strong></div>
-                  <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Subscription Term: <strong>${durationLabel} (${active.name} Tier)</strong></div>
+                  <div style="font-size: 10.5px; color: #475569; margin-top: 2px;">Plan Term: <strong>${durationLabel} (${active.name} ${isIntl ? "Tier Plan" : "Tier"})</strong></div>
                   <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">Support: admin@rifah.org</div>
                 </div>
               </div>
@@ -784,7 +805,7 @@ function Checkout() {
                   <tbody>
                     <tr>
                       <td>
-                        <strong style="color: #0b1f33; font-size: 12px;">${active.name} Membership Tier Subscription</strong>
+                        <strong style="color: #0b1f33; font-size: 12px;">${active.name} ${isIntl ? "International Tier Plan" : "Membership Tier Subscription"}</strong>
                         <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">
                           ${durationLabel} chamber access — directory placement, verified credentials, enquiry routing &amp; B2B trading privileges.
                         </div>
@@ -879,35 +900,44 @@ function Checkout() {
                     </div>
                   </div>
 
-                  {/* Plan Category Switcher */}
-                  <div className="flex items-center rounded-xl border border-border/80 bg-muted/50 p-1 mb-3.5 shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => setCategory("business")}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-xs font-semibold transition-all cursor-pointer",
-                        category === "business"
-                          ? "bg-white dark:bg-slate-900 text-foreground shadow-xs font-bold ring-1 ring-border/50"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <Building2 className="h-3.5 w-3.5 text-amber-500" />
-                      <span>Business Chamber Plans</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCategory("user")}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-xs font-semibold transition-all cursor-pointer",
-                        category === "user"
-                          ? "bg-white dark:bg-slate-900 text-foreground shadow-xs font-bold ring-1 ring-border/50"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
-                      <span>Member / User Plans</span>
-                    </button>
-                  </div>
+                  {/* Plan Category Switcher (shown for National, replaced with notice for International) */}
+                  {!isIntl ? (
+                    <div className="flex items-center rounded-xl border border-border/80 bg-muted/50 p-1 mb-3.5 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setCategory("business")}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-xs font-semibold transition-all cursor-pointer",
+                          category === "business"
+                            ? "bg-white dark:bg-slate-900 text-foreground shadow-xs font-bold ring-1 ring-border/50"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <Building2 className="h-3.5 w-3.5 text-amber-500" />
+                        <span>Business Chamber Plans</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCategory("user")}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-xs font-semibold transition-all cursor-pointer",
+                          category === "user"
+                            ? "bg-white dark:bg-slate-900 text-foreground shadow-xs font-bold ring-1 ring-border/50"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
+                        <span>Member / User Plans</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/40 p-3 text-xs text-blue-900 dark:text-blue-200 mb-3.5 shadow-2xs">
+                      <Globe className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span>
+                        <strong>International Plans:</strong> International businesses subscribe via monthly quota-based Tier Plans ($ USD). Multi-year Chamber subscriptions apply to National (INR) members.
+                      </span>
+                    </div>
+                  )}
 
                   <div className="space-y-2.5" role="radiogroup" aria-label="Select membership tier">
                     {displayedPlans.map((p) => {
