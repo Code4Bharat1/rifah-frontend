@@ -1,5 +1,6 @@
 // Official RIFAH Tax Invoice Generator for Members and Admin Consoles
 // Exact 1:1 Pixel-Perfect Replica matching Reference Specifications
+import { formatMembershipId, formatInvoiceNumber } from "./indian-states-cities.js";
 
 export const INVOICE_PALETTE = {
   navy: "#0B1F4B",
@@ -116,17 +117,13 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
     payment.business?.membershipId ||
     payment.payer?.membershipId ||
     "";
-  const membershipId =
-    rawMem && rawMem.startsWith("RIFAH-") && !rawMem.startsWith("RIFAH-MEM-") && !rawMem.startsWith("RIFAH-DIA-") && !rawMem.startsWith("RIFAH-CEN-")
-      ? rawMem
-      : `RIFAH-${resolvedChapCode}-0001`;
+  const stateVal = business?.state || payment.business?.state || payment.payer?.state || "";
+  const cityVal = business?.city || payment.business?.city || payment.payer?.city || "";
+  const membershipId = formatMembershipId(rawMem, stateVal, rawChapter, cityVal);
 
   const gstin = payment.gstin || business?.gstin || "";
   const rawInvoice = payment.invoiceNumber || "";
-  const invoiceNum =
-    rawInvoice.startsWith("RCCI/")
-      ? rawInvoice
-      : `RCCI/${currentFy}/0001`;
+  const invoiceNum = formatInvoiceNumber(rawInvoice, issueDateObj);
   const sacCode = payment.sacCode || "9983";
   const quantity = payment.quantity || 1;
   const itemDescriptionSubtext = payment.notes || (isDelegation ? "Official Overseas Business Delegation installment payment under Section 206C (Includes 5% GST & 2% TCS)." : payment.isCustomInvoice ? "Official chamber accredited deliverables & verified transaction record." : "Full chamber access, directory listing, event credentials and business networking desk.");
@@ -187,10 +184,17 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
 
   const transactionId = payment.transactionId || `pay_${String(payment._id || "3J9H7F49Q28").slice(-11)}`;
   
-  const rawMethod = payment.method || "Razorpay (UPI)";
+  const isStripeOrUsd = isUsd || /stripe/i.test(payment.method || "");
+  const rawMethod = payment.method || (isStripeOrUsd ? "Stripe International" : "Razorpay (UPI)");
   const isCard = /card/i.test(rawMethod);
   const isUpi = /upi/i.test(rawMethod);
-  const paymentMethodLabel = isCard ? "Razorpay (Card)" : isUpi ? "Razorpay (UPI)" : rawMethod;
+  const paymentMethodLabel = isStripeOrUsd
+    ? (/stripe/i.test(rawMethod) ? rawMethod : "Stripe International (Card / Apple Pay)")
+    : isCard
+    ? "Razorpay (Card)"
+    : isUpi
+    ? "Razorpay (UPI)"
+    : rawMethod;
 
   const verificationToken = payment.verificationToken || "";
   const tokenQuery = verificationToken ? `?token=${encodeURIComponent(verificationToken)}` : "";

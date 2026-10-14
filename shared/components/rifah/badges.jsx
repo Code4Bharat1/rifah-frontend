@@ -49,8 +49,11 @@ const verificationMap = {
   unverified: { label: "Not verified", tone: "neutral", icon: <ShieldX className="h-3.5 w-3.5" /> },
 };
 
-export function VerificationBadge({ status, level, compact = false }) {
-  const raw = status || level;
+export function VerificationBadge({ status, level, compact = false, business = null }) {
+  let raw = status || level;
+  if (business && isSubscriberTier(business) && !isChamberMember(business)) {
+    raw = "unverified";
+  }
   const normalizedStatus = typeof raw === "string" ? raw.toLowerCase() : "unverified";
   const v = verificationMap[normalizedStatus] || {
     label: raw || "Not verified",
@@ -118,7 +121,64 @@ export function MembershipBadge({ tier }) {
 }
 
 /**
- * Checks if a business has an active Chamber Membership (Silver, Gold, Platinum, Diamond, or legacy paid tier).
+ * Checks if a business is on a Subscriber Tier (Tier 1 Free, Tier 2 Starter, Tier 3 Growth, Tier 4 Enterprise).
+ * Per RIFAH Feature Matrix Row 19: Subscriber tiers NEVER include business verification.
+ */
+export function isSubscriberTier(business) {
+  if (!business) return false;
+  const subTier = String(
+    business.subscriberTier ||
+    business.subscriber_tier ||
+    business.subscriptionTier ||
+    business.planId ||
+    ""
+  ).trim().toLowerCase();
+
+  if (
+    subTier === "tier_1" || subTier === "tier_2" || subTier === "tier_3" || subTier === "tier_4" ||
+    subTier === "tier-1" || subTier === "tier-2" || subTier === "tier-3" || subTier === "tier-4" ||
+    subTier === "tier 1" || subTier === "tier 2" || subTier === "tier 3" || subTier === "tier 4" ||
+    subTier.startsWith("tier_") || subTier.startsWith("tier-") || subTier.startsWith("tier ") ||
+    subTier === "free" || subTier === "starter" || subTier === "growth" || subTier === "enterprise"
+  ) {
+    return true;
+  }
+
+  const raw = String(
+    business.membership ||
+    business.membershipTier ||
+    business.chamberMembership ||
+    business.membershipPlan ||
+    ""
+  ).trim().toLowerCase();
+
+  if (
+    raw.includes("tier ") ||
+    raw.includes("tier_") ||
+    raw.includes("tier-") ||
+    raw.includes("tier i") ||
+    raw.includes("tier ii") ||
+    raw.includes("tier iii") ||
+    raw.includes("tier iv") ||
+    raw === "free" ||
+    raw === "starter" ||
+    raw === "growth" ||
+    raw === "free member" ||
+    raw.includes("(free)") ||
+    raw.includes("(starter)") ||
+    raw.includes("(growth)") ||
+    raw.includes("(enterprise)") ||
+    !raw
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Checks if a business has an active Chamber Membership (Silver, Gold, Platinum, Diamond).
+ * Note: Subscriber tiers (Tier I, II, III, IV / Enterprise) are NOT chamber memberships.
  */
 export function isChamberMember(business) {
   if (!business) return false;
@@ -130,7 +190,20 @@ export function isChamberMember(business) {
     ""
   ).trim().toLowerCase();
 
-  if (!raw || raw === "free" || raw === "unregistered" || raw === "tier i (free)" || raw === "tier_1") {
+  if (
+    !raw ||
+    raw === "free" ||
+    raw === "unregistered" ||
+    raw.includes("tier ") ||
+    raw.includes("tier_") ||
+    raw.includes("tier-") ||
+    raw.includes("tier i") ||
+    raw.includes("tier ii") ||
+    raw.includes("tier iii") ||
+    raw.includes("tier iv") ||
+    raw === "starter" ||
+    raw === "growth"
+  ) {
     return false;
   }
 
@@ -138,9 +211,7 @@ export function isChamberMember(business) {
     raw.includes("silver") ||
     raw.includes("gold") ||
     raw.includes("platinum") ||
-    raw.includes("diamond") ||
-    raw.includes("enterprise") ||
-    raw.includes("premium")
+    raw.includes("diamond")
   );
 }
 
@@ -185,9 +256,14 @@ export function isPaidSubscriber(business) {
 
 /**
  * Checks if a business is verified and approved.
+ * Per RIFAH Feature Matrix Row 19: Subscriber tiers (Tier 1/2/3/4) NEVER have business verification.
  */
 export function isVerifiedBusiness(business) {
   if (!business) return false;
+  // Subscriber tiers (Tier 1/2/3/4) NEVER have verification
+  if (isSubscriberTier(business) && !isChamberMember(business)) {
+    return false;
+  }
   const v = String(business.verification || "").toLowerCase();
   const s = String(business.status || "").toLowerCase();
   const isVerified = v === "verified" || v === "approved" || business.isVerified === true;

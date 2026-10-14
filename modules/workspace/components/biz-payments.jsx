@@ -10,6 +10,7 @@ import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bi
 import { Button } from "@shared/components/ui/button";
 import { useMyPayments, useMyMembership } from "@shared/hooks/use-rifah-api";
 import { downloadInvoicePdf, generateInvoiceHtml } from "@shared/lib/invoice-generator";
+import { formatInvoiceNumber } from "@shared/lib/indian-states-cities";
 
 const tone = (s) =>
   s === "completed" || s === "Paid"
@@ -393,7 +394,7 @@ function handleDownloadPDF(payment) {
               </div>
               <div class="invoice-tag">
                 <div class="invoice-title">OFFICIAL INVOICE</div>
-                <div class="invoice-number"># ${escapeHtml(payment.invoiceNumber || "INV-0000")}</div>
+                <div class="invoice-number"># ${escapeHtml(formatInvoiceNumber(payment.invoiceNumber, payment.paidAt || payment.createdAt))}</div>
                 <div class="invoice-date">Issued: ${new Date(payment.paidAt || payment.createdAt || Date.now()).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}</div>
               </div>
             </div>
@@ -417,7 +418,7 @@ function handleDownloadPDF(payment) {
                   </span>
                 </div>
                 <div class="info-detail">Transaction ID: <strong>${escapeHtml(payment.transactionId || "N/A")}</strong></div>
-                <div class="info-detail">Payment Method: <strong>${escapeHtml(payment.method || "Online (Razorpay)")}</strong></div>
+                <div class="info-detail">Payment Method: <strong>${escapeHtml(payment.method || ((payment.currency || "").toUpperCase() === "USD" ? "Stripe International" : "Online (Razorpay)"))}</strong></div>
               </div>
             </div>
 
@@ -608,7 +609,7 @@ function BizPayments() {
             <ResponsiveTable
               rows={filteredPayments}
               columns={[
-                { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{r.invoiceNumber}</span> },
+                { key: "invoiceNumber", header: "Invoice", cell: (r) => <span className="font-semibold">{formatInvoiceNumber(r.invoiceNumber, r.paidAt || r.createdAt)}</span> },
                 { key: "purpose", header: "Purpose", cell: (r) => r.description || r.purpose || r.itemType || "Membership Subscription" },
                 { key: "date", header: "Date", cell: (r) => new Date(r.paidAt || r.createdAt).toLocaleDateString() },
                 {
@@ -645,7 +646,7 @@ function BizPayments() {
                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="truncate text-sm font-semibold">{r.invoiceNumber}</p>
+                          <p className="truncate text-sm font-semibold">{formatInvoiceNumber(r.invoiceNumber, r.paidAt || r.createdAt)}</p>
                           <span className="text-xs font-bold text-slate-800">{formattedAmt}</span>
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">

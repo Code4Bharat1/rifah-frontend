@@ -26,8 +26,8 @@ export const defaultInvoiceData = {
   transactionId: "pay_3J9H7F49Q28",
   paymentDate: "02 Oct 2026, 11:45 AM",
   paymentMethod: "Razorpay (UPI)",
-  invoiceNo: "INV-2026-0937",
-  membershipId: "RIFAH-DIA-1026",
+  invoiceNo: "RCCI/25-26/0001",
+  membershipId: "RCCI/MH/0001",
   invoiceDate: "02 Oct 2026",
   paymentStatus: "Paid",
   billedTo: {
@@ -59,7 +59,7 @@ export const defaultInvoiceData = {
     email: "info@rifah.org",
     phone: "+91 88977 83151",
   },
-  verificationUrl: "https://rifah.org/verify/invoice/INV-2026-0937",
+  verificationUrl: "https://rifah.org/verify/invoice/RCCI/25-26/0001",
 };
 
 // ============================================================================

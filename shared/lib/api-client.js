@@ -119,7 +119,8 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
     endpoint.includes("/auth/reset-password") ||
     endpoint.includes("/auth/verify-reset-code");
 
-  const token = typeof window !== "undefined" && !isAuthEndpoint ? localStorage.getItem("rifah_access_token") : null;
+  const explicitToken = options.token || (options.headers?.Authorization ? options.headers.Authorization.replace(/^Bearer\s+/i, "") : null);
+  const token = explicitToken || (typeof window !== "undefined" && !isAuthEndpoint ? localStorage.getItem("rifah_access_token") : null);
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
   // Clean custom headers so stale Authorization headers in options don't override the new token

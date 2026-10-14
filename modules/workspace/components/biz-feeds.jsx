@@ -39,7 +39,7 @@ import { Textarea } from "@shared/components/ui/textarea";
 import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useChapters, useStates, useMyBusiness, usePosts, useCreatePost, useTogglePostLike, useAddPostComment, useDeletePost } from "@shared/hooks/use-rifah-api";
+import { useChapters, useStates, useCountries, useMyBusiness, usePosts, useCreatePost, useTogglePostLike, useAddPostComment, useDeletePost } from "@shared/hooks/use-rifah-api";
 import { useDebounce } from "@shared/hooks/use-debounce";
 import { postsApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/media";
@@ -407,6 +407,10 @@ const InstagramPostCard = RifahFeedCard;
 function FeedFilterBar({
   filterMode,
   setFilterMode,
+  selectedCountry = "",
+  setSelectedCountry = () => {},
+  availableCountries = [],
+  isUserNonIndia = false,
   selectedState,
   setSelectedState,
   selectedChapter,
@@ -423,6 +427,7 @@ function FeedFilterBar({
 }) {
   const isFiltering =
     filterMode !== "all" ||
+    Boolean(selectedCountry) ||
     Boolean(selectedState) ||
     Boolean(selectedChapter) ||
     Boolean(searchQuery.trim());
@@ -439,6 +444,7 @@ function FeedFilterBar({
               type="button"
               onClick={() => {
                 setFilterMode("all");
+                setSelectedCountry("");
                 setSelectedState("");
                 setSelectedChapter("");
               }}
@@ -453,9 +459,33 @@ function FeedFilterBar({
               <span>All</span>
             </button>
 
+            {/* ==========================================
+                [COUNTRY_MODULE_DISABLED] Country Filter Button
             <button
               type="button"
-              onClick={() => setFilterMode("state")}
+              onClick={() => {
+                setFilterMode("country");
+                setSelectedState("");
+                setSelectedChapter("");
+              }}
+              className={cn(
+                "flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                filterMode === "country"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/50"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+              )}
+            >
+              <Globe className="h-3.5 w-3.5 shrink-0" />
+              <span>Country</span>
+            </button>
+            ========================================== */}
+
+            <button
+              type="button"
+              onClick={() => {
+                setFilterMode("state");
+                setSelectedChapter("");
+              }}
               className={cn(
                 "flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                 filterMode === "state"
@@ -464,7 +494,7 @@ function FeedFilterBar({
               )}
             >
               <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span>State</span>
+              <span>{isUserNonIndia ? "State / City" : "State"}</span>
             </button>
 
             <button
@@ -481,6 +511,31 @@ function FeedFilterBar({
               <span>Chapter</span>
             </button>
           </div>
+
+          {/* ==========================================
+              [COUNTRY_MODULE_DISABLED] Country Mode Selector
+          {filterMode === "country" && (
+            <div className="flex items-center gap-1.5">
+              <Select
+                value={selectedCountry || "ALL_COUNTRIES"}
+                onValueChange={(val) => setSelectedCountry(val === "ALL_COUNTRIES" ? "" : val)}
+              >
+                <SelectTrigger className="h-8.5 text-xs w-[160px] sm:w-[190px] rounded-lg bg-white border border-slate-200 text-slate-800 hover:border-slate-300">
+                  <Globe className="h-3 w-3 mr-1 text-sky-600 shrink-0" />
+                  <SelectValue placeholder="All Countries" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60 bg-white border-slate-200 text-slate-800 shadow-lg">
+                  <SelectItem value="ALL_COUNTRIES">All Countries</SelectItem>
+                  {availableCountries.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          ========================================== */}
 
           {/* Contextual Selector: State Mode */}
           {filterMode === "state" && (
@@ -704,18 +759,28 @@ export function BizFeeds() {
   const [useUrlInput, setUseUrlInput] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState("");
 
-  // Feed Filter States ('all' | 'state' | 'chapter')
+  // Feed Filter States ('all' | 'country' | 'state' | 'chapter')
   const [filterMode, setFilterMode] = useState("all");
+  const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedState, setSelectedState] = useState("");
   const [selectedChapter, setSelectedChapter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const rawCountries = Array.isArray(countriesData)
+    ? countriesData
+    : countriesData?.countries || countriesData?.data || [];
+  const dbCountryNames = rawCountries.map((c) => c.name).filter(Boolean);
+  const availableCountries = Array.from(new Set(["India", ...dbCountryNames]));
 
   const profilePicInputRef = useRef(null);
   const postImageInputRef = useRef(null);
 
   // Automatically resolve logged-in user credentials and scope
   const userRole = user?.role || "business";
+  const userCountry = (user?.country || businessData?.country || "India").trim();
+  const isUserNonIndia = userCountry.toLowerCase() !== "india";
   const userState = (user?.state || businessData?.state || "").toLowerCase().trim();
   const userChapter = (user?.chapter || businessData?.chapter || "").toLowerCase().trim();
   const userChapterId = String(user?.chapterId || businessData?.chapterId || "");
@@ -771,6 +836,7 @@ export function BizFeeds() {
   // Handlers for quick interactive filtering
   const handleResetFilter = () => {
     setFilterMode("all");
+    setSelectedCountry("");
     setSelectedState("");
     setSelectedChapter("");
     setSearchQuery("");
@@ -810,11 +876,12 @@ export function BizFeeds() {
   const postsQueryParams = useMemo(
     () => ({
       filterMode,
+      country: filterMode === "country" ? selectedCountry : undefined,
       chapter: filterMode === "chapter" ? selectedChapter : undefined,
       state: filterMode === "state" ? selectedState : undefined,
       search: debouncedSearchQuery,
     }),
-    [filterMode, selectedChapter, selectedState, debouncedSearchQuery]
+    [filterMode, selectedCountry, selectedChapter, selectedState, debouncedSearchQuery]
   );
 
   // Live API query for feed posts — automatically refetches every 10s and on window focus
@@ -1103,6 +1170,13 @@ export function BizFeeds() {
         return true;
       }
 
+      // 2b. Country Mode: Filter by selected country
+      if (filterMode === "country") {
+        if (!selectedCountry || selectedCountry === "ALL_COUNTRIES") return true;
+        const postCountry = (post.country || "India").toLowerCase().trim();
+        return postCountry === selectedCountry.toLowerCase().trim();
+      }
+
       // 3. State Mode: Filter by selected state
       if (filterMode === "state") {
         if (!selectedState || selectedState === "ALL_STATES") return true;
@@ -1203,6 +1277,10 @@ export function BizFeeds() {
           <FeedFilterBar
             filterMode={filterMode}
             setFilterMode={setFilterMode}
+            selectedCountry={selectedCountry}
+            setSelectedCountry={setSelectedCountry}
+            availableCountries={availableCountries}
+            isUserNonIndia={isUserNonIndia}
             selectedState={selectedState}
             setSelectedState={setSelectedState}
             selectedChapter={selectedChapter}

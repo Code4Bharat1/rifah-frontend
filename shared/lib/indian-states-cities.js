@@ -729,3 +729,325 @@ export function getStateForCity(cityName) {
   const key = cityName.trim().toLowerCase();
   return CITY_TO_STATE_MAP.get(key) || "";
 }
+
+/**
+ * 2-Letter Indian State & UT Codes Directory (ISO 3166-2:IN / GST standard)
+ */
+export const STATE_CODE_MAP = {
+  maharashtra: "MH",
+  delhi: "DL",
+  "new delhi": "DL",
+  karnataka: "KA",
+  telangana: "TS",
+  "tamil nadu": "TN",
+  tamilnadu: "TN",
+  gujarat: "GJ",
+  "uttar pradesh": "UP",
+  uttarpradesh: "UP",
+  "west bengal": "WB",
+  westbengal: "WB",
+  kerala: "KL",
+  "andhra pradesh": "AP",
+  andhrapradesh: "AP",
+  rajasthan: "RJ",
+  "madhya pradesh": "MP",
+  madhyapradesh: "MP",
+  bihar: "BR",
+  punjab: "PB",
+  haryana: "HR",
+  goa: "GA",
+  odisha: "OD",
+  orissa: "OD",
+  assam: "AS",
+  jharkhand: "JH",
+  chhattisgarh: "CG",
+  chattisgarh: "CG",
+  uttarakhand: "UK",
+  uttaranchal: "UK",
+  "himachal pradesh": "HP",
+  himachalpradesh: "HP",
+  "jammu and kashmir": "JK",
+  "jammu & kashmir": "JK",
+  chandigarh: "CH",
+  puducherry: "PY",
+  pondicherry: "PY",
+  sikkim: "SK",
+  tripura: "TR",
+  meghalaya: "ML",
+  manipur: "MN",
+  nagaland: "NL",
+  mizoram: "MZ",
+  "arunachal pradesh": "AR",
+  ladakh: "LA",
+
+  // Major chapter & city aliases to state short code
+  mumbai: "MH",
+  pune: "MH",
+  nagpur: "MH",
+  thane: "MH",
+  nashik: "MH",
+  aurangabad: "MH",
+  sambhajinagar: "MH",
+  solapur: "MH",
+  kolhapur: "MH",
+  "navi mumbai": "MH",
+  nanded: "MH",
+  amravati: "MH",
+  jalgaon: "MH",
+  akola: "MH",
+  latur: "MH",
+  dhule: "MH",
+  ahmednagar: "MH",
+  raigad: "MH",
+  satara: "MH",
+  sangli: "MH",
+  ratnagiri: "MH",
+  sindhudurg: "MH",
+  bhiwandi: "MH",
+  malegaon: "MH",
+  panvel: "MH",
+  kalyan: "MH",
+
+  surat: "GJ",
+  ahmedabad: "GJ",
+  vadodara: "GJ",
+  rajkot: "GJ",
+
+  bengaluru: "KA",
+  bangalore: "KA",
+  mysuru: "KA",
+  mysore: "KA",
+  mangalore: "KA",
+  mangaluru: "KA",
+
+  hyderabad: "TS",
+  secunderabad: "TS",
+  warangal: "TS",
+
+  chennai: "TN",
+  coimbatore: "TN",
+  madurai: "TN",
+
+  lucknow: "UP",
+  kanpur: "UP",
+  noida: "UP",
+  ghaziabad: "UP",
+  agra: "UP",
+  varanasi: "UP",
+
+  kolkata: "WB",
+  howrah: "WB",
+
+  jaipur: "RJ",
+  jodhpur: "RJ",
+  kota: "RJ",
+  udaipur: "RJ",
+
+  indore: "MP",
+  bhopal: "MP",
+  gwalior: "MP",
+
+  patna: "BR",
+  gaya: "BR",
+
+  gurugram: "HR",
+  gurgaon: "HR",
+  faridabad: "HR",
+
+  kochi: "KL",
+  calicut: "KL",
+  trivandrum: "KL",
+  thiruvananthapuram: "KL",
+
+  visakhapatnam: "AP",
+  vijayawada: "AP",
+
+  guwahati: "AS",
+  ranchi: "JH",
+  raipur: "CG",
+  dehradun: "UK",
+  shimla: "HP",
+  srinagar: "JK",
+  jammu: "JK",
+  bhubaneswar: "OD",
+};
+
+/**
+ * Resolves 2-letter uppercase State short code (e.g. Maharashtra -> MH, Delhi -> DL)
+ */
+export function getStateCode(state = "", chapter = "", city = "") {
+  const normalize = (val) =>
+    (val || "")
+      .toString()
+      .toLowerCase()
+      .replace(/\b(state|chapter|chamber|branch|zone|city)\b/gi, "")
+      .trim();
+
+  // If already a valid 2-letter uppercase state code
+  if (state && typeof state === "string") {
+    const trimmed = state.trim().toUpperCase();
+    if (trimmed.length === 2 && /^[A-Z]{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+  }
+
+  const cleanState = normalize(state);
+  if (cleanState && STATE_CODE_MAP[cleanState]) {
+    return STATE_CODE_MAP[cleanState];
+  }
+
+  // Check state partial matches
+  for (const [mapKey, code] of Object.entries(STATE_CODE_MAP)) {
+    if (cleanState && (cleanState.includes(mapKey) || mapKey.includes(cleanState))) {
+      return code;
+    }
+  }
+
+  // Try chapter
+  const cleanChapter = normalize(chapter);
+  if (cleanChapter && STATE_CODE_MAP[cleanChapter]) {
+    return STATE_CODE_MAP[cleanChapter];
+  }
+  for (const [mapKey, code] of Object.entries(STATE_CODE_MAP)) {
+    if (cleanChapter && (cleanChapter.includes(mapKey) || mapKey.includes(cleanChapter))) {
+      return code;
+    }
+  }
+
+  // Try city
+  const cleanCity = normalize(city);
+  if (cleanCity && STATE_CODE_MAP[cleanCity]) {
+    return STATE_CODE_MAP[cleanCity];
+  }
+
+  // Fallback via city dataset
+  if (city) {
+    const stateFromCity = getStateForCity(city);
+    if (stateFromCity) {
+      const code = getStateCode(stateFromCity);
+      if (code) return code;
+    }
+  }
+  if (chapter) {
+    const stateFromChapter = getStateForCity(chapter);
+    if (stateFromChapter) {
+      const code = getStateCode(stateFromChapter);
+      if (code) return code;
+    }
+  }
+
+  // Default to Maharashtra ("MH") as headquarters of RIFAH
+  return "MH";
+}
+
+/**
+ * Calculates Indian Financial Year (1st April - 31st March)
+ * Example:
+ * 1st April 2025 – 31st March 2026 => "25-26"
+ * 1st April 2026 – 31st March 2027 => "26-27"
+ */
+export function getFinancialYear(date = new Date()) {
+  const d = new Date(date || Date.now());
+  const month = d.getMonth(); // 0 = Jan, 2 = Mar, 3 = Apr, ..., 11 = Dec
+  const year = d.getFullYear();
+
+  // If month is April (3) or later, FY starts this year. If Jan-Mar (0-2), FY started last year.
+  const startYear = month >= 3 ? year : year - 1;
+  const endYear = startYear + 1;
+
+  const startYearStr = String(startYear).slice(-2);
+  const endYearStr = String(endYear).slice(-2);
+
+  return `${startYearStr}-${endYearStr}`;
+}
+
+/**
+ * Canonical Rifah Membership ID Formatter:
+ * Strict format: RCCI/{STATE_CODE}/0001 (e.g. RCCI/MH/0001)
+ * Where:
+ * - RCCI: RIFAH Chambers of Commerce & Industry
+ * - {STATE_CODE}: 2-letter state short code (e.g. MH, DL, KA)
+ * - 0001: 4-digit zero-padded number
+ *
+ * Converts any legacy format like RIFAH-MUM-0007, RIFAH-PUN-0003,
+ * RIFAH-MEM-XXXX, or unpadded numbers directly to RCCI/{STATE}/{XXXX}.
+ */
+export function formatMembershipId(rawId = "", state = "", chapter = "", city = "") {
+  const stateCode = getStateCode(state, chapter, city);
+
+  if (!rawId || typeof rawId !== "string") {
+    return `RCCI/${stateCode}/0001`;
+  }
+
+  const clean = rawId.trim();
+
+  // Already matches target format RCCI/{STATE}/{NUMBER}
+  if (/^RCCI\/[A-Za-z]{2}\/\d{4}$/i.test(clean)) {
+    return clean.toUpperCase();
+  }
+
+  // Matches RCCI with different format e.g. RCCI/MH/1 or RCCI/0001
+  const rcciMatch = clean.match(/^RCCI\/(?:([A-Za-z]{2})\/)?(\d+)$/i);
+  if (rcciMatch) {
+    const sCode = rcciMatch[1] ? rcciMatch[1].toUpperCase() : stateCode;
+    const num = String(rcciMatch[2]).padStart(4, "0");
+    return `RCCI/${sCode}/${num}`;
+  }
+
+  // Matches legacy RIFAH-{CHAPTER}-{NUMBER} e.g. RIFAH-MUM-0007, RIFAH-PUN-0003, RIFAH-DEL-0004
+  const legacyMatch = clean.match(/^RIFAH-([A-Za-z0-9]+)-(\d+)$/i);
+  if (legacyMatch) {
+    const legacySegment = legacyMatch[1];
+    const num = String(legacyMatch[2]).padStart(4, "0");
+    const resolvedState = getStateCode(state || legacySegment, chapter || legacySegment, city);
+    return `RCCI/${resolvedState}/${num}`;
+  }
+
+  // If contains any trailing digits e.g. RIFAH-MEM-0007
+  const digitsMatch = clean.match(/(\d+)$/);
+  if (digitsMatch) {
+    const num = String(digitsMatch[1]).slice(-4).padStart(4, "0");
+    return `RCCI/${stateCode}/${num}`;
+  }
+
+  return `RCCI/${stateCode}/0001`;
+}
+
+/**
+ * Canonical Rifah Invoice Number Formatter:
+ * Strict format: RCCI/{FY}/0001 (e.g. RCCI/25-26/0001)
+ * Where:
+ * - RCCI: RIFAH Chambers of Commerce & Industry
+ * - 25-26: Indian financial year (1st April - 31st March)
+ * - 0001: 4-digit zero-padded invoice number
+ */
+export function formatInvoiceNumber(rawInvoice = "", date = new Date()) {
+  const fy = getFinancialYear(date);
+
+  if (!rawInvoice || typeof rawInvoice !== "string") {
+    return `RCCI/${fy}/0001`;
+  }
+
+  const clean = rawInvoice.trim();
+
+  // Already matches RCCI/{FY}/{NUMBER} e.g. RCCI/25-26/0001
+  if (/^RCCI\/\d{2}-\d{2}\/\d{4}$/i.test(clean)) {
+    return clean.toUpperCase();
+  }
+
+  // Matches RCCI/{NUMBER}
+  const rcciSimpleMatch = clean.match(/^RCCI\/(\d+)$/i);
+  if (rcciSimpleMatch) {
+    const num = String(rcciSimpleMatch[1]).padStart(4, "0");
+    return `RCCI/${fy}/${num}`;
+  }
+
+  // Matches INV-{NUM} or RIFAH-2026-INV-1092 or any trailing digits
+  const digitsMatch = clean.match(/(\d+)$/);
+  if (digitsMatch) {
+    const num = String(digitsMatch[1]).slice(-4).padStart(4, "0");
+    return `RCCI/${fy}/${num}`;
+  }
+
+  return `RCCI/${fy}/0001`;
+}

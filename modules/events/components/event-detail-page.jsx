@@ -35,7 +35,7 @@ import { downloadInvoicePdf } from "@shared/lib/invoice-generator";
 function EventDetail() {
   const params = useParams();
   const eventId = params?.eventId;
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: event, isLoading } = useEventDetail(eventId);
@@ -44,17 +44,22 @@ function EventDetail() {
   const others = Array.isArray(othersData) ? othersData : (othersData?.events || []);
 
   const [registered, setRegistered] = useState(false);
+  const [registeredTicket, setRegisteredTicket] = useState(() => {
+    if (typeof window !== "undefined" && eventId) {
+      try {
+        const cached = sessionStorage.getItem(`rifah_ticket_${eventId}`);
+        return cached ? JSON.parse(cached) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  });
   const [registering, setRegistering] = useState(false);
   const [emailExistsPopup, setEmailExistsPopup] = useState(false);
   const [payingInstallment, setPayingInstallment] = useState(null);
   const [triggeringReminders, setTriggeringReminders] = useState(false);
 
-  const userRegistration = user?._id && Array.isArray(event?.registeredUsers) 
-    ? event.registeredUsers.find(u => String(u?.user?._id || u?.user || u?._id || u) === String(user._id)) 
-    : null;
-
-  const isUserRegistered = Boolean(registered || userRegistration);
-  
   const [attended, setAttended] = useState(false);
   const [marking, setMarking] = useState(false);
 
@@ -62,10 +67,21 @@ function EventDetail() {
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [regPath, setRegPath] = useState(null); // 'member' | 'guest'
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [guestSuccessInfo, setGuestSuccessInfo] = useState(null);
   
   // Guest Form State
   const [guestForm, setGuestForm] = useState({ name: "", email: "", phone: "", businessName: "" });
 
+  const userRegistration = Array.isArray(event?.registeredUsers) && user?._id
+    ? event.registeredUsers.find(u => {
+        const uId = String(u?.user?._id || u?.user || u?._id || u);
+        const matchesUser = uId === String(user._id);
+        const matchesTicket = registeredTicket?.ticketId && u?.ticketId === registeredTicket.ticketId;
+        return matchesTicket || matchesUser;
+      }) 
+    : null;
+
+  const isUserRegistered = Boolean(user && (registered || userRegistration || registeredTicket));
   const isUserAttended = Boolean(attended || userRegistration?.attendanceStatus === "Present");
 
   const isEventToday = event?.date === new Date().toISOString().split("T")[0];
@@ -165,6 +181,7 @@ const loadRazorpayScript = () => {
     setRegistering(true);
 
     try {
+      let guestToken = null;
       if (regPath === "guest") {
         try {
           const pwd = `Guest@${Math.floor(Math.random() * 90000) + 10000}`;
@@ -178,15 +195,15 @@ const loadRazorpayScript = () => {
             isGuestCheckout: true,
           });
           const responseData = regRes?.data || regRes;
-          if (responseData?.accessToken) {
-            localStorage.setItem("rifah_access_token", responseData.accessToken);
-            if (responseData.refreshToken) localStorage.setItem("rifah_refresh_token", responseData.refreshToken);
-          }
+          guestToken = responseData?.accessToken || null;
+
+          // Note: Do NOT store guestToken in localStorage or call refreshProfile()!
+          // Guests must NOT be automatically logged in to the application.
         } catch (regErr) {
           if (regErr.message && regErr.message.toLowerCase().includes("already exists")) {
             setEmailExistsPopup(true);
           } else {
-            toast.error(regErr.message || "Failed to setup guest session.");
+            toast.error(regErr.message || "Failed to setup guest registration.");
           }
           setRegistering(false);
           return;
@@ -212,7 +229,7 @@ const loadRazorpayScript = () => {
           eventId: event?._id,
           itemType: "Event Pass",
           description: `Pass for ${event?.title} (Incl. 18% GST)`,
-        });
+        }, { token: guestToken || undefined });
 
         const orderData = orderRes?.data || orderRes;
         
@@ -228,7 +245,7 @@ const loadRazorpayScript = () => {
               setRegistering(true);
 
               // Run both in parallel — no need to wait for one before the other
-              await Promise.all([
+              const [, paidRegRes] = await Promise.all([
                 // Creates Payment record in DB
                 paymentApi.verifyPayment({
                   razorpay_order_id: response.razorpay_order_id,
@@ -243,7 +260,7 @@ const loadRazorpayScript = () => {
                   eventId: event?._id,
                   description: `Event Pass: ${event?.title} (Incl. 18% GST)`,
                   guest: regPath === "guest" ? guestForm : undefined,
-                }),
+                }, { token: guestToken || undefined }),
                 // Registers user on the event
                 eventApi.registerPaid(event?._id, {
                   paymentId: response.razorpay_payment_id,
@@ -252,15 +269,36 @@ const loadRazorpayScript = () => {
                   baseAmount,
                   gstAmount,
                   guest: regPath === "guest" ? guestForm : undefined,
-                }),
+                }, { token: guestToken || undefined }),
               ]);
 
-              setRegistered(true);
-              setIsRegModalOpen(false);
-              queryClient.invalidateQueries({ queryKey: ["event", eventId] });
-              queryClient.invalidateQueries({ queryKey: ["events"] });
-              queryClient.invalidateQueries({ queryKey: ["all-payments"] });
-              toast.success("Registration Successful! Your ticket and confirmation details have been sent to your email address.", { duration: 5000 });
+              const paidPayload = paidRegRes?.data || paidRegRes;
+              
+              if (regPath === "guest") {
+                setGuestSuccessInfo({
+                  name: guestForm.name,
+                  email: guestForm.email,
+                  eventTitle: event?.title,
+                });
+                setIsRegModalOpen(false);
+                setGuestForm({ name: "", email: "", phone: "", businessName: "" });
+                setRegPath(null);
+                queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+                toast.success("Registration Successful! Your entry pass and details have been sent to your email address.", { duration: 6000 });
+              } else {
+                if (paidPayload?.ticket) {
+                  setRegisteredTicket(paidPayload.ticket);
+                  try {
+                    sessionStorage.setItem(`rifah_ticket_${event?._id}`, JSON.stringify(paidPayload.ticket));
+                  } catch (_) {}
+                }
+                setRegistered(true);
+                setIsRegModalOpen(false);
+                queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+                queryClient.invalidateQueries({ queryKey: ["events"] });
+                queryClient.invalidateQueries({ queryKey: ["all-payments"] });
+                toast.success("Registration Successful! Your ticket and confirmation details have been sent to your email address.", { duration: 5000 });
+              }
             } catch (err) {
               console.error("Event payment error:", err);
               toast.error(err.message || "Registration failed after payment.");
@@ -282,18 +320,43 @@ const loadRazorpayScript = () => {
         return;
       }
 
-      await eventApi.register(event?._id);
-      setRegistered(true);
-      setIsRegModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Registration Successful! Your confirmation details have been sent to your email address.", { duration: 5000 });
+      const freeRegRes = await eventApi.register(event?._id, { token: guestToken || undefined });
+      const freePayload = freeRegRes?.data || freeRegRes;
+
+      if (regPath === "guest") {
+        setGuestSuccessInfo({
+          name: guestForm.name,
+          email: guestForm.email,
+          eventTitle: event?.title,
+        });
+        setIsRegModalOpen(false);
+        setGuestForm({ name: "", email: "", phone: "", businessName: "" });
+        setRegPath(null);
+        queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+        toast.success("Registration Successful! Your entry pass and details have been sent to your email address.", { duration: 6000 });
+      } else {
+        if (freePayload?.ticket) {
+          setRegisteredTicket(freePayload.ticket);
+          try {
+            sessionStorage.setItem(`rifah_ticket_${event?._id}`, JSON.stringify(freePayload.ticket));
+          } catch (_) {}
+        }
+        setRegistered(true);
+        setIsRegModalOpen(false);
+        queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+        toast.success("Registration Successful! Your confirmation details have been sent to your email address.", { duration: 5000 });
+      }
     } catch (err) {
       console.error("Register error:", err);
       const message = err.message || "Failed to register for this event";
       if (message.toLowerCase().includes("already registered")) {
-        setRegistered(true);
-        toast.info("You are already registered for this event!");
+        if (regPath === "guest") {
+          toast.info("You are already registered for this event! Please check your email for your ticket.");
+        } else {
+          setRegistered(true);
+          toast.info("You are already registered for this event!");
+        }
       } else {
         toast.error(message);
       }
@@ -856,16 +919,31 @@ const loadRazorpayScript = () => {
                         const myUserId = String(user?._id || user?.id || "");
                         const userReg = (event?.registeredUsers || []).find((reg) => {
                           const regUserId = String(reg?.user?._id || reg?.user || reg?._id || reg);
-                          return regUserId === myUserId;
+                          const matchesUser = myUserId && regUserId === myUserId;
+                          const matchesEmail = guestForm.email && (reg?.user?.email?.toLowerCase() === guestForm.email.toLowerCase() || reg?.email?.toLowerCase() === guestForm.email.toLowerCase());
+                          const matchesPhone = guestForm.phone && (reg?.user?.phone === guestForm.phone || reg?.phone === guestForm.phone);
+                          const matchesTicket = registeredTicket?.ticketId && reg?.ticketId === registeredTicket.ticketId;
+                          return matchesTicket || matchesUser || matchesEmail || matchesPhone;
                         });
 
-                        const qrUserName = user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member') : (guestForm.name || 'Attendee');
-                        const qrUserEmail = user ? user.email : (guestForm.email || 'N/A');
-                        const qrUserBusiness = user?.businessName || guestForm.businessName || '';
+                        const ticketId = registeredTicket?.ticketId || userReg?.ticketId;
+                        const verificationToken = registeredTicket?.verificationToken || userReg?.verificationToken || '';
+                        const ticketType = registeredTicket?.ticketType || userReg?.ticketType || (isEventPaid ? "Paid Pass" : "Member Pass");
+
+                        if (!ticketId) {
+                          return (
+                            <div className="p-8 flex flex-col items-center justify-center space-y-2 text-center">
+                              <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+                              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Generating your Official Entry Pass...</p>
+                              <p className="text-[11px] text-muted-foreground">Retrieving verified ticket from server</p>
+                            </div>
+                          );
+                        }
+
+                        const qrUserName = user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member') : (userReg?.user?.name || guestForm.name || 'Attendee');
+                        const qrUserEmail = user ? user.email : (userReg?.user?.email || guestForm.email || 'N/A');
+                        const qrUserBusiness = user?.businessName || userReg?.user?.company || userReg?.user?.businessName || guestForm.businessName || '';
                         const qrEventName = event?.title || '';
-                        const ticketId = userReg?.ticketId || `RIFAH-EVT-${new Date().getFullYear()}-${String(event?._id || '').slice(-4).toUpperCase()}`;
-                        const verificationToken = userReg?.verificationToken || '';
-                        const ticketType = userReg?.ticketType || (isEventPaid ? "Paid Pass" : "Member Pass");
                         const origin = typeof window !== 'undefined' ? window.location.origin : '';
                         const tokenQuery = verificationToken ? `?token=${encodeURIComponent(verificationToken)}` : '';
                         const secureVerifyUrl = `${origin}/verify/ticket/${encodeURIComponent(ticketId)}${tokenQuery}`;
@@ -1415,6 +1493,53 @@ const loadRazorpayScript = () => {
                 Continue as a Guest?
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Guest Registration Confirmation Dialog */}
+      <Dialog open={Boolean(guestSuccessInfo)} onOpenChange={(open) => { if (!open) setGuestSuccessInfo(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="text-center sm:text-center">
+            <div className="mx-auto w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-2">
+              <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-center text-foreground">
+              Registration Confirmed! 🎉
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm text-muted-foreground">
+              Thank you, <span className="font-semibold text-foreground">{guestSuccessInfo?.name}</span>!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-3 space-y-4 text-center">
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 text-left space-y-2">
+              <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                Event Pass Sent to Email
+              </p>
+              <p className="text-sm font-bold text-foreground">
+                {guestSuccessInfo?.eventTitle}
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Your Official Entry Pass and QR Code have been sent to:
+                <br />
+                <span className="font-semibold text-foreground">{guestSuccessInfo?.email}</span>
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-xs text-amber-700 dark:text-amber-300 text-left flex items-start gap-2.5">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+              <div className="leading-relaxed">
+                <strong>Important:</strong> Please check your Inbox and Spam folder. <u>Do not share your QR code with anyone</u> as it is valid for one-time entry only.
+              </div>
+            </div>
+
+            <Button
+              className="w-full mt-2 font-semibold shadow-md"
+              size="lg"
+              onClick={() => setGuestSuccessInfo(null)}
+            >
+              OK, Understood
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

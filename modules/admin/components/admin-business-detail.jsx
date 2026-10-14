@@ -28,12 +28,15 @@ import { businessApi, verificationApi, paymentApi } from "@shared/lib/api-servic
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { downloadInvoicePdf, generateInvoiceHtml } from "@shared/lib/invoice-generator";
 import { downloadCertificatePdf, generateCertificateHtml } from "@shared/lib/certificate-generator";
+import { formatMembershipId, formatInvoiceNumber } from "@shared/lib/indian-states-cities";
 import { useAuth } from "@shared/providers/auth-provider";
+import { useSettings } from "@shared/hooks/use-rifah-api";
 
 export function AdminBusinessDetail({ id }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const { data: globalSettings } = useSettings();
   const isChapterAdmin = pathname?.startsWith("/chapter-admin") || user?.role === "chapter_admin";
   const basePath = isChapterAdmin ? "/chapter-admin" : user?.role === "state_admin" ? "/state-admin" : "/admin";
   const shellRole = isChapterAdmin ? "chapter_admin" : user?.role === "state_admin" ? "state_admin" : "admin";
@@ -57,7 +60,16 @@ export function AdminBusinessDetail({ id }) {
     try {
       setDownloadingDoc(true);
       toast.loading("Downloading certificate PDF...", { id: "cert-dl" });
-      await downloadCertificatePdf(business);
+      const enrichedBiz = {
+        ...business,
+        contactPerson: (business?.contactPerson && !/^raj\s*sharma$/i.test(business.contactPerson.trim()))
+          ? business.contactPerson
+          : (business?.owner?.name || ""),
+      };
+      await downloadCertificatePdf(enrichedBiz, null, {
+        customSettings: globalSettings?.certificateSettings,
+        ownerName: enrichedBiz.contactPerson || enrichedBiz.owner?.name,
+      });
       toast.success("Certificate downloaded successfully", { id: "cert-dl" });
     } catch (err) {
       console.error(err);
@@ -357,7 +369,7 @@ export function AdminBusinessDetail({ id }) {
                         const isUsd = (p.currency || "").toUpperCase() === "USD";
                         const currSymbol = isUsd ? "$" : "₹";
                         const amt = Number(p.amount) || 0;
-                        const invNo = p.invoiceNumber || `INV-${String(p._id).slice(-4).toUpperCase()}`;
+                        const invNo = formatInvoiceNumber(p.invoiceNumber, p.paidAt || p.createdAt);
 
                         return (
                           <tr key={p._id} className="hover:bg-muted/30 transition-colors">
@@ -466,9 +478,7 @@ export function AdminBusinessDetail({ id }) {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Membership ID</span>
                 <span className="font-mono font-bold text-primary">
-                  {business.membershipId && !business.membershipId.startsWith("RIFAH-MEM-")
-                    ? business.membershipId
-                    : `RIFAH-${(business.chapter || "PUN").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3) || "PUN"}-0001`}
+                  {formatMembershipId(business.membershipId, business.state, business.chapter, business.city)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -502,7 +512,11 @@ export function AdminBusinessDetail({ id }) {
                 onClick={() => setDocPreviewModal({
                   open: true,
                   title: `Membership Certificate - ${business.name}`,
-                  html: generateCertificateHtml(business, null, { isPreview: true }),
+                  html: generateCertificateHtml(business, null, {
+                    isPreview: true,
+                    customSettings: globalSettings?.certificateSettings,
+                    ownerName: business?.contactPerson || business?.owner?.name,
+                  }),
                   onDownload: handleDownloadCert,
                 })}
               >

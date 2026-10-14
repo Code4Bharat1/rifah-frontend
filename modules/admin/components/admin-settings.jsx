@@ -39,6 +39,7 @@ import { useSettings } from "@shared/hooks/use-rifah-api";
 import { settingsApi, authApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 import { isValidPhone } from "@shared/lib/validators";
+import { CertificateSettingsPanel } from "./certificate-settings-panel";
 
 // Central-admin-only modules that have no state-admin/chapter-admin equivalent route.
 const adminModules = [
@@ -148,7 +149,22 @@ export function AdminSettings({ expectedRole }) {
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingChamber, setSavingChamber] = useState(false);
+  const [savingCert, setSavingCert] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
+
+  const handleSaveCertificateSettings = async (newCertSettings) => {
+    setSavingCert(true);
+    try {
+      await settingsApi.update({ certificateSettings: newCertSettings });
+      toast.success("Certificate governance settings saved successfully!");
+      await refetch();
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    } catch (e) {
+      toast.error(e?.message || "Failed to save certificate settings");
+    } finally {
+      setSavingCert(false);
+    }
+  };
 
   const handleChangePassword = async () => {
     if (!passwords.currentPassword || !passwords.newPassword) return toast.error("Please fill both password fields.");
@@ -299,6 +315,16 @@ export function AdminSettings({ expectedRole }) {
                 </Button>
               </div>
             </div>
+          </Panel>
+        )}
+
+        {isCentralAdmin && (
+          <Panel title="Membership Certificate Customization & Governance">
+            <CertificateSettingsPanel
+              initialSettings={globalSettings?.certificateSettings}
+              onSave={handleSaveCertificateSettings}
+              isSaving={savingCert}
+            />
           </Panel>
         )}
 

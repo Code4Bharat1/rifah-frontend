@@ -117,6 +117,11 @@ export const userApi = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  assignAdminRole: (id, role) =>
+    apiClient(`/users/${id}/admin-role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
   deactivateAccount: (data = {}) =>
     apiClient("/users/me/deactivate", {
       method: "POST",
@@ -485,20 +490,35 @@ export const membershipApi = {
 };
 
 export const paymentApi = {
+  getConfig: () => apiClient("/payments/config"),
   getMyPayments: () => apiClient("/payments/me"),
   getAllPayments: (params = {}) =>
     apiClient(`/payments/admin/all${toQueryString(params)}`),
   getAll: (params = {}) =>
     apiClient(`/payments/admin/all${toQueryString(params)}`),
-  createOrder: (data) =>
+  createOrder: (data, options = {}) =>
     apiClient("/payments/order", {
       method: "POST",
       body: JSON.stringify(data),
+      ...options,
     }),
-  verifyPayment: (data) =>
+  createStripeSession: (data, options = {}) =>
+    apiClient("/payments/stripe/create-session", {
+      method: "POST",
+      body: JSON.stringify(data),
+      ...options,
+    }),
+  verifyPayment: (data, options = {}) =>
     apiClient("/payments/verify", {
       method: "POST",
       body: JSON.stringify(data),
+      ...options,
+    }),
+  verifyStripeSession: (data, options = {}) =>
+    apiClient("/payments/stripe/verify", {
+      method: "POST",
+      body: JSON.stringify(data),
+      ...options,
     }),
   verifyByAdmin: (id) =>
     apiClient(`/payments/${id}/verify-by-admin`, { method: "POST" }),
@@ -580,15 +600,17 @@ export const eventApi = {
       body: JSON.stringify(data),
     }),
   getGoogleMeetAuthUrl: () => apiClient("/events/google/auth-url"),
-  register: (id) =>
+  register: (id, options = {}) =>
     apiClient(`/events/${id}/register`, {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify(options?.body || {}),
+      ...options,
     }),
-  registerPaid: (id, data) =>
+  registerPaid: (id, data, options = {}) =>
     apiClient(`/events/${id}/register-paid`, {
       method: "POST",
       body: JSON.stringify(data),
+      ...options,
     }),
   payDelegationInstallment: (id, data) =>
     apiClient(`/events/${id}/delegation/pay-installment`, {
@@ -807,7 +829,7 @@ export const reviewApi = {
 
 export const reportApi = {
   getPublicStats: () => apiClient("/reports/public/stats"),
-  getOverview: () => apiClient("/reports/admin/overview"),
+  getOverview: (params) => apiClient(`/reports/admin/overview${toQueryString(params)}`),
   getBusinessAnalytics: () => apiClient("/reports/business/me"),
   downloadAdminCsv: () =>
     downloadFile("/reports/admin/export/csv", "admin_reports.csv"),

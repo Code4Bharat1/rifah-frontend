@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RIFAH Diamond Membership Certificate - Crisp Unified Typography</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0b1329;
+      font-family: 'Playfair Display', Georgia, serif;
+      color: #111827;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .cert-outer-wrapper {
+      position: relative;
+      width: 1000px;
+      height: 705px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .certificate-container {
+      width: 1000px;
+      height: 705px;
+      position: relative;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .template-base-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1000px;
+      height: 705px;
+      object-fit: fill;
+      z-index: 1;
+    }
+
+    /* Metallic Box */
+    .unified-meta-box {
+      position: absolute;
+      left: 442px;
+      top: 201px;
+      width: 526px;
+      height: 38px;
+      background: linear-gradient(180deg, #eef2f6 0%, #ffffff 50%, #e2e8f0 100%);
+      border: 1.2px solid #8ca3ba;
+      border-radius: 4px;
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.85), 0 2px 4px rgba(0, 0, 0, 0.15);
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+      font-size: 13.5px;
+      white-space: nowrap;
+    }
+    .meta-col {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .meta-lbl {
+      color: #991b1b;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .meta-val {
+      color: #0f172a;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+
+    /* Body Area */
+    .unified-body-area {
+      position: absolute;
+      left: 295px;
+      top: 275px;
+      width: 660px;
+      min-height: 245px;
+      background: transparent;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px 12px 10px 6px;
+      text-align: left;
+    }
+
+    .certify-line {
+      font-size: 18.5px;
+      color: #111827;
+      line-height: 1.3;
+      white-space: nowrap;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .biz-name-val {
+      color: #004b87;
+      font-size: 23px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+
+    .address-line {
+      font-size: 14px;
+      color: #111827;
+      line-height: 1.4;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .address-lbl {
+      font-weight: 700;
+      color: #111827;
+      flex-shrink: 0;
+    }
+    .address-val {
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .admission-para {
+      font-size: 13.5px;
+      color: #1f2937;
+      line-height: 1.55;
+      word-spacing: 1px;
+    }
+    .admission-para strong {
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .rep-name-line {
+      color: #004b87;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      margin-top: 4px;
+      white-space: nowrap;
+    }
+
+    /* Validity Area */
+    .unified-validity-area {
+      position: absolute;
+      left: 35px;
+      top: 565px;
+      width: 215px;
+      height: 52px;
+      background: transparent;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 4px 6px;
+      text-align: left;
+    }
+    .validity-heading {
+      font-size: 14px;
+      color: #374151;
+      font-style: normal;
+    }
+    .validity-row {
+      font-size: 14.5px;
+      color: #111827;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .validity-row strong {
+      font-weight: 800;
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+  <h1>RIFAH Diamond Membership Certificate · 100% Crisp Vector Typography</h1>
+  <p style="font-size: 13px; color: #94a3b8;">Labels and values are rendered together in the same HTML text flow — zero blurriness, zero baseline offset.</p>
+
+  <div class="cert-outer-wrapper">
+    <div class="certificate-container">
+      <!-- High-resolution background geometry & rosette badge -->
+      <img src="/certificate-diamond.png" class="template-base-img" alt="Template" />
+
+      <!-- 1. Metallic Box: Razor-sharp vector labels + values -->
+      <div class="unified-meta-box">
+        <div class="meta-col">
+          <span class="meta-lbl">Membership ID:</span>
+          <span class="meta-val">RIFAH-MUM-0007</span>
+        </div>
+        <div class="meta-col">
+          <span class="meta-lbl">Date of Issue:</span>
+          <span class="meta-val">02/10/2026</span>
+        </div>
+      </div>
+
+      <!-- 2. Body Text: Razor-sharp vector typography on same baseline -->
+      <div class="unified-body-area">
+        <div class="certify-line">
+          <span>Certified that M/s</span>
+          <span class="biz-name-val">TATA Power</span>
+        </div>
+
+        <div class="address-line">
+          <span class="address-lbl">Address:</span>
+          <span class="address-val">Dubai, United Arab Emirates</span>
+        </div>
+
+        <div class="admission-para">
+          Has been duly admitted as a <strong>Member of the Rifah Chamber of Commerce and Industry</strong>. The authorized representative of the organization, as stated in the membership application, is:
+        </div>
+
+        <div class="rep-name-line">
+          Zubair Khan
+        </div>
+      </div>
+
+      <!-- 3. Validity: Razor-sharp vector typography on same baseline -->
+      <div class="unified-validity-area">
+        <div class="validity-heading">This Certificate is</div>
+        <div class="validity-row">
+          <span>Valid upto:</span>
+          <strong>26/09/2051</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Transparent Blend</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+    }
+    .cert-outer {
+      position: relative;
+      width: 1000px;
+      height: 705px;
+      box-shadow: 0 25px 60px -15px rgba(0,0,0,0.7);
+      border-radius: 4px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .template-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1000px;
+      height: 705px;
+      object-fit: fill;
+      z-index: 1;
+    }
+
+    /* Metallic Box */
+    .unified-meta-box {
+      position: absolute;
+      left: 442px;
+      top: 201px;
+      width: 526px;
+      height: 38px;
+      background: linear-gradient(180deg, #fefce8 0%, #ffffff 50%, #fef3c7 100%);
+      border: 1.2px solid #b45309;
+      border-radius: 4px;
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.85), 0 2px 4px rgba(0, 0, 0, 0.15);
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 13.5px;
+      white-space: nowrap;
+    }
+    .meta-col { display: inline-flex; align-items: baseline; gap: 6px; }
+    .meta-lbl { color: #991b1b; font-weight: 700; }
+    .meta-val { color: #0f172a; font-weight: 800; }
+
+    /* 100% TRANSPARENT BODY AREA - NO WHITE BACKGROUND, BLENDS NATURALLY WITH PARCHMENT */
+    .unified-body-area {
+      position: absolute;
+      left: 298px;
+      top: 285px;
+      width: 655px;
+      background: transparent !important;
+      box-shadow: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+    .certify-line {
+      font-size: 18.5px;
+      color: #111827;
+      line-height: 1.3;
+      white-space: nowrap;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .biz-name-val {
+      color: #8b1d1d;
+      font-size: 23px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+    .address-line {
+      font-size: 14px;
+      color: #111827;
+      line-height: 1.4;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .address-lbl { font-weight: 700; color: #111827; flex-shrink: 0; }
+    .address-val { font-weight: 700; color: #1f2937; }
+    .admission-para {
+      font-size: 13.5px;
+      color: #1f2937;
+      line-height: 1.55;
+      word-spacing: 1px;
+    }
+    .admission-para strong { font-weight: 700; color: #111827; }
+    .rep-name-line {
+      color: #8b1d1d;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      margin-top: 4px;
+      white-space: nowrap;
+    }
+
+    .unified-validity-area {
+      position: absolute;
+      left: 35px;
+      top: 565px;
+      width: 215px;
+      height: 52px;
+      background: transparent !important;
+      box-shadow: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 4px 6px;
+      text-align: left;
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+    .validity-heading { font-size: 14px; color: #374151; }
+    .validity-row { font-size: 14.5px; color: #111827; display: flex; align-items: baseline; gap: 6px; }
+    .validity-row strong { font-weight: 800; color: #0f172a; }
+  </style>
+</head>
+<body>
+  <h1>Gold Certificate With 100% Transparent Body Area (No White Box)</h1>
+  <div class="cert-outer">
+    <img src="/certificate-gold.jpg" class="template-img" />
+    <div class="unified-meta-box">
+      <div class="meta-col"><span class="meta-lbl">Membership ID:</span><span class="meta-val">RIFAH-MUM-0007</span></div>
+      <div class="meta-col"><span class="meta-lbl">Date of Issue:</span><span class="meta-val">12/10/2026</span></div>
+    </div>
+    <div class="unified-body-area">
+      <div class="certify-line">
+        <span>Certified that M/s</span>
+        <span class="biz-name-val">TATA Power</span>
+      </div>
+      <div class="address-line">
+        <span class="address-lbl">Address:</span>
+        <span class="address-val">Dubai, United Arab Emirates</span>
+      </div>
+      <div class="admission-para">
+        Has been duly admitted as a <strong>Member of the Rifah Chamber of Commerce and Industry</strong>. The authorized representative of the organization, as stated in the membership application, is:
+      </div>
+      <div class="rep-name-line">
+        Zubair Khan
+      </div>
+    </div>
+    <div class="unified-validity-area">
+      <div class="validity-heading">This Certificate is</div>
+      <div class="validity-row"><span>Valid upto:</span><strong>11/10/2028</strong></div>
+    </div>
+  </div>
+</body>
+</html>

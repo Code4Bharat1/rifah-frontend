@@ -164,7 +164,8 @@ const navs = {
       { label: "Central Admin", to: "/admin/central-admin", icon: Shield },
       { label: "Visa Referrals", to: "/admin/visa-referrals", icon: Globe },
       { label: "Support", to: "/admin/tickets", icon: LifeBuoy },
-      { label: "Countries", to: "/admin/countries", icon: MapPinned },
+      // [COUNTRY_MODULE_DISABLED]
+      // { label: "Countries", to: "/admin/countries", icon: MapPinned },
       { label: "States", to: "/admin/states", icon: MapPin },
       { label: "Chapters", to: "/admin/chapters", icon: MapPinned },
       { label: "Events", to: "/admin/events", icon: Ticket },
@@ -194,11 +195,6 @@ const roleNavs = {
       },
       { label: "Members", to: "/chapter-admin/members", icon: Users },
       { label: "Businesses", to: "/chapter-admin/businesses", icon: Building2 },
-      {
-        label: "Advertisements",
-        to: "/chapter-admin/advertisements",
-        icon: Megaphone,
-      },
       { label: "Events", to: "/chapter-admin/events", icon: CalendarDays },
       { label: "Support", to: "/chapter-admin/tickets", icon: LifeBuoy },
       {
@@ -217,11 +213,6 @@ const roleNavs = {
       },
       { label: "Enquiries", to: "/chapter-admin/enquiries", icon: FileStack },
       { label: "Roles & RBAC", to: "/chapter-admin/roles", icon: Award },
-      {
-        label: "Live Event Control",
-        to: "/chapter-admin/live-control",
-        icon: Sparkles,
-      },
       {
         label: "Notifications",
         to: "/chapter-admin/notifications",
@@ -250,11 +241,6 @@ const roleNavs = {
       { label: "Members", to: "/state-admin/members", icon: Users },
       { label: "Businesses", to: "/state-admin/businesses", icon: Building2 },
       { label: "Support", to: "/state-admin/tickets", icon: LifeBuoy },
-      {
-        label: "Advertisements",
-        to: "/state-admin/advertisements",
-        icon: Megaphone,
-      },
       { label: "More", to: "/state-admin/settings", icon: LayoutGrid },
     ],
     more: [
@@ -446,15 +432,36 @@ function useResolvedNav(role) {
     };
   }
 
-  // 5. Hide Countries module for Country Admin (exclusive to Super Central Admin)
-  if (user?.role === "country_admin") {
-    return {
-      ...baseNav,
-      title: user?.country ? `RIFAH • ${user.country} Administration` : "Country Administration",
-      primary: (baseNav.primary || []).filter((item) => item.to !== "/admin/countries"),
-      more: (baseNav.more || []).filter((item) => item.to !== "/admin/countries"),
-    };
-  }
+  // [COUNTRY_MODULE_DISABLED]
+  // // 5. Customize module access & labels for Country Admin
+  // if (user?.role === "country_admin") {
+  //   const isNonIndia = user?.country && user.country.toLowerCase() !== "india";
+  //   const mappedMore = (baseNav.more || [])
+  //     .filter((item) => item.to !== "/admin/central-admin")
+  //     .map((item) => {
+  //       if (item.to === "/admin/countries") {
+  //         return { ...item, label: user?.country ? `${user.country}` : "My Country" };
+  //       }
+  //       if (item.to === "/admin/states" && isNonIndia) {
+  //         return { ...item, label: "States / Cities" };
+  //       }
+  //       return item;
+  //     });
+  // 
+  //   const mappedPrimary = (baseNav.primary || []).map((item) => {
+  //     if (item.to === "/admin/states" && isNonIndia) {
+  //       return { ...item, label: "States / Cities" };
+  //     }
+  //     return item;
+  //   });
+  // 
+  //   return {
+  //     ...baseNav,
+  //     title: user?.country ? `RIFAH • ${user.country} Administration` : "Country Administration",
+  //     primary: mappedPrimary,
+  //     more: mappedMore,
+  //   };
+  // }
 
   return baseNav;
 }
@@ -1357,7 +1364,7 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
                   effectiveUser.previousRole === effectiveUser?.role) &&
                 (!effectiveUser?.availableWorkspaces ||
                   effectiveUser.availableWorkspaces.length <= 1) &&
-                ["central_admin", "state_admin", "chapter_admin"].includes(
+                ["central_admin", "country_admin", "state_admin", "chapter_admin"].includes(
                   effectiveUser?.role,
                 ) &&
                 (effectiveUser?.businessId || effectiveUser?.businessSlug) && (
@@ -2075,7 +2082,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
     setOpen(false);
     const resultingRole = res?.role || targetRole;
     if (
-      ["central_admin", "admin", "super_admin", "secretariat"].includes(
+      ["central_admin", "country_admin", "admin", "super_admin", "secretariat"].includes(
         resultingRole,
       )
     )
@@ -2086,6 +2093,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
   };
   const switchBackLabel = [
     "central_admin",
+    "country_admin",
     "admin",
     "super_admin",
     "secretariat",
@@ -2284,7 +2292,7 @@ export function MoreSheet({ role, isBizVerified = true }) {
                 effectiveUser.previousRole === effectiveUser?.role) &&
               (!effectiveUser?.availableWorkspaces ||
                 effectiveUser.availableWorkspaces.length <= 1) &&
-              ["central_admin", "state_admin", "chapter_admin"].includes(
+              ["central_admin", "country_admin", "state_admin", "chapter_admin"].includes(
                 effectiveUser?.role,
               ) &&
               (effectiveUser?.businessId || effectiveUser?.businessSlug) && (

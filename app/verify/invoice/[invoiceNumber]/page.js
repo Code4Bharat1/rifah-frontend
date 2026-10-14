@@ -373,7 +373,7 @@ export default function InvoiceVerificationPage({ params }) {
                     Payment Method & Date
                   </span>
                   <p className="text-sm font-bold text-[#0B1F33]">
-                    {data.paymentMethod || "Razorpay (UPI)"}
+                    {data.paymentMethod || (String(data.currency || "").toUpperCase() === "USD" ? "Stripe International" : "Razorpay (UPI)")}
                   </p>
                   <p className="text-xs text-slate-600">
                     Paid On: {data.paymentDate}

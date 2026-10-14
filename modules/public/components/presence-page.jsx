@@ -20,19 +20,39 @@ import {
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
-import { useStates, useChapters } from "@shared/hooks/use-rifah-api";
+import { useStates, useChapters, useCountries } from "@shared/hooks/use-rifah-api";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { cn } from "@shared/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@shared/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@shared/components/ui/select";
 
 export function PresencePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all"); // "all" | "states" | "chapters"
+  const [countryFilter, setCountryFilter] = useState("all");
 
-  const { data: statesData } = useStates();
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const rawCountries = Array.isArray(countriesData)
+    ? countriesData
+    : countriesData?.countries || countriesData?.data || [];
+  const dbCountryNames = rawCountries.map((c) => c.name).filter(Boolean);
+  const countryOptions = Array.from(new Set(["India", ...dbCountryNames]));
+  const isNonIndia = countryFilter !== "all" && countryFilter.toLowerCase() !== "india";
+
+  const { data: statesData } = useStates(
+    countryFilter !== "all" ? { country: countryFilter } : undefined
+  );
   const statesList = Array.isArray(statesData) ? statesData : [];
 
-  const { data: chaptersData } = useChapters();
+  const { data: chaptersData } = useChapters(
+    countryFilter !== "all" ? { country: countryFilter } : undefined
+  );
   const chaptersList = useMemo(() => {
     if (Array.isArray(chaptersData)) return chaptersData;
     if (Array.isArray(chaptersData?.chapters)) return chaptersData.chapters;
@@ -41,6 +61,11 @@ export function PresencePage() {
 
   const filteredStates = useMemo(() => {
     return statesList.filter((item) => {
+      if (countryFilter !== "all") {
+        const itemCountry = (item.countryName || item.country || "").trim().toLowerCase();
+        if (!itemCountry && countryFilter.toLowerCase() !== "india") return false;
+        if (itemCountry && itemCountry !== countryFilter.toLowerCase()) return false;
+      }
       const q = searchQuery.trim().toLowerCase();
       if (!q) return true;
       
@@ -56,10 +81,15 @@ export function PresencePage() {
         adminName.includes(q)
       );
     });
-  }, [statesList, searchQuery]);
+  }, [statesList, countryFilter, searchQuery]);
 
   const filteredChapters = useMemo(() => {
     return chaptersList.filter((ch) => {
+      if (countryFilter !== "all") {
+        const chCountry = (ch.country || "").trim().toLowerCase();
+        if (!chCountry && countryFilter.toLowerCase() !== "india") return false;
+        if (chCountry && chCountry !== countryFilter.toLowerCase()) return false;
+      }
       const q = searchQuery.trim().toLowerCase();
       if (!q) return true;
 
@@ -77,7 +107,7 @@ export function PresencePage() {
         adminName.includes(q)
       );
     });
-  }, [chaptersList, searchQuery]);
+  }, [chaptersList, countryFilter, searchQuery]);
 
   const showStates = activeTab === "all" || activeTab === "states";
   const showChapters = activeTab === "all" || activeTab === "chapters";
@@ -130,7 +160,7 @@ export function PresencePage() {
                   : "text-muted-foreground hover:text-foreground hover:bg-background/60"
               )}
             >
-              States ({filteredStates.length})
+              {isNonIndia ? "States / Cities" : "States"} ({filteredStates.length})
             </button>
             <button
               type="button"
@@ -145,6 +175,28 @@ export function PresencePage() {
               Chapters ({filteredChapters.length})
             </button>
           </div>
+
+          {/* ==========================================
+              [COUNTRY_MODULE_DISABLED] Country Filter
+          <div className="w-full sm:w-auto">
+            <Select
+              value={countryFilter}
+              onValueChange={(val) => setCountryFilter(val)}
+            >
+              <SelectTrigger className="h-10 w-full sm:w-[190px] rounded-full bg-background border-border/60 text-xs font-semibold">
+                <SelectValue placeholder="All Countries" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Countries</SelectItem>
+                {countryOptions.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          ========================================== */}
 
           {/* Quick Search with Clear Button (Right Side) */}
           <div className="relative w-full sm:w-80 md:w-96 shrink-0">

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, MoreHorizontal, UserCheck, Trash2, Building2, Edit2, Eye, Check, ChevronsUpDown, X, UserPlus } from "lucide-react";
+import { MapPin, Plus, Users, Loader2, ShieldCheck, Mail, MoreHorizontal, UserCheck, Trash2, Building2, Edit2, Eye, Check, ChevronsUpDown, X, UserPlus, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -27,14 +27,47 @@ import { Popover, PopoverContent, PopoverTrigger } from "@shared/components/ui/p
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@shared/components/ui/command";
 import { cn } from "@shared/lib/utils";
 import { Checkbox } from "@shared/components/ui/checkbox";
-import { useStates, useBusinesses } from "@shared/hooks/use-rifah-api";
+import { useStates, useBusinesses, useCountries } from "@shared/hooks/use-rifah-api";
 import { stateApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
 
 export function AdminStates() {
   const { user } = useAuth();
-  const isCentralAdmin = user?.role === "central_admin";
-  const { data: statesData, refetch, isLoading } = useStates();
+  const isSuperCentralAdmin =
+    user?.role === "central_admin" ||
+    user?.role === "super_admin" ||
+    user?.role === "secretariat";
+  const isCountryAdmin = user?.role === "country_admin";
+  const canManageStates = isSuperCentralAdmin || isCountryAdmin;
+
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const rawCountries = Array.isArray(countriesData)
+    ? countriesData
+    : countriesData?.countries || countriesData?.data || [];
+  const dbCountryNames = rawCountries.map((c) => c.name).filter(Boolean);
+  const countryList = Array.from(new Set(["India", ...dbCountryNames]));
+
+  const [countryFilter, setCountryFilter] = useState(
+    isCountryAdmin ? user?.country || "India" : "all"
+  );
+
+  const activeCountry = isCountryAdmin
+    ? user?.country || "India"
+    : countryFilter === "all"
+    ? null
+    : countryFilter;
+
+  const isNonIndia = Boolean(
+    activeCountry && activeCountry.toLowerCase() !== "india"
+  );
+
+  const entityNoun = isNonIndia ? "State / City" : "State";
+  const entityPlural = isNonIndia ? "States / Cities" : "States";
+  const adminNoun = isNonIndia ? "State / City Admin" : "State Admin";
+
+  const { data: statesData, refetch, isLoading } = useStates(
+    activeCountry ? { country: activeCountry } : undefined
+  );
   const states = Array.isArray(statesData) ? statesData : [];
 
   const { data: businessesData } = useBusinesses({ limit: 150 });
@@ -53,6 +86,7 @@ export function AdminStates() {
   const [openCombobox, setOpenCombobox] = useState(false);
   const [form, setForm] = useState({
     name: "",
+    country: activeCountry || "India",
     email: "",
     phone: "",
     address: "",
@@ -93,7 +127,7 @@ export function AdminStates() {
   const handleOpenAddState = (prefillState = "") => {
     setTargetState(prefillState);
     setSelectedBusinessId("");
-    setForm({ name: prefillState || "", email: "", phone: "", address: "", imageFile: null, useAdminContact: false });
+    setForm({ name: prefillState || "", country: activeCountry || "India", email: "", phone: "", address: "", imageFile: null, useAdminContact: false });
     setOpenModal(true);
   };
 
@@ -103,8 +137,8 @@ export function AdminStates() {
 
   const handleAddState = async (e) => {
     e.preventDefault();
-    if (!form.name) {
-      toast.error("State Name is required.");
+    if (!form.name || !form.name.trim()) {
+      toast.error(`${entityNoun} Name is required.`);
       return;
     }
     if (!form.phone || !form.phone.trim()) {
@@ -119,8 +153,13 @@ export function AdminStates() {
         imageUrl = uploadRes.data?.url || uploadRes.url || "";
       }
 
+      const targetCountryName = form.country || activeCountry || "India";
+      const isTargetNonIndia = targetCountryName.toLowerCase() !== "india";
+
       await stateApi.createState({
-        name: form.name,
+        name: form.name.trim(),
+        countryName: targetCountryName,
+        entityType: isTargetNonIndia ? "state_city" : "state",
         businessId: selectedBusinessId || undefined,
         address: form.address,
         image: imageUrl,
@@ -128,14 +167,14 @@ export function AdminStates() {
         contactPhone: form.phone,
       });
 
-      toast.success(selectedBusinessId ? `State ${form.name} created and Admin allocated!` : `State ${form.name} created successfully!`);
+      toast.success(selectedBusinessId ? `${entityNoun} ${form.name} created and ${adminNoun} allocated!` : `${entityNoun} ${form.name} created successfully!`);
       setOpenModal(false);
       setTargetState("");
       setSelectedBusinessId("");
-      setForm({ name: "", email: "", phone: "", address: "", imageFile: null, useAdminContact: false });
+      setForm({ name: "", country: activeCountry || "India", email: "", phone: "", address: "", imageFile: null, useAdminContact: false });
       refetch();
     } catch (err) {
-      toast.error(err.message || "Failed to add State.");
+      toast.error(err.message || `Failed to add ${entityNoun}.`);
     } finally {
       setSubmitting(false);
     }
@@ -189,51 +228,104 @@ export function AdminStates() {
   return (
     <AppShell
       role="admin"
-      title="States & Regional Leadership"
-      subtitle="National structure: Central Admin allocates State Admins to manage Chapter Admins"
+      title={isNonIndia ? `${activeCountry} • States / Cities & Regional Leadership` : "States & Regional Leadership"}
+      subtitle={
+        isNonIndia
+          ? `Governance hierarchy: Central Admin → Country Admin → State/City Admin → Business Owners`
+          : "National structure: Central Admin allocates State Admins to manage Chapter Admins"
+      }
       actions={
-        isCentralAdmin ? (
+        canManageStates ? (
           <Button onClick={() => handleOpenAddState()} className="gap-2">
-            <Plus className="h-4 w-4" /> Add State
+            <Plus className="h-4 w-4" /> Add {entityNoun}
           </Button>
         ) : null
       }
     >
       <div className="space-y-6">
-        {/* Delegation Architecture Info Banner */}
+        {/* ==========================================
+            [COUNTRY_MODULE_DISABLED] Country Banner & Filter
         <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900 shadow-xs dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
-          <p className="font-semibold text-sm">3-Tier Geographic Delegation System</p>
+          <p className="font-semibold text-sm">
+            {isNonIndia ? "4-Tier International Governance Hierarchy" : "3-Tier Geographic Delegation System"}
+          </p>
           <p className="mt-1 text-blue-800/90 dark:text-blue-300">
-            As Central Admin, you assign <strong>State Admins</strong> to oversee states. The State Admin for that state then holds the exclusive authority to assign and manage <strong>Chapter Admins</strong> for individual cities (e.g., Mumbai, Pune, Nagpur).
+            {isNonIndia
+              ? `In countries outside India, regional hubs are structured as States / Cities. Hierarchy: Central Admin → Country Admin (${activeCountry}) → State / City Admin → Business Owners.`
+              : "As Central Admin, you assign State Admins to oversee states. The State Admin for that state then holds authority to assign and manage Chapter Admins for individual cities."}
           </p>
         </div>
 
+        {isSuperCentralAdmin && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+              <Globe className="h-4 w-4 text-primary" />
+              <span>Filter by Country Jurisdiction:</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={countryFilter}
+                onValueChange={(val) => setCountryFilter(val)}
+              >
+                <SelectTrigger className="h-9 w-[220px] text-xs font-semibold bg-slate-50 border-slate-200">
+                  <SelectValue placeholder="All Countries" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Countries (Global)</SelectItem>
+                  {countryList.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+        ========================================== */}
+
+        {isCountryAdmin && (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs text-emerald-900 shadow-2xs">
+            <Globe className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>
+              National Desk: <strong>{user?.country || "Your Country"}</strong> — Managing {entityPlural} under Central Country Administration.
+            </span>
+          </div>
+        )}
+
         {/* Stats Row */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="States Active" value={String(totalStates)} icon={MapPin} tone="primary" />
-          <StatCard label="States with Admins" value={String(statesWithAdmin)} icon={UserCheck} tone="success" />
+          <StatCard label={`${entityPlural} Active`} value={String(totalStates)} icon={MapPin} tone="primary" />
+          <StatCard label={`${entityPlural} with Admins`} value={String(statesWithAdmin)} icon={UserCheck} tone="success" />
           <StatCard label="Total Chapter Admins" value={String(totalChapters)} icon={Users} />
           <StatCard label="Regional Businesses" value={String(totalBusinesses)} icon={Building2} tone="warning" />
         </div>
 
         {/* States Table */}
-        <Panel title="State Desks">
+        <Panel title={`${entityNoun} Desks`}>
           <ResponsiveTable
             rows={states}
             isLoading={isLoading}
-            emptyTitle="No states registered yet"
-            emptyDescription="Allocate a State Admin above to initialize your first state desk."
+            emptyTitle={`No ${entityPlural.toLowerCase()} registered yet`}
+            emptyDescription={`Allocate a ${adminNoun} above to initialize your first ${entityNoun.toLowerCase()} desk.`}
             columns={[
               {
                 key: "state",
-                header: "State / Territory",
+                header: `${entityNoun} / Territory`,
                 cell: (r) => (
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs">
                       {r.state?.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <span className="font-semibold text-foreground text-sm">{r.state}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-foreground text-sm">{r.state}</span>
+                        {r.countryName && r.countryName.toLowerCase() !== "india" && (
+                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">
+                            {r.countryName}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">{r.chaptersCount} Chapter Admin{r.chaptersCount === 1 ? "" : "s"}</p>
                     </div>
                   </div>
@@ -241,7 +333,7 @@ export function AdminStates() {
               },
               {
                 key: "admin",
-                header: "State Admin",
+                header: adminNoun,
                 cell: (r) =>
                   r.admin ? (
                     <div className="space-y-0.5">
@@ -287,7 +379,7 @@ export function AdminStates() {
                 key: "actions",
                 header: "",
                 cell: (r) =>
-                  isCentralAdmin ? (
+                  canManageStates ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -336,23 +428,47 @@ export function AdminStates() {
         </Panel>
       </div>
 
-      {/* Add State Dialog */}
+      {/* Add State / City Dialog */}
       <Dialog open={openModal} onOpenChange={setOpenModal}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add State</DialogTitle>
+            <DialogTitle>Add {entityNoun}</DialogTitle>
             <DialogDescription>
-              Create a new state profile and optionally assign a State Admin from the registered business owners list.
+              Create a new {entityNoun.toLowerCase()} profile and optionally assign a {adminNoun} from the registered business owners list.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddState} className="space-y-4 pt-2">
+            {/* ==========================================
+                [COUNTRY_MODULE_DISABLED] Country Jurisdiction Field
+            {isSuperCentralAdmin && !activeCountry && (
+              <div className="space-y-1.5">
+                <Label htmlFor="st-country">Country Jurisdiction *</Label>
+                <Select
+                  value={form.country || "India"}
+                  onValueChange={(val) => setForm((prev) => ({ ...prev, country: val }))}
+                >
+                  <SelectTrigger id="st-country" className="h-10 text-xs font-medium">
+                    <SelectValue placeholder="Select Country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countryList.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            ========================================== */}
+
             <div className="space-y-1.5">
-              <Label htmlFor="st-name">State Name *</Label>
+              <Label htmlFor="st-name">{entityNoun} Name *</Label>
               <Input
                 id="st-name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Maharashtra"
+                placeholder={isNonIndia ? "e.g. Dubai, Abu Dhabi, London" : "e.g. Maharashtra, Gujarat"}
                 required
               />
             </div>

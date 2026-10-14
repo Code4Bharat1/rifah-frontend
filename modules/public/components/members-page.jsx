@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { resolveMediaUrl } from "@shared/lib/media";
 import { roleApi, stateApi, chapterApi } from "@shared/lib/api-services";
+import { useCountries } from "@shared/hooks/use-rifah-api";
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Award, Building2, ShieldCheck, MapPin, Mail, Phone, Globe, Link2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
@@ -11,12 +12,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@shared/components/ui/button";
 
 export function MembersDirectoryPage() {
+  const [countryFilter, setCountryFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
   const [stateFilter, setStateFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
   const [selectedLeader, setSelectedLeader] = useState(null);
 
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const rawCountries = Array.isArray(countriesData)
+    ? countriesData
+    : countriesData?.countries || countriesData?.data || [];
+  const dbCountryNames = rawCountries.map((c) => c.name).filter(Boolean);
+  const countryOptions = Array.from(new Set(["India", ...dbCountryNames]));
+  const isNonIndia = countryFilter !== "all" && countryFilter.toLowerCase() !== "india";
+
   const queryParams = {
+    ...(countryFilter !== "all" && { country: countryFilter }),
     ...(levelFilter !== "all" && { level: levelFilter }),
     ...(stateFilter !== "all" && { state: stateFilter }),
     ...(chapterFilter !== "all" && { chapterId: chapterFilter }),
@@ -77,7 +88,31 @@ export function MembersDirectoryPage() {
       <section className="py-12 bg-muted/30 min-h-[600px]">
         <div className="rifah-container">
 
-          <div className="mb-10 bg-background p-4 rounded-2xl border border-border shadow-sm flex flex-col md:flex-row items-center gap-4 max-w-4xl mx-auto -mt-20 relative z-20">
+          <div className="mb-10 bg-background p-4 rounded-2xl border border-border shadow-sm flex flex-col md:flex-row items-center gap-4 max-w-5xl mx-auto -mt-20 relative z-20">
+            {/* ==========================================
+                [COUNTRY_MODULE_DISABLED] Country Filter
+            <div className="flex-1 w-full">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block px-1">Country</label>
+              <Select value={countryFilter} onValueChange={(val) => {
+                setCountryFilter(val);
+                setStateFilter("all");
+                setChapterFilter("all");
+              }}>
+                <SelectTrigger className="w-full bg-muted/30 border-none h-11 rounded-xl font-medium">
+                  <SelectValue placeholder="All Countries" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Countries</SelectItem>
+                  {countryOptions.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            ========================================== */}
+
+            <div className="w-px h-12 bg-border hidden md:block"></div>
+
             <div className="flex-1 w-full">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block px-1">Hierarchy Level</label>
               <Select value={levelFilter} onValueChange={(val) => {
@@ -91,7 +126,8 @@ export function MembersDirectoryPage() {
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
                   <SelectItem value="Central">Central (National)</SelectItem>
-                  <SelectItem value="State">State Level</SelectItem>
+                  <SelectItem value="Country">Country Admin</SelectItem>
+                  <SelectItem value="State">{isNonIndia ? "State / City Level" : "State Level"}</SelectItem>
                   <SelectItem value="Chapter">Chapter Level</SelectItem>
                 </SelectContent>
               </Select>
@@ -100,13 +136,15 @@ export function MembersDirectoryPage() {
             <div className="w-px h-12 bg-border hidden md:block"></div>
 
             <div className="flex-1 w-full opacity-100 transition-opacity">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block px-1">State</label>
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block px-1">
+                {isNonIndia ? "State / City" : "State"}
+              </label>
               <Select value={stateFilter} onValueChange={setStateFilter} disabled={levelFilter === "Central" || levelFilter === "Chapter"}>
                 <SelectTrigger className="w-full bg-muted/30 border-none h-11 rounded-xl font-medium">
-                  <SelectValue placeholder="All States" />
+                  <SelectValue placeholder={isNonIndia ? "All States / Cities" : "All States"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All States</SelectItem>
+                  <SelectItem value="all">{isNonIndia ? "All States / Cities" : "All States"}</SelectItem>
                   {states.map(s => (
                     <SelectItem key={s.state} value={s.state}>{s.state}</SelectItem>
                   ))}

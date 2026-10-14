@@ -77,8 +77,12 @@ function MembershipPage() {
       <div className="rifah-container py-6 sm:py-10">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <SectionHeader
-            title="Membership plans"
-            description="Membership determines directory visibility, catalogue capacity and how early your business sees matched buyer enquiries."
+            title={isIntl ? "International membership tier plans" : "Membership plans"}
+            description={
+              isIntl
+                ? "International businesses and members subscribe to monthly quota-based Tier Plans ($ USD) for global trading, direct chats, and lead unlocks."
+                : "Membership determines directory visibility, catalogue capacity and how early your business sees matched buyer enquiries."
+            }
           />
 
           {/* Region / Currency Switcher */}

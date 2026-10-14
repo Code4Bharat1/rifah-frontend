@@ -1,13 +1,13 @@
 "use client";
 import { useState, useMemo } from "react";
-import { Inbox, MessageSquare, MoreHorizontal, Clock, AlertCircle, ShieldCheck, MapPin, UserCheck, Eye, Download, Target, Image as ImageIcon } from "lucide-react";
+import { Inbox, MessageSquare, MoreHorizontal, Clock, AlertCircle, ShieldCheck, MapPin, UserCheck, Eye, Download, Target, Image as ImageIcon, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill, StatusBadge } from "@shared/components/rifah/badges";
 import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Panel, ResponsiveTable, StatCard } from "@shared/components/rifah/ui-bits";
-import { useAllEnquiries, useChapters, useAdminUsers, useStates } from "@shared/hooks/use-rifah-api";
+import { useAllEnquiries, useChapters, useAdminUsers, useStates, useCountries } from "@shared/hooks/use-rifah-api";
 import { useDebounce } from "@shared/hooks/use-debounce";
 import { enquiryApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
@@ -30,17 +30,40 @@ import { useAuth } from "@shared/providers/auth-provider";
 
 function AdminEnquiries() {
   const { user } = useAuth();
-  const currentRole = user?.role === "state_admin"
+  const isCountryAdmin = user?.role === "country_admin";
+  const isCentralAdmin = user?.role === "central_admin";
+  const currentRole = user?.role === "country_admin"
+    ? "country_admin"
+    : user?.role === "state_admin"
     ? "state_admin"
     : user?.role === "chapter_admin"
       ? "chapter_admin"
       : "admin";
 
-  const subtitle = user?.role === "state_admin"
+  const subtitle = user?.role === "country_admin"
+    ? `National Enquiry Desk · Buyer sourcing RFQs routed across ${user?.country || "your country"}`
+    : user?.role === "state_admin"
     ? `State Enquiry Desk · Buyer sourcing RFQs routed across ${user?.state ? user.state + " " : ""}chapters`
     : user?.role === "chapter_admin"
       ? "Chapter Enquiry Desk · Buyer sourcing RFQs for your chapter"
       : "Buyer sourcing RFQs routed across chamber network";
+
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const rawCountries = Array.isArray(countriesData)
+    ? countriesData
+    : countriesData?.countries || countriesData?.data || [];
+  const dbCountryNames = rawCountries.map((c) => c.name).filter(Boolean);
+  const availableCountries = Array.from(new Set(["India", ...dbCountryNames]));
+
+  const [countryFilter, setCountryFilter] = useState(
+    isCountryAdmin ? user?.country || "India" : "all"
+  );
+
+  const activeCountry = isCountryAdmin
+    ? user?.country || "India"
+    : countryFilter === "all"
+    ? null
+    : countryFilter;
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -48,20 +71,37 @@ function AdminEnquiries() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
 
-  const { data: enquiriesData } = useAllEnquiries({
+  const { data: enquiriesData, refetch } = useAllEnquiries({
     search: debouncedSearch || undefined,
     status: statusFilter,
     type: typeFilter,
     chapter: chapterFilter,
+    country: activeCountry || undefined,
   });
-  const enquiries = Array.isArray(enquiriesData) ? enquiriesData : [];
+  const rawEnquiries = Array.isArray(enquiriesData) ? enquiriesData : [];
+  const enquiries = rawEnquiries.filter((e) => {
+    if (activeCountry) {
+      const eCountry = (e.country || e.business?.country || "").trim().toLowerCase();
+      if (eCountry && eCountry !== activeCountry.toLowerCase()) return false;
+      if (!eCountry && activeCountry.toLowerCase() !== "india") return false;
+    }
+    return true;
+  });
 
   const { data: chaptersData } = useChapters();
-  const chapters = Array.isArray(chaptersData) ? chaptersData : [];
+  const rawChapters = Array.isArray(chaptersData) ? chaptersData : [];
+  const chapters = useMemo(() => {
+    if (!activeCountry) return rawChapters;
+    return rawChapters.filter((c) => {
+      const cCountry = (c?.country || "").trim().toLowerCase();
+      if (!cCountry) return activeCountry.toLowerCase() === "india";
+      return cCountry === activeCountry.toLowerCase();
+    });
+  }, [rawChapters, activeCountry]);
 
   const { data: adminUsersData } = useAdminUsers({ limit: 100 });
   const adminUsers = Array.isArray(adminUsersData)
-    ? adminUsersData.filter(u => ["central_admin", "state_admin", "chapter_admin"].includes(u.role))
+    ? adminUsersData.filter(u => ["central_admin", "country_admin", "state_admin", "chapter_admin"].includes(u.role))
     : [];
 
   const { data: statesData } = useStates();
@@ -314,6 +354,39 @@ function AdminEnquiries() {
               <SelectItem value="broadcast">Broadcast RFQs</SelectItem>
             </SelectContent>
           </Select>
+          {/* ==========================================
+              [COUNTRY_MODULE_DISABLED] Country Filter
+          {(isCentralAdmin || isCountryAdmin) && (
+            <div className="w-full sm:max-w-[180px]">
+              {isCountryAdmin ? (
+                <div className="flex h-10 items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-xs font-semibold text-foreground">
+                  <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="truncate">{user?.country || "Your Country"}</span>
+                </div>
+              ) : (
+                <Select
+                  value={countryFilter}
+                  onValueChange={(v) => {
+                    setCountryFilter(v);
+                    setChapterFilter("all");
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <Globe className="h-3.5 w-3.5 text-muted-foreground mr-1 shrink-0" />
+                    <SelectValue placeholder="All Countries" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Countries</SelectItem>
+                    {availableCountries.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
+          ========================================== */}
+
           <Select value={chapterFilter} onValueChange={setChapterFilter}>
             <SelectTrigger className="sm:max-w-[180px]">
               <SelectValue placeholder="Filter by chapter" />

@@ -103,10 +103,17 @@ export function AdminAdvertisementsDesk({
   // Sub-filters for state and chapter
   const [selectedState, setSelectedState] = useState("all");
   const [selectedChapter, setSelectedChapter] = useState("all");
+  const isCountryAdmin = user?.role === "country_admin";
+  const userCountry = (user?.country || "India").trim();
+  const isNonIndia = userCountry.toLowerCase() !== "india";
 
-  const pageTitle = "Central Advertisements Desk";
-  const pageSubtitle = "Verify member ads, enforce compliance & schedule spotlight slots across Global, State, and Chapter reach · Central Administration";
-  const roleLabel = "Central Admin";
+  const pageTitle = isCountryAdmin
+    ? `National Advertisements Desk (${userCountry})`
+    : "Central Advertisements Desk";
+  const pageSubtitle = isCountryAdmin
+    ? `Verify member ads, enforce compliance & schedule spotlight slots across ${userCountry} · Country Administration`
+    : "Verify member ads, enforce compliance & schedule spotlight slots across Global, State, and Chapter reach · Central Administration";
+  const roleLabel = isCountryAdmin ? "Country Admin" : "Central Admin";
 
   const { data: adsData, isLoading: loadingAds } = useAdminAdvertisements({
     targetScope: "all",
@@ -392,13 +399,13 @@ export function AdminAdvertisementsDesk({
           <div className="flex items-center gap-2">
             {scopeTab === "state" && uniqueStates.length > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted-foreground">State:</span>
+                <span className="text-xs font-semibold text-muted-foreground">{isNonIndia ? "State / City:" : "State:"}</span>
                 <select
                   value={selectedState}
                   onChange={(e) => setSelectedState(e.target.value)}
                   className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs focus:outline-hidden"
                 >
-                  <option value="all">All States ({allAds.filter((a) => (a.targetScope || "chapter") === "state").length})</option>
+                  <option value="all">{isNonIndia ? "All States / Cities" : "All States"} ({allAds.filter((a) => (a.targetScope || "chapter") === "state").length})</option>
                   {uniqueStates.map((st) => (
                     <option key={st} value={st}>
                       {st} ({allAds.filter((a) => (a.targetScope || "chapter") === "state" && (a.state || "").toLowerCase() === st.toLowerCase()).length})

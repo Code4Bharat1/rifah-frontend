@@ -358,7 +358,7 @@ export function BizEvents() {
                 const qrUserEmail = user ? user.email : 'N/A';
                 const qrUserBusiness = user?.businessName || '';
                 const qrEventName = ev?.title || '';
-                const ticketId = userReg?.ticketId || `RIFAH-EVT-${new Date().getFullYear()}-${String(ev._id || '').slice(-4).toUpperCase()}`;
+                const ticketId = userReg?.ticketId || (userReg?._id ? String(userReg._id) : '');
                 const verificationToken = userReg?.verificationToken || '';
                 const ticketType = userReg?.ticketType || (ev.isPaid ? "Member Pass" : "General Pass");
                 const origin = typeof window !== 'undefined' ? window.location.origin : '';

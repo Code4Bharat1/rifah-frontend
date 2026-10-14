@@ -211,9 +211,11 @@ function AdminEvents() {
   const pathname = usePathname();
   const { user } = useAuth();
   const isCentralAdmin = user?.role === "central_admin";
+  const isCountryAdmin = user?.role === "country_admin";
   const isChapterAdmin = pathname?.startsWith("/chapter-admin") || user?.role === "chapter_admin";
   const basePath = user?.role === "chapter_admin" ? "/chapter-admin/events" : user?.role === "state_admin" ? "/state-admin/events" : "/admin/events";
-  const { data: eventsData, refetch } = useEvents();
+  const eventsQueryParams = isCountryAdmin && user?.country ? { country: user.country } : undefined;
+  const { data: eventsData, refetch } = useEvents(eventsQueryParams);
   const events = Array.isArray(eventsData) ? eventsData : [];
 
   const [filterMode, setFilterMode] = useState("all");

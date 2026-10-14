@@ -20,7 +20,7 @@ import { useAuth } from "@shared/providers/auth-provider";
 export function ConnectionCard({ connection }) {
   const { user } = useAuth();
   const biz = connection.connectedBusiness || {};
-  const user = connection.connectedUser || {};
+  const connectedUser = connection.connectedUser || {};
   const req = connection.requirement;
   const logoUrl = biz.logo ? resolveMediaUrl(biz.logo) : "";
   const connectedDate = connection.connectedAt

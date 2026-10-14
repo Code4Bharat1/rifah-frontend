@@ -60,9 +60,33 @@ import { isValidName } from "@shared/lib/validators";
 
 function AdminChapters() {
   const { user, loading: authLoading } = useAuth();
-  const isCentralAdmin = !authLoading && user?.role === "central_admin";
-  const { data: chaptersData, refetch } = useChapters();
-  const chapters = chaptersData || [];
+  const isSuperCentralAdmin =
+    !authLoading &&
+    (user?.role === "central_admin" ||
+      user?.role === "super_admin" ||
+      user?.role === "secretariat" ||
+      user?.role === "admin");
+  const isCentralAdmin = isSuperCentralAdmin;
+  const isCountryAdmin = !authLoading && user?.role === "country_admin";
+  const canManageChapters = isCentralAdmin || isCountryAdmin;
+
+  const [countryFilter, setCountryFilter] = useState(
+    isCountryAdmin ? user?.country || "India" : "all"
+  );
+
+  const activeCountry = isCountryAdmin
+    ? user?.country || "India"
+    : countryFilter === "all"
+    ? null
+    : countryFilter;
+
+  const { data: chaptersData, refetch } = useChapters(
+    activeCountry ? { country: activeCountry } : undefined
+  );
+  const rawChaptersList = chaptersData || [];
+  const chapters = Array.isArray(rawChaptersList)
+    ? rawChaptersList
+    : rawChaptersList?.chapters || [];
 
   const [countries, setCountries] = useState([]);
   const [openAdd, setOpenAdd] = useState(false);
@@ -174,19 +198,12 @@ function AdminChapters() {
         setCountries(countryOptions);
 
         setNewChapter((current) => {
-          const currentCountry = String(current.country || "").trim();
-          const nextCountry =
-            currentCountry &&
-            countryOptions.some(
-              (country) =>
-                country.name.toLowerCase() === currentCountry.toLowerCase(),
-            )
-              ? currentCountry
-              : countryOptions[0]?.name || "India";
-
+          const defaultCty = isCountryAdmin
+            ? user?.country || "India"
+            : countryOptions[0]?.name || "India";
           return {
             ...current,
-            country: nextCountry,
+            country: defaultCty,
             state: "",
           };
         });
@@ -196,7 +213,7 @@ function AdminChapters() {
     };
 
     loadCountryOptions();
-  }, []);
+  }, [isCountryAdmin, user?.country]);
 
   const totalUnits = chapters.reduce(
     (sum, c) => sum + (c.units?.length || 0),
@@ -272,10 +289,18 @@ function AdminChapters() {
   return (
     <AppShell
       role="admin"
-      title="Chapters and units"
-      subtitle="Regional structure and branch desks of RIFAH Chamber"
+      title={
+        isCountryAdmin
+          ? `${user?.country || "National"} Chapters & Units`
+          : "Chapters and units"
+      }
+      subtitle={
+        isCountryAdmin
+          ? `Local branches and specialized units established in ${user?.country || "your country"}`
+          : "Regional structure and branch desks of RIFAH Chamber"
+      }
       actions={
-        isCentralAdmin ? (
+        canManageChapters ? (
           <Button onClick={() => setOpenAdd(true)}>
             <Plus className="h-4 w-4" /> New chapter
           </Button>
@@ -283,6 +308,44 @@ function AdminChapters() {
       }
     >
       <div className="space-y-4">
+        {/* ==========================================
+            [COUNTRY_MODULE_DISABLED] Country Filter Selector
+        {isSuperCentralAdmin && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+              <Globe className="h-4 w-4 text-primary" />
+              <span>Filter by Country Jurisdiction:</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={countryFilter}
+                onValueChange={(val) => setCountryFilter(val)}
+              >
+                <SelectTrigger className="h-9 w-[220px] text-xs font-semibold bg-slate-50 border-slate-200">
+                  <SelectValue placeholder="All Countries" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Countries (Global)</SelectItem>
+                  {countries.map((c) => (
+                    <SelectItem key={c.name} value={c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+        ========================================== */}
+
+        {isCountryAdmin && (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs text-emerald-900 shadow-2xs">
+            <Globe className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>
+              National Desk: <strong>{user?.country || "Your Country"}</strong> — Managing chapters under Central Country Administration.
+            </span>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
             label="Chapters"
@@ -341,7 +404,7 @@ function AdminChapters() {
                 key: "act",
                 header: "",
                 cell: (r) =>
-                  isCentralAdmin ? (
+                  canManageChapters ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -475,55 +538,47 @@ function AdminChapters() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ch-state">
-                State
                 {newChapter.country &&
                 newChapter.country.toLowerCase() !== "india"
-                  ? " (optional)"
-                  : " *"}
+                  ? "State / City *"
+                  : "State *"}
               </Label>
               <Input
                 id="ch-state"
                 value={newChapter.state}
+                required
                 onChange={(e) =>
                   setNewChapter({ ...newChapter, state: e.target.value })
                 }
                 placeholder={
                   newChapter.country &&
                   newChapter.country.toLowerCase() !== "india"
-                    ? "Optional for international chapters"
-                    : "Maharashtra"
+                    ? "e.g. Dubai, Abu Dhabi, London"
+                    : "e.g. Maharashtra"
                 }
               />
             </div>
+            {/* ==========================================
+                [COUNTRY_MODULE_DISABLED] Country Input Field
             <div className="space-y-1.5">
               <Label htmlFor="ch-country">Country</Label>
               <select
                 id="ch-country"
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500"
                 value={newChapter.country}
-                onChange={(e) => {
-                  const nextCountry = e.target.value;
-                  setNewChapter({
-                    ...newChapter,
-                    country: nextCountry,
-                    state: "",
-                  });
-                }}
+                disabled={isCountryAdmin}
+                onChange={(e) =>
+                  setNewChapter({ ...newChapter, country: e.target.value })
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:bg-muted disabled:cursor-not-allowed"
               >
-                {countries.length === 0 ? (
-                  <option value="India">India</option>
-                ) : (
-                  countries.map((country) => (
-                    <option
-                      key={country._id || country.id}
-                      value={country.name}
-                    >
-                      {country.name}
-                    </option>
-                  ))
-                )}
+                {countries.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </div>
+            ========================================== */}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -51,7 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@shared/components/ui/select";
-import { useVerificationQueue, useChapters, useStates } from "@shared/hooks/use-rifah-api";
+import { useVerificationQueue, useChapters, useStates, useCountries } from "@shared/hooks/use-rifah-api";
 import { verificationApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { toast } from "sonner";
@@ -67,23 +67,52 @@ function AdminVerification() {
   }, []);
 
   const isCentralAdmin = ["central_admin", "super_admin", "admin", "secretariat"].includes(user?.role);
-  const isAuthorizedVerifier = isCentralAdmin;
+  const isCountryAdmin = user?.role === "country_admin";
+  const isAuthorizedVerifier = isCentralAdmin || isCountryAdmin;
+
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const rawCountries = Array.isArray(countriesData)
+    ? countriesData
+    : countriesData?.countries || countriesData?.data || [];
+  const dbCountryNames = rawCountries.map((c) => c.name).filter(Boolean);
+  const availableCountries = Array.from(new Set(["India", ...dbCountryNames]));
+
+  const [countryFilter, setCountryFilter] = useState(
+    isCountryAdmin ? user?.country || "" : "all"
+  );
+
+  useEffect(() => {
+    if (isCountryAdmin && user?.country && countryFilter !== user.country) {
+      setCountryFilter(user.country);
+    }
+  }, [isCountryAdmin, user?.country]);
+
+  const activeCountry = isCountryAdmin
+    ? user?.country || (countryFilter !== "all" ? countryFilter : null)
+    : countryFilter === "all"
+    ? null
+    : countryFilter;
+  const isNonIndia = Boolean(
+    activeCountry && activeCountry.toLowerCase() !== "india"
+  );
+
   const [stateFilter, setStateFilter] = useState("all");
   const [chapterFilter, setChapterFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
 
   const { data: queueData, error, isLoading, refetch } = useVerificationQueue({
+    country: activeCountry || undefined,
     state: stateFilter === "all" ? undefined : stateFilter,
     chapter: chapterFilter === "all" ? undefined : chapterFilter,
     search: searchQuery.trim() || undefined,
   });
   const queue = Array.isArray(queueData) ? queueData : (queueData?.verifications || []);
 
-  const { data: statesData } = useStates();
+  const { data: statesData } = useStates(activeCountry ? { country: activeCountry } : undefined);
   const rawStates = Array.isArray(statesData) ? statesData : statesData?.states || [];
 
-  const { data: chaptersData } = useChapters();
+  const { data: chaptersData } = useChapters(activeCountry ? { country: activeCountry } : undefined);
   const rawChapters = Array.isArray(chaptersData) ? chaptersData : chaptersData?.chapters || [];
 
   const availableStates = useMemo(() => {
@@ -228,6 +257,16 @@ function AdminVerification() {
   const filteredQueue = useMemo(() => {
     return queue.filter((item) => {
       const biz = item?.business;
+      if (countryFilter !== "all") {
+        const bCountry = (biz?.country || "").trim().toLowerCase();
+        const bCountryId = biz?.countryId ? String(biz.countryId) : "";
+        const uCountryId = user?.countryId ? String(user.countryId) : "";
+        const matchesId = isCountryAdmin && uCountryId && bCountryId && uCountryId === bCountryId;
+        if (!matchesId) {
+          if (!bCountry && countryFilter.toLowerCase() !== "india") return false;
+          if (bCountry && bCountry !== countryFilter.toLowerCase()) return false;
+        }
+      }
       if (stateFilter !== "all") {
         const bState = (biz?.state || "").trim().toLowerCase();
         if (bState !== stateFilter.trim().toLowerCase()) return false;
@@ -246,7 +285,7 @@ function AdminVerification() {
       }
       return true;
     });
-  }, [queue, stateFilter, chapterFilter, searchQuery]);
+  }, [queue, countryFilter, stateFilter, chapterFilter, searchQuery]);
 
   // Filter queue into tabs
   const pending = filteredQueue.filter(
@@ -720,7 +759,7 @@ function AdminVerification() {
       subtitle="Central Admin Business Compliance, Document Vetting & Approval Desk"
     >
       <div className="space-y-4">
-        {/* Top Control Bar: Search & Chapter Scope */}
+        {/* Top Control Bar: Search & Country / State / Chapter Scope */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -732,6 +771,36 @@ function AdminVerification() {
             />
           </div>
 
+          {/* ==========================================
+              [COUNTRY_MODULE_DISABLED] Country Filter
+          {isCountryAdmin ? (
+            <div className="h-10 px-3 py-2 border rounded-md bg-muted/50 text-muted-foreground flex items-center text-xs font-semibold cursor-not-allowed">
+              {user?.country || "Country Assigned"}
+            </div>
+          ) : (
+            <Select
+              value={countryFilter}
+              onValueChange={(val) => {
+                setCountryFilter(val);
+                setStateFilter("all");
+                setChapterFilter("all");
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[180px] h-10 text-xs">
+                <SelectValue placeholder="All Countries" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Countries</SelectItem>
+                {availableCountries.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          ========================================== */}
+
           {/* Cascading State Dropdown */}
           <Select
             value={stateFilter}
@@ -740,11 +809,11 @@ function AdminVerification() {
               setChapterFilter("all");
             }}
           >
-            <SelectTrigger className="sm:max-w-[200px] h-10">
-              <SelectValue placeholder="All States" />
+            <SelectTrigger className="sm:max-w-[180px] h-10 text-xs">
+              <SelectValue placeholder={isNonIndia ? "All States / Cities" : "All States"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All States</SelectItem>
+              <SelectItem value="all">{isNonIndia ? "All States / Cities" : "All States"}</SelectItem>
               {availableStates.map((st) => (
                 <SelectItem key={st} value={st}>
                   {st}

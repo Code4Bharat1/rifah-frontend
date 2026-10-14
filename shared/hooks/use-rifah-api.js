@@ -73,11 +73,9 @@ export function useMyBusiness() {
     queryKey: ["my-business"],
     queryFn: async () => {
       const res = await businessApi.getMyBusiness();
-      // BUG-FIX: use ?? null so that when the API returns { data: null }
-      // we correctly return null instead of falling back to the entire
-      // response wrapper object (which is truthy and broke admin sidebar locking).
       return res?.data ?? null;
     },
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -144,17 +142,23 @@ export function useStates(params = {}) {
   });
 }
 
-export function useCountries(params = {}) {
-  return useQuery({
-    queryKey: ["countries", params],
-    queryFn: async () => {
-      const res = await countryApi.list(params);
-      return res?.data?.countries || res?.data || res;
-    },
-    staleTime: 1000 * 60 * 30,
-    gcTime: 1000 * 60 * 60,
-  });
+// ==========================================
+// [COUNTRY_MODULE_DISABLED]
+// export function useCountries(params = {}) {
+//   return useQuery({
+//     queryKey: ["countries", params],
+//     queryFn: async () => {
+//       const res = await countryApi.list(params);
+//       return res?.data?.countries || res?.data || res;
+//     },
+//     staleTime: 1000 * 60 * 30,
+//     gcTime: 1000 * 60 * 60,
+//   });
+// }
+export function useCountries() {
+  return { data: [], countries: [], isLoading: false };
 }
+// ==========================================
 
 export function useChapterDetails(id) {
   return useQuery({
@@ -449,6 +453,7 @@ export function useMyMembership() {
       return res?.data || res;
     },
     retry: false,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -636,12 +641,12 @@ export function usePublicStats() {
   });
 }
 
-export function useAdminOverview() {
+export function useAdminOverview(params = {}) {
   const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
   return useQuery({
-    queryKey: ["admin-overview"],
+    queryKey: ["admin-overview", params],
     queryFn: async () => {
-      const res = await reportApi.getOverview();
+      const res = await reportApi.getOverview(params);
       return res?.data || res;
     },
     enabled: Boolean(token),

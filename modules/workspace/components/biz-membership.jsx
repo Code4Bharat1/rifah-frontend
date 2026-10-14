@@ -77,6 +77,9 @@ import { resolveMediaUrl } from "@shared/lib/api-client";
 import { cn } from "@shared/lib/utils";
 import { SUBSCRIBER_TIERS, normalizeUserTier } from "@shared/lib/subscription-models";
 import { downloadCertificatePdf } from "@shared/lib/certificate-generator";
+import { formatInvoiceNumber } from "@shared/lib/indian-states-cities";
+import { useAuth } from "@shared/providers/auth-provider";
+import { Skeleton } from "@shared/components/ui/skeleton";
 
 const docTemplates = [
   {
@@ -229,7 +232,7 @@ function handleDownloadInvoicePDF(payment) {
               </div>
               <div style="text-align: right;">
                 <div class="invoice-title">OFFICIAL INVOICE</div>
-                <div class="invoice-number"># ${payment.invoiceNumber || "INV-0000"}</div>
+                <div class="invoice-number"># ${formatInvoiceNumber(payment.invoiceNumber, payment.paidAt || payment.createdAt)}</div>
                 <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Issued: ${new Date(payment.paidAt || payment.createdAt || Date.now()).toLocaleDateString(locale)}</div>
               </div>
             </div>
@@ -311,7 +314,7 @@ function handleDownloadAllInvoices(payments) {
   toast.success("All invoices downloaded as CSV successfully");
 }
 
-async function handleDownloadCertificate(business, membershipData) {
+async function handleDownloadCertificate(business, membershipData, currentUser = null) {
   const tier = (membershipData?.planName || membershipData?.planId || business?.membership || "").toLowerCase();
   if (tier === "free" || (!membershipData && !business?.membership) || membershipData?.tier === "free") {
     toast.info("Accreditation Required", {
@@ -322,7 +325,18 @@ async function handleDownloadCertificate(business, membershipData) {
 
   try {
     toast.loading("Downloading certificate PDF...", { id: "cert-dl" });
-    await downloadCertificatePdf(business, membershipData);
+    const enrichedBusiness = {
+      ...business,
+      owner: (typeof business?.owner === "object" && business?.owner?.name) ? business.owner : (currentUser || business?.owner),
+      contactPerson: (business?.contactPerson && !/^raj\s*sharma$/i.test(business.contactPerson.trim()))
+        ? business.contactPerson
+        : (business?.owner?.name || currentUser?.name || ""),
+    };
+    await downloadCertificatePdf(enrichedBusiness, membershipData, {
+      user: currentUser,
+      currentUser,
+      ownerName: enrichedBusiness.owner?.name || currentUser?.name,
+    });
     toast.success("Certificate downloaded successfully", { id: "cert-dl" });
   } catch (err) {
     console.error("Certificate download error:", err);
@@ -331,7 +345,8 @@ async function handleDownloadCertificate(business, membershipData) {
 }
 
 function BizMembership() {
-  const { data: business, refetch: refetchBiz } = useMyBusiness();
+  const { user, loading: authLoading } = useAuth();
+  const { data: business, isLoading: bizLoading, isPending: bizPending, refetch: refetchBiz } = useMyBusiness();
   const hasBusinessProfile = Boolean(
     business &&
     business._id &&
@@ -339,8 +354,8 @@ function BizMembership() {
      (typeof business.title === "string" && business.title.trim().length > 0) ||
      (typeof business.legalName === "string" && business.legalName.trim().length > 0))
   );
-  const { data: membershipData } = useMyMembership();
-  const { data: plansData } = useMembershipPlans();
+  const { data: membershipData, isLoading: membershipLoading, isPending: membershipPending } = useMyMembership();
+  const { data: plansData, isLoading: plansLoading } = useMembershipPlans();
   const { data: paymentsData } = useMyPayments();
   const { data: chaptersData } = useChapters();
 
@@ -357,6 +372,11 @@ function BizMembership() {
   const [replacingType, setReplacingType] = useState(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [submittingVerification, setSubmittingVerification] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [autoRenew, setAutoRenew] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -679,6 +699,10 @@ function BizMembership() {
   ) || plans[currentTier];
 
   const isSubscriberTier = useMemo(() => {
+    // If business or membership data is not yet loaded, never flash subscriber UI
+    if (!membershipData && !business) {
+      return false;
+    }
     const planKey = (
       membershipData?.subscriberTier ||
       membershipData?.planId ||
@@ -692,16 +716,13 @@ function BizMembership() {
     if (planCategory === "chamber") return false;
     if (["silver", "gold", "platinum", "diamond"].includes(planKey)) return false;
     if (
-      planKey.startsWith("tier_") ||
-      planKey === "free" ||
-      (matchedPlan?.name || "").toLowerCase().includes("tier") ||
-      (matchedPlan?.name || "").toLowerCase() === "free" ||
-      currentTier.includes("tier") ||
-      currentTier === "free"
+      (business?.subscriberTier && String(business.subscriberTier).toLowerCase().startsWith("tier_")) ||
+      (membershipData?.subscriberTier && String(membershipData.subscriberTier).toLowerCase().startsWith("tier_")) ||
+      (String(membershipData?.planId || "").toLowerCase().startsWith("tier_"))
     ) {
       return true;
     }
-    return true;
+    return false;
   }, [membershipData, business, currentTier, matchedPlan]);
 
   const isChamberPlan = !isSubscriberTier;
@@ -1005,6 +1026,43 @@ function BizMembership() {
       };
     });
   }, [plansData]);
+
+  const isInitialLoading =
+    !mounted ||
+    ((bizLoading || bizPending || membershipLoading || membershipPending || authLoading) &&
+      !business &&
+      !membershipData);
+
+  if (isInitialLoading) {
+    return (
+      <AppShell role="business" title="" subtitle="">
+        <div id="overview" className="space-y-6 max-w-[1380px] mx-auto pb-12">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-40 rounded-md" />
+              <Skeleton className="h-8 w-60 rounded-xl" />
+              <Skeleton className="h-4 w-80 rounded-md" />
+            </div>
+            <div className="flex items-center gap-2.5">
+              <Skeleton className="h-9 w-32 rounded-xl" />
+              <Skeleton className="h-9 w-28 rounded-xl" />
+            </div>
+          </div>
+
+          {/* Cards Grid Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <Skeleton className="h-56 rounded-3xl" />
+            <Skeleton className="h-56 rounded-3xl" />
+            <Skeleton className="h-56 rounded-3xl" />
+          </div>
+
+          {/* Milestone Progress Skeleton */}
+          <Skeleton className="h-64 rounded-3xl" />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
@@ -2195,7 +2253,7 @@ function BizMembership() {
                             });
                             return;
                           }
-                          handleDownloadCertificate(business, membershipData);
+                          handleDownloadCertificate(business, membershipData, user);
                         }}
                         className={cn(
                           "w-full flex items-center justify-between p-3.5 rounded-2xl border text-left cursor-pointer group transition-all",
@@ -2957,7 +3015,7 @@ function BizMembership() {
                 {
                   key: "invoiceNumber",
                   header: "INVOICE NO.",
-                  cell: (r) => <span className="font-bold text-xs text-foreground">{r.invoiceNumber || (r._id ? `INV-${String(r._id).slice(-6).toUpperCase()}` : "INV—")}</span>,
+                  cell: (r) => <span className="font-bold text-xs text-foreground">{formatInvoiceNumber(r.invoiceNumber, r.paidAt || r.createdAt)}</span>,
                 },
                 {
                   key: "purpose",
@@ -3030,7 +3088,7 @@ function BizMembership() {
                 return (
                   <div className="rounded-xl border border-border p-3.5 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-foreground">{r.invoiceNumber || (r._id ? `INV-${String(r._id).slice(-6).toUpperCase()}` : "INV—")}</span>
+                      <span className="text-xs font-bold text-foreground">{formatInvoiceNumber(r.invoiceNumber, r.paidAt || r.createdAt)}</span>
                       <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5">
                         {r.status || "Paid"}
                       </span>

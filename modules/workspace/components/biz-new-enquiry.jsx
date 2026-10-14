@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -30,6 +30,7 @@ import {
   useBusinesses,
   useCategories,
   useChapters,
+  useCountries,
   useMyBusiness,
 } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
@@ -65,6 +66,7 @@ export function BizNewEnquiry() {
 
   // Targeting options
   const [targetType, setTargetType] = useState("all"); // 'all' | 'state' | 'business'
+  const [selectedCountry, setSelectedCountry] = useState("India");
   const [selectedState, setSelectedState] = useState("");
   const [selectedChapter, setSelectedChapter] = useState("");
   const [selectedBusiness, setSelectedBusiness] = useState("");
@@ -88,6 +90,13 @@ export function BizNewEnquiry() {
   // Queries for dynamic dropdowns
   const { user } = useAuth();
   const { data: myBiz } = useMyBusiness();
+  const { data: countriesData } = useCountries({ status: "Active" });
+  const rawCountries = Array.isArray(countriesData)
+    ? countriesData
+    : countriesData?.countries || countriesData?.data || [];
+  const dbCountryNames = rawCountries.map((c) => c.name).filter(Boolean);
+  const availableCountries = Array.from(new Set(["India", ...dbCountryNames]));
+
   const { data: chaptersData, isLoading: loadingChapters } = useChapters();
   const { data: categoriesData } = useCategories();
   const { data: businessesData, isLoading: loadingBusinesses } = useBusinesses({
@@ -106,7 +115,10 @@ export function BizNewEnquiry() {
     ? rawCategories
     : B2B_CATEGORIES.map((c) => ({ name: c, _id: c }));
 
-  // Resolve current business's registered state
+  // Resolve current business's registered country and state
+  const ownCountry = (myBiz?.country || user?.country || "India").trim();
+  const isOwnCountryNonIndia = ownCountry.toLowerCase() !== "india";
+
   const myChapter = chapters.find(
     (ch) =>
       (myBiz?.chapterId && String(ch._id) === String(myBiz.chapterId)) ||
@@ -117,19 +129,29 @@ export function BizNewEnquiry() {
     ? rawOwnState.charAt(0).toUpperCase() + rawOwnState.slice(1)
     : "";
 
-  // Derive unique states from chapters list with proper title case
-  const allStates = [
-    ...new Set(
-      chapters
-        .map((ch) => ch.state?.trim())
-        .filter(Boolean)
-        .map((st) => st.charAt(0).toUpperCase() + st.slice(1).toLowerCase())
-    ),
-  ].sort();
+  // Derive states within selected country
+  const statesInCountry = useMemo(() => {
+    const list = chapters.filter((ch) => {
+      const cCountry = (ch.country || "").trim().toLowerCase();
+      if (!cCountry) return selectedCountry.toLowerCase() === "india";
+      return cCountry === selectedCountry.toLowerCase();
+    });
+    const stateNames = list
+      .map((ch) => ch.state?.trim())
+      .filter(Boolean)
+      .map((st) => st.charAt(0).toUpperCase() + st.slice(1).toLowerCase());
+    return Array.from(new Set(stateNames)).sort();
+  }, [chapters, selectedCountry]);
 
-  // Chapters filtered by selected state (for business cascading picker)
+  // Chapters filtered by selected state & country (for business cascading picker)
   const chaptersInState = selectedState
-    ? chapters.filter((ch) => (ch.state || "").trim().toLowerCase() === selectedState.trim().toLowerCase())
+    ? chapters.filter((ch) => {
+        const matchState = (ch.state || "").trim().toLowerCase() === selectedState.trim().toLowerCase();
+        if (!matchState) return false;
+        const cCountry = (ch.country || "").trim().toLowerCase();
+        if (!cCountry) return selectedCountry.toLowerCase() === "india";
+        return cCountry === selectedCountry.toLowerCase();
+      })
     : [];
 
   // Filter out current business so user doesn't target themselves
@@ -326,14 +348,14 @@ export function BizNewEnquiry() {
                 </div>
                 <h4 className="mt-3 text-sm font-semibold text-foreground">All Businesses</h4>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Direct broadcast to all active member businesses across India.
+                  Direct broadcast to all active member businesses across chamber network.
                 </p>
               </button>
 
-              {/* Option 2: Own State */}
+              {/* Option 2: Own State / City */}
               <button
                 type="button"
-                onClick={() => { setTargetType("state"); setSelectedState(""); setSelectedChapter(""); setSelectedBusiness(""); }}
+                onClick={() => { setTargetType("state"); setSelectedCountry(ownCountry || "India"); setSelectedState(""); setSelectedChapter(""); setSelectedBusiness(""); }}
                 className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "state"
                   ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                   : "border-border hover:border-muted-foreground/30"
@@ -344,21 +366,21 @@ export function BizNewEnquiry() {
                     <MapPin className="h-5 w-5" />
                   </div>
                   <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
-                    State-Wide
+                    {isOwnCountryNonIndia ? "State / City-Wide" : "State-Wide"}
                   </span>
                 </div>
                 <h4 className="mt-3 text-sm font-semibold text-foreground">
-                  {ownState ? `${ownState} (Own State)` : "Own State"}
+                  {ownState ? `${ownState} (${isOwnCountryNonIndia ? "Own State / City" : "Own State"})` : (isOwnCountryNonIndia ? "Own State / City" : "Own State")}
                 </h4>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Broadcast exclusively to all member businesses registered in {ownState || "your state"}.
+                  Broadcast exclusively to all member businesses registered in {ownState || (isOwnCountryNonIndia ? "your state / city" : "your state")}.
                 </p>
               </button>
 
               {/* Option 3: Specific Business */}
               <button
                 type="button"
-                onClick={() => { setTargetType("business"); setSelectedState(""); setSelectedChapter(""); setSelectedBusiness(""); }}
+                onClick={() => { setTargetType("business"); setSelectedCountry("India"); setSelectedState(""); setSelectedChapter(""); setSelectedBusiness(""); }}
                 className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all ${targetType === "business"
                   ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                   : "border-border hover:border-muted-foreground/30"
@@ -385,33 +407,63 @@ export function BizNewEnquiry() {
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <span className="text-sm font-semibold text-foreground">
-                    Target State: <span className="font-bold text-blue-600 dark:text-blue-400">{ownState || "Your Registered State"}</span>
+                    Target {isOwnCountryNonIndia ? "State / City" : "State"}: <span className="font-bold text-blue-600 dark:text-blue-400">{ownState || (isOwnCountryNonIndia ? "Your Registered State / City" : "Your Registered State")}</span>
                   </span>
                 </div>
                 <p className="mt-1.5 text-xs text-muted-foreground">
-                  This enquiry is automatically restricted to your own state ({ownState || "registered state"}). Only active member businesses belonging to {ownState || "your state"} will receive this requirement.
+                  This enquiry is automatically restricted to your own {isOwnCountryNonIndia ? "state / city" : "state"} ({ownState || "registered desk"}). Only active member businesses belonging to {ownState || (isOwnCountryNonIndia ? "your state / city" : "your state")} will receive this requirement.
                 </p>
               </div>
             )}
 
-            {/* Conditional: Specific Business — cascading State → Chapter → Business */}
+            {/* Conditional: Specific Business — cascading Country → State/City → Chapter → Business */}
             {targetType === "business" && (
               <div className="space-y-3 rounded-xl border border-border bg-surface-raised p-4">
+                {/* ==========================================
+                    [COUNTRY_MODULE_DISABLED] Country Step
+                <div>
+                  <Label htmlFor="biz-country-select" className="text-sm font-semibold">
+                    Step 1 — Select Country *
+                  </Label>
+                  <p className="mb-2 text-xs text-muted-foreground">Choose the country of the member business.</p>
+                  <Select
+                    value={selectedCountry}
+                    onValueChange={(val) => {
+                      setSelectedCountry(val);
+                      setSelectedState("");
+                      setSelectedChapter("");
+                      setSelectedBusiness("");
+                    }}
+                  >
+                    <SelectTrigger id="biz-country-select" className="w-full">
+                      <SelectValue placeholder="Choose a country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCountries.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                ========================================== */}
+
                 <div>
                   <Label htmlFor="biz-state-select" className="text-sm font-semibold">
-                    Step 1 — Select State *
+                    Step 2 — Select {selectedCountry.toLowerCase() !== "india" ? "State / City" : "State"} *
                   </Label>
-                  <p className="mb-2 text-xs text-muted-foreground">Narrow down by state first.</p>
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Narrow down by {selectedCountry.toLowerCase() !== "india" ? "state or city" : "state"} in {selectedCountry}.
+                  </p>
                   <Select
                     value={selectedState}
                     onValueChange={(val) => { setSelectedState(val); setSelectedChapter(""); setSelectedBusiness(""); }}
                     disabled={loadingChapters}
                   >
                     <SelectTrigger id="biz-state-select" className="w-full">
-                      <SelectValue placeholder={loadingChapters ? "Loading..." : "Choose a state"} />
+                      <SelectValue placeholder={loadingChapters ? "Loading..." : (selectedCountry.toLowerCase() !== "india" ? "Choose a state / city" : "Choose a state")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {allStates.map((st) => (
+                      {statesInCountry.map((st) => (
                         <SelectItem key={st} value={st}>{st}</SelectItem>
                       ))}
                     </SelectContent>
@@ -421,7 +473,7 @@ export function BizNewEnquiry() {
                 {selectedState && (
                   <div>
                     <Label htmlFor="biz-chapter-select" className="text-sm font-semibold">
-                      Step 2 — Select Chapter *
+                      Step 3 — Select Chapter *
                     </Label>
                     <p className="mb-2 text-xs text-muted-foreground">Choose the chapter within {selectedState}.</p>
                     <Select
