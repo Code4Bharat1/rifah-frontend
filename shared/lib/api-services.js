@@ -727,6 +727,11 @@ export const eventApi = {
     }),
   getRoleAssignments: (id) => apiClient(`/events/${id}/role-assignments`),
   getMyDuty: (id) => apiClient(`/events/${id}/my-duty`),
+  updateCoordinatorSlide: (id, slideIndex) =>
+    apiClient(`/events/${id}/coordinator-slide`, {
+      method: "PATCH",
+      body: JSON.stringify({ slideIndex }),
+    }),
   setGateStatus: (id, attendeeId, gateStatus) =>
     apiClient(`/events/${id}/attendees/${attendeeId}/gate`, {
       method: "PATCH",

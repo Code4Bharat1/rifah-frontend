@@ -654,6 +654,10 @@ export function CertificateStudio({ eventId, activeEvent, onSaved }) {
   const [accentColor, setAccentColor] = useState("#0088d1");
   const [saveStatus, setSaveStatus] = useState("saved"); // "saving" | "saved" | "unsaved"
   const [showGrid, setShowGrid] = useState(false);
+  // Below md, the Layers and Properties panels are off-canvas drawers instead of
+  // permanent 266px/288px side columns (which don't fit a phone screen at all).
+  // Has no effect on md+ — those breakpoints force the drawers back open via CSS.
+  const [mobileDrawer, setMobileDrawer] = useState(null); // null | "left" | "right"
 
   const initElements = defaultElements("#0088d1");
   const [history, dispatch] = useReducer(historyReducer, {
@@ -682,6 +686,13 @@ export function CertificateStudio({ eventId, activeEvent, onSaved }) {
     }
     if (activeEvent.logoImage) setLogoImage(activeEvent.logoImage);
   }, [activeEvent]);
+
+  // Selecting an element reveals its properties on desktop automatically (the right
+  // column is always visible there); on mobile it's a drawer, so selecting something
+  // opens it the same way instead of leaving the user staring at a closed panel.
+  useEffect(() => {
+    if (selectedId) setMobileDrawer("right");
+  }, [selectedId]);
 
   // Autosave on element changes — skip initial mount and skip if no eventId
   useEffect(() => {
@@ -942,14 +953,14 @@ export function CertificateStudio({ eventId, activeEvent, onSaved }) {
   }, [handleKeyDown]);
 
   return (
-    <div className="flex flex-col bg-[#1e2130] text-white" style={{ height: "calc(100vh - 160px)", minHeight: "700px" }}>
+    <div className="flex flex-col bg-[#1e2130] text-white h-[calc(100vh-160px)] min-h-[480px] md:min-h-[700px]">
 
       {/* ── TOP TOOLBAR ── */}
-      <div className="h-12 bg-[#252840] border-b border-white/10 flex items-center px-4 gap-3 shrink-0 shadow-lg">
-        <div className="flex items-center gap-1.5 mr-3">
-          <div className="w-5 h-5 bg-blue-500 rounded flex items-center justify-center text-white text-[9px] font-black">R</div>
-          <div>
-            <p className="text-[11px] font-bold text-white/90 leading-none">{activeEvent?.title || "Event Certificate"}</p>
+      <div className="h-12 bg-[#252840] border-b border-white/10 flex items-center px-2 sm:px-4 gap-2 sm:gap-3 shrink-0 shadow-lg overflow-x-auto">
+        <div className="flex items-center gap-1.5 mr-1 sm:mr-3 min-w-0 shrink-0">
+          <div className="w-5 h-5 bg-blue-500 rounded flex items-center justify-center text-white text-[9px] font-black shrink-0">R</div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold text-white/90 leading-none truncate max-w-[90px] sm:max-w-[140px] hidden sm:block">{activeEvent?.title || "Event Certificate"}</p>
             <div className="flex items-center gap-1 mt-0.5">
               {saveStatus === "saving" && <><Loader2 className="w-2.5 h-2.5 animate-spin text-yellow-400"/><span className="text-[8px] text-yellow-400">Saving...</span></>}
               {saveStatus === "saved" && <><CheckCircle2 className="w-2.5 h-2.5 text-green-400"/><span className="text-[8px] text-green-400">Saved</span></>}
@@ -958,9 +969,21 @@ export function CertificateStudio({ eventId, activeEvent, onSaved }) {
           </div>
         </div>
 
-        <div className="h-6 w-px bg-white/10" />
+        {/* Mobile-only: Layers/Style and Properties panels become drawers, opened from here */}
+        <div className="flex items-center gap-1 shrink-0 md:hidden">
+          <button onClick={() => setMobileDrawer(d => d === "left" ? null : "left")}
+            className={cn("p-1.5 rounded text-white/70 hover:text-white", mobileDrawer === "left" ? "bg-white/20" : "hover:bg-white/10")} title="Layers & Style">
+            <Layers className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={() => setMobileDrawer(d => d === "right" ? null : "right")}
+            className={cn("p-1.5 rounded text-white/70 hover:text-white", mobileDrawer === "right" ? "bg-white/20" : "hover:bg-white/10")} title="Properties">
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-        <div className="flex items-center gap-0.5">
+        <div className="h-6 w-px bg-white/10 shrink-0" />
+
+        <div className="flex items-center gap-0.5 shrink-0">
           <button onClick={() => dispatch({ type: "UNDO" })} disabled={!history.past.length}
             className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 text-white/70 hover:text-white" title="Undo (Ctrl+Z)">
             <Undo2 className="w-3.5 h-3.5" />
@@ -971,9 +994,9 @@ export function CertificateStudio({ eventId, activeEvent, onSaved }) {
           </button>
         </div>
 
-        <div className="h-6 w-px bg-white/10" />
+        <div className="h-6 w-px bg-white/10 shrink-0 hidden sm:block" />
 
-        <div className="flex items-center gap-0.5 bg-white/10 rounded-lg px-1">
+        <div className="flex items-center gap-0.5 bg-white/10 rounded-lg px-1 shrink-0">
           <button onClick={() => setZoom(z => Math.max(0.3, z - 0.1))} className="p-1.5 rounded hover:bg-white/10 text-white/70 hover:text-white">
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
@@ -984,27 +1007,49 @@ export function CertificateStudio({ eventId, activeEvent, onSaved }) {
         </div>
 
         <button onClick={() => setShowGrid(g => !g)}
-          className={cn("p-1.5 rounded text-white/70 hover:text-white", showGrid ? "bg-white/20" : "hover:bg-white/10")} title="Toggle Grid">
+          className={cn("p-1.5 rounded text-white/70 hover:text-white shrink-0 hidden sm:inline-flex", showGrid ? "bg-white/20" : "hover:bg-white/10")} title="Toggle Grid">
           <Grid className="w-3.5 h-3.5" />
         </button>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button onClick={handlePreviewPDF}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-white/80 hover:text-white transition-all">
-            <Eye className="w-3.5 h-3.5" /> Preview PDF
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-white/80 hover:text-white transition-all">
+            <Eye className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Preview PDF</span>
           </button>
           <button onClick={() => doSave(true)}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-[11px] font-bold text-white shadow-md transition-all">
-            <Save className="w-3.5 h-3.5" /> Save Design
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-[11px] font-bold text-white shadow-md transition-all">
+            <Save className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Save Design</span>
           </button>
         </div>
       </div>
 
       {/* ── MAIN EDITOR BODY ── */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
 
-        {/* LEFT PANEL */}
-        <div className="shrink-0 h-full overflow-hidden bg-white border-r border-slate-200 shadow-lg" style={{ width: "266px" }}>
+        {/* Backdrop — closes whichever drawer is open when tapped, mobile only */}
+        {mobileDrawer && (
+          <div
+            className="md:hidden absolute inset-0 z-10 bg-black/50"
+            onClick={() => setMobileDrawer(null)}
+          />
+        )}
+
+        {/* LEFT PANEL — a slide-over drawer below md, a permanent 266px column at md+ */}
+        <div
+          className={cn(
+            "h-full overflow-hidden bg-white border-r border-slate-200 shadow-lg shrink-0 w-[266px] flex flex-col",
+            "absolute inset-y-0 left-0 z-20 transition-transform duration-200",
+            "md:relative md:translate-x-0",
+            mobileDrawer === "left" ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          )}
+        >
+          <div className="md:hidden h-9 shrink-0 bg-slate-50 border-b border-slate-100 flex items-center justify-between px-3">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Layers & Style</span>
+            <button onClick={() => setMobileDrawer(null)} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
           <LeftPanel
             activeSection={leftSection}
             onSetSection={setLeftSection}
@@ -1026,6 +1071,7 @@ export function CertificateStudio({ eventId, activeEvent, onSaved }) {
             onLogoUpload={handleLogoUpload}
             onLogoRemove={() => { setLogoImage(""); setLogoPreview(""); }}
           />
+          </div>
         </div>
 
         {/* CENTER CANVAS */}
@@ -1064,8 +1110,21 @@ export function CertificateStudio({ eventId, activeEvent, onSaved }) {
           </div>
         </div>
 
-        {/* RIGHT PROPERTIES PANEL */}
-        <div className="w-72 shrink-0 bg-white border-l border-slate-200 flex flex-col shadow-lg overflow-hidden">
+        {/* RIGHT PROPERTIES PANEL — a slide-over drawer below md, a permanent 288px column at md+ */}
+        <div
+          className={cn(
+            "w-72 shrink-0 bg-white border-l border-slate-200 flex flex-col shadow-lg overflow-hidden",
+            "absolute inset-y-0 right-0 z-20 transition-transform duration-200",
+            "md:relative md:translate-x-0",
+            mobileDrawer === "right" ? "translate-x-0" : "translate-x-full md:translate-x-0"
+          )}
+        >
+          <div className="md:hidden h-9 shrink-0 bg-slate-50 border-b border-slate-100 flex items-center justify-between px-3">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Properties</span>
+            <button onClick={() => setMobileDrawer(null)} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
           {selectedEl ? (
             <>
               {/* Selection actions bar */}

@@ -51,6 +51,8 @@ export function ScriptsTab({ eventId, teamRoles = {}, slogan = "", theme = "" })
   useEffect(() => {
     if (eventId) {
       fetchScripts();
+    } else {
+      setLoading(false);
     }
   }, [eventId]);
 

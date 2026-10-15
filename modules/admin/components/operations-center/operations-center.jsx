@@ -128,6 +128,7 @@ const HORIZONTAL_MODULE_TABS = [
   { key: "finance", label: "Finance", icon: CreditCard },
   { key: "speakers-guests", label: "Speakers & Guests", icon: Mic },
   { key: "follow-up", label: "Follow-up", icon: MessageSquareText },
+  { key: "ask-give", label: "Ask & Give", icon: Users },
   { key: "certificates", label: "Certificates", icon: FileStack },
   { key: "documents", label: "Documents", icon: FileStack },
   { key: "gallery", label: "Media Reports & Gallery", icon: Images },
@@ -376,6 +377,7 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
     closingRemarks: "",
     voteOfThanks: "",
     eventEnd: "",
+    allowCoordinatorRemote: false,
   });
 
   // Event Setup Form State — Full
