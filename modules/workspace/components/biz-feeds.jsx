@@ -737,12 +737,19 @@ const FeedFilterSidebar = FeedFilterBar;
 // Main BizFeeds Component
 export function BizFeeds() {
   const { user } = useAuth();
-  const { canAccess } = useFeatureAccess();
+  const { canAccess, planName } = useFeatureAccess();
   const { data: businessData } = useMyBusiness();
   const { data: statesData } = useStates();
   const { data: chaptersData } = useChapters();
   const chapters = chaptersData || [];
   const statesList = statesData || [];
+
+  const feedAccess = canAccess("feed_posting");
+  const maxFeedPosts = useMemo(() => {
+    if (!feedAccess.isAllowed) return 0;
+    const tierLimitStr = String(feedAccess.value || "5");
+    return parseInt(tierLimitStr, 10) || 5;
+  }, [feedAccess]);
 
   const [posts, setPosts] = useState([]);
   const [isNewPostOpen, setIsNewPostOpen] = useState(false);
@@ -1042,18 +1049,20 @@ export function BizFeeds() {
     }
   };
 
-  // Compute if the logged-in user already has an active post in the feed (1 post limit)
-  const userExistingPost = useMemo(() => {
+  // Compute monthly posts published by current user
+  const monthlyPostsCount = useMemo(() => {
     const currentUid = String(userId || user?._id || user?.id || "");
-    if (!currentUid && !currentUsername) return null;
-    return posts.find((p) => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return posts.filter((p) => {
       const postAuthorId = String(p.createdById || p.author?.id || p.author?._id || p.author || "");
-      return Boolean(
+      const isAuthor = Boolean(
         (currentUid && postAuthorId && postAuthorId === currentUid) ||
         (p.createdByUsername && currentUsername && p.createdByUsername.toLowerCase() === currentUsername) ||
         (p.author?.username && currentUsername && p.author.username.toLowerCase() === currentUsername)
       );
-    });
+      const postTime = p.createdAt ? new Date(p.createdAt).getTime() : 0;
+      return isAuthor && postTime >= thirtyDaysAgo;
+    }).length;
   }, [posts, userId, user, currentUsername]);
 
   // Live: Create and Publish Post across all devices
@@ -1062,13 +1071,14 @@ export function BizFeeds() {
 
     const access = canAccess("feed_posting");
     if (!access.isAllowed) {
-      toast.error("Feed Posting is locked on Tier I (Free). Upgrade to Starter or higher to post updates.");
+      toast.error(access.reason || "Feed Posting is not available on Tier I (Free). Upgrade your subscription plan to Tier II (Starter) or above to publish feeds.");
       return;
     }
 
-    // Enforce 1 post limit per user/business/admin
-    if (userExistingPost) {
-      toast.error("You can only have 1 active post in the feed. Please delete your existing post before creating a new one.");
+    const tierLimitStr = String(access.value || "5");
+    const maxPosts = parseInt(tierLimitStr) || 5;
+    if (monthlyPostsCount >= maxPosts) {
+      toast.error(`Monthly feed posting limit reached (${monthlyPostsCount}/${maxPosts} used this month). Please upgrade your subscription plan to publish more posts.`);
       return;
     }
 
@@ -1260,7 +1270,7 @@ export function BizFeeds() {
           onClick={() => {
             const access = canAccess("feed_posting");
             if (!access.isAllowed) {
-              toast.error("Feed Posting is locked on Tier I (Free). Upgrade to Starter or higher to post updates.");
+              toast.error(access.reason || "Feed Posting is not available on Tier I (Free). Upgrade your subscription plan to Tier II (Starter) or above to publish feeds.");
               return;
             }
             setIsNewPostOpen(true);
@@ -1299,27 +1309,21 @@ export function BizFeeds() {
 
         {/* Main Feed Stream Column (Wider Focused Layout) */}
         <div className="relative z-10 w-full max-w-4xl mx-auto space-y-6">
-          {/* User's Active Post Notification Banner (1-post limit) */}
-          {userExistingPost && (
-            <div className="rounded-2xl border border-sky-200 bg-white p-4 text-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 font-bold shrink-0">
-                  📌
-                </div>
+          {/* Monthly Feed Posts Quota Status */}
+          {feedAccess.isAllowed && (
+            <div className="rounded-2xl border border-sky-200/80 bg-white p-3.5 px-4 text-slate-800 shadow-xs flex items-center justify-between gap-3 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2.5">
+                <span className="text-base">📢</span>
                 <div className="text-xs">
-                  <p className="font-bold text-slate-900">You have 1 active post in the feed</p>
-                  <p className="text-slate-500">Each member can have 1 post at a time. Delete your current post if you wish to upload a new one.</p>
+                  <span className="font-bold text-slate-900">Monthly Feed Quota: </span>
+                  <span className="text-slate-600 font-medium">
+                    {monthlyPostsCount} of {maxFeedPosts} posts published in the last 30 days
+                  </span>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleDeletePost(userExistingPost.id || userExistingPost._id)}
-                className="shrink-0 gap-1.5 text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-300"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Delete My Post
-              </Button>
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                {planName || "Active Plan"}
+              </span>
             </div>
           )}
 
@@ -1392,41 +1396,19 @@ export function BizFeeds() {
             <DialogDescription className="sr-only">Create and share an update with your network</DialogDescription>
           </DialogHeader>
 
-          {userExistingPost ? (
-            <div className="py-3 space-y-4">
+          {!feedAccess.isAllowed ? (
+            <div className="py-4 space-y-4">
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900 space-y-2">
                 <div className="flex items-start gap-2.5">
-                  <span className="text-lg">⚠️</span>
+                  <span className="text-lg">🔒</span>
                   <div className="text-xs space-y-1">
-                    <p className="font-bold text-amber-950 text-sm">1 Active Post Limit</p>
+                    <p className="font-bold text-amber-950 text-sm">Feed Posting Not Available on Tier I</p>
                     <p className="text-amber-800 leading-relaxed">
-                      Central Admin, State Admin, Chapter Admin, and Business accounts can only upload 1 active post in the feed at a time.
-                    </p>
-                    <p className="text-amber-800 leading-relaxed">
-                      Please delete your current post if you want to upload a new one.
+                      Publishing feeds is not permitted on Tier I (Free). Upgrade to Tier II (Starter) or above to post updates to your network.
                     </p>
                   </div>
                 </div>
               </div>
-
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 flex items-center gap-3">
-                {userExistingPost.images?.[0] ? (
-                  <img
-                    src={resolveMediaUrl(userExistingPost.images[0])}
-                    alt=""
-                    className="h-12 w-12 rounded-lg object-cover border border-slate-200 shrink-0"
-                  />
-                ) : (
-                  <div className="h-12 w-12 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500 shrink-0">
-                    <ImageIcon className="h-6 w-6" />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1 text-xs">
-                  <p className="font-semibold text-slate-800 truncate">{userExistingPost.caption || "Existing post"}</p>
-                  <p className="text-slate-400 text-[11px] mt-0.5">{formatRelativeTime(userExistingPost.createdAt)}</p>
-                </div>
-              </div>
-
               <DialogFooter className="pt-2 gap-2 sm:gap-0 flex items-center justify-between">
                 <Button
                   type="button"
@@ -1438,15 +1420,52 @@ export function BizFeeds() {
                 </Button>
                 <Button
                   type="button"
-                  variant="destructive"
                   size="sm"
-                  onClick={async () => {
-                    await handleDeletePost(userExistingPost.id || userExistingPost._id);
+                  onClick={() => {
                     setIsNewPostOpen(false);
+                    window.location.href = "/membership/checkout?plan=tier_2";
                   }}
-                  className="gap-1.5 font-semibold text-xs"
+                  className="bg-primary text-primary-foreground font-semibold text-xs"
                 >
-                  <Trash2 className="h-3.5 w-3.5" /> Delete Post to Upload New
+                  Upgrade to Tier II (₹50/mo)
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : monthlyPostsCount >= maxFeedPosts ? (
+            <div className="py-4 space-y-4">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900 space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-lg">⚠️</span>
+                  <div className="text-xs space-y-1">
+                    <p className="font-bold text-amber-950 text-sm">Monthly Feed Limit Reached</p>
+                    <p className="text-amber-800 leading-relaxed">
+                      You have published {monthlyPostsCount} of {maxFeedPosts} posts allowed this month on your plan ({planName || "Starter"}).
+                    </p>
+                    <p className="text-amber-800 leading-relaxed">
+                      Please upgrade to a higher tier (Tier III allows 10 posts/month, Tier IV allows 20 posts/month) to publish more updates.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="pt-2 gap-2 sm:gap-0 flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsNewPostOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setIsNewPostOpen(false);
+                    window.location.href = "/biz/membership";
+                  }}
+                  className="bg-primary text-primary-foreground font-semibold text-xs"
+                >
+                  View Plans & Upgrade
                 </Button>
               </DialogFooter>
             </div>

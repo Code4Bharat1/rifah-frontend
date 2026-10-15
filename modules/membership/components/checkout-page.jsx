@@ -490,13 +490,20 @@ function Checkout() {
               }
             }
 
-            // Invalidate React Query cache so /biz/profile instantly fetches the real business
+            // Invalidate React Query cache so all modules instantly fetch the upgraded business & membership
             queryClient.invalidateQueries({ queryKey: ["my-business"] });
             if (resultData?.business) {
               queryClient.setQueryData(["my-business"], resultData.business);
             }
+            queryClient.invalidateQueries({ queryKey: ["my-membership"] });
+            if (resultData?.membership) {
+              queryClient.setQueryData(["my-membership"], resultData.membership);
+            }
             queryClient.invalidateQueries({ queryKey: ["businesses"] });
             queryClient.invalidateQueries({ queryKey: ["user"] });
+            queryClient.invalidateQueries({ queryKey: ["my-payments"] });
+            queryClient.invalidateQueries({ queryKey: ["catalogue"] });
+            queryClient.invalidateQueries({ queryKey: ["catalogue-business"] });
 
             const invoiceNum = resultData?.payment?.invoiceNumber || orderData.invoiceNumber || `INV-${Date.now().toString().slice(-4)}`;
             setInvoiceId(invoiceNum);

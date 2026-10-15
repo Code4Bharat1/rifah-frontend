@@ -60,15 +60,20 @@ export function AdminBusinessDetail({ id }) {
     try {
       setDownloadingDoc(true);
       toast.loading("Downloading certificate PDF...", { id: "cert-dl" });
+      const realOwnerName =
+        business?.owner?.name ||
+        business?.owner?.fullName ||
+        business?.contactPerson ||
+        business?.ownerName ||
+        "";
       const enrichedBiz = {
         ...business,
-        contactPerson: (business?.contactPerson && !/^raj\s*sharma$/i.test(business.contactPerson.trim()))
-          ? business.contactPerson
-          : (business?.owner?.name || ""),
+        owner: business?.owner || (realOwnerName ? { name: realOwnerName } : null),
+        contactPerson: realOwnerName || business?.contactPerson || "",
       };
       await downloadCertificatePdf(enrichedBiz, null, {
         customSettings: globalSettings?.certificateSettings,
-        ownerName: enrichedBiz.contactPerson || enrichedBiz.owner?.name,
+        ownerName: realOwnerName,
       });
       toast.success("Certificate downloaded successfully", { id: "cert-dl" });
     } catch (err) {

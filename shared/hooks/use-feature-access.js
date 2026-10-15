@@ -8,7 +8,7 @@ import { checkFeatureAccess, normalizeUserTier, SUBSCRIBER_TIERS } from "@shared
 // Map navigation routes to 32-feature matrix keys
 const ROUTE_FEATURE_MAP = {
   "/biz/messages": "chat",
-  "/biz/networking": "networking_groups",
+  "/biz/networking": "thank_you_note",
   "/biz/power-networking": "meeting_request",
   "/biz/lms": "lms",
   "/biz/advertisements": "featured_business",
@@ -16,7 +16,7 @@ const ROUTE_FEATURE_MAP = {
   "/biz/branches": "multiple_locations",
   // User portal routes mapped to SUBSCRIBER_TIERS
   "/user/messages": "chat",
-  "/user/networking": "networking_groups",
+  "/user/networking": "thank_you_note",
   "/user/power-networking": "meeting_request",
   "/user/branches": "multiple_locations",
   "/user/lms": "lms",
@@ -31,29 +31,36 @@ export function useFeatureAccess() {
   // placeholder made the same account look locked on one device and unlocked on another.
   const planLoading = bizLoading || memLoading;
 
-  // Prioritize explicit subscriber tier (tier_1, tier_2, tier_3, tier_4).
-  // For business workspaces, the business's own subscriberTier is authoritative.
-  const bizTierDirect =
-    business?.subscriberTier ||
-    (String(business?.membership || "").toLowerCase().startsWith("tier_") ? business?.membership : null) ||
-    membershipData?.subscriberTier ||
-    (String(membershipData?.planId || "").toLowerCase().startsWith("tier_") ? (membershipData?.planName || membershipData?.planId) : null);
+  // Collect candidate tier signals from all available sources (business, user, membership)
+  const candidateTiers = [
+    business?.subscriberTier,
+    business?.membership,
+    user?.subscriberTier,
+    user?.membershipPlan,
+    membershipData?.subscriberTier,
+    membershipData?.planId,
+    membershipData?.planName,
+  ].filter(Boolean);
 
-  const userTierDirect =
-    user?.subscriberTier ||
-    (String(user?.membershipPlan || "").toLowerCase().startsWith("tier_") ? user?.membershipPlan : null);
-
+  const TIER_RANKS = { tier_1: 1, tier_2: 2, tier_3: 3, tier_4: 4 };
   let tierId = "tier_1";
-  if (bizTierDirect) {
-    tierId = normalizeUserTier(bizTierDirect);
-  } else if (userTierDirect) {
-    tierId = normalizeUserTier(userTierDirect);
+  let maxRank = 1;
+
+  for (const candidate of candidateTiers) {
+    const normalized = normalizeUserTier(candidate);
+    const rank = TIER_RANKS[normalized] || 1;
+    if (rank > maxRank) {
+      maxRank = rank;
+      tierId = normalized;
+    }
   }
+
   const currentTier = SUBSCRIBER_TIERS.find((t) => t.id === tierId) || SUBSCRIBER_TIERS[0];
   const planName = currentTier.name;
 
-  // Check if subscription has expired (e.g. 1 month passed for monthly subscriber or plan period passed)
+  // Check if subscription has expired (Free tier never expires)
   const isExpired = useMemo(() => {
+    if (tierId === "tier_1") return false;
     if (membershipData) {
       if (membershipData.isExpired === true || (membershipData.status || "").toLowerCase() === "expired") {
         return true;
@@ -62,14 +69,8 @@ export function useFeatureAccess() {
         return true;
       }
     }
-    if (business?.membershipExpiryDate) {
-      return new Date(business.membershipExpiryDate) < new Date();
-    }
-    if (user?.membershipExpiresAt) {
-      return new Date(user.membershipExpiresAt) < new Date();
-    }
     return false;
-  }, [membershipData, business?.membershipExpiryDate, user?.membershipExpiresAt]);
+  }, [tierId, membershipData]);
 
   /**
    * Check if a specific feature key is accessible
@@ -147,7 +148,11 @@ export function useFeatureAccess() {
       clean === "/biz/notifications" ||
       clean.startsWith("/biz/notifications/") ||
       clean === "/biz/business" ||
-      clean.startsWith("/biz/business/")
+      clean.startsWith("/biz/business/") ||
+      clean === "/biz/networking" ||
+      clean.startsWith("/biz/networking/") ||
+      clean === "/user/networking" ||
+      clean.startsWith("/user/networking/")
     ) {
       return false;
     }

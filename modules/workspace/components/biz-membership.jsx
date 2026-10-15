@@ -330,17 +330,25 @@ async function handleDownloadCertificate(business, membershipData, currentUser =
 
   try {
     toast.loading("Downloading certificate PDF...", { id: "cert-dl" });
+    const realOwnerName =
+      (typeof business?.owner === "object" && (business?.owner?.name || business?.owner?.fullName)) ||
+      currentUser?.name ||
+      currentUser?.fullName ||
+      business?.contactPerson ||
+      business?.ownerName ||
+      "";
+
     const enrichedBusiness = {
       ...business,
-      owner: (typeof business?.owner === "object" && business?.owner?.name) ? business.owner : (currentUser || business?.owner),
-      contactPerson: (business?.contactPerson && !/^raj\s*sharma$/i.test(business.contactPerson.trim()))
-        ? business.contactPerson
-        : (business?.owner?.name || currentUser?.name || ""),
+      owner: (typeof business?.owner === "object" && business?.owner?.name)
+        ? business.owner
+        : (realOwnerName ? { name: realOwnerName } : (currentUser || business?.owner)),
+      contactPerson: business?.contactPerson || realOwnerName || "",
     };
     await downloadCertificatePdf(enrichedBusiness, membershipData, {
       user: currentUser,
       currentUser,
-      ownerName: enrichedBusiness.owner?.name || currentUser?.name,
+      ownerName: realOwnerName || enrichedBusiness.owner?.name || currentUser?.name,
     });
     toast.success("Certificate downloaded successfully", { id: "cert-dl" });
   } catch (err) {
@@ -681,19 +689,43 @@ function BizMembership() {
   }, [business]);
 
   const plans = plansData || {};
-  const rawTierIdentifier = (
-    business?.subscriberTier ||
-    membershipData?.subscriberTier ||
-    (String(membershipData?.planId || "").toLowerCase().startsWith("tier_") ? membershipData?.planId : null) ||
-    "tier_1"
-  ).toLowerCase();
+  const TIER_RANKS = { tier_1: 1, tier_2: 2, tier_3: 3, tier_4: 4 };
+  const subscriberTierKey = useMemo(() => {
+    const candidates = [
+      business?.subscriberTier,
+      membershipData?.subscriberTier,
+      user?.subscriberTier,
+      membershipData?.planId,
+      membershipData?.planName,
+      user?.membershipPlan,
+      business?.membership,
+    ];
+    let bestKey = "tier_1";
+    let bestRank = 1;
+    for (const cand of candidates) {
+      if (!cand) continue;
+      const key = normalizeUserTier(cand);
+      const rank = TIER_RANKS[key] || 1;
+      if (rank > bestRank) {
+        bestRank = rank;
+        bestKey = key;
+      }
+    }
+    return bestKey;
+  }, [
+    business?.subscriberTier,
+    business?.membership,
+    membershipData?.subscriberTier,
+    membershipData?.planId,
+    membershipData?.planName,
+    user?.subscriberTier,
+    user?.membershipPlan,
+  ]);
+
+  const rawTierIdentifier = subscriberTierKey;
 
   const tierName = membershipData?.planName || membershipData?.planId || business?.membership || "Free";
   const currentTier = (tierName || "").toLowerCase();
-
-  const subscriberTierKey = useMemo(() => {
-    return normalizeUserTier(rawTierIdentifier);
-  }, [rawTierIdentifier]);
 
   const activeSubscriberModel = useMemo(() => {
     return SUBSCRIBER_TIERS.find((t) => t.id === subscriberTierKey) || SUBSCRIBER_TIERS[0];

@@ -180,14 +180,34 @@ function AdminMemberships() {
   const handleDownloadCertificate = async (business) => {
     const toastId = toast.loading(`Generating certificate for ${business.name}...`);
     try {
+      let fullBiz = business;
+      if ((!fullBiz.owner?.name || typeof fullBiz.owner !== "object") && fullBiz._id) {
+        try {
+          const detailRes = await businessApi.getByIdOrSlug(fullBiz._id);
+          const d = detailRes?.data || detailRes;
+          if (d && typeof d === "object") {
+            fullBiz = { ...d, ...fullBiz, owner: d.owner || fullBiz.owner };
+          }
+        } catch (e) {
+          console.warn("Could not fetch full business for certificate:", e);
+        }
+      }
+
+      const realOwnerName =
+        fullBiz.owner?.name ||
+        fullBiz.owner?.fullName ||
+        fullBiz.contactPerson ||
+        fullBiz.ownerName ||
+        "";
+
       const enrichedBiz = {
-        ...business,
-        contactPerson: (business?.contactPerson && !/^raj\s*sharma$/i.test(business.contactPerson.trim()))
-          ? business.contactPerson
-          : (business?.owner?.name || ""),
+        ...fullBiz,
+        owner: fullBiz.owner || (realOwnerName ? { name: realOwnerName } : null),
+        contactPerson: realOwnerName || fullBiz.contactPerson || "",
       };
+
       await downloadCertificatePdf(enrichedBiz, null, {
-        ownerName: enrichedBiz.contactPerson || enrichedBiz.owner?.name,
+        ownerName: realOwnerName,
       });
       toast.success("Certificate downloaded successfully", { id: toastId });
     } catch (err) {
