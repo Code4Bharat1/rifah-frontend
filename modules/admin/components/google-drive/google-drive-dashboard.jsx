@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@shared/providers/auth-provider";
+import { usePathname } from "next/navigation";
 import { googleDriveApi } from "@shared/lib/api-services";
 import { toast } from "sonner";
 import {
@@ -25,15 +26,14 @@ import {
   Unlink,
   Eye,
   AlertCircle,
-  FileText,
-  KeyRound,
-  ChevronRight,
   Database,
-  Sparkles,
+  Shield,
+  FileDown,
 } from "lucide-react";
+import { AppShell } from "@shared/components/rifah/app-shell";
+import { Panel, StatCard } from "@shared/components/rifah/ui-bits";
+import { Pill } from "@shared/components/rifah/badges";
 import { Button } from "@shared/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@shared/components/ui/card";
-import { Badge } from "@shared/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import {
   Dialog,
@@ -43,8 +43,22 @@ import {
   DialogTitle,
 } from "@shared/components/ui/dialog";
 
-export function GoogleDriveDashboard() {
+export function GoogleDriveDashboard({ expectedRole }) {
   const { user } = useAuth();
+  const pathname = usePathname();
+
+  const effectiveRole =
+    expectedRole ||
+    (pathname?.startsWith("/chapter-admin")
+      ? "chapter_admin"
+      : pathname?.startsWith("/state-admin")
+      ? "state_admin"
+      : user?.role === "chapter_admin"
+      ? "chapter_admin"
+      : user?.role === "state_admin"
+      ? "state_admin"
+      : "admin");
+
   const isCentralAdmin =
     user?.role === "central_admin" ||
     user?.role === "secretariat" ||
@@ -193,9 +207,9 @@ export function GoogleDriveDashboard() {
       title: "Business Information",
       fileName: "RIFAH_Businesses.xlsx",
       icon: Building2,
-      accent: "from-blue-600 to-indigo-700",
+      accent: "from-blue-600 to-indigo-600",
       description:
-        "Master business registry, verified status, categories, GSTIN numbers, contact details, and locations.",
+        "Master business registry, verification status, categories, GSTIN numbers, contact details, and locations.",
       meta: data?.fileLinks?.businesses || {},
     },
     {
@@ -203,17 +217,17 @@ export function GoogleDriveDashboard() {
       title: "User Information",
       fileName: "RIFAH_Users.xlsx",
       icon: Users,
-      accent: "from-teal-600 to-emerald-700",
+      accent: "from-teal-600 to-emerald-600",
       description:
         "Platform membership roster, administrative assignments, roles, chapters, contact emails, and phone numbers.",
       meta: data?.fileLinks?.users || {},
     },
     {
       key: "revenue_sharing",
-      title: "Revenue Sharing Information",
+      title: "Revenue Sharing Ledger",
       fileName: "RIFAH_Revenue_Sharing.xlsx",
       icon: Wallet,
-      accent: "from-emerald-600 to-green-700",
+      accent: "from-emerald-600 to-green-600",
       description:
         "Line-item transaction ledger with exact rupee allocations for Central, State, and Chapter beneficiaries.",
       meta: data?.fileLinks?.revenueSharing || {},
@@ -223,298 +237,401 @@ export function GoogleDriveDashboard() {
       title: "Event Attendees (Grouped)",
       fileName: "RIFAH_Event_Attendees.xlsx",
       icon: CalendarDays,
-      accent: "from-indigo-600 to-purple-700",
+      accent: "from-indigo-600 to-purple-600",
       description:
         "Complete attendee registrations categorized and grouped by event name with dedicated event tabs.",
       meta: data?.fileLinks?.eventAttendees || {},
     },
   ];
 
+  const pageTitle =
+    effectiveRole === "chapter_admin"
+      ? "Google Drive Archive"
+      : effectiveRole === "state_admin"
+      ? "Google Drive Archive"
+      : "Google Drive Integration";
+
+  const pageSubtitle =
+    effectiveRole === "chapter_admin"
+      ? "Chapter administrative archive · Synchronized platform spreadsheets"
+      : effectiveRole === "state_admin"
+      ? "State administrative archive · Synchronized platform spreadsheets"
+      : "Central shared archive · Automated Excel spreadsheet synchronization & access control";
+
   return (
-    <div className="space-y-8 pb-16">
-      {/* Top Banner / Integration Status */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 p-6 md:p-8 shadow-2xl">
-        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="absolute -left-16 -bottom-16 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
+    <AppShell
+      role={effectiveRole}
+      title={pageTitle}
+      subtitle={pageSubtitle}
+      actions={
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              loadStatus();
+              loadLogs(logFilter);
+            }}
+            disabled={loading}
+            className="rounded-full h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm shrink-0 gap-1.5"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
 
-        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-lg shadow-blue-500/20">
-                <HardDrive className="h-6 w-6" />
+          {data?.folderWebViewLink && (
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="rounded-full h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm shrink-0 gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+            >
+              <a href={data.folderWebViewLink} target="_blank" rel="noopener noreferrer">
+                <Folder className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Open Drive Folder</span>
+                <span className="sm:hidden">Drive</span>
+                <ExternalLink className="h-3 w-3 opacity-60" />
+              </a>
+            </Button>
+          )}
+
+          {isCentralAdmin && (
+            <Button
+              onClick={() => handleSyncSpreadsheet("all")}
+              disabled={syncingTarget === "all"}
+              size="sm"
+              className="rounded-full gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-8 sm:h-9 px-2.5 sm:px-4 text-xs sm:text-sm shrink-0 shadow-xs"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${syncingTarget === "all" ? "animate-spin" : ""}`}
+              />
+              <span className="hidden sm:inline">
+                {syncingTarget === "all" ? "Syncing..." : "Sync All Workbooks"}
+              </span>
+              <span className="sm:hidden">Sync All</span>
+            </Button>
+          )}
+        </div>
+      }
+    >
+      <div className="space-y-6">
+        {/* Row 1: KPI StatCards */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <StatCard
+            label="Drive Connection"
+            value={data?.isConnected ? "Connected" : "Standby Mode"}
+            hint={data?.googleEmail ? `Account: ${data.googleEmail}` : "Local cache fallback active"}
+            icon={HardDrive}
+            tone={data?.isConnected ? "success" : "warning"}
+            active={data?.isConnected}
+          />
+          <StatCard
+            label="Synchronized Workbooks"
+            value="4 Workbooks"
+            hint="Businesses, Users, Revenue, Events"
+            icon={FileSpreadsheet}
+            tone="primary"
+          />
+          <StatCard
+            label="Authorized Admins"
+            value={String(data?.syncedAdminsCount || 0)}
+            hint="Role-synced folder permissions"
+            icon={ShieldCheck}
+            tone="brand"
+          />
+          <StatCard
+            label="Sync Diagnostics"
+            value={data?.failedCount > 0 ? `${data.failedCount} Issues` : "100% Synced"}
+            hint={
+              data?.lastFullSyncAt
+                ? `Last full sync: ${new Date(data.lastFullSyncAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}`
+                : "Continuous autosync"
+            }
+            icon={data?.failedCount > 0 ? AlertTriangle : CheckCircle2}
+            tone={data?.failedCount > 0 ? "danger" : "success"}
+          />
+        </div>
+
+        {/* Row 2: Central Platform Archive Hero Card */}
+        <div className="rounded-2xl sm:rounded-3xl border border-border/70 bg-card p-5 sm:p-6 shadow-xs relative overflow-hidden transition-all">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 relative z-10">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary shadow-xs">
+                  <Folder className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
+                    RIFAH Central Shared Archive
+                  </h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Platform-wide centralized storage for official Excel spreadsheets with automatic role-based administrator access
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-                  Google Drive Platform Integration
-                </h1>
-                <p className="text-sm text-slate-400">
-                  Central Shared Folder & Automated Excel Spreadsheet Synchronization
-                </p>
+
+              {/* Status Pills */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {data?.isConnected ? (
+                  <Pill tone="success">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Connected to Google Drive
+                  </Pill>
+                ) : (
+                  <Pill tone="warning">
+                    <AlertTriangle className="h-3 w-3" />
+                    Disconnected / Standby Local Cache
+                  </Pill>
+                )}
+
+                {data?.googleEmail && (
+                  <Pill tone="neutral">Account: {data.googleEmail}</Pill>
+                )}
+
+                {data?.syncedAdminsCount !== undefined && (
+                  <Pill tone="primary">
+                    <ShieldCheck className="h-3 w-3" />
+                    {data.syncedAdminsCount} Authorized Admins
+                  </Pill>
+                )}
+
+                {data?.failedCount > 0 && (
+                  <Pill tone="danger">
+                    <XCircle className="h-3 w-3" />
+                    {data.failedCount} Failed Syncs
+                  </Pill>
+                )}
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              {data?.isConnected ? (
-                <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-1.5 px-3 py-1">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Connected to Google Drive
-                </Badge>
-              ) : (
-                <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 gap-1.5 px-3 py-1">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Disconnected / Standby Cache Mode
-                </Badge>
-              )}
-
-              {data?.googleEmail && (
-                <Badge variant="outline" className="border-slate-700 bg-slate-800/60 text-slate-300">
-                  Account: {data.googleEmail}
-                </Badge>
-              )}
-
-              {data?.syncedAdminsCount !== undefined && (
-                <Badge variant="outline" className="border-slate-700 bg-slate-800/60 text-slate-300 gap-1">
-                  <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
-                  {data.syncedAdminsCount} Authorized Admins Synced
-                </Badge>
-              )}
-
-              {data?.failedCount > 0 && (
-                <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 gap-1">
-                  <XCircle className="h-3.5 w-3.5" />
-                  {data.failedCount} Failed Syncs
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3">
-            {data?.folderWebViewLink && (
-              <Button
-                asChild
-                variant="outline"
-                className="border-indigo-500/40 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 hover:text-white"
-              >
-                <a href={data.folderWebViewLink} target="_blank" rel="noopener noreferrer">
-                  <Folder className="mr-2 h-4 w-4 text-indigo-400" />
-                  Open in Google Drive
-                  <ExternalLink className="ml-1.5 h-3.5 w-3.5 opacity-70" />
-                </a>
-              </Button>
-            )}
-
+            {/* Central Admin Controls */}
             {isCentralAdmin && (
-              <>
-                <Button
-                  onClick={() => handleSyncSpreadsheet("all")}
-                  disabled={syncingTarget === "all"}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-indigo-600/25"
-                >
-                  <RefreshCw
-                    className={`mr-2 h-4 w-4 ${syncingTarget === "all" ? "animate-spin" : ""}`}
-                  />
-                  {syncingTarget === "all" ? "Syncing Platform..." : "Sync All Workbooks"}
-                </Button>
-
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0 pt-2 lg:pt-0">
                 {data?.isConnected ? (
                   <Button
                     onClick={handleDisconnect}
-                    variant="ghost"
-                    className="text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 border border-transparent hover:border-rose-500/30"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20 h-8 sm:h-9 text-xs sm:text-sm"
                   >
-                    <Unlink className="mr-2 h-4 w-4" />
-                    Disconnect
+                    <Unlink className="mr-1.5 h-3.5 w-3.5" />
+                    Disconnect Google Account
                   </Button>
                 ) : (
                   <Button
                     onClick={handleConnect}
-                    variant="default"
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                    size="sm"
+                    className="rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold h-8 sm:h-9 px-4 text-xs sm:text-sm shadow-xs"
                   >
-                    <Link2 className="mr-2 h-4 w-4" />
-                    Connect Google Account
+                    <Link2 className="mr-1.5 h-3.5 w-3.5" />
+                    Connect Official Google Account
                   </Button>
                 )}
-              </>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Central Folder Details Pill */}
-        {data?.folderName && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
-                <Folder className="h-5 w-5" />
+          {/* Directory Details Sub-strip */}
+          {data?.folderName && (
+            <div className="mt-4 pt-3.5 border-t border-border/60 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">Archive Directory:</span>
+                <span className="font-semibold text-primary">{data.folderName}</span>
+                {data?.folderWebViewLink && (
+                  <a
+                    href={data.folderWebViewLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline font-medium ml-1"
+                  >
+                    View in Drive <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
               </div>
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Shared Central Directory
-                </div>
-                <div className="text-sm font-medium text-white">{data.folderName}</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 text-xs text-slate-400">
-              <div>
-                <span className="text-slate-500">Folder ID: </span>
-                <code className="rounded bg-slate-800 px-2 py-0.5 text-slate-300 font-mono">
-                  {data.folderId || "Auto-Provisioned"}
-                </code>
-              </div>
-              <div>
-                <span className="text-slate-500">Last Full Sync: </span>
-                <span className="text-slate-300">{formatDate(data.lastFullSyncAt)}</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Main Tabs Navigation */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-3">
-          <TabsList className="bg-slate-900 border border-slate-800 p-1">
-            <TabsTrigger value="workbooks" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-              <FileSpreadsheet className="mr-2 h-4 w-4" />
-              Synchronized Spreadsheets
-            </TabsTrigger>
-            <TabsTrigger value="admins" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-              <ShieldCheck className="mr-2 h-4 w-4" />
-              Admin Access & Permissions ({data?.syncedAdminsCount || 0})
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-              <Clock className="mr-2 h-4 w-4" />
-              Sync History & Diagnostics
-              {data?.failedCount > 0 && (
-                <span className="ml-2 rounded-full bg-rose-500/80 px-1.5 py-0.2 text-[10px] text-white">
-                  {data.failedCount}
+              <div className="flex items-center gap-3">
+                <span>
+                  Folder ID:{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
+                    {data.folderId || "Auto-Provisioned"}
+                  </code>
                 </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                loadStatus();
-                loadLogs(logFilter);
-              }}
-              className="border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800"
-            >
-              <RefreshCw className={`mr-2 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
-          </div>
+                <span>•</span>
+                <span>Last full sync: {formatDate(data.lastFullSyncAt)}</span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* TAB 1: WORKBOOKS GRID */}
-        <TabsContent value="workbooks" className="space-y-6 focus:outline-none">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {workbooks.map((wb) => {
-              const Icon = wb.icon;
-              const isSyncing = syncingTarget === wb.key;
-              const meta = wb.meta;
-              const hasError = meta?.status === "failed";
-              const isSynced = meta?.status === "synced";
+        {/* Row 3: Tabs Interface */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <TabsList className="bg-muted/70 p-1 rounded-xl sm:rounded-2xl border border-border/60 gap-1 w-full sm:w-auto">
+              <TabsTrigger
+                value="workbooks"
+                className="rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+              >
+                <FileSpreadsheet className="mr-1.5 h-4 w-4 text-primary" />
+                Synchronized Workbooks
+              </TabsTrigger>
+              <TabsTrigger
+                value="admins"
+                className="rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+              >
+                <ShieldCheck className="mr-1.5 h-4 w-4 text-brand" />
+                Admin Access Roster
+                {data?.syncedAdminsCount > 0 && (
+                  <span className="ml-1.5 rounded-full bg-primary-soft text-primary px-1.5 py-0.2 text-[10px] font-bold">
+                    {data.syncedAdminsCount}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="logs"
+                className="rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+              >
+                <Clock className="mr-1.5 h-4 w-4 text-muted-foreground" />
+                Sync History & Diagnostics
+                {data?.failedCount > 0 && (
+                  <span className="ml-1.5 rounded-full bg-destructive/15 text-destructive px-1.5 py-0.2 text-[10px] font-bold">
+                    {data.failedCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-              return (
-                <Card
-                  key={wb.key}
-                  className="relative overflow-hidden border-slate-800 bg-slate-900/80 backdrop-blur-sm transition-all hover:border-slate-700 hover:shadow-xl hover:shadow-indigo-500/5"
-                >
-                  <div className={`h-1.5 w-full bg-gradient-to-r ${wb.accent}`} />
+            {activeTab === "logs" && (
+              <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                {["all", "success", "failed"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => {
+                      setLogFilter(f);
+                      loadLogs(f);
+                    }}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
+                      logFilter === f
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${wb.accent} text-white shadow-md`}
-                        >
-                          <Icon className="h-5 w-5" />
+          {/* TAB 1: WORKBOOKS */}
+          <TabsContent value="workbooks" className="space-y-6 focus:outline-none">
+            <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
+              {workbooks.map((wb) => {
+                const Icon = wb.icon;
+                const isSyncing = syncingTarget === wb.key;
+                const meta = wb.meta;
+                const hasError = meta?.status === "failed";
+                const isSynced = meta?.status === "synced";
+
+                return (
+                  <div
+                    key={wb.key}
+                    className="relative flex flex-col justify-between rounded-2xl sm:rounded-3xl border border-border/70 bg-card p-4 sm:p-5 shadow-xs hover:border-primary/40 hover:shadow-md transition-all duration-200"
+                  >
+                    <div>
+                      {/* Card Header */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary shadow-xs">
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-bold text-foreground">{wb.title}</h3>
+                            <p className="text-xs font-mono text-muted-foreground">
+                              {wb.fileName}
+                            </p>
+                          </div>
+                        </div>
+
+                        {hasError ? (
+                          <Pill tone="danger">
+                            <XCircle className="h-3 w-3" />
+                            Sync Failed
+                          </Pill>
+                        ) : isSynced ? (
+                          <Pill tone="success">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Synchronized
+                          </Pill>
+                        ) : (
+                          <Pill tone="neutral">
+                            <Clock className="h-3 w-3" />
+                            Pending Sync
+                          </Pill>
+                        )}
+                      </div>
+
+                      {/* Description */}
+                      <p className="mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                        {wb.description}
+                      </p>
+
+                      {/* Mini Stats Grid */}
+                      <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-2.5 text-center border border-border/40">
+                        <div>
+                          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
+                            Records
+                          </div>
+                          <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground">
+                            {meta?.rowCount !== undefined ? meta.rowCount.toLocaleString() : "—"}
+                          </div>
                         </div>
                         <div>
-                          <CardTitle className="text-lg text-white">{wb.title}</CardTitle>
-                          <CardDescription className="text-xs font-mono text-slate-400">
-                            {wb.fileName}
-                          </CardDescription>
+                          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
+                            File Size
+                          </div>
+                          <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground">
+                            {formatFileSize(meta?.fileSize)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
+                            Last Synced
+                          </div>
+                          <div
+                            className="mt-0.5 text-xs font-medium text-foreground truncate"
+                            title={formatDate(meta?.lastSyncedAt)}
+                          >
+                            {meta?.lastSyncedAt
+                              ? new Date(meta.lastSyncedAt).toLocaleDateString()
+                              : "Never"}
+                          </div>
                         </div>
                       </div>
 
-                      {hasError ? (
-                        <Badge className="bg-rose-500/15 text-rose-400 border-rose-500/30 gap-1">
-                          <XCircle className="h-3 w-3" />
-                          Sync Failed
-                        </Badge>
-                      ) : isSynced ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-1">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Synchronized
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-slate-700/50 text-slate-300 border-slate-600 gap-1">
-                          <Clock className="h-3 w-3" />
-                          Pending Initial Sync
-                        </Badge>
+                      {hasError && meta?.errorMessage && (
+                        <div className="mt-3 rounded-xl bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                          <span className="line-clamp-2">
+                            <strong>Sync Error:</strong> {meta.errorMessage}
+                          </span>
+                        </div>
                       )}
                     </div>
-                  </CardHeader>
 
-                  <CardContent className="space-y-4 pt-1">
-                    <p className="text-sm text-slate-400 leading-relaxed min-h-[40px]">
-                      {wb.description}
-                    </p>
-
-                    {/* Workbook Statistics */}
-                    <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-950/60 p-3 text-center border border-slate-800/60">
-                      <div>
-                        <div className="text-[11px] uppercase tracking-wider text-slate-500">
-                          Total Records
-                        </div>
-                        <div className="mt-1 text-base font-semibold text-white">
-                          {meta?.rowCount !== undefined ? meta.rowCount.toLocaleString() : "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[11px] uppercase tracking-wider text-slate-500">
-                          File Size
-                        </div>
-                        <div className="mt-1 text-base font-semibold text-white">
-                          {formatFileSize(meta?.fileSize)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[11px] uppercase tracking-wider text-slate-500">
-                          Last Synced
-                        </div>
-                        <div className="mt-1 text-xs font-medium text-slate-300 truncate" title={formatDate(meta?.lastSyncedAt)}>
-                          {meta?.lastSyncedAt ? new Date(meta.lastSyncedAt).toLocaleDateString() : "Never"}
-                        </div>
-                      </div>
-                    </div>
-
-                    {hasError && meta?.errorMessage && (
-                      <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-2.5 text-xs text-rose-300">
-                        <span className="font-semibold">Error: </span>
-                        {meta.errorMessage}
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
-                      <div className="flex items-center gap-2">
+                    {/* Card Actions Footer */}
+                    <div className="mt-5 pt-3.5 border-t border-border/60 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
                         {meta?.webViewLink ? (
                           <Button
                             asChild
                             variant="outline"
                             size="sm"
-                            className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white"
+                            className="rounded-full h-8 px-3 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
                           >
                             <a href={meta.webViewLink} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="mr-1.5 h-3.5 w-3.5 text-blue-400" />
+                              <ExternalLink className="h-3.5 w-3.5" />
                               View in Drive
                             </a>
                           </Button>
@@ -524,10 +641,10 @@ export function GoogleDriveDashboard() {
                           asChild
                           variant="ghost"
                           size="sm"
-                          className="text-slate-300 hover:bg-slate-800 hover:text-white"
+                          className="rounded-full h-8 px-3 text-xs gap-1 text-muted-foreground hover:text-foreground"
                         >
                           <a href={googleDriveApi.getDownloadUrl(wb.key)} download>
-                            <Download className="mr-1.5 h-3.5 w-3.5 text-slate-400" />
+                            <Download className="h-3.5 w-3.5" />
                             Download .xlsx
                           </a>
                         </Button>
@@ -538,136 +655,155 @@ export function GoogleDriveDashboard() {
                           onClick={() => handleSyncSpreadsheet(wb.key)}
                           disabled={isSyncing}
                           size="sm"
-                          className="bg-indigo-600/90 hover:bg-indigo-600 text-white"
+                          className="rounded-full h-8 px-3 text-xs gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
                         >
-                          <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+                          <RefreshCw
+                            className={`h-3 w-3 ${isSyncing ? "animate-spin" : ""}`}
+                          />
                           {isSyncing ? "Syncing..." : "Sync Now"}
                         </Button>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Sync Engine Features Card */}
-          <Card className="border-slate-800 bg-slate-900/50 p-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold text-white flex items-center gap-2">
-                  <Database className="h-4 w-4 text-indigo-400" />
-                  Real-time Platform-wide Synchronization Engine
-                </h3>
-                <p className="text-sm text-slate-400">
-                  Every time a member registers, a business is verified, an event registration is recorded, or revenue share is calculated, the synchronization engine automatically schedules a debounced, atomic update to ensure Google Drive and platform records stay 100% consistent.
-                </p>
-              </div>
-
-              {isCentralAdmin && (
-                <Button
-                  onClick={handleRetryFailed}
-                  disabled={retrying || (data?.failedCount || 0) === 0}
-                  variant="outline"
-                  className="border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
-                >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${retrying ? "animate-spin" : ""}`} />
-                  Retry Failed Tasks
-                </Button>
-              )}
+                  </div>
+                );
+              })}
             </div>
-          </Card>
-        </TabsContent>
 
-        {/* TAB 2: ADMIN ACCESS & ROLE SYNCHRONIZATION */}
-        <TabsContent value="admins" className="space-y-6 focus:outline-none">
-          <Card className="border-slate-800 bg-slate-900/80">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <CardTitle className="text-lg text-white flex items-center gap-2">
-                    <ShieldCheck className="h-5 w-5 text-indigo-400" />
-                    Authorized Administrator Access Roster
-                  </CardTitle>
-                  <CardDescription className="text-sm text-slate-400 mt-1">
-                    The central Google Drive archive is strictly restricted to Central Admins, State Admins, and Chapter Admins. Platform role changes automatically add or revoke Google Drive folder permissions.
-                  </CardDescription>
+            {/* Sync Engine Details Panel */}
+            <Panel
+              title="Continuous Multi-Sheet Synchronization Engine"
+              description="Platform events trigger atomic debounced Excel updates to guarantee that Google Drive stays 100% consistent with the active database."
+              action={
+                isCentralAdmin && (
+                  <Button
+                    onClick={handleRetryFailed}
+                    disabled={retrying || (data?.failedCount || 0) === 0}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full h-8 text-xs gap-1.5"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${retrying ? "animate-spin" : ""}`} />
+                    Retry Failed Tasks
+                  </Button>
+                )
+              }
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-muted-foreground">
+                <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
+                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                    <Database className="h-3.5 w-3.5 text-primary" />
+                    Automated Event Triggers
+                  </div>
+                  <p>
+                    New member registrations, verification approvals, event bookings, and revenue share recalculations automatically update their respective workbooks in near real-time.
+                  </p>
                 </div>
+                <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
+                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-brand" />
+                    Role-Based Access
+                  </div>
+                  <p>
+                    Every chapter admin and state admin is granted direct Google Drive permissions based on their platform assignments. Permission revocations happen automatically when roles change.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
+                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-emerald-600" />
+                    Resilient Local Cache
+                  </div>
+                  <p>
+                    Spreadsheets are cached in local platform storage so administrative downloads remain instantly available even during network interruptions or Google API rate limits.
+                  </p>
+                </div>
+              </div>
+            </Panel>
+          </TabsContent>
 
-                {isCentralAdmin && (
+          {/* TAB 2: ADMIN ACCESS ROSTER */}
+          <TabsContent value="admins" className="space-y-6 focus:outline-none">
+            <Panel
+              title="Authorized Administrator Access Roster"
+              description="Platform administrators with verified permissions to view and edit spreadsheets in the shared Google Drive directory."
+              action={
+                isCentralAdmin && (
                   <Button
                     onClick={handleSyncPermissions}
                     disabled={reconcilingPermissions}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white self-start sm:self-auto"
+                    size="sm"
+                    className="rounded-full h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
                   >
-                    <FolderSync className={`mr-2 h-4 w-4 ${reconcilingPermissions ? "animate-spin" : ""}`} />
-                    {reconcilingPermissions ? "Reconciling Access..." : "Reconcile Admin Access"}
+                    <FolderSync
+                      className={`h-3.5 w-3.5 ${reconcilingPermissions ? "animate-spin" : ""}`}
+                    />
+                    {reconcilingPermissions
+                      ? "Reconciling Permissions..."
+                      : "Reconcile Admin Access"}
                   </Button>
-                )}
-              </div>
-            </CardHeader>
-
-            <CardContent>
+                )
+              }
+            >
               {data?.syncedAdmins && data.syncedAdmins.length > 0 ? (
-                <div className="overflow-x-auto rounded-xl border border-slate-800">
-                  <table className="w-full text-left text-sm text-slate-300">
-                    <thead className="bg-slate-950 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                <div className="overflow-x-auto rounded-xl border border-border/70">
+                  <table className="w-full text-left text-sm text-foreground">
+                    <thead className="bg-muted/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
                       <tr>
-                        <th className="px-4 py-3.5">Administrator</th>
-                        <th className="px-4 py-3.5">Email Address</th>
-                        <th className="px-4 py-3.5">Platform Role</th>
-                        <th className="px-4 py-3.5">Chapter / Scope</th>
-                        <th className="px-4 py-3.5">Drive Access</th>
-                        <th className="px-4 py-3.5">Permission Status</th>
+                        <th className="px-4 py-3">Administrator</th>
+                        <th className="px-4 py-3">Email Address</th>
+                        <th className="px-4 py-3">Platform Role</th>
+                        <th className="px-4 py-3">Chapter / Scope</th>
+                        <th className="px-4 py-3">Drive Permission</th>
+                        <th className="px-4 py-3">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 bg-slate-900/40">
+                    <tbody className="divide-y divide-border/50 bg-card">
                       {data.syncedAdmins.map((admin) => (
-                        <tr key={admin._id || admin.email} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="px-4 py-3.5 font-medium text-white">
+                        <tr
+                          key={admin._id || admin.email}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-4 py-3 font-semibold text-foreground">
                             {admin.name || "Administrator"}
                           </td>
-                          <td className="px-4 py-3.5 font-mono text-xs text-slate-300">
+                          <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                             {admin.email}
                           </td>
-                          <td className="px-4 py-3.5">
-                            <Badge
-                              variant="outline"
-                              className={`capitalize ${
+                          <td className="px-4 py-3">
+                            <Pill
+                              tone={
                                 admin.role?.includes("central")
-                                  ? "border-purple-500/40 text-purple-300 bg-purple-500/10"
+                                  ? "primary"
                                   : admin.role?.includes("state")
-                                  ? "border-blue-500/40 text-blue-300 bg-blue-500/10"
-                                  : "border-teal-500/40 text-teal-300 bg-teal-500/10"
-                              }`}
+                                  ? "brand"
+                                  : "neutral"
+                              }
                             >
                               {admin.role?.replace(/_/g, " ")}
-                            </Badge>
+                            </Pill>
                           </td>
-                          <td className="px-4 py-3.5 text-slate-400 text-xs">
-                            {[admin.state, admin.chapter].filter(Boolean).join(" · ") || "All National"}
+                          <td className="px-4 py-3 text-xs text-muted-foreground">
+                            {[admin.state, admin.chapter].filter(Boolean).join(" · ") ||
+                              "All National"}
                           </td>
-                          <td className="px-4 py-3.5">
-                            <Badge className="bg-slate-800 text-slate-200 border-slate-700 capitalize">
-                              {admin.accessRole || "writer"}
-                            </Badge>
+                          <td className="px-4 py-3 font-mono text-xs capitalize text-foreground">
+                            {admin.accessRole || "writer"}
                           </td>
-                          <td className="px-4 py-3.5">
+                          <td className="px-4 py-3">
                             {admin.status === "synced" ? (
-                              <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-1">
+                              <Pill tone="success">
                                 <CheckCircle2 className="h-3 w-3" />
                                 Granted & Active
-                              </Badge>
+                              </Pill>
                             ) : admin.status === "failed" ? (
-                              <Badge className="bg-rose-500/15 text-rose-400 border-rose-500/30 gap-1" title={admin.error}>
+                              <Pill tone="danger" title={admin.error}>
                                 <AlertCircle className="h-3 w-3" />
                                 Sync Failed
-                              </Badge>
+                              </Pill>
                             ) : (
-                              <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 gap-1">
+                              <Pill tone="warning">
                                 <Clock className="h-3 w-3" />
                                 Pending Sync
-                              </Badge>
+                              </Pill>
                             )}
                           </td>
                         </tr>
@@ -676,144 +812,114 @@ export function GoogleDriveDashboard() {
                   </table>
                 </div>
               ) : (
-                <div className="py-12 text-center text-slate-400">
-                  <ShieldCheck className="mx-auto h-12 w-12 text-slate-600 mb-3" />
-                  <p className="text-base font-medium text-slate-300">No admin permissions synchronized yet</p>
-                  <p className="text-sm text-slate-500 mt-1">
+                <div className="py-12 text-center text-muted-foreground">
+                  <ShieldCheck className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+                  <p className="text-base font-semibold text-foreground">
+                    No admin permissions synchronized yet
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
                     Click &quot;Reconcile Admin Access&quot; above to scan all platform administrators and grant them access to the shared folder.
                   </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </Panel>
+          </TabsContent>
 
-        {/* TAB 3: SYNC HISTORY & DIAGNOSTICS */}
-        <TabsContent value="logs" className="space-y-6 focus:outline-none">
-          <Card className="border-slate-800 bg-slate-900/80">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <CardTitle className="text-lg text-white flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-indigo-400" />
-                    Synchronization Logs & Diagnostics
-                  </CardTitle>
-                  <CardDescription className="text-sm text-slate-400 mt-1">
-                    Audit trail of all automated and manual spreadsheet synchronizations, failure traces, and retry attempts.
-                  </CardDescription>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="flex rounded-lg border border-slate-800 bg-slate-950 p-1">
-                    {["all", "success", "failed"].map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => {
-                          setLogFilter(f);
-                          loadLogs(f);
-                        }}
-                        className={`rounded px-2.5 py-1 text-xs font-medium capitalize transition-colors ${
-                          logFilter === f
-                            ? "bg-indigo-600 text-white"
-                            : "text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-
-                  {isCentralAdmin && (
-                    <Button
-                      onClick={handleRetryFailed}
-                      disabled={retrying}
-                      size="sm"
-                      variant="outline"
-                      className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
-                    >
-                      <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${retrying ? "animate-spin" : ""}`} />
-                      Retry Failed
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent>
+          {/* TAB 3: SYNC HISTORY & DIAGNOSTICS */}
+          <TabsContent value="logs" className="space-y-6 focus:outline-none">
+            <Panel
+              title="Synchronization Logs & Diagnostics"
+              description="Complete historical audit trail of all automated and manual spreadsheet synchronizations, row counts, and retry traces."
+              action={
+                isCentralAdmin && (
+                  <Button
+                    onClick={handleRetryFailed}
+                    disabled={retrying}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full h-8 text-xs gap-1.5"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${retrying ? "animate-spin" : ""}`} />
+                    Retry Failed
+                  </Button>
+                )
+              }
+            >
               {logsLoading ? (
-                <div className="py-12 text-center text-slate-400">
-                  <RefreshCw className="mx-auto h-8 w-8 animate-spin text-indigo-400 mb-2" />
-                  <p>Loading synchronization logs...</p>
+                <div className="py-12 text-center text-muted-foreground">
+                  <RefreshCw className="mx-auto h-7 w-7 animate-spin text-primary mb-2" />
+                  <p className="text-xs">Loading synchronization logs...</p>
                 </div>
               ) : logs.length > 0 ? (
-                <div className="overflow-x-auto rounded-xl border border-slate-800">
-                  <table className="w-full text-left text-sm text-slate-300">
-                    <thead className="bg-slate-950 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                <div className="overflow-x-auto rounded-xl border border-border/70">
+                  <table className="w-full text-left text-sm text-foreground">
+                    <thead className="bg-muted/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
                       <tr>
-                        <th className="px-4 py-3.5">Target</th>
-                        <th className="px-4 py-3.5">Task Type</th>
-                        <th className="px-4 py-3.5">Trigger</th>
-                        <th className="px-4 py-3.5">Duration</th>
-                        <th className="px-4 py-3.5">Status</th>
-                        <th className="px-4 py-3.5">Timestamp</th>
-                        <th className="px-4 py-3.5 text-right">Details</th>
+                        <th className="px-4 py-3">Target</th>
+                        <th className="px-4 py-3">Task Type</th>
+                        <th className="px-4 py-3">Trigger</th>
+                        <th className="px-4 py-3">Duration</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Timestamp</th>
+                        <th className="px-4 py-3 text-right">Details</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 bg-slate-900/40">
+                    <tbody className="divide-y divide-border/50 bg-card">
                       {logs.map((log) => {
                         const isSuccess = log.status === "success";
                         const isFailed = log.status === "failed";
 
                         return (
-                          <tr key={log._id} className="hover:bg-slate-800/40 transition-colors">
-                            <td className="px-4 py-3.5 font-medium text-white capitalize">
+                          <tr
+                            key={log._id}
+                            className="hover:bg-muted/30 transition-colors"
+                          >
+                            <td className="px-4 py-3 font-semibold text-foreground capitalize">
                               {log.target?.replace(/_/g, " ")}
                             </td>
-                            <td className="px-4 py-3.5 text-xs text-slate-400 capitalize">
+                            <td className="px-4 py-3 text-xs text-muted-foreground capitalize">
                               {log.taskType?.replace(/_/g, " ")}
                             </td>
-                            <td className="px-4 py-3.5 text-xs">
-                              <Badge variant="outline" className="border-slate-700 bg-slate-800/60 text-slate-300 capitalize">
-                                {log.trigger}
-                              </Badge>
+                            <td className="px-4 py-3">
+                              <Pill tone="neutral">{log.trigger}</Pill>
                             </td>
-                            <td className="px-4 py-3.5 text-xs font-mono text-slate-400">
+                            <td className="px-4 py-3 text-xs font-mono text-muted-foreground">
                               {log.durationMs ? `${log.durationMs}ms` : "—"}
                             </td>
-                            <td className="px-4 py-3.5">
+                            <td className="px-4 py-3">
                               {isSuccess ? (
-                                <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-1">
+                                <Pill tone="success">
                                   <CheckCircle2 className="h-3 w-3" />
                                   Success
-                                </Badge>
+                                </Pill>
                               ) : isFailed ? (
-                                <Badge className="bg-rose-500/15 text-rose-400 border-rose-500/30 gap-1">
+                                <Pill tone="danger">
                                   <XCircle className="h-3 w-3" />
                                   Failed
-                                </Badge>
+                                </Pill>
                               ) : (
-                                <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 gap-1">
+                                <Pill tone="primary">
                                   <RefreshCw className="h-3 w-3 animate-spin" />
                                   Processing
-                                </Badge>
+                                </Pill>
                               )}
                             </td>
-                            <td className="px-4 py-3.5 text-xs text-slate-400">
+                            <td className="px-4 py-3 text-xs text-muted-foreground">
                               {formatDate(log.createdAt)}
                             </td>
-                            <td className="px-4 py-3.5 text-right">
+                            <td className="px-4 py-3 text-right">
                               {isFailed ? (
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => setSelectedErrorLog(log)}
-                                  className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 h-8 px-2 text-xs"
+                                  className="rounded-full text-destructive hover:bg-destructive/10 h-7 px-2.5 text-xs gap-1"
                                 >
-                                  <Eye className="mr-1 h-3.5 w-3.5" />
+                                  <Eye className="h-3.5 w-3.5" />
                                   View Error
                                 </Button>
                               ) : (
-                                <span className="text-xs text-slate-500 font-mono">
+                                <span className="text-xs text-muted-foreground font-mono">
                                   {log.metadata?.rowCount !== undefined
                                     ? `${log.metadata.rowCount} rows`
                                     : "—"}
@@ -827,85 +933,92 @@ export function GoogleDriveDashboard() {
                   </table>
                 </div>
               ) : (
-                <div className="py-12 text-center text-slate-400">
-                  <Clock className="mx-auto h-10 w-10 text-slate-600 mb-2" />
-                  <p>No synchronization logs found</p>
+                <div className="py-12 text-center text-muted-foreground">
+                  <Clock className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
+                  <p className="text-sm font-semibold text-foreground">No synchronization logs found</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </Panel>
+          </TabsContent>
+        </Tabs>
 
-      {/* Error Details Modal */}
-      <Dialog open={Boolean(selectedErrorLog)} onOpenChange={(open) => !open && setSelectedErrorLog(null)}>
-        <DialogContent className="max-w-2xl border-slate-800 bg-slate-900 text-white">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-rose-400">
-              <AlertTriangle className="h-5 w-5" />
-              Synchronization Diagnostic Error Details
-            </DialogTitle>
-            <DialogDescription className="text-slate-400 text-xs">
-              Target: <span className="font-semibold text-slate-200 uppercase">{selectedErrorLog?.target}</span> ·
-              Attempt: <span className="font-semibold text-slate-200">{selectedErrorLog?.attemptCount || 1} of {selectedErrorLog?.maxAttempts || 3}</span> ·
-              Logged at: {formatDate(selectedErrorLog?.createdAt)}
-            </DialogDescription>
-          </DialogHeader>
+        {/* Error Diagnostic Dialog */}
+        <Dialog
+          open={Boolean(selectedErrorLog)}
+          onOpenChange={(open) => !open && setSelectedErrorLog(null)}
+        >
+          <DialogContent className="max-w-xl rounded-2xl sm:rounded-3xl border border-border bg-card p-6 shadow-xl text-foreground">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive font-bold text-lg">
+                <AlertTriangle className="h-5 w-5" />
+                Synchronization Error Diagnostics
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Target: <span className="font-semibold text-foreground uppercase">{selectedErrorLog?.target}</span> ·
+                Attempt: <span className="font-semibold text-foreground">{selectedErrorLog?.attemptCount || 1} of {selectedErrorLog?.maxAttempts || 3}</span> ·
+                Logged at: {formatDate(selectedErrorLog?.createdAt)}
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-4 pt-2">
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Error Message
-              </label>
-              <div className="mt-1 rounded-lg border border-rose-500/30 bg-rose-950/30 p-3 text-sm text-rose-300 font-mono">
-                {selectedErrorLog?.errorMessage || "Unknown Error"}
-              </div>
-            </div>
-
-            {selectedErrorLog?.errorDetails && (
+            <div className="space-y-4 pt-2">
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Stack Trace & Diagnostics
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Error Message
                 </label>
-                <div className="mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950 p-3 font-mono text-xs text-slate-400 whitespace-pre-wrap">
-                  {selectedErrorLog.errorDetails}
+                <div className="mt-1 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive font-mono">
+                  {selectedErrorLog?.errorMessage || "Unknown error"}
                 </div>
               </div>
-            )}
 
-            {selectedErrorLog?.nextRetryAt && (
-              <div className="text-xs text-amber-400 flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                Next automatic retry scheduled for: {formatDate(selectedErrorLog.nextRetryAt)}
-              </div>
-            )}
-          </div>
+              {selectedErrorLog?.errorDetails && (
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Diagnostics & Stack Trace
+                  </label>
+                  <div className="mt-1 max-h-52 overflow-y-auto rounded-xl border border-border bg-muted/40 p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap">
+                    {selectedErrorLog.errorDetails}
+                  </div>
+                </div>
+              )}
 
-          <div className="mt-4 flex items-center justify-between border-t border-slate-800 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setSelectedErrorLog(null)}
-              className="border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
-            >
-              Close
-            </Button>
+              {selectedErrorLog?.nextRetryAt && (
+                <div className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-medium">
+                  <Clock className="h-3.5 w-3.5" />
+                  Next automatic retry scheduled for: {formatDate(selectedErrorLog.nextRetryAt)}
+                </div>
+              )}
+            </div>
 
-            {isCentralAdmin && selectedErrorLog?.target && (
+            <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
               <Button
-                onClick={() => {
-                  const target = selectedErrorLog.target;
-                  setSelectedErrorLog(null);
-                  handleSyncSpreadsheet(target);
-                }}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white"
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedErrorLog(null)}
+                className="rounded-full text-xs"
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Retry This Task Now
+                Close
               </Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+
+              {isCentralAdmin && selectedErrorLog?.target && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const target = selectedErrorLog.target;
+                    setSelectedErrorLog(null);
+                    handleSyncSpreadsheet(target);
+                  }}
+                  className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs gap-1.5 font-semibold"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Retry This Task Now
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </AppShell>
   );
 }
+
+export default GoogleDriveDashboard;
