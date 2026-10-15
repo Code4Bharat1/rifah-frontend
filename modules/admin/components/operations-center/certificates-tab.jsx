@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { eventApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { cn } from "@shared/lib/utils";
+import { ResponsiveTable } from "@shared/components/rifah/ui-bits";
 import { CertificateStudio } from "./certificate-studio";
 
 const CERTIFICATE_STYLES = [
@@ -293,6 +294,11 @@ export function CertificatesTab({ eventId }) {
   useEffect(() => {
     if (eventId) {
       fetchEventData();
+    } else {
+      // No event selected — stop the spinner instead of leaving `loading` stuck at its
+      // initial `true` forever (fetchEventData, the only thing that ever clears it, was
+      // never called).
+      setLoading(false);
     }
   }, [eventId]);
 
@@ -491,9 +497,21 @@ export function CertificatesTab({ eventId }) {
     );
   }
 
+  if (!eventId) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-2xl bg-muted/20">
+        <FileStack className="h-10 w-10 text-muted-foreground mb-4 opacity-40" />
+        <h3 className="text-base font-bold text-foreground">No event selected</h3>
+        <p className="text-sm text-muted-foreground mt-1 max-w-md">
+          Pick an event above to generate and manage its participation certificates.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      
+
       {/* Sub Tab Navigation */}
       <div className="flex items-center gap-2 border-b border-border pb-px">
         <button
@@ -573,75 +591,76 @@ export function CertificatesTab({ eventId }) {
               </div>
             </div>
             
-            <div className="max-h-[600px] overflow-y-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-muted-foreground uppercase border-b border-border sticky top-0 bg-card z-10 shadow-sm">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Attendee Name</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendees.length === 0 ? (
-                    <tr>
-                      <td colSpan="3" className="px-4 py-12 text-center text-muted-foreground">
-                        <Users className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
-                        No eligible attendees found. Attendees must be marked as 'Present' or 'Approved' at the entrance gate.
-                      </td>
-                    </tr>
-                  ) : (
-                    attendees.map((attendee) => (
-                      <tr key={attendee._id} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="font-semibold text-foreground">{attendee.user?.name}</div>
-                          <div className="text-xs text-muted-foreground">{attendee.user?.company || attendee.user?.businessName || "Member"}</div>
-                          <div className="text-xs text-muted-foreground">{attendee.user?.email || "No Email"}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                           <Badge variant="outline" className="text-[10px] text-green-600 border-green-200 bg-green-50 shadow-sm">Eligible</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2 flex-wrap">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => window.open(getCertificateDownloadUrl(attendee._id), "_blank")}
-                              className="h-8 text-[11px] font-semibold px-2.5"
-                            >
-                              <Eye className="h-3 w-3 mr-1" /> Preview
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => window.open(getCertificateDownloadUrl(attendee._id), "_blank")}
-                              className="h-8 text-[11px] font-semibold px-2.5"
-                            >
-                              <Download className="h-3 w-3 mr-1" /> PDF
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleSendEmail(attendee._id)}
-                              className="h-8 text-[11px] font-semibold px-2.5 bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20 hover:text-blue-700"
-                            >
-                              <Send className="h-3 w-3 mr-1" /> Email
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleRegenerate(attendee._id)}
-                              className="h-8 text-[11px] font-semibold px-2.5"
-                            >
-                              Regenerate
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+            <div className="max-h-[600px] overflow-y-auto p-3 sm:p-0">
+              <ResponsiveTable
+                rows={attendees}
+                empty={
+                  <div className="px-4 py-12 text-center text-muted-foreground">
+                    <Users className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+                    No eligible attendees found. Attendees must be marked as &apos;Present&apos; or &apos;Approved&apos; at the entrance gate.
+                  </div>
+                }
+                columns={[
+                  {
+                    key: "name",
+                    header: "Attendee",
+                    cell: (attendee) => (
+                      <div className="text-left">
+                        <div className="font-semibold text-foreground">{attendee.user?.name}</div>
+                        <div className="text-xs text-muted-foreground">{attendee.user?.company || attendee.user?.businessName || "Member"}</div>
+                        <div className="text-xs text-muted-foreground">{attendee.user?.email || "No Email"}</div>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    cell: () => (
+                      <Badge variant="outline" className="text-[10px] text-green-600 border-green-200 bg-green-50 shadow-sm">Eligible</Badge>
+                    ),
+                  },
+                  {
+                    key: "actions",
+                    header: "Actions",
+                    cell: (attendee) => (
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(getCertificateDownloadUrl(attendee._id), "_blank")}
+                          className="h-8 text-[11px] font-semibold px-2.5"
+                        >
+                          <Eye className="h-3 w-3 mr-1" /> Preview
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(getCertificateDownloadUrl(attendee._id), "_blank")}
+                          className="h-8 text-[11px] font-semibold px-2.5"
+                        >
+                          <Download className="h-3 w-3 mr-1" /> PDF
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSendEmail(attendee._id)}
+                          className="h-8 text-[11px] font-semibold px-2.5 bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20 hover:text-blue-700"
+                        >
+                          <Send className="h-3 w-3 mr-1" /> Email
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRegenerate(attendee._id)}
+                          className="h-8 text-[11px] font-semibold px-2.5"
+                        >
+                          Regenerate
+                        </Button>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
             </div>
           </div>
         </div>

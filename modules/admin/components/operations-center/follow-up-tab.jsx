@@ -57,6 +57,8 @@ export function FollowupTab({ eventId }) {
   useEffect(() => {
     if (eventId) {
       fetchData();
+    } else {
+      setLoading(false);
     }
   }, [eventId]);
 
@@ -156,10 +158,22 @@ export function FollowupTab({ eventId }) {
     );
   }
 
+  if (!eventId) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-border rounded-2xl bg-muted/20">
+        <PhoneCall className="h-10 w-10 text-muted-foreground mb-4 opacity-40" />
+        <h3 className="text-base font-bold text-foreground">No event selected</h3>
+        <p className="text-sm text-muted-foreground mt-1 max-w-md">
+          Pick an event above to see its follow-up queue.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

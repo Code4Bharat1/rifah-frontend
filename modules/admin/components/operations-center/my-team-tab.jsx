@@ -211,11 +211,21 @@ export function MyTeamTab({
 
         <div className="mt-6 pt-6 border-t border-border">
           <div className="flex items-center gap-2">
-            <Checkbox id="cb-remote" disabled />
+            <Checkbox
+              id="cb-remote"
+              checked={Boolean(teamRoles.allowCoordinatorRemote)}
+              onCheckedChange={(checked) => handleRoleChange("allowCoordinatorRemote", Boolean(checked))}
+              disabled={!teamRoles.eventCoordinator}
+            />
             <label htmlFor="cb-remote" className="text-xs text-muted-foreground">
               Let the Event Coordinator run the programme from his own phone (Next / Hold / Start)
             </label>
           </div>
+          {!teamRoles.eventCoordinator && (
+            <p className="text-[11px] text-muted-foreground mt-1 pl-6">
+              Assign an Event Coordinator above first.
+            </p>
+          )}
         </div>
 
         <div className="mt-8 flex justify-end">

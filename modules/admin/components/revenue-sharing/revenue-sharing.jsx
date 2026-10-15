@@ -17,11 +17,12 @@ import {
   Settings2,
   Building2,
   MapPinned,
+  CalendarIcon,
 } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { useAuth } from "@shared/providers/auth-provider";
-import { revenueShareApi } from "@shared/lib/api-services";
+import { revenueShareApi, chapterApi } from "@shared/lib/api-services";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
@@ -33,6 +34,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@shared/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@shared/components/ui/popover";
+import { Calendar } from "@shared/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -658,6 +665,46 @@ function LedgerTab() {
   );
 }
 
+/** A calendar-popover date picker that stores/returns plain "YYYY-MM-DD" strings. */
+function DatePickerField({ value, onChange, placeholder = "Pick a date" }) {
+  const [open, setOpen] = useState(false);
+  const selectedDate = value ? new Date(`${value}T00:00:00`) : undefined;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full justify-start gap-2 font-normal"
+        >
+          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+          {selectedDate ? (
+            selectedDate.toLocaleDateString("en-IN")
+          ) : (
+            <span className="text-muted-foreground">{placeholder}</span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={selectedDate}
+          onSelect={(d) => {
+            if (d) {
+              const yyyy = d.getFullYear();
+              const mm = String(d.getMonth() + 1).padStart(2, "0");
+              const dd = String(d.getDate()).padStart(2, "0");
+              onChange(`${yyyy}-${mm}-${dd}`);
+            }
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function Row({ label, value }) {
   return (
     <div className="flex items-center justify-between border-b border-border py-1.5 last:border-0">
@@ -670,7 +717,7 @@ function Row({ label, value }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Claims
 // ─────────────────────────────────────────────────────────────────────────────
-function ClaimsTab({ isCentralAdmin, canClaim }) {
+function ClaimsTab({ isCentralAdmin, canClaim, userRole }) {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -690,8 +737,22 @@ function ClaimsTab({ isCentralAdmin, canClaim }) {
     periodFrom: "",
     periodTo: "",
     notes: "",
+    beneficiaryLevel: "chapter",
+    chapterId: "",
+    state: "",
+    revenueType: "membership",
   });
   const [balance, setBalance] = useState(null);
+  const [chapters, setChapters] = useState([]);
+
+  useEffect(() => {
+    if (!isCentralAdmin || !createOpen || chapters.length > 0) return;
+    chapterApi
+      .list({ limit: 500 })
+      .then((res) => setChapters(res.data || res || []))
+      .catch(() => setChapters([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCentralAdmin, createOpen]);
 
   const load = async () => {
     setLoading(true);
@@ -714,19 +775,55 @@ function ClaimsTab({ isCentralAdmin, canClaim }) {
 
   const handleCreate = async () => {
     try {
-      await revenueShareApi.createClaim({
-        claimedAmount: Number(newClaim.claimedAmount),
+      const amount = Number(newClaim.claimedAmount);
+      const created = await revenueShareApi.createClaim({
+        claimedAmount: amount,
         periodFrom: newClaim.periodFrom,
         periodTo: newClaim.periodTo,
         notes: newClaim.notes,
+        ...(isCentralAdmin
+          ? {
+              beneficiaryLevel: newClaim.beneficiaryLevel,
+              chapterId:
+                newClaim.beneficiaryLevel === "chapter"
+                  ? newClaim.chapterId
+                  : undefined,
+              state:
+                newClaim.beneficiaryLevel === "state"
+                  ? newClaim.state
+                  : undefined,
+              revenueType: newClaim.revenueType,
+            }
+          : {}),
       });
-      toast.success("Claim created as draft");
+
+      if (isCentralAdmin) {
+        // Direct settlement, created pre-approved: pay it out in the same action
+        // instead of leaving it sitting as a second manual step.
+        const claimId = created?.data?._id || created?._id;
+        await revenueShareApi.recordSettlement(claimId, {
+          amount,
+          method: "Bank Transfer",
+          notes: newClaim.notes,
+          idempotencyKey: `${claimId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        });
+      }
+
+      toast.success(
+        isCentralAdmin
+          ? "Funds settled directly"
+          : "Claim created as draft",
+      );
       setCreateOpen(false);
       setNewClaim({
         claimedAmount: "",
         periodFrom: "",
         periodTo: "",
         notes: "",
+        beneficiaryLevel: "chapter",
+        chapterId: "",
+        state: "",
+        revenueType: "membership",
       });
       load();
     } catch (e) {
@@ -794,9 +891,10 @@ function ClaimsTab({ isCentralAdmin, canClaim }) {
             ))}
           </SelectContent>
         </Select>
-        {canClaim && (
+        {(canClaim || isCentralAdmin) && (
           <Button className="gap-1.5" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> New Claim
+            <Plus className="h-4 w-4" />
+            {isCentralAdmin ? "Settle Funds Directly" : "New Claim"}
           </Button>
         )}
       </div>
@@ -846,15 +944,92 @@ function ClaimsTab({ isCentralAdmin, canClaim }) {
         />
       )}
 
-      {/* Create claim */}
+      {/* Create claim / central direct settlement */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Submit a Revenue Share Claim</DialogTitle>
+            <DialogTitle>
+              {isCentralAdmin
+                ? "Settle Funds Directly"
+                : "Submit a Revenue Share Claim"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {isCentralAdmin && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Pay out to</Label>
+                    <Select
+                      value={newClaim.beneficiaryLevel}
+                      onValueChange={(v) =>
+                        setNewClaim((p) => ({ ...p, beneficiaryLevel: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="chapter">Chapter</SelectItem>
+                        <SelectItem value="state">State</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Revenue type</Label>
+                    <Select
+                      value={newClaim.revenueType}
+                      onValueChange={(v) =>
+                        setNewClaim((p) => ({ ...p, revenueType: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="membership">Membership</SelectItem>
+                        <SelectItem value="event">Event</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {newClaim.beneficiaryLevel === "chapter" ? (
+                  <div className="space-y-1">
+                    <Label>Chapter</Label>
+                    <Select
+                      value={newClaim.chapterId}
+                      onValueChange={(v) =>
+                        setNewClaim((p) => ({ ...p, chapterId: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select chapter" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Array.isArray(chapters) ? chapters : []).map((c) => (
+                          <SelectItem key={c._id} value={c._id}>
+                            {c.name} ({c.state})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <Label>State</Label>
+                    <Input
+                      value={newClaim.state}
+                      onChange={(e) =>
+                        setNewClaim((p) => ({ ...p, state: e.target.value }))
+                      }
+                      placeholder="e.g. Maharashtra"
+                    />
+                  </div>
+                )}
+              </>
+            )}
             <div className="space-y-1">
-              <Label>Claimed amount (₹)</Label>
+              <Label>{isCentralAdmin ? "Settlement amount (₹)" : "Claimed amount (₹)"}</Label>
               <Input
                 type="number"
                 value={newClaim.claimedAmount}
@@ -866,22 +1041,18 @@ function ClaimsTab({ isCentralAdmin, canClaim }) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Period from</Label>
-                <Input
-                  type="date"
+                <DatePickerField
                   value={newClaim.periodFrom}
-                  onChange={(e) =>
-                    setNewClaim((p) => ({ ...p, periodFrom: e.target.value }))
+                  onChange={(v) =>
+                    setNewClaim((p) => ({ ...p, periodFrom: v }))
                   }
                 />
               </div>
               <div className="space-y-1">
                 <Label>Period to</Label>
-                <Input
-                  type="date"
+                <DatePickerField
                   value={newClaim.periodTo}
-                  onChange={(e) =>
-                    setNewClaim((p) => ({ ...p, periodTo: e.target.value }))
-                  }
+                  onChange={(v) => setNewClaim((p) => ({ ...p, periodTo: v }))}
                 />
               </div>
             </div>
@@ -899,7 +1070,9 @@ function ClaimsTab({ isCentralAdmin, canClaim }) {
             <Button variant="ghost" onClick={() => setCreateOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate}>Create Draft</Button>
+            <Button onClick={handleCreate}>
+              {isCentralAdmin ? "Settle" : "Create Draft"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -995,8 +1168,12 @@ function ClaimsTab({ isCentralAdmin, canClaim }) {
                       </Button>
                     </>
                   )}
-                {isCentralAdmin &&
-                  ["approved", "partially_paid"].includes(selected.status) && (
+                {["approved", "partially_paid"].includes(selected.status) &&
+                  (isCentralAdmin ||
+                    (userRole === "state_admin" &&
+                      (selected.beneficiaryLevel === "state" ||
+                        (selected.beneficiaryLevel === "chapter" &&
+                          selected.payingOrgLevel === "state")))) && (
                     <Button
                       size="sm"
                       className="gap-1.5"

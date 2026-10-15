@@ -3,13 +3,15 @@
 // Operations Centre — business-owner side. A member only ever sees the panels for the
 // roles their chapter admin assigned them on an event, and those panels only become
 // actionable once the admin takes the event live.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Award,
   CalendarDays,
   Camera,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   CreditCard,
   FileText,
   Images,
@@ -20,12 +22,14 @@ import {
   Mic,
   Mic2,
   Monitor,
+  QrCode,
   Radio,
   ShieldCheck,
   Ticket,
   User,
   XCircle,
 } from "lucide-react";
+import { Scanner } from "@yudiel/react-qr-scanner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Pill } from "@shared/components/rifah/badges";
@@ -35,6 +39,7 @@ import { Input } from "@shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { userApi, eventApi, followupApi } from "@shared/lib/api-services";
+import { getSocket } from "@shared/lib/socket";
 
 // Roles that unlock a working tool panel.
 const FUNCTIONAL_ROLE_META = {
@@ -88,9 +93,16 @@ function MyDutyPanel() {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [duty, setDuty] = useState(null);
   const [loadingDuty, setLoadingDuty] = useState(false);
-  const [financeForm, setFinanceForm] = useState({ desc: "", amount: "", from: "" });
+  const [financeForm, setFinanceForm] = useState({ desc: "", amount: "", from: "", to: "", type: "moneyIn", method: "Cash" });
   const [submittingFinance, setSubmittingFinance] = useState(false);
   const [busyGateId, setBusyGateId] = useState(null);
+  const [coordSlideIndex, setCoordSlideIndex] = useState(0);
+  const [advancingSlide, setAdvancingSlide] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [lastScanResult, setLastScanResult] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const lastScannedTicketRef = useRef({ code: "", timestamp: 0 });
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -118,6 +130,7 @@ function MyDutyPanel() {
         setLoadingDuty(true);
         const res = await eventApi.getMyDuty(selectedEventId);
         setDuty(res?.data || null);
+        setCoordSlideIndex(res?.data?.data?.currentSlideIndex || 0);
       } catch (err) {
         toast.error("Failed to load duty details.");
       } finally {
@@ -147,6 +160,58 @@ function MyDutyPanel() {
     }
   };
 
+  const handleQrScan = async (result) => {
+    let rawText = "";
+    if (Array.isArray(result) && result.length > 0) {
+      rawText = result[0]?.rawValue || "";
+    } else if (typeof result === "object" && result !== null) {
+      rawText = result.rawValue || "";
+    } else if (typeof result === "string") {
+      rawText = result;
+    }
+    if (!rawText) return;
+
+    let ticketId = String(rawText).trim();
+    if (ticketId.includes("/verify/ticket/")) {
+      const parts = ticketId.split("/verify/ticket/");
+      if (parts.length > 1) ticketId = parts[1].split("?")[0].replace(/\//g, "").trim();
+    }
+    if (!ticketId) return;
+
+    const now = Date.now();
+    if (lastScannedTicketRef.current.code === ticketId && now - lastScannedTicketRef.current.timestamp < 3500) {
+      return;
+    }
+    if (isProcessingRef.current) return;
+
+    isProcessingRef.current = true;
+    setIsScanning(true);
+    lastScannedTicketRef.current = { code: ticketId, timestamp: now };
+
+    try {
+      const response = await eventApi.scanCheckInTicket(ticketId);
+      const isAlready = response?.alreadyCheckedIn || response?.data?.alreadyCheckedIn;
+      const attendeeName = response?.attendeeName || response?.data?.attendeeName || "Attendee";
+      if (isAlready) {
+        const msg = response?.message || `${attendeeName} is already checked in!`;
+        toast.warning(msg);
+        setLastScanResult({ type: "warning", name: attendeeName, ticketId, message: msg });
+      } else {
+        const msg = response?.message || `Entry allowed for ${attendeeName}!`;
+        toast.success(msg);
+        setLastScanResult({ type: "success", name: attendeeName, ticketId, message: msg });
+      }
+      await refetchDuty();
+    } catch (err) {
+      const errMsg = err?.data?.message || err?.message || "Ticket not found or invalid.";
+      toast.error(errMsg);
+      setLastScanResult({ type: "error", ticketId, message: errMsg });
+    } finally {
+      isProcessingRef.current = false;
+      setIsScanning(false);
+    }
+  };
+
   const handleUpdateFollowupStatus = async (id, status) => {
     try {
       await followupApi.updateStatus(id, status);
@@ -165,20 +230,56 @@ function MyDutyPanel() {
     try {
       setSubmittingFinance(true);
       await eventApi.addFinanceTransaction(selectedEventId, {
-        type: "moneyIn",
+        type: financeForm.type,
         desc: financeForm.desc,
         amount: Number(financeForm.amount),
         from: financeForm.from,
-        method: "Cash",
+        to: financeForm.to,
+        method: financeForm.method || "Cash",
         date: new Date().toISOString().split("T")[0],
       });
       toast.success("Transaction recorded!");
-      setFinanceForm({ desc: "", amount: "", from: "" });
+      setFinanceForm({ desc: "", amount: "", from: "", to: "", type: financeForm.type, method: "Cash" });
       refetchDuty();
     } catch (err) {
       toast.error("Failed to record transaction: " + (err.message || "Unknown error"));
     } finally {
       setSubmittingFinance(false);
+    }
+  };
+
+  const handleCoordinatorSlideMove = async (direction) => {
+    const agenda = duty?.data?.agenda || [];
+    const nextIndex = coordSlideIndex + direction;
+    if (nextIndex < 0 || nextIndex >= agenda.length) return;
+
+    setAdvancingSlide(true);
+    try {
+      const targetItem = agenda[nextIndex];
+      const nextItem = agenda[nextIndex + 1];
+      setCoordSlideIndex(nextIndex);
+
+      const socket = getSocket();
+      if (socket && socket.connected) {
+        socket.emit("projector:control", {
+          target: selectedEventId,
+          action: "slide",
+          mode: duty?.data?.projectorMode || "slides",
+          slideIndex: nextIndex,
+          totalSlides: agenda.length,
+          slideTitle: targetItem?.title || `Slide ${nextIndex + 1}`,
+          speaker: targetItem?.speaker || "",
+          duration: targetItem?.duration || "",
+          nextUp: nextItem ? `${nextItem.title} (${nextItem.speaker})` : "Event Conclusion & Networking",
+          chapter: duty?.chapter || "",
+          eventTitle: duty?.title || "",
+        });
+      }
+      await eventApi.updateCoordinatorSlide(selectedEventId, nextIndex);
+    } catch (err) {
+      toast.error("Failed to update the stage display: " + (err.message || "Unknown error"));
+    } finally {
+      setAdvancingSlide(false);
     }
   };
 
@@ -292,9 +393,48 @@ function MyDutyPanel() {
 
           {duty.myRoles.includes("entranceIncharge") && (
             <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                <Ticket className="h-4 w-4 text-primary" /> Gate Entry Approvals
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Ticket className="h-4 w-4 text-primary" /> Gate Entry Approvals
+                </h3>
+                <Button
+                  size="sm"
+                  variant={scannerOpen ? "secondary" : "default"}
+                  className="gap-1.5"
+                  disabled={!canAct}
+                  onClick={() => setScannerOpen((o) => !o)}
+                >
+                  <QrCode className="h-3.5 w-3.5" /> {scannerOpen ? "Close Scanner" : "Scan Ticket"}
+                </Button>
+              </div>
+
+              {scannerOpen && canAct && (
+                <div className="mb-4 space-y-2">
+                  <div className="aspect-square sm:aspect-[4/3] w-full max-w-sm mx-auto rounded-lg overflow-hidden border border-border bg-black relative">
+                    <Scanner
+                      onScan={handleQrScan}
+                      onError={(error) => console.log(error?.message)}
+                      allowMultiple={true}
+                      scanDelay={1000}
+                    />
+                  </div>
+                  {lastScanResult && (
+                    <div
+                      className={`text-xs rounded-lg px-3 py-2 border ${
+                        lastScanResult.type === "success"
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+                          : lastScanResult.type === "warning"
+                            ? "border-amber-500/30 bg-amber-500/10 text-amber-600"
+                            : "border-red-500/30 bg-red-500/10 text-red-500"
+                      }`}
+                    >
+                      {isScanning && <Loader2 className="h-3 w-3 inline animate-spin mr-1" />}
+                      {lastScanResult.message}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {(duty.data.registrations || []).map((r) => {
                   const state = r.gateStatus || "waiting";
@@ -399,20 +539,81 @@ function MyDutyPanel() {
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
                 <CreditCard className="h-4 w-4 text-primary" /> Finance
               </h3>
-              <p className="text-xs text-muted-foreground mb-3">
-                Collections recorded: ₹
-                {(duty.data.finance?.moneyIn || [])
-                  .reduce((s, i) => s + (Number(i.amount) || 0), 0)
-                  .toLocaleString("en-IN")}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <Input id="fin-desc" placeholder="Description" disabled={!canAct} value={financeForm.desc} onChange={(e) => setFinanceForm((p) => ({ ...p, desc: e.target.value }))} />
-                <Input id="fin-amount" placeholder="Amount (₹)" type="number" disabled={!canAct} value={financeForm.amount} onChange={(e) => setFinanceForm((p) => ({ ...p, amount: e.target.value }))} />
-                <Input id="fin-from" placeholder="From (name)" disabled={!canAct} value={financeForm.from} onChange={(e) => setFinanceForm((p) => ({ ...p, from: e.target.value }))} />
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                {(() => {
+                  const totalIn = (duty.data.finance?.moneyIn || []).reduce((s, i) => s + (Number(i.amount) || 0), 0);
+                  const totalOut = (duty.data.finance?.moneyOut || []).reduce((s, i) => s + (Number(i.amount) || 0), 0);
+                  return (
+                    <>
+                      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">Money In</span>
+                        <span className="text-lg font-black text-emerald-600 font-mono">₹{totalIn.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 block">Money Out</span>
+                        <span className="text-lg font-black text-rose-500 font-mono">₹{totalOut.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-primary-soft border border-primary/20">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary block">Net Balance</span>
+                        <span className="text-lg font-black text-primary font-mono">₹{(totalIn - totalOut).toLocaleString("en-IN")}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
-              <Button size="sm" className="mt-2 gap-1.5" onClick={handleAddFinance} disabled={!canAct || submittingFinance}>
-                {submittingFinance ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />} Record Collection
-              </Button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div className="space-y-1.5">
+                  <p className="text-xs font-bold text-emerald-600">Collections</p>
+                  {(duty.data.finance?.moneyIn || []).length === 0 ? (
+                    <p className="text-xs text-muted-foreground">None recorded yet.</p>
+                  ) : (
+                    (duty.data.finance?.moneyIn || []).map((item, idx) => (
+                      <div key={item.id || idx} className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-muted/20">
+                        <span className="truncate">{item.desc} <span className="text-muted-foreground">({item.from || "—"})</span></span>
+                        <span className="font-mono text-emerald-600 shrink-0 ml-2">+₹{Number(item.amount || 0).toLocaleString("en-IN")}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-xs font-bold text-rose-500">Expenses</p>
+                  {(duty.data.finance?.moneyOut || []).length === 0 ? (
+                    <p className="text-xs text-muted-foreground">None recorded yet.</p>
+                  ) : (
+                    (duty.data.finance?.moneyOut || []).map((item, idx) => (
+                      <div key={item.id || idx} className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-muted/20">
+                        <span className="truncate">{item.desc} <span className="text-muted-foreground">({item.to || "—"})</span></span>
+                        <span className="font-mono text-rose-500 shrink-0 ml-2">-₹{Number(item.amount || 0).toLocaleString("en-IN")}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-border space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <Select value={financeForm.type} onValueChange={(v) => setFinanceForm((p) => ({ ...p, type: v }))}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="moneyIn">Money In</SelectItem>
+                      <SelectItem value="moneyOut">Money Out</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input id="fin-desc" placeholder="Description" disabled={!canAct} value={financeForm.desc} onChange={(e) => setFinanceForm((p) => ({ ...p, desc: e.target.value }))} />
+                  <Input id="fin-amount" placeholder="Amount (₹)" type="number" disabled={!canAct} value={financeForm.amount} onChange={(e) => setFinanceForm((p) => ({ ...p, amount: e.target.value }))} />
+                  {financeForm.type === "moneyIn" ? (
+                    <Input id="fin-from" placeholder="From (name)" disabled={!canAct} value={financeForm.from} onChange={(e) => setFinanceForm((p) => ({ ...p, from: e.target.value }))} />
+                  ) : (
+                    <Input id="fin-to" placeholder="To (vendor/member)" disabled={!canAct} value={financeForm.to} onChange={(e) => setFinanceForm((p) => ({ ...p, to: e.target.value }))} />
+                  )}
+                </div>
+                <Button size="sm" className="gap-1.5" onClick={handleAddFinance} disabled={!canAct || submittingFinance}>
+                  {submittingFinance ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />}
+                  Record {financeForm.type === "moneyIn" ? "Collection" : "Expense"}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -445,12 +646,55 @@ function MyDutyPanel() {
               </p>
               <div className="space-y-1.5">
                 {(duty.data.agenda || []).map((a, idx) => (
-                  <div key={a.id || idx} className="flex items-center justify-between text-sm px-3 py-1.5 rounded-lg bg-muted/20">
+                  <div
+                    key={a.id || idx}
+                    className={`flex items-center justify-between text-sm px-3 py-1.5 rounded-lg ${
+                      duty.data.allowCoordinatorRemote && idx === coordSlideIndex
+                        ? "bg-primary/10 border border-primary/30"
+                        : "bg-muted/20"
+                    }`}
+                  >
                     <span>{a.title}</span>
                     <span className="text-xs text-muted-foreground">{a.speaker}</span>
                   </div>
                 ))}
               </div>
+
+              {duty.data.allowCoordinatorRemote && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-xs font-bold text-foreground mb-2 flex items-center gap-1.5">
+                    <Radio className="h-3.5 w-3.5 text-primary" /> Stage Remote Control
+                  </p>
+                  {!canAct ? (
+                    <p className="text-xs text-muted-foreground">
+                      Unlocks once the admin takes this event live.
+                    </p>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        disabled={advancingSlide || coordSlideIndex <= 0}
+                        onClick={() => handleCoordinatorSlideMove(-1)}
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" /> Hold
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={advancingSlide || coordSlideIndex >= (duty.data.agenda || []).length - 1}
+                        onClick={() => handleCoordinatorSlideMove(1)}
+                      >
+                        Next <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                      <span className="text-xs text-muted-foreground ml-1">
+                        Slide {coordSlideIndex + 1} of {(duty.data.agenda || []).length}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
