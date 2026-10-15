@@ -192,7 +192,7 @@ function NewEnquiry() {
                       placeholder="e.g. Machined brackets for assembly line"
                     />
                   </div>
-                  <div className="space-y-1.5 min-w-0">
+                  <div className="space-y-1.5 min-w-0 w-full overflow-hidden">
                     <Label htmlFor="category">Category</Label>
                     <CreatableCombobox
                       id="category"
@@ -201,6 +201,7 @@ function NewEnquiry() {
                       options={categoryOptions}
                       placeholder="Select or search category"
                       emptyText="No category found. Type to add custom."
+                      className="w-full min-w-0"
                     />
                   </div>
                   <div className="space-y-1.5">

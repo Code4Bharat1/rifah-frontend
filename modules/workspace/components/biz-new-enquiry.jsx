@@ -544,7 +544,7 @@ export function BizNewEnquiry() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="min-w-0">
+              <div className="flex flex-col min-w-0 w-full overflow-hidden">
                 <Label htmlFor="category" className="text-sm font-semibold">
                   Business Category *
                 </Label>
@@ -555,11 +555,11 @@ export function BizNewEnquiry() {
                   options={categories.map((cat) => (typeof cat === "string" ? cat : cat.name))}
                   placeholder="Select or search category"
                   emptyText="No category found. Type to add custom."
-                  className="mt-1"
+                  className="mt-1 w-full min-w-0"
                 />
               </div>
 
-              <div className="min-w-0">
+              <div className="flex flex-col min-w-0 w-full overflow-hidden">
                 <Label htmlFor="quantity" className="text-sm font-semibold">
                   Required Quantity *
                 </Label>

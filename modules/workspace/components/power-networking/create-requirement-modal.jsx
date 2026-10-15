@@ -163,7 +163,7 @@ export function CreateRequirementModal({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5 min-w-0">
+              <div className="space-y-1.5 min-w-0 w-full overflow-hidden">
                 <Label htmlFor="req-category" className="text-xs font-medium">
                   Industry Category <span className="text-destructive">*</span>
                 </Label>
@@ -174,14 +174,14 @@ export function CreateRequirementModal({
                   options={categoryOptions}
                   placeholder="Select or search category"
                   emptyText="No category found. Type to add custom."
-                  className="h-9 text-xs"
+                  className="h-9 text-xs w-full min-w-0"
                 />
                 {errors.category && (
                   <p className="text-xs text-destructive">{errors.category.message}</p>
                 )}
               </div>
 
-              <div className="space-y-1.5 min-w-0">
+              <div className="space-y-1.5 min-w-0 w-full overflow-hidden">
                 <Label htmlFor="req-productService" className="text-xs font-medium">
                   Product / Service Name <span className="text-destructive">*</span>
                 </Label>

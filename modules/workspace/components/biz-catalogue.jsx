@@ -496,13 +496,13 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="grid gap-1.5 min-w-0">
+                  <div className="flex flex-col gap-1.5 min-w-0 w-full overflow-hidden">
                     <Label htmlFor="item-type" className="text-xs font-bold text-slate-700">Type</Label>
                     <Select
                       value={newItem.type}
                       onValueChange={(val) => setNewItem({ ...newItem, type: val })}
                     >
-                      <SelectTrigger id="item-type" className="h-11 rounded-xl">
+                      <SelectTrigger id="item-type" className="h-11 rounded-xl w-full min-w-0">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -511,7 +511,7 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-1.5 min-w-0">
+                  <div className="flex flex-col gap-1.5 min-w-0 w-full overflow-hidden">
                     <Label htmlFor="item-cat" className="text-xs font-bold text-slate-700">Category</Label>
                     <CreatableCombobox
                       id="item-cat"
@@ -520,7 +520,7 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
                       options={categoryOptions}
                       placeholder="Select or search category"
                       emptyText="No category found. Type to add custom."
-                      className="h-11 rounded-xl"
+                      className="h-11 rounded-xl w-full min-w-0"
                     />
                   </div>
                 </div>
@@ -820,13 +820,13 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="grid gap-1.5 min-w-0">
+              <div className="flex flex-col gap-1.5 min-w-0 w-full overflow-hidden">
                 <Label htmlFor="edit-type" className="text-xs font-bold text-slate-700">Type</Label>
                 <Select
                   value={editFormData.type}
                   onValueChange={(val) => setEditFormData({ ...editFormData, type: val })}
                 >
-                  <SelectTrigger id="edit-type" className="h-11 rounded-xl">
+                  <SelectTrigger id="edit-type" className="h-11 rounded-xl w-full min-w-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -835,7 +835,7 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5 min-w-0">
+              <div className="flex flex-col gap-1.5 min-w-0 w-full overflow-hidden">
                 <Label htmlFor="edit-cat" className="text-xs font-bold text-slate-700">Category</Label>
                 <CreatableCombobox
                   id="edit-cat"
@@ -844,7 +844,7 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
                   options={categoryOptions}
                   placeholder="Select or search category"
                   emptyText="No category found. Type to add custom."
-                  className="h-11 rounded-xl"
+                  className="h-11 rounded-xl w-full min-w-0"
                 />
               </div>
             </div>

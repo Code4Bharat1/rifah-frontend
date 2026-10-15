@@ -55,24 +55,28 @@ export function CreatableCombobox({
       }}
     >
       <PopoverTrigger asChild>
-        <Button
+        <button
           id={id}
           type="button"
-          variant="outline"
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
+          style={{ minWidth: 0, maxWidth: "100%" }}
           className={cn(
-            "h-11 w-full justify-between font-normal min-w-0 max-w-full overflow-hidden",
+            "flex h-11 w-full items-center justify-between rounded-xl border border-input bg-surface hover:bg-accent hover:text-accent-foreground px-3 py-2 text-sm font-normal shadow-xs ring-offset-background cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-w-0 max-w-full overflow-hidden",
             !value && "text-muted-foreground",
             className
           )}
         >
-          <span className="truncate flex-1 text-left min-w-0" title={value || placeholder}>
+          <span
+            className="truncate flex-1 text-left min-w-0 overflow-hidden"
+            title={value || placeholder}
+            style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+          >
             {value || placeholder}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+        </button>
       </PopoverTrigger>
       <PopoverContent
         className="w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0 shadow-lg border border-border z-50 bg-popover"

@@ -1215,7 +1215,7 @@ function BizProfile() {
                   className="h-11"
                 />
               </div>
-              <div className="grid gap-1.5 min-w-0">
+              <div className="flex flex-col gap-1.5 min-w-0 w-full overflow-hidden">
                 <Label htmlFor="biz-industry">Industry Category *</Label>
                 <CreatableCombobox
                   id="biz-industry"
@@ -1224,9 +1224,10 @@ function BizProfile() {
                   options={availableMainCategories}
                   placeholder="Select or search category"
                   emptyText="No category found. Type to add a new one."
+                  className="w-full min-w-0"
                 />
               </div>
-              <div className="grid gap-1.5 min-w-0">
+              <div className="flex flex-col gap-1.5 min-w-0 w-full overflow-hidden">
                 <Label htmlFor="biz-subcategory">Sub Category</Label>
                 <CreatableCombobox
                   id="biz-subcategory"
