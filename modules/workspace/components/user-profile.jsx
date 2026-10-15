@@ -17,11 +17,20 @@ import {
   CheckCircle2,
   ChevronDown,
   Package,
+  AlertTriangle,
 } from "lucide-react";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@shared/components/ui/dialog";
 import { useAuth } from "@shared/providers/auth-provider";
 import { userApi } from "@shared/lib/api-services";
 import { COUNTRIES } from "@shared/lib/countries";
@@ -32,7 +41,22 @@ import { toast } from "sonner";
 import { cn } from "@shared/lib/utils";
 
 export function UserProfile() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleConfirmDeleteOwnAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await userApi.deleteAccount();
+      toast.success("Your account and all associated data have been permanently deleted.");
+      logout();
+      window.location.href = "/";
+    } catch (err) {
+      toast.error(err.message || "Failed to delete account");
+      setIsDeletingAccount(false);
+    }
+  };
 
   const [form, setForm] = useState({
     name: "",
@@ -399,8 +423,84 @@ export function UserProfile() {
               </Button>
             </div>
           </form>
+
+          {/* Danger Zone: Permanent Account Deletion */}
+          <div className="mt-8 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50/20 dark:bg-red-950/20 p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-red-700 dark:text-red-400">
+                  Delete Account Permanently
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xl">
+                  Permanently wipe your account, preferences, and profile data from our database. This action cannot be reversed.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setDeleteModalOpen(true)}
+                className="shrink-0"
+              >
+                Delete My Account
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog
+        open={deleteModalOpen}
+        onOpenChange={(open) => !open && !isDeletingAccount && setDeleteModalOpen(false)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete Account Permanently
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete your account ({user?.email})?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 text-sm text-muted-foreground space-y-2">
+            <p>
+              This will permanently delete your account, bookings, memberships, and all database records associated with you.
+            </p>
+            <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-3 text-red-700 dark:text-red-300 text-xs font-semibold">
+              ⚠️ Warning: This action cannot be undone. All data will be completely wiped from the database.
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={isDeletingAccount}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDeleteOwnAccount}
+              disabled={isDeletingAccount}
+              className="gap-2"
+            >
+              {isDeletingAccount ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting from database...
+                </>
+              ) : (
+                "Yes, Delete My Account"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

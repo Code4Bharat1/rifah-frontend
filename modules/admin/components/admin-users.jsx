@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   Globe,
   MapPin,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -63,14 +65,22 @@ import {
 import { useAdminUsers, useCountries, useStates } from "@shared/hooks/use-rifah-api";
 import { userApi } from "@shared/lib/api-services";
 import { useAuth } from "@shared/providers/auth-provider";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 function AdminUsers() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user: currentUser } = useAuth();
   const isCentralAdmin = currentUser?.role === "central_admin";
   const isCountryAdmin = currentUser?.role === "country_admin";
-  const isChapterAdmin = currentUser?.role === "chapter_admin";
+  const isStateAdmin =
+    pathname?.startsWith("/state-admin") ||
+    currentUser?.role === "state_admin" ||
+    currentUser?.activeWorkspace?.panelType === "state-admin";
+  const isChapterAdmin =
+    pathname?.startsWith("/chapter-admin") ||
+    currentUser?.role === "chapter_admin" ||
+    currentUser?.activeWorkspace?.panelType === "chapter-admin";
 
   const { data: countriesData } = useCountries({ status: "Active" });
   const rawCountries = Array.isArray(countriesData)
@@ -248,10 +258,30 @@ function AdminUsers() {
     }
   };
 
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
+
+  const handleConfirmDeleteUser = async () => {
+    if (!userToDelete?._id) return;
+    setIsDeletingUser(true);
+    try {
+      await userApi.deleteUser(userToDelete._id);
+      toast.success(
+        `Account for ${userToDelete.name} and all associated database records permanently deleted`
+      );
+      setUserToDelete(null);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete user account");
+    } finally {
+      setIsDeletingUser(false);
+    }
+  };
+
   return (
     <AppShell
-      role="admin"
-      title="Users and roles"
+      role={isStateAdmin ? "state_admin" : isChapterAdmin ? "chapter_admin" : "admin"}
+      title={isStateAdmin || isChapterAdmin ? "Members" : "Users and roles"}
       subtitle={`${rows.length} accounts registered`}
       actions={
         <Button onClick={() => setIsInviteOpen(true)} className="gap-2">
@@ -445,7 +475,7 @@ function AdminUsers() {
                         <DropdownMenuItem onClick={() => setSelectedUser(r)}>
                           View Details
                         </DropdownMenuItem>
-                        {!isChapterAdmin && (
+                        {!isChapterAdmin && !isStateAdmin && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel>Change Role</DropdownMenuLabel>
@@ -508,6 +538,13 @@ function AdminUsers() {
                           onClick={() => handleToggleStatus(r)}
                         >
                           {isActive ? "Suspend Account" : "Activate Account"}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600 focus:bg-red-50 focus:text-red-700 font-medium cursor-pointer"
+                          onClick={() => setUserToDelete(r)}
+                        >
+                          Delete Account
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -680,7 +717,7 @@ function AdminUsers() {
               <Button
                 variant={
                   (selectedUser?.status || "active").toLowerCase() === "active"
-                    ? "destructive"
+                    ? "outline"
                     : "default"
                 }
                 onClick={() => {
@@ -692,8 +729,74 @@ function AdminUsers() {
                   ? "Suspend Account"
                   : "Activate Account"}
               </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  const target = selectedUser;
+                  setSelectedUser(null);
+                  setUserToDelete(target);
+                }}
+              >
+                Delete Account
+              </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Confirmation Modal */}
+      <Dialog
+        open={!!userToDelete}
+        onOpenChange={(open) => !open && !isDeletingUser && setUserToDelete(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete Account Permanently
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete the account for{" "}
+              <strong>{userToDelete?.name}</strong> ({userToDelete?.email})?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 text-sm text-muted-foreground space-y-2">
+            <p>
+              This will permanently delete this user, their registered businesses,
+              catalogues, memberships, enquiries, leads, and all related database records.
+            </p>
+            <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-3 text-red-700 dark:text-red-300 text-xs font-semibold">
+              ⚠️ Warning: This action cannot be undone. All data will be completely wiped from the database.
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setUserToDelete(null)}
+              disabled={isDeletingUser}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDeleteUser}
+              disabled={isDeletingUser}
+              className="gap-2"
+            >
+              {isDeletingUser ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting from database...
+                </>
+              ) : (
+                "Yes, Delete Account"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

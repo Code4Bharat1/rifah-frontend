@@ -51,6 +51,14 @@ import { useAuth } from "@shared/providers/auth-provider";
 import { businessApi, userApi, authApi } from "@shared/lib/api-services";
 import { resolveMediaUrl } from "@shared/lib/api-client";
 import { isValidEmail } from "@shared/lib/validators";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@shared/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@shared/lib/utils";
 import { BizCatalogueManager } from "./biz-catalogue";
@@ -82,7 +90,22 @@ const B2B_INDUSTRIES = [
 function BizProfile() {
   const queryClient = useQueryClient();
   const { data: business, refetch, isLoading: loadingBiz } = useMyBusiness();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleConfirmDeleteOwnAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await userApi.deleteAccount();
+      toast.success("Your account and all associated data have been permanently deleted.");
+      logout();
+      window.location.href = "/";
+    } catch (err) {
+      toast.error(err.message || "Failed to delete account");
+      setIsDeletingAccount(false);
+    }
+  };
   const { data: categoriesData } = useCategories();
   const { data: catalogueItems } = useBusinessCatalogue(business?._id);
   const totalCatalogueCount = (catalogueItems || []).length;
@@ -1672,9 +1695,90 @@ function BizProfile() {
               />
             </label>
           </Panel>
+
+          {/* Danger Zone: Delete Account */}
+          <Panel
+            title="Danger Zone"
+            description="Irreversible account and database deletion"
+            className="border-red-200 dark:border-red-900 bg-red-50/20 dark:bg-red-950/20"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-1">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-red-700 dark:text-red-400">
+                  Delete Account Permanently
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xl">
+                  Permanently wipe your account, business profile, catalogues, memberships, and records directly from our database. This action cannot be reversed.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setDeleteModalOpen(true)}
+                className="shrink-0"
+              >
+                Delete My Account
+              </Button>
+            </div>
+          </Panel>
         </div>
       </div>
       )}
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog
+        open={deleteModalOpen}
+        onOpenChange={(open) => !open && !isDeletingAccount && setDeleteModalOpen(false)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete Account Permanently
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete your account ({user?.email})?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 text-sm text-muted-foreground space-y-2">
+            <p>
+              This will permanently delete your account, your business profile,
+              catalogues, memberships, enquiries, leads, and all associated database records.
+            </p>
+            <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-3 text-red-700 dark:text-red-300 text-xs font-semibold">
+              ⚠️ Warning: This action cannot be undone. All data will be completely wiped from the database.
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={isDeletingAccount}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDeleteOwnAccount}
+              disabled={isDeletingAccount}
+              className="gap-2"
+            >
+              {isDeletingAccount ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting from database...
+                </>
+              ) : (
+                "Yes, Delete My Account"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

@@ -127,6 +127,14 @@ export const userApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  deleteAccount: () =>
+    apiClient("/users/me", {
+      method: "DELETE",
+    }),
+  deleteUser: (id) =>
+    apiClient(`/users/${id}`, {
+      method: "DELETE",
+    }),
   inviteUser: (data) =>
     apiClient("/users/invite", { method: "POST", body: JSON.stringify(data) }),
   getMyEventAssignments: () => apiClient("/users/me/event-assignments"),
