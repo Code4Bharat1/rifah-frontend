@@ -277,43 +277,43 @@ export function BusinessTicketsView() {
   const getStatusBadge = (status) => {
     switch (status) {
       case "Open":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 border border-blue-500/20">Open</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 border border-blue-500/20 whitespace-nowrap shrink-0">Open</span>;
       case "In_Progress":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">In Progress</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20 whitespace-nowrap shrink-0">In Progress</span>;
       case "Escalated_To_State":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-600 border border-purple-500/20">Escalated to State</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-600 border border-purple-500/20 whitespace-nowrap shrink-0">Escalated to State</span>;
       case "Escalated_To_Central":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">Escalated to Central</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20 whitespace-nowrap shrink-0">Escalated to Central</span>;
       case "Resolved":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Resolved</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 whitespace-nowrap shrink-0">Resolved</span>;
       case "Closed":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-600 border border-slate-500/20">Closed</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-600 border border-slate-500/20 whitespace-nowrap shrink-0">Closed</span>;
       default:
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground">{status}</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground whitespace-nowrap shrink-0">{status}</span>;
     }
   };
 
   const getPriorityBadge = (p) => {
     switch (p) {
       case "Urgent":
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-red-500/15 text-red-600 border border-red-500/30">Urgent</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-red-500/15 text-red-600 border border-red-500/30 whitespace-nowrap shrink-0">Urgent</span>;
       case "High":
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/15 text-amber-600 border border-amber-500/30">High</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/15 text-amber-600 border border-amber-500/30 whitespace-nowrap shrink-0">High</span>;
       case "Medium":
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-500/15 text-blue-600 border border-blue-500/30">Medium</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-500/15 text-blue-600 border border-blue-500/30 whitespace-nowrap shrink-0">Medium</span>;
       default:
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-500/15 text-slate-600 border border-slate-500/30">Low</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-slate-500/15 text-slate-600 border border-slate-500/30 whitespace-nowrap shrink-0">Low</span>;
     }
   };
 
   const getLevelBadge = (level) => {
     if (level === "CENTRAL") {
-      return <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">Central Admin</span>;
+      return <span className="inline-flex items-center text-[11px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900/60 whitespace-nowrap shrink-0">Central Admin</span>;
     }
     if (level === "STATE") {
-      return <span className="text-[11px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">State Admin</span>;
+      return <span className="inline-flex items-center text-[11px] font-semibold text-purple-600 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-900/60 whitespace-nowrap shrink-0">State Admin</span>;
     }
-    return <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Chapter Admin</span>;
+    return <span className="inline-flex items-center text-[11px] font-semibold text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-900/60 whitespace-nowrap shrink-0">Chapter Admin</span>;
   };
 
   return (
@@ -408,59 +408,116 @@ export function BusinessTicketsView() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-muted/50 border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  <tr>
-                    <th className="p-3">Ticket ID</th>
-                    <th className="p-3">Subject & Category</th>
-                    <th className="p-3">Priority</th>
-                    <th className="p-3">Assigned Handler</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Created</th>
-                    <th className="p-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {tickets.map((t) => (
-                    <tr key={t._id} className="hover:bg-muted/30 transition-colors">
-                      <td className="p-3 font-mono font-bold text-primary">
-                        {t.ticketNumber}
-                      </td>
-                      <td className="p-3 max-w-xs">
-                        <div className="font-semibold text-foreground truncate">{t.subject}</div>
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                          <span className="px-1.5 py-0.2 rounded bg-muted font-medium">{t.category}</span>
-                          {t.referenceId && <span className="font-mono text-[10px]">Ref: {t.referenceId}</span>}
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        {getPriorityBadge(t.priority)}
-                      </td>
-                      <td className="p-3">
-                        {getLevelBadge(t.currentLevel)}
-                      </td>
-                      <td className="p-3">
-                        {getStatusBadge(t.status)}
-                      </td>
-                      <td className="p-3 text-muted-foreground text-[11px]">
-                        {new Date(t.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                      </td>
-                      <td className="p-3 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs font-semibold"
-                          onClick={() => openTicketDetail(t)}
-                        >
-                          View Details
-                        </Button>
-                      </td>
+            <>
+              {/* Desktop / Tablet Table View */}
+              <div className="overflow-x-auto hidden md:block">
+                <table className="w-full text-left text-xs min-w-[960px]">
+                  <thead className="bg-muted/50 border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <tr>
+                      <th className="p-3 whitespace-nowrap w-[130px]">Ticket ID</th>
+                      <th className="p-3 min-w-[220px] max-w-sm">Subject & Category</th>
+                      <th className="p-3 whitespace-nowrap w-[90px]">Priority</th>
+                      <th className="p-3 whitespace-nowrap w-[130px]">Assigned Handler</th>
+                      <th className="p-3 whitespace-nowrap w-[120px]">Status</th>
+                      <th className="p-3 whitespace-nowrap w-[110px]">Created</th>
+                      <th className="p-3 whitespace-nowrap text-right w-[110px]">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {tickets.map((t) => (
+                      <tr key={t._id} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-3 font-mono font-bold text-primary whitespace-nowrap">
+                          {t.ticketNumber}
+                        </td>
+                        <td className="p-3 min-w-[220px] max-w-sm">
+                          <div className="font-semibold text-foreground break-words line-clamp-2" title={t.subject}>
+                            {t.subject}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-1 flex-wrap">
+                            <span className="px-1.5 py-0.5 rounded bg-muted font-medium text-[10px] tracking-wide uppercase">
+                              {t.category}
+                            </span>
+                            {t.referenceId && <span className="font-mono text-[10px] text-muted-foreground">Ref: {t.referenceId}</span>}
+                          </div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          {getPriorityBadge(t.priority)}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          {getLevelBadge(t.currentLevel)}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          {getStatusBadge(t.status)}
+                        </td>
+                        <td className="p-3 text-muted-foreground text-[11px] whitespace-nowrap">
+                          {new Date(t.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        </td>
+                        <td className="p-3 text-right whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs font-semibold cursor-pointer"
+                            onClick={() => openTicketDetail(t)}
+                          >
+                            View Details
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View (< md) */}
+              <div className="divide-y divide-border block md:hidden">
+                {tickets.map((t) => (
+                  <div key={t._id} className="p-4 space-y-3 hover:bg-muted/20 transition-colors">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs font-bold text-primary">
+                        {t.ticketNumber}
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {getPriorityBadge(t.priority)}
+                        {getStatusBadge(t.status)}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground line-clamp-2" title={t.subject}>
+                        {t.subject}
+                      </h4>
+                      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+                        <span className="px-1.5 py-0.5 rounded bg-muted font-medium text-[10px] uppercase">
+                          {t.category}
+                        </span>
+                        {t.referenceId && (
+                          <span className="font-mono text-[10px]">Ref: {t.referenceId}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 text-xs border-t border-border/50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground">Handler:</span>
+                        {getLevelBadge(t.currentLevel)}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {new Date(t.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                      </div>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-8 text-xs font-semibold mt-1 cursor-pointer"
+                      onClick={() => openTicketDetail(t)}
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </Panel>
 
