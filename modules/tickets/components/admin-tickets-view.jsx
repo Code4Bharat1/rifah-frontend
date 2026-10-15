@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Panel } from "@shared/components/rifah/ui-bits";
 import { Button } from "@shared/components/ui/button";
@@ -87,6 +87,27 @@ export function AdminTicketsView({ role = "chapter_admin" }) {
   // Full-size photo preview lightbox
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState(null);
 
+  // Auto-scroll refs for conversation thread
+  const messagesEndRef = useRef(null);
+  const chatScrollContainerRef = useRef(null);
+
+  const scrollToBottom = (behavior = "smooth") => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior, block: "end" });
+    } else if (chatScrollContainerRef.current) {
+      chatScrollContainerRef.current.scrollTop = chatScrollContainerRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    if (selectedTicket?.messages?.length) {
+      const timer = setTimeout(() => {
+        scrollToBottom("smooth");
+      }, 70);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedTicket?._id, selectedTicket?.messages?.length]);
+
   const isChapterAdmin = role === "chapter_admin";
   const isStateAdmin = role === "state_admin";
   const isCentralAdmin = role === "central_admin" || role === "admin" || role === "super_admin";
@@ -147,6 +168,9 @@ export function AdminTicketsView({ role = "chapter_admin" }) {
       setReplyText("");
       setSelectedTicket(res.data);
       fetchTickets();
+      setTimeout(() => {
+        scrollToBottom("smooth");
+      }, 80);
     } catch (err) {
       toast.error(err.message || "Failed to post reply");
     } finally {
@@ -413,7 +437,7 @@ export function AdminTicketsView({ role = "chapter_admin" }) {
                       {getStatusBadge(selectedTicket.status)}
                       {getPriorityBadge(selectedTicket.priority)}
                     </div>
-                    <DialogTitle className="text-base font-bold text-foreground mt-1">
+                    <DialogTitle className="text-base font-bold text-foreground mt-1 break-words">
                       {selectedTicket.subject}
                     </DialogTitle>
                     <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
@@ -424,7 +448,7 @@ export function AdminTicketsView({ role = "chapter_admin" }) {
                   </div>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div ref={chatScrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4">
                   {/* BUSINESS PROFILE SUMMARY CARD (As specifically requested by user) */}
                   <div className="p-4 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-background to-background space-y-3">
                     <div className="flex items-center justify-between border-b border-border/80 pb-2">
@@ -589,17 +613,17 @@ export function AdminTicketsView({ role = "chapter_admin" }) {
                         return (
                           <div
                             key={idx}
-                            className={`p-3 rounded-xl border text-xs max-w-[85%] ${
+                            className={`p-3 rounded-xl border text-xs max-w-[85%] break-words ${
                               isBiz
                                 ? "mr-auto bg-muted/60 text-foreground border-border rounded-bl-xs"
                                 : "ml-auto bg-primary text-primary-foreground border-primary/20 rounded-br-xs"
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2 mb-1 text-[10px] opacity-80">
-                              <span className="font-bold">{msg.senderName} ({msg.senderRole?.replace("_", " ")})</span>
-                              <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                              <span className="font-bold truncate max-w-[200px]">{msg.senderName} ({msg.senderRole?.replace("_", " ")})</span>
+                              <span className="shrink-0">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                             </div>
-                            <div className="whitespace-pre-wrap leading-relaxed">{msg.message}</div>
+                            <div className="whitespace-pre-wrap leading-relaxed break-words break-all">{msg.message}</div>
                             {/* Render attachments in message only if not already displayed in the top photo card */}
                             {(() => {
                               const extraAttachments =
@@ -660,6 +684,8 @@ export function AdminTicketsView({ role = "chapter_admin" }) {
                           </div>
                         );
                       })}
+                      {/* Invisible scroll target anchor to ensure auto-scrolling to bottom on send */}
+                      <div ref={messagesEndRef} className="h-px w-full" />
                     </div>
                   </div>
                 </div>
