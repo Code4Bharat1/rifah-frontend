@@ -8,7 +8,8 @@ import { cn } from "@shared/lib/utils";
 
 export const PhoneInput = React.forwardRef(function PhoneInput(
   {
-    value = "",
+    value,
+    defaultValue,
     onChange,
     onValueChange,
     name,
@@ -26,7 +27,9 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
   forwardedRef
 ) {
   // Parse initial or incoming value
-  const parsed = useMemo(() => parsePhoneNumber(value, defaultCountry), [value, defaultCountry]);
+  const isControlled = value !== undefined;
+  const initialRaw = isControlled ? value : (defaultValue || "");
+  const parsed = useMemo(() => parsePhoneNumber(initialRaw, defaultCountry), [initialRaw, defaultCountry]);
   const [selectedCountry, setSelectedCountry] = useState(parsed.country || DEFAULT_COUNTRY);
   const [nationalNumber, setNationalNumber] = useState(parsed.nationalNumber || "");
   const [isOpen, setIsOpen] = useState(false);
@@ -36,6 +39,9 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
   const containerRef = useRef(null);
   const searchInputRef = useRef(null);
   const numberInputRef = useRef(null);
+  const prevValueRef = useRef(value);
+  const prevDefaultCountryRef = useRef(defaultCountry);
+
   // Dynamically calculate alignment (start or end) to keep dropdown within dialog/screen boundaries
   useEffect(() => {
     if (alignProp) {
@@ -67,18 +73,43 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
       checkAlignment();
     }
   }, [isOpen, alignProp]);
-  // Synchronize when value changes externally (avoid resetting state if digits already match)
+
+  // Synchronize when value changes externally (avoid resetting state if digits already match or if value is uncontrolled/empty)
   useEffect(() => {
-    const nextParsed = parsePhoneNumber(value, defaultCountry);
-    if (nextParsed.country && nextParsed.country.code !== selectedCountry.code) {
-      setSelectedCountry(nextParsed.country);
+    if (value === undefined) return;
+    if (prevValueRef.current === value) return;
+    prevValueRef.current = value;
+
+    if (!value || typeof value !== "string" || !value.trim()) {
+      setNationalNumber("");
+      return;
     }
+
+    const nextParsed = parsePhoneNumber(value, defaultCountry);
+    // Only update country if the external value explicitly specifies a dial code (e.g. +971, +966)
+    if (value.trim().startsWith("+") || value.trim().startsWith("00")) {
+      if (nextParsed.country && nextParsed.country.code !== selectedCountry.code) {
+        setSelectedCountry(nextParsed.country);
+      }
+    }
+
     const currentDigits = (nationalNumber || "").replace(/\D/g, "");
     const nextDigits = (nextParsed.nationalNumber || "").replace(/\D/g, "");
     if (currentDigits !== nextDigits) {
       setNationalNumber(nextParsed.nationalNumber || "");
     }
-  }, [value, defaultCountry, selectedCountry.code]);
+  }, [value, defaultCountry]);
+
+  // Update country if defaultCountry prop explicitly changes
+  useEffect(() => {
+    if (prevDefaultCountryRef.current !== defaultCountry) {
+      prevDefaultCountryRef.current = defaultCountry;
+      const found = COUNTRIES.find((c) => c.code === defaultCountry);
+      if (found) {
+        setSelectedCountry(found);
+      }
+    }
+  }, [defaultCountry]);
 
   // Native <form onReset> clears the DOM input but not this component's own
   // state, so the visible value snaps back on the next render (BUG-010).
@@ -87,14 +118,14 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
     if (!form) return;
     const handleFormReset = () => {
       setTimeout(() => {
-        const nextParsed = parsePhoneNumber(value, defaultCountry);
+        const nextParsed = parsePhoneNumber(value || defaultValue || "", defaultCountry);
         setSelectedCountry(nextParsed.country || DEFAULT_COUNTRY);
         setNationalNumber(nextParsed.nationalNumber || "");
       }, 0);
     };
     form.addEventListener("reset", handleFormReset);
     return () => form.removeEventListener("reset", handleFormReset);
-  }, [value, defaultCountry]);
+  }, [value, defaultValue, defaultCountry]);
 
   // Reset search query when dropdown closes
   useEffect(() => {
@@ -151,7 +182,7 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
     }, 50);
   };
 
-  const MAX_NATIONAL_DIGITS = 10;
+  const maxNationalDigits = selectedCountry?.code === "IN" ? 10 : 14;
 
   const handleInputRef = React.useCallback(
     (el) => {
@@ -168,7 +199,7 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
     if (inputVal.startsWith("+")) {
       const p = parsePhoneNumber(inputVal, selectedCountry?.code || defaultCountry);
       if (p.country) setSelectedCountry(p.country);
-      const digits = (p.nationalNumber || "").replace(/\D/g, "").slice(0, MAX_NATIONAL_DIGITS);
+      const digits = (p.nationalNumber || "").replace(/\D/g, "").slice(0, maxNationalDigits);
       setNationalNumber(digits);
       triggerChange(p.country || selectedCountry, digits);
       return;
@@ -184,7 +215,7 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
       cleaned = rawDigits.replace(/^0+/, "");
     }
     const digitCount = (cleaned.match(/\d/g) || []).length;
-    if (digitCount > MAX_NATIONAL_DIGITS) return;
+    if (digitCount > maxNationalDigits) return;
     setNationalNumber(cleaned);
     triggerChange(selectedCountry, cleaned);
   };
@@ -297,6 +328,9 @@ export const PhoneInput = React.forwardRef(function PhoneInput(
                 <button
                   key={c.code}
                   type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                  }}
                   onClick={() => handleCountrySelect(c)}
                   className={cn(
                     "flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer",

@@ -206,6 +206,15 @@ export function BizBranches({ role = "business" }) {
       return;
     }
 
+    if (formData.phone && formData.phone.trim()) {
+      const cleanPhone = formData.phone.trim();
+      const digitsOnly = cleanPhone.replace(/\D/g, "");
+      if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+        toast.error("Please enter a valid phone/mobile number (7 to 15 digits).");
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       if (editingBranch) {
@@ -785,13 +794,43 @@ export function BizBranches({ role = "business" }) {
                   </Label>
                   <Input
                     id="branch-phone"
-                    placeholder="e.g. +91 9876543210"
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="e.g. 9876543210"
                     value={formData.phone}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, phone: e.target.value }))
-                    }
-                    className="rounded-xl"
+                    maxLength={15}
+                    onChange={(e) => {
+                      // Only allow digits (0-9) and optional single leading '+'
+                      let val = e.target.value.replace(/[^\d+]/g, "");
+                      if (val.startsWith("+")) {
+                        val = "+" + val.slice(1).replace(/\+/g, "");
+                      } else {
+                        val = val.replace(/\+/g, "");
+                      }
+                      setFormData((p) => ({ ...p, phone: val }));
+                    }}
+                    onKeyDown={(e) => {
+                      const allowedKeys = [
+                        "Backspace",
+                        "Tab",
+                        "Delete",
+                        "ArrowLeft",
+                        "ArrowRight",
+                        "ArrowUp",
+                        "ArrowDown",
+                        "Home",
+                        "End",
+                        "Enter",
+                      ];
+                      if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) return;
+                      if (e.key === "+" && e.currentTarget.selectionStart === 0 && !e.currentTarget.value.includes("+")) return;
+                      if (!/^\d$/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className="rounded-xl font-mono text-xs"
                   />
+                  <p className="text-[10px] text-slate-500">Only numbers allowed (0-9)</p>
                 </div>
 
                 <div className="space-y-1.5">
@@ -882,12 +921,34 @@ export function BizBranches({ role = "business" }) {
                   </Label>
                   <Input
                     id="branch-pincode"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="e.g. 400001"
+                    maxLength={6}
                     value={formData.pincode}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, pincode: e.target.value }))
-                    }
-                    className="rounded-xl"
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      setFormData((p) => ({ ...p, pincode: val }));
+                    }}
+                    onKeyDown={(e) => {
+                      const allowedKeys = [
+                        "Backspace",
+                        "Tab",
+                        "Delete",
+                        "ArrowLeft",
+                        "ArrowRight",
+                        "ArrowUp",
+                        "ArrowDown",
+                        "Home",
+                        "End",
+                        "Enter",
+                      ];
+                      if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) return;
+                      if (!/^\d$/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className="rounded-xl font-mono text-xs"
                   />
                 </div>
               </div>

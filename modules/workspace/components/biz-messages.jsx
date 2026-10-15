@@ -2,7 +2,7 @@
 import { ArrowLeft, Send, Loader2, MessageSquare, FileText, Image as ImageIcon, Film, Download, X, Building2, Package, IndianRupee, FileSpreadsheet, ChevronDown, ChevronUp, Mail, Phone, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { Button } from "@shared/components/ui/button";
@@ -407,6 +407,9 @@ function BizMessages({ role = "business" } = {}) {
   const [sending, setSending] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const bottomRef = useRef(null);
+  const mobileBottomRef = useRef(null);
+  const chatScrollRef = useRef(null);
+  const mobileChatScrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -488,10 +491,40 @@ function BizMessages({ role = "business" } = {}) {
   const { data: messagesData, refetch: refetchMessages } = useMessages(selectedUserId);
   const messages = messagesData || [];
 
-  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = useCallback((behavior = "smooth") => {
+    const containers = [chatScrollRef.current, mobileChatScrollRef.current];
+    containers.forEach((container) => {
+      if (container) {
+        if (behavior === "smooth") {
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: "smooth",
+          });
+        } else {
+          container.scrollTop = container.scrollHeight;
+        }
+      }
+    });
+
+    try {
+      bottomRef.current?.scrollIntoView({ behavior, block: "end" });
+    } catch (_) {}
+    try {
+      mobileBottomRef.current?.scrollIntoView({ behavior, block: "end" });
+    } catch (_) {}
+  }, []);
+
+  // Auto-scroll to bottom when new messages arrive or thread changes
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (messages.length > 0) {
+      const t1 = setTimeout(() => scrollToBottom("smooth"), 50);
+      const t2 = setTimeout(() => scrollToBottom("smooth"), 200);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [selectedUserId, messages.length, scrollToBottom]);
 
   // Real-time Socket.io listener
   useEffect(() => {
@@ -542,7 +575,7 @@ function BizMessages({ role = "business" } = {}) {
     setInputText("");
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
 
     // Instant optimistic message in message list
     const optimisticId = `temp_${Date.now()}`;
@@ -569,9 +602,13 @@ function BizMessages({ role = "business" } = {}) {
     ]);
 
     setTimeout(() => {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-      inputRef.current?.focus();
-    }, 10);
+      scrollToBottom("smooth");
+      inputRef.current?.focus({ preventScroll: true });
+    }, 40);
+
+    setTimeout(() => {
+      scrollToBottom("smooth");
+    }, 220);
 
     try {
       setSending(true);
@@ -598,6 +635,10 @@ function BizMessages({ role = "business" } = {}) {
         if (!Array.isArray(old)) return [savedMsg];
         return old.map((m) => (m._id === optimisticId ? (savedMsg || m) : m));
       });
+
+      setTimeout(() => {
+        scrollToBottom("smooth");
+      }, 50);
 
       const socket = getSocket();
       if (socket) {
@@ -852,7 +893,10 @@ function BizMessages({ role = "business" } = {}) {
             );
           })()}
 
-          <div className="flex-1 min-h-[320px] max-h-[60vh] flex flex-col gap-3 overflow-y-auto p-4">
+          <div
+            ref={chatScrollRef}
+            className="flex-1 min-h-[320px] max-h-[60vh] flex flex-col gap-3 overflow-y-auto p-4"
+          >
             {!selectedUserId ? (
               <div className="my-auto flex flex-col items-center justify-center p-8 text-center">
                 <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary-soft text-primary">
@@ -1032,7 +1076,10 @@ function BizMessages({ role = "business" } = {}) {
             })()}
 
             {/* Messages area */}
-            <div className="flex-1 flex flex-col gap-3 overflow-y-auto p-3">
+            <div
+              ref={mobileChatScrollRef}
+              className="flex-1 flex flex-col gap-3 overflow-y-auto p-3"
+            >
               {messages.length === 0 ? (
                 <div className="m-auto text-center text-xs text-muted-foreground px-4">
                   <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
@@ -1092,7 +1139,7 @@ function BizMessages({ role = "business" } = {}) {
                   );
                 })
               )}
-              <div ref={bottomRef} />
+              <div ref={mobileBottomRef} />
             </div>
 
             {/* Input form */}

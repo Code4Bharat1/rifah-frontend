@@ -117,7 +117,7 @@ function ContactPage() {
                   }
 
                   if (!isValidPhone(payload.phone)) {
-                    toast.error("Enter a valid 10-digit phone number.");
+                    toast.error("Enter a valid phone number.");
                     setIsSubmitting(false);
                     return;
                   }
