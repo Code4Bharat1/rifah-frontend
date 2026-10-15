@@ -79,8 +79,9 @@ export function CreatableCombobox({
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] min-w-[260px] p-0 shadow-lg border border-border z-50 bg-popover"
+        className="w-[max(var(--radix-popover-trigger-width),340px)] max-w-[min(90vw,460px)] p-0 shadow-xl border border-border z-50 bg-popover rounded-xl"
         align="start"
+        collisionPadding={12}
       >
         <Command shouldFilter={false} className="rounded-lg">
           <CommandInput
@@ -105,15 +106,21 @@ export function CreatableCombobox({
                       setSearch("");
                       setOpen(false);
                     }}
-                    className="cursor-pointer text-xs rounded-md py-1.5"
+                    className="cursor-pointer text-xs rounded-md py-2 px-2.5 flex items-start"
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-3.5 w-3.5",
+                        "mr-2 h-3.5 w-3.5 shrink-0 mt-0.5",
                         value === option ? "opacity-100 text-primary" : "opacity-0"
                       )}
                     />
-                    <span className={cn("truncate", value === option ? "font-semibold text-primary" : "")}>
+                    <span
+                      className={cn(
+                        "flex-1 text-left whitespace-normal break-words leading-relaxed",
+                        value === option ? "font-semibold text-primary" : "text-foreground"
+                      )}
+                      title={option}
+                    >
                       {option}
                     </span>
                   </CommandItem>
@@ -126,10 +133,12 @@ export function CreatableCombobox({
                     setSearch("");
                     setOpen(false);
                   }}
-                  className="cursor-pointer text-xs rounded-md py-1.5 text-primary font-medium"
+                  className="cursor-pointer text-xs rounded-md py-2 px-2.5 text-primary font-medium flex items-start"
                 >
-                  <Plus className="mr-2 h-3.5 w-3.5" />
-                  Add "{searchTrimmed}"
+                  <Plus className="mr-2 h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span className="flex-1 text-left whitespace-normal break-words leading-relaxed">
+                    Add "{searchTrimmed}"
+                  </span>
                 </CommandItem>
               )}
             </CommandGroup>
