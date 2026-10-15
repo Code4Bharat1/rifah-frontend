@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,6 +20,7 @@ import {
   Search,
   X,
   Zap,
+  Lock,
 } from "lucide-react";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -42,6 +43,7 @@ import {
   DialogFooter,
 } from "@shared/components/ui/dialog";
 import { useAuth } from "@shared/providers/auth-provider";
+import { useFeatureAccess } from "@shared/hooks/use-feature-access";
 import {
   useMyBusiness,
   useMyOneToOnes,
@@ -72,9 +74,19 @@ const emptyReferralForm = {
   description: "",
 };
 
-function BizNetworking() {
+function BizNetworking({ role = "business" }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { canAccess, tierId, planName } = useFeatureAccess();
+
+  const isFreeTier = tierId === "tier_1";
+  const meetingAccess = canAccess("meeting_request");
+  const referralAccess = canAccess("networking_groups");
+  const isMeetingAllowed = Boolean(meetingAccess?.isAllowed);
+  const isReferralAllowed = Boolean(referralAccess?.isAllowed);
+
+  const membershipLink = role === "user" ? "/user/membership" : "/biz/membership";
+  const powerNetworkingLink = role === "user" ? "/user/power-networking" : "/biz/power-networking";
 
   const { data: myBusiness } = useMyBusiness();
   const { data: meetingsData, isLoading: meetingsLoading } = useMyOneToOnes();
@@ -90,14 +102,20 @@ function BizNetworking() {
   const { data: referralsData, isLoading: referralsLoading } = useMyReferrals();
   const referrals = Array.isArray(referralsData) ? referralsData : [];
 
-  // BUG-022: "Business given"/"Business received" stat cards were purely
-  // decorative. Clicking them now switches to the relevant tab of the
-  // "Business Generated" panel below and scrolls it into view.
-  const [outerTab, setOuterTab] = useState("one-to-one");
+  // Default to Thank You Notes (business-generated) if the user is on the free plan
+  const [outerTab, setOuterTab] = useState(() => (!isMeetingAllowed ? "business-generated" : "one-to-one"));
   const [thankYouTab, setThankYouTab] = useState("given");
   const businessGeneratedRef = useRef(null);
+
+  // Sync tab if tier resolves after initial hydration
+  useEffect(() => {
+    if (!isMeetingAllowed && outerTab === "one-to-one") {
+      setOuterTab("business-generated");
+    }
+  }, [isMeetingAllowed]);
+
   const goToBusinessGenerated = (tab) => {
-    setOuterTab("one-to-one");
+    setOuterTab("business-generated");
     setThankYouTab(tab);
     requestAnimationFrame(() => {
       businessGeneratedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -364,15 +382,19 @@ function BizNetworking() {
 
   return (
     <AppShell
-      role="business"
+      role={role}
       title="Networking"
-      subtitle="Log 1-2-1 meetings with fellow members and track the business you've generated for each other"
+      subtitle={
+        isFreeTier
+          ? "Record and view Thank You Notes for business generated with fellow members"
+          : "Log 1-2-1 meetings with fellow members and track the business you've generated for each other"
+      }
       actions={
         <Button
           variant="outline"
           size="sm"
           onClick={() => setIsThankYouDialogOpen(true)}
-          className="text-xs h-8 sm:h-9 px-2.5 sm:px-3"
+          className="text-xs h-8 sm:h-9 px-2.5 sm:px-3 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
         >
           <Handshake className="h-3.5 w-3.5 sm:mr-1.5 shrink-0" />
           <span className="hidden sm:inline">Give Thank You Note</span>
@@ -387,19 +409,40 @@ function BizNetworking() {
               <Zap className="h-5 w-5 fill-primary" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">B2B Power Networking Engine</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-foreground">B2B Power Networking Engine</h3>
+                {!isMeetingAllowed && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <Lock className="h-2.5 w-2.5" /> Tier II+ Required
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">Discover verified suppliers, post business requirements & create permanent collaboration circles.</p>
             </div>
           </div>
-          <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
-            <Link href="/biz/power-networking">
-              Open Power Network <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
-            </Link>
-          </Button>
+          {!isMeetingAllowed ? (
+            <Button asChild size="sm" variant="outline" className="border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 shrink-0">
+              <Link href={membershipLink}>
+                Upgrade Plan <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
+              <Link href={powerNetworkingLink}>
+                Open Power Network <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
-          <StatCard label="One to One meetings" value={String(meetings.length)} icon={Users2} tone="primary" />
+          <StatCard
+            label="One to One meetings"
+            value={!isMeetingAllowed ? "Locked" : String(meetings.length)}
+            icon={!isMeetingAllowed ? Lock : Users2}
+            tone={!isMeetingAllowed ? "muted" : "primary"}
+            hint={!isMeetingAllowed ? "Requires Tier II (Starter) or above" : "Meetings logged across chapters"}
+          />
           <StatCard
             label="Business given"
             value={currencyFormatter.format(totalGiven)}
@@ -420,109 +463,139 @@ function BizNetworking() {
         </div>
 
         <Tabs value={outerTab} onValueChange={setOuterTab}>
-          <TabsList>
-            <TabsTrigger value="one-to-one">One to One</TabsTrigger>
-            <TabsTrigger value="referrals">Referrals</TabsTrigger>
-            <TabsTrigger value="business-generated">Business Generated</TabsTrigger>
+          <TabsList className="w-full sm:w-auto grid grid-cols-3">
+            <TabsTrigger value="one-to-one" className="flex items-center justify-center gap-1.5">
+              <span>One to One</span>
+              {!isMeetingAllowed && <Lock className="h-3.5 w-3.5 text-amber-500" />}
+            </TabsTrigger>
+            <TabsTrigger value="referrals" className="flex items-center justify-center gap-1.5">
+              <span>Referrals</span>
+              {!isReferralAllowed && <Lock className="h-3.5 w-3.5 text-amber-500" />}
+            </TabsTrigger>
+            <TabsTrigger value="business-generated" className="flex items-center justify-center gap-1.5">
+              <span>Business Generated</span>
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="one-to-one" className="space-y-4">
-            <Panel
-              title="One to One meetings"
-              description="Meetings you've logged with fellow RIFAH members, across chapters"
-              action={
-                <Button size="sm" onClick={() => setIsMeetingDialogOpen(true)}>
-                  <Plus className="mr-1.5 h-4 w-4" /> Log New Meeting
-                </Button>
-              }
-            >
-              {meetingsLoading ? (
-                <div className="flex items-center justify-center py-10 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading meetings...
+            {!isMeetingAllowed ? (
+              <div className="rounded-2xl border border-dashed border-amber-500/40 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-transparent p-6 text-center sm:p-10">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                  <Lock className="h-7 w-7" />
                 </div>
-              ) : meetings.length === 0 ? (
-                <EmptyState
-                  icon={Users2}
-                  title="No one to one meetings logged yet"
-                  description="Met a fellow RIFAH member? Log the meeting to keep a record visible to your chapter and state admins."
-                  action={
-                    <Button onClick={() => setIsMeetingDialogOpen(true)}>
-                      <Plus className="mr-1.5 h-4 w-4" /> Log New Meeting
-                    </Button>
-                  }
-                />
-              ) : (
-                <div className="space-y-3">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Search meetings by member, chapter, location or note..."
-                      value={meetingSearch}
-                      onChange={(e) => setMeetingSearch(e.target.value)}
-                      className="h-9 pl-9 pr-8 text-xs bg-background"
-                    />
-                    {meetingSearch && (
-                      <button
-                        type="button"
-                        onClick={() => setMeetingSearch("")}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                <h3 className="mt-4 text-lg font-bold text-foreground">
+                  One-to-One Meetings is Locked
+                </h3>
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                  Your current plan is <strong>{planName || "Tier I (Free)"}</strong>. Free members can give and receive Thank You Notes. To log meetings and network 1-on-1 with chamber members, upgrade to Tier II (Starter) or above.
+                </p>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Link href={membershipLink}>
+                      Upgrade to Tier II (Starter) <ArrowUpRight className="ml-1.5 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Panel
+                title="One to One meetings"
+                description="Meetings you've logged with fellow RIFAH members, across chapters"
+                action={
+                  <Button size="sm" onClick={() => setIsMeetingDialogOpen(true)}>
+                    <Plus className="mr-1.5 h-4 w-4" /> Log New Meeting
+                  </Button>
+                }
+              >
+                {meetingsLoading ? (
+                  <div className="flex items-center justify-center py-10 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading meetings...
+                  </div>
+                ) : meetings.length === 0 ? (
+                  <EmptyState
+                    icon={Users2}
+                    title="No one to one meetings logged yet"
+                    description="Met a fellow RIFAH member? Log the meeting to keep a record visible to your chapter and state admins."
+                    action={
+                      <Button onClick={() => setIsMeetingDialogOpen(true)}>
+                        <Plus className="mr-1.5 h-4 w-4" /> Log New Meeting
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search meetings by member, chapter, location or note..."
+                        value={meetingSearch}
+                        onChange={(e) => setMeetingSearch(e.target.value)}
+                        className="h-9 pl-9 pr-8 text-xs bg-background"
+                      />
+                      {meetingSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setMeetingSearch("")}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {filteredMeetings.length === 0 ? (
+                      <p className="py-6 text-center text-xs text-muted-foreground">
+                        No meetings match "{meetingSearch}".
+                      </p>
+                    ) : (
+                      filteredMeetings.map((m) => {
+                        const iInitiated = String(m.initiatorUser?._id || m.initiatorUser) === String(myUserId);
+                        const counterpartBusiness = iInitiated ? m.memberBusiness : m.initiatorBusiness;
+                        const counterpartChapter = iInitiated ? m.memberChapterId : m.initiatorChapterId;
+                        const initiatedByLabel =
+                          m.initiatedBy === "self"
+                            ? iInitiated
+                              ? "You initiated this meeting"
+                              : `${counterpartBusiness?.name || "They"} initiated this meeting`
+                            : iInitiated
+                              ? `${counterpartBusiness?.name || "They"} initiated this meeting`
+                              : "You initiated this meeting";
+
+                        return (
+                          <div key={m._id} className="rounded-xl border border-border p-4">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-semibold">{counterpartBusiness?.name || "RIFAH Member"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {counterpartChapter?.name || counterpartChapter?.state || "Chapter"}
+                                  {counterpartChapter?.state ? ` · ${counterpartChapter.state}` : ""}
+                                </p>
+                              </div>
+                              <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                                {initiatedByLabel}
+                              </span>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+                              <span className="inline-flex items-center gap-1.5">
+                                <CalendarDays className="h-3.5 w-3.5" />
+                                {new Date(m.meetingDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                              </span>
+                              <span className="inline-flex items-center gap-1.5">
+                                <Clock className="h-3.5 w-3.5" /> {m.meetingTime}
+                              </span>
+                              <span className="inline-flex items-center gap-1.5">
+                                <MapPin className="h-3.5 w-3.5" /> {m.location}
+                              </span>
+                            </div>
+                            <p className="mt-2.5 text-sm text-foreground/90">{m.description}</p>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
-                  {filteredMeetings.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-muted-foreground">
-                      No meetings match "{meetingSearch}".
-                    </p>
-                  ) : (
-                    filteredMeetings.map((m) => {
-                      const iInitiated = String(m.initiatorUser?._id || m.initiatorUser) === String(myUserId);
-                      const counterpartBusiness = iInitiated ? m.memberBusiness : m.initiatorBusiness;
-                      const counterpartChapter = iInitiated ? m.memberChapterId : m.initiatorChapterId;
-                      const initiatedByLabel =
-                        m.initiatedBy === "self"
-                          ? iInitiated
-                            ? "You initiated this meeting"
-                            : `${counterpartBusiness?.name || "They"} initiated this meeting`
-                          : iInitiated
-                            ? `${counterpartBusiness?.name || "They"} initiated this meeting`
-                            : "You initiated this meeting";
-
-                      return (
-                        <div key={m._id} className="rounded-xl border border-border p-4">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div>
-                              <p className="text-sm font-semibold">{counterpartBusiness?.name || "RIFAH Member"}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {counterpartChapter?.name || counterpartChapter?.state || "Chapter"}
-                                {counterpartChapter?.state ? ` · ${counterpartChapter.state}` : ""}
-                              </p>
-                            </div>
-                            <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                              {initiatedByLabel}
-                            </span>
-                          </div>
-                          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-                            <span className="inline-flex items-center gap-1.5">
-                              <CalendarDays className="h-3.5 w-3.5" />
-                              {new Date(m.meetingDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                            </span>
-                            <span className="inline-flex items-center gap-1.5">
-                              <Clock className="h-3.5 w-3.5" /> {m.meetingTime}
-                            </span>
-                            <span className="inline-flex items-center gap-1.5">
-                              <MapPin className="h-3.5 w-3.5" /> {m.location}
-                            </span>
-                          </div>
-                          <p className="mt-2.5 text-sm text-foreground/90">{m.description}</p>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </Panel>
+                )}
+              </Panel>
+            )}
           </TabsContent>
 
           <TabsContent value="business-generated" className="space-y-4">
@@ -531,7 +604,7 @@ function BizNetworking() {
                 title="Business Generated"
                 description="Thank you notes exchanged with fellow members for business given and received"
                 action={
-                  <Button size="sm" variant="outline" onClick={() => setIsThankYouDialogOpen(true)}>
+                  <Button size="sm" variant="default" onClick={() => setIsThankYouDialogOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                     <Handshake className="mr-1.5 h-4 w-4" /> Give Thank You Note
                   </Button>
                 }
@@ -557,139 +630,162 @@ function BizNetworking() {
           </TabsContent>
 
           <TabsContent value="referrals" className="space-y-4">
-            {referrals.length > 0 && (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Search referrals by member name, contact or requirement..."
-                  value={referralSearch}
-                  onChange={(e) => setReferralSearch(e.target.value)}
-                  className="h-9 pl-9 pr-8 text-xs bg-background"
-                />
-                {referralSearch && (
-                  <button
-                    type="button"
-                    onClick={() => setReferralSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-            )}
-
-            <Panel
-              title="Referrals I've Made"
-              description="Businesses you've referred your contacts to"
-              action={
-                <Button size="sm" onClick={() => setIsReferralDialogOpen(true)}>
-                  <Plus className="mr-1.5 h-4 w-4" /> New Referral
-                </Button>
-              }
-            >
-              {referralsLoading ? (
-                <div className="flex items-center justify-center py-10 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading referrals...
+            {!isReferralAllowed ? (
+              <div className="rounded-2xl border border-dashed border-amber-500/40 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-transparent p-6 text-center sm:p-10">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                  <Lock className="h-7 w-7" />
                 </div>
-              ) : referralsMade.length === 0 ? (
-                <EmptyState
-                  icon={Share2}
-                  title="No referrals made yet"
-                  description="Know someone who needs what a fellow member offers? Refer their business and track it here."
+                <h3 className="mt-4 text-lg font-bold text-foreground">
+                  Referrals Exchange is Locked
+                </h3>
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                  Your current plan is <strong>{planName || "Tier I (Free)"}</strong>. Share, receive, and track verified client referrals with fellow RIFAH chamber members by upgrading to Tier II (Starter) or above.
+                </p>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Link href={membershipLink}>
+                      Upgrade to Tier II (Starter) <ArrowUpRight className="ml-1.5 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {referrals.length > 0 && (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Search referrals by member name, contact or requirement..."
+                      value={referralSearch}
+                      onChange={(e) => setReferralSearch(e.target.value)}
+                      className="h-9 pl-9 pr-8 text-xs bg-background"
+                    />
+                    {referralSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setReferralSearch("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                <Panel
+                  title="Referrals I've Made"
+                  description="Businesses you've referred your contacts to"
                   action={
-                    <Button onClick={() => setIsReferralDialogOpen(true)}>
+                    <Button size="sm" onClick={() => setIsReferralDialogOpen(true)}>
                       <Plus className="mr-1.5 h-4 w-4" /> New Referral
                     </Button>
                   }
-                />
-              ) : referralSearch && filteredReferralsMade.length === 0 ? (
-                <p className="py-6 text-center text-xs text-muted-foreground">
-                  No referrals made match "{referralSearch}".
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {filteredReferralsMade.map((r) => (
-                    <div key={r._id} className="rounded-xl border border-border p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold">Referred to {r.referredBusiness?.name || "a member"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {r.leadName}
-                            {r.leadContact ? ` · ${r.leadContact}` : ""}
-                            {r.leadIsMember ? " · RIFAH member" : ""}
-                          </p>
-                        </div>
-                        {r.status === "Closed" ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success bg-success-soft px-2 py-1 rounded-md">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Closed · {currencyFormatter.format(r.thankYouNote?.amount || 0)}
-                          </span>
-                        ) : (
-                          <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                            Awaiting outcome
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-2.5 text-sm text-foreground/90">{r.description}</p>
+                >
+                  {referralsLoading ? (
+                    <div className="flex items-center justify-center py-10 text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading referrals...
                     </div>
-                  ))}
-                </div>
-              )}
-            </Panel>
+                  ) : referralsMade.length === 0 ? (
+                    <EmptyState
+                      icon={Share2}
+                      title="No referrals made yet"
+                      description="Know someone who needs what a fellow member offers? Refer their business and track it here."
+                      action={
+                        <Button onClick={() => setIsReferralDialogOpen(true)}>
+                          <Plus className="mr-1.5 h-4 w-4" /> New Referral
+                        </Button>
+                      }
+                    />
+                  ) : referralSearch && filteredReferralsMade.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-muted-foreground">
+                      No referrals made match "{referralSearch}".
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredReferralsMade.map((r) => (
+                        <div key={r._id} className="rounded-xl border border-border p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold">Referred to {r.referredBusiness?.name || "a member"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {r.leadName}
+                                {r.leadContact ? ` · ${r.leadContact}` : ""}
+                                {r.leadIsMember ? " · RIFAH member" : ""}
+                              </p>
+                            </div>
+                            {r.status === "Closed" ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success bg-success-soft px-2 py-1 rounded-md">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Closed · {currencyFormatter.format(r.thankYouNote?.amount || 0)}
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                                Awaiting outcome
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-2.5 text-sm text-foreground/90">{r.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Panel>
 
-            <Panel title="Referrals Made To Me" description="Referrals fellow members have sent to your business">
-              {referralsLoading ? (
-                <div className="flex items-center justify-center py-10 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading referrals...
-                </div>
-              ) : referralsReceived.length === 0 ? (
-                <EmptyState
-                  icon={Sparkles}
-                  title="No referrals received yet"
-                  description="When a fellow member sends a referral to your business, it will show up here."
-                />
-              ) : referralSearch && filteredReferralsReceived.length === 0 ? (
-                <p className="py-6 text-center text-xs text-muted-foreground">
-                  No referrals received match "{referralSearch}".
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {filteredReferralsReceived.map((r) => (
-                    <div key={r._id} className="rounded-xl border border-border p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold">Referred by {r.referrerBusiness?.name || "a member"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {r.leadName}
-                            {r.leadContact ? ` · ${r.leadContact}` : ""}
-                            {r.leadIsMember ? " · RIFAH member" : ""}
-                          </p>
-                        </div>
-                        {r.status === "Closed" ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success bg-success-soft px-2 py-1 rounded-md">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Closed · {currencyFormatter.format(r.thankYouNote?.amount || 0)}
-                          </span>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setClosingReferral(r);
-                              setCloseAmount("");
-                              setCloseNote("");
-                            }}
-                          >
-                            <Handshake className="mr-1.5 h-3.5 w-3.5" /> Give Thank You Note
-                          </Button>
-                        )}
-                      </div>
-                      <p className="mt-2.5 text-sm text-foreground/90">{r.description}</p>
+                <Panel title="Referrals Made To Me" description="Referrals fellow members have sent to your business">
+                  {referralsLoading ? (
+                    <div className="flex items-center justify-center py-10 text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading referrals...
                     </div>
-                  ))}
-                </div>
-              )}
-            </Panel>
+                  ) : referralsReceived.length === 0 ? (
+                    <EmptyState
+                      icon={Sparkles}
+                      title="No referrals received yet"
+                      description="When a fellow member sends a referral to your business, it will show up here."
+                    />
+                  ) : referralSearch && filteredReferralsReceived.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-muted-foreground">
+                      No referrals received match "{referralSearch}".
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredReferralsReceived.map((r) => (
+                        <div key={r._id} className="rounded-xl border border-border p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold">Referred by {r.referrerBusiness?.name || "a member"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {r.leadName}
+                                {r.leadContact ? ` · ${r.leadContact}` : ""}
+                                {r.leadIsMember ? " · RIFAH member" : ""}
+                              </p>
+                            </div>
+                            {r.status === "Closed" ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success bg-success-soft px-2 py-1 rounded-md">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Closed · {currencyFormatter.format(r.thankYouNote?.amount || 0)}
+                              </span>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setClosingReferral(r);
+                                  setCloseAmount("");
+                                  setCloseNote("");
+                                }}
+                              >
+                                <Handshake className="mr-1.5 h-3.5 w-3.5" /> Give Thank You Note
+                              </Button>
+                            )}
+                          </div>
+                          <p className="mt-2.5 text-sm text-foreground/90">{r.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Panel>
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </div>

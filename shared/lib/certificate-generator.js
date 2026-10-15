@@ -313,8 +313,9 @@ export function getTierDesign(rawTier = "diamond", origin = "", customSettings =
 }
 
 /**
- * Resolves the real business owner / representative name dynamically for all 4 certificate tiers.
- * Strictly guarantees that no dummy placeholders (such as "Raj Sharma" or generic placeholders) are returned.
+ * Resolves the real business owner name dynamically for all certificate tiers.
+ * Strictly guarantees that no literal "(Authorized Representative)" suffix is appended,
+ * ensuring the clean, real name of the business owner is displayed.
  */
 export function resolveCertificateRepresentativeName(business, options = {}) {
   const isInvalidOrDummy = (str) => {
@@ -322,27 +323,37 @@ export function resolveCertificateRepresentativeName(business, options = {}) {
     const clean = str.trim().toLowerCase();
     return (
       clean === "" ||
-      clean === "raj sharma" ||
       clean === "dummy" ||
       clean === "dummy name" ||
       clean === "member" ||
       clean === "undefined" ||
-      clean === "null"
+      clean === "null" ||
+      clean === "authorized representative" ||
+      clean === "(authorized representative)"
     );
+  };
+
+  const cleanRepName = (str) => {
+    if (!str || typeof str !== "string") return "";
+    return str
+      .replace(/\s*\(\s*authorized\s+representative\s*\)/gi, "")
+      .replace(/\s*authorized\s+representative/gi, "")
+      .trim();
   };
 
   // 1. Explicit options overrides (passed by caller e.g. auth context or explicit ownerName)
   const optionCandidates = [
-    options?.representativeName,
     options?.ownerName,
     options?.user?.name,
     options?.user?.fullName,
     options?.currentUser?.name,
     options?.currentUser?.fullName,
+    options?.representativeName,
   ];
   for (const name of optionCandidates) {
-    if (!isInvalidOrDummy(name)) {
-      return name.trim();
+    const cleaned = cleanRepName(name);
+    if (!isInvalidOrDummy(cleaned)) {
+      return cleaned;
     }
   }
 
@@ -350,50 +361,52 @@ export function resolveCertificateRepresentativeName(business, options = {}) {
   if (business) {
     // 2a. Populated owner object (name or fullName)
     if (business.owner && typeof business.owner === "object") {
-      if (!isInvalidOrDummy(business.owner.name)) {
-        return business.owner.name.trim();
-      }
-      if (!isInvalidOrDummy(business.owner.fullName)) {
-        return business.owner.fullName.trim();
+      const ownerName = cleanRepName(business.owner.name || business.owner.fullName);
+      if (!isInvalidOrDummy(ownerName)) {
+        return ownerName;
       }
     }
 
     // 2b. If owner field is a non-ObjectId string (e.g. string name)
     if (typeof business.owner === "string" && !/^[0-9a-fA-F]{24}$/.test(business.owner.trim())) {
-      if (!isInvalidOrDummy(business.owner)) {
-        return business.owner.trim();
+      const ownerStr = cleanRepName(business.owner);
+      if (!isInvalidOrDummy(ownerStr)) {
+        return ownerStr;
       }
     }
 
     // 2c. contactPerson
-    if (!isInvalidOrDummy(business.contactPerson)) {
-      return business.contactPerson.trim();
+    const contact = cleanRepName(business.contactPerson);
+    if (!isInvalidOrDummy(contact)) {
+      return contact;
     }
 
-    // 2d. ownerName, representative, user object, contactPersonName, authorizedSignatory
+    // 2d. ownerName, contactPersonName, representative, user object, authorizedSignatory
     const otherCandidates = [
       business.ownerName,
+      business.contactPersonName,
       business.representative,
       business.user?.name,
       business.user?.fullName,
-      business.contactPersonName,
       business.authorizedSignatory,
       business.founder,
       business.proprietor,
+      business.gstGroupMembers?.[0]?.user?.name,
     ];
     for (const name of otherCandidates) {
-      if (!isInvalidOrDummy(name)) {
-        return name.trim();
+      const cleaned = cleanRepName(name);
+      if (!isInvalidOrDummy(cleaned)) {
+        return cleaned;
       }
     }
   }
 
-  // 3. Fallback: If business has an official trade name, use business name with "(Authorized Representative)"
+  // 3. Fallback: If only business name is available, return the business name cleanly WITHOUT any "(Authorized Representative)"
   if (business?.name && typeof business.name === "string" && business.name.trim()) {
-    return `${business.name.trim()} (Authorized Representative)`;
+    return cleanRepName(business.name);
   }
 
-  return "Authorized Representative";
+  return "Business Owner";
 }
 
 export function generateCertificateHtml(business, membershipData = null, options = {}) {
@@ -1123,12 +1136,55 @@ export async function downloadCertificatePdf(business, membershipData = null, op
   window.CanvasRenderingContext2D.prototype.createPattern = safeCreatePattern;
 
   try {
-    const rawHtml = generateCertificateHtml(business, membershipData, {
+    let enrichedBiz = { ...business };
+    let resolvedOwnerName = options.ownerName || options.user?.name || options.currentUser?.name || "";
+
+    if ((!resolvedOwnerName || !enrichedBiz.owner?.name || typeof enrichedBiz.owner !== "object") && enrichedBiz._id) {
+      try {
+        const { businessApi } = await import("@shared/lib/api-services");
+        const res = await businessApi.getByIdOrSlug(enrichedBiz._id);
+        const detail = res?.data || res;
+        if (detail && typeof detail === "object") {
+          enrichedBiz = { ...detail, ...enrichedBiz, owner: detail.owner || enrichedBiz.owner };
+          if (detail.owner?.name) {
+            resolvedOwnerName = detail.owner.name;
+          } else if (detail.contactPerson) {
+            resolvedOwnerName = detail.contactPerson;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (!resolvedOwnerName && (!enrichedBiz.owner?.name || typeof enrichedBiz.owner !== "object")) {
+      const ownerId = enrichedBiz.owner?._id || enrichedBiz.owner || enrichedBiz.ownerId;
+      if (typeof ownerId === "string" && /^[0-9a-fA-F]{24}$/.test(ownerId.trim())) {
+        try {
+          const { userApi } = await import("@shared/lib/api-services");
+          const uRes = await userApi.getUserById(ownerId.trim());
+          const u = uRes?.data || uRes;
+          if (u?.name) {
+            enrichedBiz.owner = { name: u.name, email: u.email };
+            resolvedOwnerName = u.name;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+
+    if (resolvedOwnerName && !enrichedBiz.owner?.name) {
+      enrichedBiz.owner = { ...(typeof enrichedBiz.owner === "object" ? enrichedBiz.owner : {}), name: resolvedOwnerName };
+    }
+
+    const rawHtml = generateCertificateHtml(enrichedBiz, membershipData, {
       isPreview: false,
       isExport: true,
       customSettings,
       tier: rawTier,
       ...options,
+      ownerName: resolvedOwnerName || options.ownerName,
     });
 
     const doc = iframe.contentDocument || iframe.contentWindow.document;

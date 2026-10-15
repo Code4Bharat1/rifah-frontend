@@ -577,6 +577,10 @@ function isAccessibleUnverifiedPath(pathname) {
     clean.startsWith("/biz/my-duty/") ||
     clean === "/biz/visa-referrals" ||
     clean.startsWith("/biz/visa-referrals/") ||
+    clean === "/biz/networking" ||
+    clean.startsWith("/biz/networking/") ||
+    clean === "/user/networking" ||
+    clean.startsWith("/user/networking/") ||
     clean === "/visa-referral"
   );
 }
