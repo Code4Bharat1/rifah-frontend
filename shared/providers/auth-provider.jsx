@@ -107,6 +107,34 @@ export function AuthProvider({ children }) {
     fetchCurrentUser();
   }, []);
 
+  // Proactive session keep-alive: quietly renew access token every 10 minutes so users are never kicked out
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      const refreshToken =
+        typeof window !== "undefined"
+          ? localStorage.getItem("rifah_refresh_token")
+          : null;
+      if (!refreshToken) return;
+      try {
+        const res = await authApi.refreshToken(refreshToken);
+        const data = res?.data || res;
+        const newAccessToken = data?.accessToken;
+        const newRefreshToken = data?.refreshToken;
+        if (newAccessToken && typeof window !== "undefined") {
+          localStorage.setItem("rifah_access_token", newAccessToken);
+          if (newRefreshToken) {
+            localStorage.setItem("rifah_refresh_token", newRefreshToken);
+          }
+        }
+      } catch (_) {
+        // Silent catch: api-client will handle refresh whenever an actual request is made
+      }
+    }, 10 * 60 * 1000); // 10 minutes
+
+    return () => clearInterval(interval);
+  }, [user]);
+
   const login = async (emailOrCredentials, passwordArg) => {
     // Supports both: login({email, password}) and login(email, password)
     const credentials =

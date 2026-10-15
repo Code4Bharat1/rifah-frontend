@@ -317,13 +317,8 @@ function Checkout() {
       newErrors.postalCode = "Please enter a valid 6-digit PIN code";
     }
 
-    // 8. GST (optional, but validate 15 alphanumeric format if entered)
-    if (gstNumber && gstNumber.trim()) {
-      const cleanGst = gstNumber.trim().toUpperCase();
-      if (cleanGst.length !== 15) {
-        newErrors.gstNumber = "GSTIN must be exactly 15 characters";
-      }
-    }
+    // 8. GST / Tax registration number (Completely Optional)
+    // No blocking error: if entered, cleaned in uppercase. If 15 alphanumeric characters are entered, it auto-verifies via GST API.
 
     // 9. Terms and Conditions agreement
     if (!agreeTerms) {
@@ -395,6 +390,9 @@ function Checkout() {
         const resultData = upgradeRes?.data || upgradeRes;
         if (resultData?.accessToken) {
           localStorage.setItem("rifah_access_token", resultData.accessToken);
+        }
+        if (resultData?.refreshToken) {
+          localStorage.setItem("rifah_refresh_token", resultData.refreshToken);
         }
         if (resultData?.user) {
           localStorage.setItem("rifah_user", JSON.stringify(resultData.user));
@@ -1057,7 +1055,10 @@ function Checkout() {
                     {/* 2. GST / Tax Registration Number */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="gst">GST / Tax registration number</Label>
+                        <Label htmlFor="gst" className="flex items-center gap-1.5">
+                          <span>GST / Tax registration number</span>
+                          <span className="text-muted-foreground text-xs font-normal"></span>
+                        </Label>
                         {gstLoading ? (
                           <span className="flex items-center gap-1 text-[11px] text-primary font-medium">
                             <Loader2 className="h-3 w-3 animate-spin" /> Fetching...
@@ -1068,7 +1069,7 @@ function Checkout() {
                           </span>
                         ) : (
                           <span className="text-[10px] text-muted-foreground font-mono">
-                            {(gstNumber || "").length}/15
+                            {(gstNumber || "").length > 0 ? `${(gstNumber || "").length}/15` : "Optional"}
                           </span>
                         )}
                       </div>
@@ -1086,7 +1087,7 @@ function Checkout() {
                               fetchAndPopulateGst(gstNumber);
                             }
                           }}
-                          placeholder="27AAAAA0000A1Z5"
+                          placeholder="27AAAAA0000A1Z5 (Optional for GST invoice)"
                           className={cn(
                             "font-mono uppercase tracking-wider pr-8",
                             errors.gstNumber && "border-destructive focus-visible:ring-destructive"

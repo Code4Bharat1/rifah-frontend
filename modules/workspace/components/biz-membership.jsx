@@ -92,7 +92,8 @@ const docTemplates = [
   },
   {
     type: "gst_tax_registration",
-    name: "GSTIN / Tax Registration Certificate",
+    name: "GSTIN / Tax Registration Certificate (Optional)",
+    isOptional: true,
   },
   {
     type: "pan_card",
@@ -3929,12 +3930,15 @@ function BizMembership() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label htmlFor="gstNo" className="text-xs">GST / Tax ID</Label>
+                <Label htmlFor="gstNo" className="text-xs flex items-center gap-1">
+                  <span>GST / Tax ID</span>
+                  <span className="text-muted-foreground text-[10px] font-normal">(Optional)</span>
+                </Label>
                 <Input
                   id="gstNo"
                   value={billingForm.gstNo}
                   onChange={(e) => setBillingForm({ ...billingForm, gstNo: e.target.value })}
-                  placeholder="27AAAAA0000A1Z5"
+                  placeholder="27AAAAA0000A1Z5 (Optional)"
                 />
               </div>
               <div className="space-y-1">

@@ -110,10 +110,19 @@ function AdminMemberships() {
   };
 
   const getContactLinks = (b) => {
-    const owner = b?.owner || {};
+    const owner = (b?.owner && typeof b.owner === "object") ? b.owner : {};
     const phone = b?.phone || b?.whatsapp || b?.whatsappNumber || owner.phone || "";
     const waNumber = b?.whatsapp || b?.whatsappNumber || b?.phone || owner.phone || "";
-    const email = b?.email || owner.email || "";
+    const email =
+      b?.email ||
+      b?.ownerEmail ||
+      b?.contactEmail ||
+      b?.userEmail ||
+      b?.businessEmail ||
+      owner.email ||
+      b?.ownerDetails?.email ||
+      (typeof b?.owner === "string" && b?.owner.includes("@") ? b.owner : "") ||
+      "";
 
     const cleanWa = String(waNumber).replace(/[^0-9]/g, "");
     const waFormatted = cleanWa.length === 10 ? `91${cleanWa}` : cleanWa;
@@ -124,7 +133,39 @@ function AdminMemberships() {
       callUrl: phone ? `tel:${phone}` : null,
       waUrl: waFormatted ? `https://wa.me/${waFormatted}` : null,
       emailUrl: email ? `mailto:${email}` : null,
+      gmailUrl: email
+        ? `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(`RIFAH Chamber of Commerce - Member Communication`)}`
+        : null,
     };
+  };
+
+  const handleEmailMember = (e, b) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    const links = getContactLinks(b);
+    const email = links.email;
+    const name = b?.name || "Member";
+
+    if (!email) {
+      toast.error(`No email address registered for ${name}`);
+      return;
+    }
+
+    // Always copy email to clipboard as guaranteed backup
+    try {
+      navigator.clipboard.writeText(email);
+    } catch {}
+
+    // Open web compose in new tab (Gmail) which works reliably in all browsers
+    const gmailUrl = links.gmailUrl || `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
+    const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
+
+    // Fallback if popup blocker intercepted
+    if (!win || win.closed || typeof win.closed === "undefined") {
+      window.location.href = `mailto:${email}`;
+    }
+
+    toast.success(`Opening email for ${name} (${email}) - Copied to clipboard!`);
   };
 
   const copyToClipboard = async (text, label = "Text") => {
@@ -753,21 +794,20 @@ function AdminMemberships() {
                           </span>
                         )}
 
-                        {links.emailUrl ? (
-                          <a
-                            href={links.emailUrl}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border border-border text-foreground hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 transition-colors font-medium text-xs shadow-2xs"
-                            title={`Email ${links.email}`}
-                          >
-                            <Mail className="h-3 w-3 text-blue-600" />
-                            <span>Email</span>
-                          </a>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/40 border border-border/40 text-muted-foreground/40 text-xs cursor-not-allowed">
-                            <Mail className="h-3 w-3" />
-                            <span>Email</span>
-                          </span>
-                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => handleEmailMember(e, b)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border font-medium text-xs shadow-2xs transition-colors cursor-pointer",
+                            links.email
+                              ? "bg-background border-border text-foreground hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30"
+                              : "bg-muted/40 border-border/40 text-muted-foreground/60 hover:bg-muted/60"
+                          )}
+                          title={links.email ? `Email ${links.email}` : "No email registered"}
+                        >
+                          <Mail className={cn("h-3 w-3", links.email ? "text-blue-600" : "text-muted-foreground")} />
+                          <span>Email</span>
+                        </button>
                       </div>
                     </div>
 
@@ -963,19 +1003,19 @@ function AdminMemberships() {
                         </span>
                       )}
 
-                      {links.emailUrl ? (
-                        <a
-                          href={links.emailUrl}
-                          title={`Email ${links.email}`}
-                          className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10 transition-colors border border-border/60"
-                        >
-                          <Mail className="h-3.5 w-3.5" />
-                        </a>
-                      ) : (
-                        <span className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/30 border border-border/30 cursor-not-allowed">
-                          <Mail className="h-3.5 w-3.5" />
-                        </span>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => handleEmailMember(e, r)}
+                        title={links.email ? `Email ${links.email} (Click to compose)` : "No email address registered"}
+                        className={cn(
+                          "h-7 w-7 rounded-md flex items-center justify-center transition-colors border cursor-pointer",
+                          links.email
+                            ? "text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10 border-border/60"
+                            : "text-muted-foreground/35 border-border/30 hover:bg-muted/40"
+                        )}
+                      >
+                        <Mail className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   );
                 },
@@ -1110,11 +1150,19 @@ function AdminMemberships() {
                           <MessageSquare className="h-3.5 w-3.5" />
                         </a>
                       )}
-                      {links.emailUrl && (
-                        <a href={links.emailUrl} className="h-7 w-7 rounded-md flex items-center justify-center border border-border text-foreground hover:text-blue-600">
-                          <Mail className="h-3.5 w-3.5" />
-                        </a>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => handleEmailMember(e, r)}
+                        className={cn(
+                          "h-7 w-7 rounded-md flex items-center justify-center border cursor-pointer transition-colors",
+                          links.email
+                            ? "border-border text-foreground hover:text-blue-600 hover:bg-blue-500/10"
+                            : "border-border/40 text-muted-foreground/40 hover:bg-muted/40"
+                        )}
+                        title={links.email ? `Email ${links.email}` : "No email registered"}
+                      >
+                        <Mail className="h-3.5 w-3.5" />
+                      </button>
                     </div>
 
                     <div className="flex items-center gap-1.5">
@@ -1208,8 +1256,19 @@ function AdminMemberships() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-muted-foreground uppercase">Contact Info</p>
-                    <p className="text-sm">{selectedBusiness.email || "No email"}</p>
-                    <p className="text-sm">{selectedBusiness.phone || "No phone"}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">{links.email || selectedBusiness.email || "No email"}</p>
+                      {(links.email || selectedBusiness.email) && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-semibold cursor-pointer"
+                          onClick={(e) => handleEmailMember(e, selectedBusiness)}
+                        >
+                          <Mail className="h-3 w-3" /> Send Email
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{links.phone || selectedBusiness.phone || "No phone"}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-muted-foreground uppercase">Location</p>

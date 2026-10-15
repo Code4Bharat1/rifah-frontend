@@ -94,7 +94,6 @@ export function RegisterUserPage() {
   const [otpTimer, setOtpTimer] = useState(150);
   const [otpError, setOtpError] = useState("");
   const [otpSuccess, setOtpSuccess] = useState("");
-  const [devOtp, setDevOtp] = useState("");
   const [emailConflictError, setEmailConflictError] = useState("");
   const otpInputRefs = useRef([]);
 
@@ -306,7 +305,6 @@ export function RegisterUserPage() {
     setOtpDigits(["", "", "", "", "", ""]);
     setOtpError("");
     setOtpSuccess("");
-    setDevOtp("");
     setEmailConflictError("");
   };
 
@@ -330,8 +328,6 @@ export function RegisterUserPage() {
       setOtpSent(true);
       setOtpTimer(150);
       setOtpSuccess(res?.message || `A 6-digit verification code has been sent to ${cleanEmail}`);
-      const fallbackOtp = res?.devOtp || res?.otp || res?.data?.otp;
-      if (fallbackOtp) setDevOtp(fallbackOtp);
       toast.success(res?.message || `A 6-digit verification code has been sent to ${cleanEmail}`);
       setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
     } catch (err) {
@@ -861,14 +857,6 @@ export function RegisterUserPage() {
                     {/* OTP Box */}
                     {otpSent && !emailVerified && (
                       <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 mt-2">
-                        {devOtp && (
-                          <div className="p-2 rounded-lg bg-blue-100/70 border border-blue-200 text-[11px] text-blue-800 font-medium flex items-center justify-between">
-                            <span>Development/Test Code:</span>
-                            <span className="font-mono font-bold tracking-widest text-blue-900 bg-white px-2 py-0.5 rounded border border-blue-200">
-                              {devOtp}
-                            </span>
-                          </div>
-                        )}
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-semibold text-slate-700">Enter 6-digit Verification Code:</p>
                           <span className="text-xs font-mono font-medium text-slate-500">
@@ -1903,14 +1891,6 @@ export function RegisterUserPage() {
                     {/* Inline Email OTP Entry */}
                     {otpSent && !emailVerified && (
                       <div className="mt-2.5 p-3 rounded-2xl bg-blue-50/60 border border-blue-200/80 space-y-2 animate-in fade-in-50">
-                        {devOtp && (
-                          <div className="p-2 rounded-lg bg-blue-100/70 border border-blue-200 text-[11px] text-blue-800 font-medium flex items-center justify-between">
-                            <span>Development/Test Code:</span>
-                            <span className="font-mono font-bold tracking-widest text-blue-900 bg-white px-2 py-0.5 rounded border border-blue-200">
-                              {devOtp}
-                            </span>
-                          </div>
-                        )}
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-semibold text-slate-700">Enter personal 6-digit verification code:</span>
                           <span className="font-mono text-slate-500 text-[11px]">

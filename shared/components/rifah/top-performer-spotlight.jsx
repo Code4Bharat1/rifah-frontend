@@ -265,7 +265,23 @@ export function TopPerformerSpotlight({ className = "", role = "" }) {
     }
   };
 
-  if (!mounted || isDismissed) return null;
+  if (!mounted) return null;
+
+  if (isDismissed) {
+    return (
+      <div className="mb-4 flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => setIsDismissed(false)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1 text-xs font-medium text-slate-500 shadow-2xs transition-colors hover:border-slate-300 hover:text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+          title="Show Spotlight Champions"
+        >
+          <Trophy className="h-3.5 w-3.5 text-amber-500" />
+          <span>Show Spotlight Champions</span>
+        </button>
+      </div>
+    );
+  }
 
   const spotlight = data || {};
   const referralChampion = spotlight.referralChampion || {};
@@ -299,8 +315,21 @@ export function TopPerformerSpotlight({ className = "", role = "" }) {
           className
         )}
       >
+        {/* Top-Right Corner Dismiss Cross */}
+        <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-20">
+          <button
+            type="button"
+            onClick={() => setIsDismissed(true)}
+            aria-label="Hide Spotlight Champions"
+            title="Hide Spotlight Champions"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200/70 bg-slate-50 text-slate-400 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
         {/* Header bar: Minimalist, clean single-line controls */}
-        <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-3 dark:border-slate-800/80">
+        <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-3 pr-10 dark:border-slate-800/80">
           {/* Left: Title & Subtitle */}
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:bg-amber-400/10 dark:text-amber-400">
@@ -404,16 +433,6 @@ export function TopPerformerSpotlight({ className = "", role = "" }) {
               <option value="last_month">Last Month</option>
               <option value="all_time">All-Time</option>
             </select>
-
-            {/* Dismiss button */}
-            <button
-              type="button"
-              onClick={() => setIsDismissed(true)}
-              aria-label="Dismiss spotlight"
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
           </div>
         </div>
 

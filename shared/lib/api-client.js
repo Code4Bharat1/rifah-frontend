@@ -223,11 +223,12 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
 
       const refreshResult = await refreshPromise;
       if (refreshResult && refreshResult.success) {
-        // Retry original request with clean headers and the updated token
+        // Retry original request with clean headers and the updated token from localStorage
         const retryOptions = {
           ...options,
           headers: customHeaders,
         };
+        delete retryOptions.token;
         return apiClient(endpoint, retryOptions, true);
       }
 
@@ -264,8 +265,8 @@ export async function apiClient(endpoint, options = {}, isRetry = false) {
           window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
         }
       }
-    } else if (typeof window !== "undefined") {
-      // No refresh token available at all on protected route
+    } else if (typeof window !== "undefined" && endpoint.includes("/auth/me")) {
+      // Only purge credentials and redirect when the core identity verification endpoint fails
       localStorage.removeItem("rifah_access_token");
       localStorage.removeItem("rifah_user");
 

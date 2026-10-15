@@ -213,35 +213,29 @@ function DiscoverPage() {
   }, [query, currentSearchTerm]);
 
   // 1. Fetch Businesses (Discover directory strictly requires verified businesses)
-  const { data: businessesData, isLoading: isBusinessesLoading } = useBusinesses(
-    {
-      search: search.q || search.search,
-      industry: search.industry,
-      subCategory: search.subCategory,
-      state: search.state,
-      chapter: search.chapter,
-      membership: search.membership,
-      verified: "true",
-      sort: search.sort,
-      region: search.region,
-      country: search.country,
-    },
-    { enabled: !isOfferingsView }
-  );
+  const { data: businessesData, isLoading: isBusinessesLoading } = useBusinesses({
+    search: search.q || search.search,
+    industry: search.industry,
+    subCategory: search.subCategory,
+    state: search.state,
+    chapter: search.chapter,
+    membership: search.membership,
+    verified: "true",
+    sort: search.sort,
+    region: search.region,
+    country: search.country,
+  });
 
   // 2. Fetch Merged Catalogue (Products & Services) with full filtering
-  const { data: catalogueData, isLoading: isCatalogueLoading } = useCatalogue(
-    {
-      search: search.q || search.search || undefined,
-      industry: search.industry,
-      subCategory: search.subCategory,
-      state: search.state,
-      chapter: search.chapter,
-      region: search.region,
-      country: search.country,
-    },
-    { enabled: isOfferingsView }
-  );
+  const { data: catalogueData, isLoading: isCatalogueLoading } = useCatalogue({
+    search: search.q || search.search || undefined,
+    industry: search.industry,
+    subCategory: search.subCategory,
+    state: search.state,
+    chapter: search.chapter,
+    region: search.region,
+    country: search.country,
+  });
 
   const { data: countriesData } = useCountries({ status: "Active" });
   const activeCountriesList = React.useMemo(() => {
@@ -981,7 +975,7 @@ function DiscoverPage() {
               <Building2 className="h-4 w-4" />
               <span>Businesses</span>
               <span className={cn("text-[11px] px-1.5 py-0.2 rounded-full font-bold", !isOfferingsView ? "bg-white/25 text-white" : "bg-muted text-muted-foreground")}>
-                {businessResults.length}
+                {isBusinessesLoading && businessResults.length === 0 ? "..." : businessResults.length}
               </span>
             </button>
 
@@ -998,7 +992,7 @@ function DiscoverPage() {
               <Package className="h-4 w-4" />
               <span>Products &amp; Services</span>
               <span className={cn("text-[11px] px-1.5 py-0.2 rounded-full font-bold", isOfferingsView ? "bg-white/25 text-white" : "bg-muted text-muted-foreground")}>
-                {catalogueResults.length}
+                {isCatalogueLoading && catalogueResults.length === 0 ? "..." : catalogueResults.length}
               </span>
             </button>
           </div>
@@ -1034,7 +1028,7 @@ function DiscoverPage() {
                 )}
               >
                 <span>Businesses</span>
-                <span className="text-[10px] opacity-80">({businessResults.length})</span>
+                <span className="text-[10px] opacity-80">({isBusinessesLoading && businessResults.length === 0 ? "..." : businessResults.length})</span>
               </button>
               <button
                 type="button"
@@ -1045,7 +1039,7 @@ function DiscoverPage() {
                 )}
               >
                 <span>Products &amp; Services</span>
-                <span className="text-[10px] opacity-80">({catalogueResults.length})</span>
+                <span className="text-[10px] opacity-80">({isCatalogueLoading && catalogueResults.length === 0 ? "..." : catalogueResults.length})</span>
               </button>
             </div>
           </div>
