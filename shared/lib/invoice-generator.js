@@ -215,6 +215,7 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>RIFAH Official Invoice - ${invoiceNum}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -225,14 +226,40 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
             size: A4 portrait;
             margin: 0;
           }
+          html, body {
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+          }
           body {
             background-color: ${isExport ? "#ffffff" : "#f1f5f9"};
             color: #0b1f33;
-            padding: ${isPreview ? "10px" : isExport ? "0" : "20px 10px"};
+            padding: ${isPreview ? "16px 8px" : isExport ? "0" : "20px 10px"};
+            margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: flex-start;
             -webkit-font-smoothing: antialiased;
+          }
+          ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+          }
+          ::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+          }
+          ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+          }
+          @media screen and (max-width: 820px) {
+            body {
+              padding: 8px 4px;
+            }
           }
           .print-toolbar {
             width: 100%;
@@ -997,6 +1024,32 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
               window.print();
             }, 350);
           };
+        </script>
+        `
+            : ""
+        }
+        ${
+          isPreview
+            ? `
+        <script>
+          function autoFitInvoice() {
+            var card = document.querySelector('.invoice-card');
+            if (!card) return;
+            var availW = window.innerWidth - 16;
+            if (availW < 794) {
+              var scale = Math.max(0.36, availW / 794);
+              card.style.transform = 'scale(' + scale + ')';
+              card.style.transformOrigin = 'top center';
+              card.style.marginBottom = '-' + Math.round(1123 * (1 - scale)) + 'px';
+            } else {
+              card.style.transform = 'none';
+              card.style.marginBottom = '0px';
+            }
+          }
+          window.addEventListener('load', autoFitInvoice);
+          window.addEventListener('resize', autoFitInvoice);
+          setTimeout(autoFitInvoice, 60);
+          setTimeout(autoFitInvoice, 350);
         </script>
         `
             : ""

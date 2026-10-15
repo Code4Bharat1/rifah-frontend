@@ -1448,16 +1448,16 @@ export function AdminPayments({ expectedRole = "admin" }) {
       {/* THEMED INVOICE PREVIEW MODAL (RIFAH OFFICIAL GST TAX INVOICE)              */}
       {/* ========================================================================= */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[94vh] flex flex-col p-4 sm:p-6">
-          <DialogHeader className="flex flex-row items-center justify-between border-b pb-3 space-y-0">
-            <div>
-              <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
-                <FileText className="h-5 w-5 text-sky-600" />
-                <span>
+        <DialogContent className="w-[96vw] sm:max-w-4xl md:max-w-5xl lg:max-w-5xl xl:max-w-6xl h-[92vh] max-h-[96vh] flex flex-col p-0 overflow-hidden overflow-y-hidden rounded-2xl sm:rounded-3xl shadow-2xl">
+          <DialogHeader className="p-4 sm:p-5 border-b bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
+            <div className="min-w-0 pr-8 sm:pr-0">
+              <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 flex-wrap">
+                <FileText className="h-5 w-5 text-sky-600 shrink-0" />
+                <span className="break-words">
                   Official RIFAH Tax Invoice — #{previewInvoice?.invoiceNumber || "N/A"}
                 </span>
                 {previewInvoice?.isCustomInvoice && (
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 shrink-0">
                     Centre Created
                   </span>
                 )}
@@ -1467,11 +1467,11 @@ export function AdminPayments({ expectedRole = "admin" }) {
               </DialogDescription>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-xs font-semibold"
+                className="gap-1.5 text-xs font-semibold whitespace-nowrap"
                 onClick={() => {
                   if (previewIframeRef.current?.contentWindow) {
                     previewIframeRef.current.contentWindow.print();
@@ -1486,7 +1486,7 @@ export function AdminPayments({ expectedRole = "admin" }) {
 
               <Button
                 size="sm"
-                className="bg-sky-600 hover:bg-sky-700 text-white gap-1.5 text-xs font-semibold"
+                className="bg-sky-600 hover:bg-sky-700 text-white gap-1.5 text-xs font-semibold whitespace-nowrap"
                 disabled={isExportingPdf}
                 onClick={handleDownloadThemedPdf}
               >
@@ -1501,21 +1501,21 @@ export function AdminPayments({ expectedRole = "admin" }) {
           </DialogHeader>
 
           {/* Iframe rendering the exact official RIFAH invoice HTML theme */}
-          <div className="flex-1 min-h-[560px] overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 p-2 sm:p-4 my-2">
+          <div className="flex-1 min-h-0 overflow-hidden bg-slate-100 dark:bg-slate-950 p-2 sm:p-4">
             {previewInvoice && (
               <iframe
                 ref={previewIframeRef}
                 srcDoc={generateInvoiceHtml(previewInvoice, previewInvoice?.business, {
                   isPreview: true,
                 })}
-                className="w-full h-full min-h-[540px] rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm"
+                className="w-full h-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm block"
                 title={`Invoice-${previewInvoice.invoiceNumber}`}
               />
             )}
           </div>
 
-          <DialogFooter className="border-t pt-3 flex justify-between items-center sm:justify-between">
-            <span className="text-xs text-muted-foreground">
+          <DialogFooter className="p-3 sm:p-4 border-t bg-background flex flex-col sm:flex-row justify-between items-center gap-2 shrink-0">
+            <span className="text-xs text-muted-foreground text-center sm:text-left">
               Invoice Total:{" "}
               <strong className="text-slate-900 dark:text-slate-100">
                 {(previewInvoice?.currency || "").toUpperCase() === "USD" ? "$" : "₹"}{" "}
@@ -1526,7 +1526,7 @@ export function AdminPayments({ expectedRole = "admin" }) {
                 {previewInvoice?.status || "Paid"}
               </strong>
             </span>
-            <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(false)}>
+            <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(false)} className="w-full sm:w-auto">
               Close Preview
             </Button>
           </DialogFooter>
