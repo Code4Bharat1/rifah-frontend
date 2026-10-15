@@ -147,7 +147,7 @@ export function PublicHeader() {
                     : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                 )}
               >
-                <span className="notranslate" translate="no">
+                <span>
                   {item.tKey ? t(`nav.${item.tKey}`) : item.label}
                 </span>
                 <span
@@ -297,7 +297,7 @@ function MobileMenu() {
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                <span className="notranslate" translate="no">
+                <span>
                   {item.tKey ? t(`nav.${item.tKey}`) : item.label}
                 </span>
               </Link>

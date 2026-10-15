@@ -19,6 +19,7 @@ import {
   CreditCard,
   FileStack,
   Gauge,
+  HardDrive,
   LayoutGrid,
   LifeBuoy,
   LogOut,
@@ -173,6 +174,7 @@ const navs = {
       { label: "Events", to: "/admin/events", icon: Ticket },
       { label: "Payments", to: "/admin/payments", icon: CreditCard },
       { label: "Revenue Sharing", to: "/admin/revenue-sharing", icon: Wallet },
+      { label: "Google Drive", to: "/admin/google-drive", icon: HardDrive },
 
       { label: "Notifications", to: "/admin/notifications", icon: Bell },
       { label: "Reports", to: "/admin/reports", icon: ChartNoAxesColumn },
@@ -232,6 +234,11 @@ const roleNavs = {
         to: "/chapter-admin/revenue-sharing",
         icon: Wallet,
       },
+      {
+        label: "Google Drive",
+        to: "/chapter-admin/google-drive",
+        icon: HardDrive,
+      },
     ],
   },
   state_admin: {
@@ -263,6 +270,11 @@ const roleNavs = {
         label: "Revenue Sharing",
         to: "/state-admin/revenue-sharing",
         icon: Wallet,
+      },
+      {
+        label: "Google Drive",
+        to: "/state-admin/google-drive",
+        icon: HardDrive,
       },
     ],
   },

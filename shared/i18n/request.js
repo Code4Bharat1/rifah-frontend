@@ -1,23 +1,20 @@
 import { getRequestConfig } from 'next-intl/server';
-import { cookies } from 'next/headers';
-
-const SUPPORTED_LOCALES = ['en', 'hi', 'mr', 'ur'];
 
 export default getRequestConfig(async () => {
-  const cookieStore = await cookies();
-  const rawLocale = cookieStore.get('NEXT_LOCALE')?.value;
-  const locale = SUPPORTED_LOCALES.includes(rawLocale) ? rawLocale : 'en';
-
+  // Always render English as the pristine base language for the entire platform.
+  // Google Translate then translates the rendered DOM cleanly into all 113 languages
+  // without double-translation corruption or server/client locale mismatch.
   let messages;
   try {
-    messages = (await import(`../../messages/${locale}.json`)).default;
-  } catch {
     messages = (await import('../../messages/en.json')).default;
+  } catch {
+    messages = {};
   }
  
   return {
-    locale,
-    messages
+    locale: 'en',
+    messages,
   };
 });
+
 

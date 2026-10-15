@@ -1351,3 +1351,24 @@ export const branchApi = {
   },
 };
 
+export const googleDriveApi = {
+  getStatus: () => apiClient("/google-drive/status"),
+  getAuthUrl: () => apiClient("/google-drive/auth-url"),
+  disconnect: () => apiClient("/google-drive/disconnect", { method: "POST" }),
+  triggerSync: (target = "all") =>
+    apiClient("/google-drive/sync", {
+      method: "POST",
+      body: JSON.stringify({ target }),
+    }),
+  syncPermissions: () =>
+    apiClient("/google-drive/sync-permissions", {
+      method: "POST",
+    }),
+  getLogs: (params = {}) => apiClient(`/google-drive/logs${toQueryString(params)}`),
+  retryFailed: () =>
+    apiClient("/google-drive/retry-failed", {
+      method: "POST",
+    }),
+  getDownloadUrl: (type) => `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"}/google-drive/download/${type}`,
+};
+

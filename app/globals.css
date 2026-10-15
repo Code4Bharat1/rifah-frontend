@@ -530,4 +530,59 @@ html {
   }
 }
 
+/* ========================================================
+   Google Translate Seamless Clean Styling
+   ======================================================== */
+
+/* 1. Prevent Google Translate from shifting the body down by 40px */
+body {
+  top: 0px !important;
+  position: static !important;
+}
+
+/* 2. Hide Google's top iframe banner and skip container completely */
+.goog-te-banner-frame,
+.skiptranslate > iframe,
+iframe.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+}
+
+/* 3. Hide the hover tooltip balloon */
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* 4. Remove yellow text highlighting when Google translates words */
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* 5. Keep the widget container visually hidden but mounted in the layout tree */
+#google_translate_element {
+  position: fixed !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 6. Protect elements marked with translate="no" or .notranslate */
+.notranslate,
+[translate="no"] {
+  -webkit-transform: none;
+}
+
+
 

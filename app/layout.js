@@ -5,6 +5,7 @@ import Script from 'next/script';
 import "@/app/globals.css";
 import { withAssetPrefix } from "@shared/lib/asset-prefix";
 import { RTL_LANGUAGES } from "@shared/config/languages";
+import { GoogleTranslateRouteSync } from "@shared/components/rifah/google-translate-route-sync";
 
 export const metadata = {
   title: "RIFAH Connect",
@@ -52,12 +53,15 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
-        <NextIntlClientProvider messages={messages} locale={locale}>
-          <Providers>{children}</Providers>
+        <NextIntlClientProvider messages={messages} locale="en">
+          <Providers>
+            {children}
+            <GoogleTranslateRouteSync />
+          </Providers>
         </NextIntlClientProvider>
 
         {/* Google Translate Global Script */}
-        <div id="google_translate_element" style={{ display: 'none' }}></div>
+        <div id="google_translate_element" aria-hidden="true"></div>
         <Script
           id="google-translate-init"
           strategy="afterInteractive"
@@ -65,7 +69,10 @@ export default async function RootLayout({ children }) {
           {`
             function googleTranslateElementInit() {
               if (window.google && window.google.translate) {
-                new window.google.translate.TranslateElement({pageLanguage: 'en', autoDisplay: false}, 'google_translate_element');
+                new window.google.translate.TranslateElement({
+                  pageLanguage: 'en',
+                  autoDisplay: false
+                }, 'google_translate_element');
               }
             }
           `}

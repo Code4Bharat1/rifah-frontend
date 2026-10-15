@@ -1,8 +1,6 @@
 "use client";
 
 import { useTransition, useMemo, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
 import { Check, Globe, Search } from "lucide-react";
 import {
   DropdownMenu,
@@ -14,30 +12,22 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { cn } from "@shared/lib/utils";
 import { LANGUAGES } from "../../config/languages";
+import {
+  getActiveLanguage,
+  changeGoogleTranslateLanguage,
+  applyDocumentLanguageDirection,
+} from "@shared/lib/google-translate";
 
 export function LanguageSelector({ className }) {
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
-  const locale = useLocale();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeLocale, setActiveLocale] = useState(locale || "en");
+  const [activeLocale, setActiveLocale] = useState("en");
 
   useEffect(() => {
-    // Check googtrans cookie or localStorage
-    const match = document.cookie.match(/googtrans=\/en\/([a-zA-Z-]+)/);
-    if (match && match[1]) {
-      setActiveLocale(match[1]);
-    } else {
-      try {
-        const stored = localStorage.getItem("rifah_locale");
-        if (stored) {
-          setActiveLocale(stored);
-        } else if (locale) {
-          setActiveLocale(locale);
-        }
-      } catch (e) {}
-    }
-  }, [locale]);
+    const current = getActiveLanguage();
+    setActiveLocale(current);
+    applyDocumentLanguageDirection(current);
+  }, []);
 
   const filteredLanguages = useMemo(() => {
     if (!searchQuery) return LANGUAGES;
@@ -51,28 +41,8 @@ export function LanguageSelector({ className }) {
 
   const handleLanguageChange = (newLocale) => {
     startTransition(() => {
-      try {
-        localStorage.setItem("rifah_locale", newLocale);
-      } catch (e) {}
-
-      // Set NEXT_LOCALE for any remaining next-intl functionality
-      document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
-      
-      // Set Google Translate cookie. Google's widget sets googtrans with a
-      // leading-dot domain, so clearing it must match that exact domain
-      // attribute (a cookie can only be deleted by a write with the same
-      // domain it was set with) — clear every plausible variant.
-      if (newLocale === 'en') {
-        const hostname = window.location.hostname;
-        document.cookie = `googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-        document.cookie = `googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${hostname};`;
-        document.cookie = `googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${hostname};`;
-      } else {
-        document.cookie = `googtrans=/en/${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
-      }
-      
-      // Reload the page to apply Google Translate
-      window.location.reload();
+      setActiveLocale(newLocale);
+      changeGoogleTranslateLanguage(newLocale);
     });
   };
 

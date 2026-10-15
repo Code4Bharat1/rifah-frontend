@@ -853,7 +853,7 @@ export default function LoginPage() {
                 className="w-full h-10 sm:h-11 rounded-xl bg-[#0077e6] hover:bg-[#0066cc] text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition-all mt-0.5"
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />}
-                <span className="notranslate" translate="no">
+                <span>
                   {loading ? t("signingIn") : t("signInButton")}
                 </span>
                 {!loading && <ArrowRight className="h-4 w-4 shrink-0" />}
