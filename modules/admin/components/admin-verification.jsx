@@ -939,14 +939,14 @@ function AdminVerification() {
 
       {/* 1. Secure Document Inspector Modal */}
       <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
-        <DialogContent className="max-w-4xl h-[88vh] flex flex-col p-0 overflow-hidden">
-          <DialogHeader className="p-4 border-b bg-muted/20 flex flex-row items-center justify-between">
-            <DialogTitle className="truncate text-base font-bold">
+        <DialogContent className="w-[96vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl h-[88vh] flex flex-col p-0 overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl">
+          <DialogHeader className="p-3.5 sm:p-4 border-b bg-muted/20 flex flex-row items-center justify-between pr-10">
+            <DialogTitle className="truncate text-sm sm:text-base font-bold">
               {selectedDoc?.name || selectedDoc?.type || "Verification Document"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-hidden p-3 flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-900">
+          <div className="flex-1 overflow-hidden p-2 sm:p-4 flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-900">
             {secureDocUrl ? (
               (selectedDoc?.fileUrl?.toLowerCase().endsWith(".pdf") ||
               selectedDoc?.name?.toLowerCase().endsWith(".pdf") ||
@@ -983,30 +983,38 @@ function AdminVerification() {
             ) : null}
           </div>
 
-          <div className="p-4 border-t bg-background flex items-center justify-between">
+          <div className="p-3 sm:p-4 border-t bg-background/95 backdrop-blur-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {secureDocUrl ? (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs shrink-0">
                 <a
                   href={secureDocUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                  className="font-semibold text-primary hover:underline inline-flex items-center gap-1.5 whitespace-nowrap px-2 py-1 rounded-md hover:bg-primary/5 transition-colors"
                 >
-                  <ExternalLink className="h-3.5 w-3.5" /> Open in new tab ↗
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                  <span>Open in new tab ↗</span>
                 </a>
-                <span className="text-muted-foreground text-xs">•</span>
+                <span className="text-muted-foreground/60 hidden sm:inline">•</span>
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="text-xs font-semibold text-muted-foreground hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  className="font-semibold text-muted-foreground hover:text-foreground hover:underline inline-flex items-center gap-1.5 whitespace-nowrap px-2 py-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
                 >
-                  <Download className="h-3.5 w-3.5" /> Download PDF
+                  <Download className="h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    {selectedDoc?.name?.toLowerCase().endsWith(".pdf") ||
+                    selectedDoc?.fileUrl?.toLowerCase().endsWith(".pdf") ||
+                    secureDocUrl?.toLowerCase().includes(".pdf")
+                      ? "Download PDF"
+                      : "Download Document"}
+                  </span>
                 </button>
               </div>
             ) : (
-              <span />
+              <div />
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 justify-end shrink-0">
               {inspectingItem && (
                 <Button
                   variant="outline"
@@ -1015,16 +1023,23 @@ function AdminVerification() {
                     setSelectedDoc(null);
                     openRemarkModal(it);
                   }}
-                  className="gap-1.5 text-xs font-semibold border-amber-300 text-amber-800 dark:border-amber-800 dark:text-amber-300 hover:bg-amber-50"
+                  className="gap-1.5 text-xs font-semibold border-amber-300 text-amber-800 dark:border-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 whitespace-nowrap h-9 px-3"
                 >
-                  <MessageSquare className="h-3.5 w-3.5" />
+                  <MessageSquare className="h-3.5 w-3.5 shrink-0" />
                   <span>Make Remark</span>
                 </Button>
               )}
-              <Button variant="outline" onClick={() => setSelectedDoc(null)}>
+              <Button
+                variant="outline"
+                onClick={() => setSelectedDoc(null)}
+                className="text-xs font-semibold whitespace-nowrap h-9 px-4"
+              >
                 Close
               </Button>
-              <Button onClick={handleVerifySingleDoc} className="bg-primary text-primary-foreground">
+              <Button
+                onClick={handleVerifySingleDoc}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold whitespace-nowrap h-9 px-4 shadow-sm"
+              >
                 Mark as Checked
               </Button>
             </div>

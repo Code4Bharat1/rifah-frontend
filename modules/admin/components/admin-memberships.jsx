@@ -2,7 +2,7 @@
 import {
   Star, MoreHorizontal, Plus, Edit3, Trash2, CheckCircle2, ShieldCheck, Sparkles, Layers,
   Phone, Mail, MessageSquare, Download, FileText, Share2, Award, Copy, Check, ExternalLink,
-  Calendar, Users, Crown
+  Calendar, Users, Crown, Search, X
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@shared/components/ui/dropdown-menu";
 import { useMembershipPlans, useBusinesses } from "@shared/hooks/use-rifah-api";
 import { businessApi, membershipApi, paymentApi } from "@shared/lib/api-services";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@shared/providers/auth-provider";
 import { formatMembershipId } from "@shared/lib/indian-states-cities";
@@ -52,8 +52,10 @@ function AdminMemberships() {
   );
   const activePlans = Object.entries(plans).filter(([, plan]) => plan.isActive !== false);
   const rawBusinesses = Array.isArray(businessesData) ? businessesData : [];
-  // Per business rule: Only verified businesses are officially RIFAH members
-  const businesses = rawBusinesses.filter(b => b.verification === "verified" || b.isVerified === true);
+  // Per business rule: Only verified businesses are officially RIFAH members (memoized to prevent infinite re-render loops)
+  const businesses = useMemo(() => {
+    return rawBusinesses.filter(b => b.verification === "verified" || b.isVerified === true);
+  }, [businessesData]);
 
   // Separation logic: Free vs Rifah (Paid/Tier) members
   const isFreeMember = (b) => {
@@ -235,19 +237,58 @@ function AdminMemberships() {
 
   const [filter, setFilter] = useState("all");
   const [viewMode, setViewMode] = useState("list"); // "list" or "directory"
+  const [searchQuery, setSearchQuery] = useState("");
 
   const totalMembersCount = businesses.length;
   const rifahMembersCount = businesses.filter(isRifahMember).length;
   const freeMembersCount = businesses.filter(isFreeMember).length;
   const verifiedMembersCount = businesses.filter((b) => b.verification === "verified" || b.isVerified === true).length;
 
-  const filteredBusinesses = businesses.filter((b) => {
-    if (filter === "rifah") return isRifahMember(b);
-    if (filter === "free") return isFreeMember(b);
-    if (filter === "has_plan") return isRifahMember(b);
-    if (filter === "verified") return b.verification === "verified" || b.isVerified === true;
-    return true; // "all"
-  });
+  // Real-time instant search & filter with useMemo (0ms lag, zero infinite loop)
+  const filteredBusinesses = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+
+    return businesses.filter((b) => {
+      // 1. Tab category filter
+      if (filter === "rifah" && !isRifahMember(b)) return false;
+      if (filter === "free" && !isFreeMember(b)) return false;
+      if (filter === "has_plan" && !isRifahMember(b)) return false;
+      if (filter === "verified" && !(b.verification === "verified" || b.isVerified === true)) return false;
+
+      // 2. Real-time search query matching
+      if (q) {
+        const owner = b?.owner || {};
+        const bizName = String(b?.name || "").toLowerCase();
+        const bizEmail = String(b?.email || "").toLowerCase();
+        const ownerEmail = String(owner.email || "").toLowerCase();
+        const ownerName = String(owner.name || "").toLowerCase();
+        const contactPerson = String(b?.contactPerson || "").toLowerCase();
+        const phone = String(b?.phone || owner.phone || "").toLowerCase();
+        const rifahId = String(getRifahId(b) || "").toLowerCase();
+        const city = String(b?.city || "").toLowerCase();
+        const state = String(b?.state || "").toLowerCase();
+        const chapter = String(b?.chapter || "").toLowerCase();
+        const membership = String(b?.membership || "").toLowerCase();
+
+        const matches =
+          bizName.includes(q) ||
+          bizEmail.includes(q) ||
+          ownerEmail.includes(q) ||
+          ownerName.includes(q) ||
+          contactPerson.includes(q) ||
+          phone.includes(q) ||
+          rifahId.includes(q) ||
+          city.includes(q) ||
+          state.includes(q) ||
+          chapter.includes(q) ||
+          membership.includes(q);
+
+        if (!matches) return false;
+      }
+
+      return true;
+    });
+  }, [searchQuery, filter, businesses]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlanId, setEditingPlanId] = useState(null);
@@ -476,22 +517,51 @@ function AdminMemberships() {
 
         <Panel>
           <div className="flex flex-col gap-3.5 mb-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <h2 className="text-lg font-bold text-foreground">
                   {filter === "all" ? "All Chapter Members" 
                   : filter === "rifah" ? "Rifah Members (Paid Tiers)" 
                   : filter === "free" ? "Free Members" 
                   : "Verified Members"}
                 </h2>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                   {filteredBusinesses.length}
                 </span>
+                {searchQuery && (
+                  <span className="text-xs text-muted-foreground font-medium">
+                    (Filtered from {businesses.length})
+                  </span>
+                )}
               </div>
               
-              <div className="flex bg-muted p-1 rounded-lg self-start sm:self-auto border border-border">
-                <Button size="sm" variant={viewMode === "list" ? "default" : "ghost"} onClick={() => setViewMode("list")} className="h-8 text-xs font-semibold">List View</Button>
-                <Button size="sm" variant={viewMode === "directory" ? "default" : "ghost"} onClick={() => setViewMode("directory")} className="h-8 text-xs font-semibold">Directory View</Button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                {/* Real-time search bar (business name, email, owner, Rifah ID) */}
+                <div className="relative w-full sm:w-72 md:w-80">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by business name, email, ID..."
+                    className="pl-9 pr-8 h-9 text-xs rounded-lg bg-background border-border shadow-2xs focus-visible:ring-1"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-muted transition-colors cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex bg-muted p-0.5 rounded-lg border border-border shrink-0 self-start sm:self-auto">
+                  <Button size="sm" variant={viewMode === "list" ? "default" : "ghost"} onClick={() => setViewMode("list")} className="h-8 text-xs font-semibold px-3">List View</Button>
+                  <Button size="sm" variant={viewMode === "directory" ? "default" : "ghost"} onClick={() => setViewMode("directory")} className="h-8 text-xs font-semibold px-3">Directory View</Button>
+                </div>
               </div>
             </div>
 
@@ -537,6 +607,29 @@ function AdminMemberships() {
           </div>
           
           {viewMode === "directory" ? (
+            filteredBusinesses.length === 0 ? (
+              <div className="py-12 px-4 text-center border border-dashed border-border rounded-xl bg-card/40 my-2">
+                <div className="h-11 w-11 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 text-muted-foreground">
+                  <Search className="h-5 w-5" />
+                </div>
+                <h3 className="font-bold text-foreground text-sm">No members found</h3>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                  {searchQuery
+                    ? `No member or business found matching "${searchQuery}". Try a different name, email, or Rifah ID.`
+                    : "No members available in this category."}
+                </p>
+                {searchQuery && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSearchQuery("")}
+                    className="mt-3.5 text-xs h-8"
+                  >
+                    Clear Search
+                  </Button>
+                )}
+              </div>
+            ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {filteredBusinesses.map((b, idx) => {
                 const owner = b.owner || {};
@@ -728,9 +821,33 @@ function AdminMemberships() {
                 );
               })}
             </div>
+            )
           ) : (
           <ResponsiveTable
             rows={filteredBusinesses}
+            empty={
+              <div className="py-12 px-4 text-center border border-dashed border-border rounded-xl bg-card/40 my-2">
+                <div className="h-11 w-11 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 text-muted-foreground">
+                  <Search className="h-5 w-5" />
+                </div>
+                <h3 className="font-bold text-foreground text-sm">No members found</h3>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                  {searchQuery
+                    ? `No member or business found matching "${searchQuery}". Try a different name, email, or Rifah ID.`
+                    : "No members available in this category."}
+                </p>
+                {searchQuery && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSearchQuery("")}
+                    className="mt-3.5 text-xs h-8"
+                  >
+                    Clear Search
+                  </Button>
+                )}
+              </div>
+            }
             columns={[
               {
                 key: "name",
