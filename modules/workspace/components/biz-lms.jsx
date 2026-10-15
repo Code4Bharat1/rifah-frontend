@@ -299,7 +299,12 @@ function CourseCard({ course, isSaved, onToggleSave }) {
                 </span>
                 <span className="font-bold text-foreground">{percent}%</span>
               </div>
-              <Progress value={percent} className="h-1.5" />
+              <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
+                <div
+                  className="h-full bg-primary transition-all duration-300 rounded-full"
+                  style={{ width: `${Math.min(Math.max(percent || 0, 0), 100)}%` }}
+                />
+              </div>
             </div>
           )}
 
