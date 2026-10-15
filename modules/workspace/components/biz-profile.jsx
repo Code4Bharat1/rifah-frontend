@@ -1215,7 +1215,7 @@ function BizProfile() {
                   className="h-11"
                 />
               </div>
-              <div className="grid gap-1.5">
+              <div className="grid gap-1.5 min-w-0">
                 <Label htmlFor="biz-industry">Industry Category *</Label>
                 <CreatableCombobox
                   id="biz-industry"
@@ -1226,7 +1226,7 @@ function BizProfile() {
                   emptyText="No category found. Type to add a new one."
                 />
               </div>
-              <div className="grid gap-1.5">
+              <div className="grid gap-1.5 min-w-0">
                 <Label htmlFor="biz-subcategory">Sub Category</Label>
                 <CreatableCombobox
                   id="biz-subcategory"

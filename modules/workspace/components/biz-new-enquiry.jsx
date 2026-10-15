@@ -544,7 +544,7 @@ export function BizNewEnquiry() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="category" className="text-sm font-semibold">
                   Business Category *
                 </Label>
@@ -559,7 +559,7 @@ export function BizNewEnquiry() {
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="quantity" className="text-sm font-semibold">
                   Required Quantity *
                 </Label>

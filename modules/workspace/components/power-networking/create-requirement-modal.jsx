@@ -163,7 +163,7 @@ export function CreateRequirementModal({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label htmlFor="req-category" className="text-xs font-medium">
                   Industry Category <span className="text-destructive">*</span>
                 </Label>
@@ -181,7 +181,7 @@ export function CreateRequirementModal({
                 )}
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label htmlFor="req-productService" className="text-xs font-medium">
                   Product / Service Name <span className="text-destructive">*</span>
                 </Label>

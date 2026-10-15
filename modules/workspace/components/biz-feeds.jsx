@@ -257,7 +257,7 @@ function RifahFeedCard({
         {canDelete && (
           <button
             type="button"
-            onClick={() => onDeletePost(post.id || post._id)}
+            onClick={() => onDeletePost(post)}
             className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors cursor-pointer shrink-0"
             title="Delete post"
             aria-label="Delete post"
@@ -1028,17 +1028,37 @@ export function BizFeeds() {
     }
   };
 
-  // Live: Delete post with backend sync
-  const handleDeletePost = async (postId) => {
-    const targetId = String(postId);
+  // State for delete confirmation modal
+  const [postToDelete, setPostToDelete] = useState(null);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
+
+  const promptDeletePost = (postOrId) => {
+    if (!postOrId) return;
+    if (typeof postOrId === "object") {
+      setPostToDelete(postOrId);
+    } else {
+      const match = posts.find((p) => String(p.id || p._id) === String(postOrId));
+      setPostToDelete(match || { _id: postOrId, id: postOrId });
+    }
+  };
+
+  // Live: Delete post with backend sync after user confirmation
+  const handleConfirmDeletePost = async () => {
+    if (!postToDelete) return;
+    const targetId = String(postToDelete.id || postToDelete._id);
+    setIsDeletingPost(true);
+
     setPosts((prevPosts) => prevPosts.filter((p) => String(p.id || p._id) !== targetId));
 
     try {
       await deletePostMutation.mutateAsync(targetId);
-      toast.success("Post deleted");
+      toast.success("Post deleted successfully");
+      setPostToDelete(null);
     } catch (err) {
-      toast.error("Could not delete post");
+      toast.error(err?.message || "Could not delete post");
       refetchPosts();
+    } finally {
+      setIsDeletingPost(false);
     }
   };
 
@@ -1315,8 +1335,8 @@ export function BizFeeds() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => handleDeletePost(userExistingPost.id || userExistingPost._id)}
-                className="shrink-0 gap-1.5 text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-300"
+                onClick={() => promptDeletePost(userExistingPost)}
+                className="shrink-0 gap-1.5 text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-300 cursor-pointer"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Delete My Post
               </Button>
@@ -1371,7 +1391,7 @@ export function BizFeeds() {
                     canDelete={hasDeletePermission(post)}
                     onLikeToggle={handleLikeToggle}
                     onAddComment={handleAddComment}
-                    onDeletePost={handleDeletePost}
+                    onDeletePost={promptDeletePost}
                     onSelectChapter={handleSelectChapter}
                     onSelectState={handleSelectState}
                   />
@@ -1440,11 +1460,11 @@ export function BizFeeds() {
                   type="button"
                   variant="destructive"
                   size="sm"
-                  onClick={async () => {
-                    await handleDeletePost(userExistingPost.id || userExistingPost._id);
+                  onClick={() => {
                     setIsNewPostOpen(false);
+                    promptDeletePost(userExistingPost);
                   }}
-                  className="gap-1.5 font-semibold text-xs"
+                  className="gap-1.5 font-semibold text-xs cursor-pointer"
                 >
                   <Trash2 className="h-3.5 w-3.5" /> Delete Post to Upload New
                 </Button>
@@ -1700,7 +1720,77 @@ export function BizFeeds() {
             </DialogFooter>
           </form>
         )}
-      </DialogContent>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Post Confirmation Modal */}
+      <Dialog
+        open={!!postToDelete}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingPost) setPostToDelete(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-[420px] rounded-2xl p-6">
+          <DialogHeader className="space-y-2 text-left">
+            <div className="h-10 w-10 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-600 flex items-center justify-center">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
+              Delete Post?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 leading-relaxed">
+              Are you sure you want to delete this post? This action cannot be undone and will permanently remove the post from the feed.
+            </DialogDescription>
+          </DialogHeader>
+
+          {postToDelete && (
+            <div className="my-2 p-3 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-900 text-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  {postToDelete.author?.username || postToDelete.authorName || "Feed Post"}
+                </span>
+                {postToDelete.createdAt && (
+                  <span className="text-[10px] text-slate-400">
+                    {formatRelativeTime(postToDelete.createdAt)}
+                  </span>
+                )}
+              </div>
+              {postToDelete.caption && (
+                <p className="text-slate-600 dark:text-slate-400 line-clamp-2 italic">
+                  "{postToDelete.caption}"
+                </p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isDeletingPost}
+              onClick={() => setPostToDelete(null)}
+              className="rounded-xl text-xs font-semibold cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={isDeletingPost}
+              onClick={handleConfirmDeletePost}
+              className="rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white cursor-pointer"
+            >
+              {isDeletingPost ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> Deleting...
+                </>
+              ) : (
+                "Yes, Delete Post"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </AppShell>
   );

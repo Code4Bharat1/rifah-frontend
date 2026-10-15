@@ -63,12 +63,14 @@ export function CreatableCombobox({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "h-11 w-full justify-between font-normal",
+            "h-11 w-full justify-between font-normal min-w-0 max-w-full overflow-hidden",
             !value && "text-muted-foreground",
             className
           )}
         >
-          <span className="truncate">{value || placeholder}</span>
+          <span className="truncate flex-1 text-left min-w-0" title={value || placeholder}>
+            {value || placeholder}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

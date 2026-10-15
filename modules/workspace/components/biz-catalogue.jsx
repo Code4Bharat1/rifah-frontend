@@ -496,7 +496,7 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="grid gap-1.5">
+                  <div className="grid gap-1.5 min-w-0">
                     <Label htmlFor="item-type" className="text-xs font-bold text-slate-700">Type</Label>
                     <Select
                       value={newItem.type}
@@ -511,7 +511,7 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-1.5">
+                  <div className="grid gap-1.5 min-w-0">
                     <Label htmlFor="item-cat" className="text-xs font-bold text-slate-700">Category</Label>
                     <CreatableCombobox
                       id="item-cat"
@@ -820,7 +820,7 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
+              <div className="grid gap-1.5 min-w-0">
                 <Label htmlFor="edit-type" className="text-xs font-bold text-slate-700">Type</Label>
                 <Select
                   value={editFormData.type}
@@ -835,7 +835,7 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5">
+              <div className="grid gap-1.5 min-w-0">
                 <Label htmlFor="edit-cat" className="text-xs font-bold text-slate-700">Category</Label>
                 <CreatableCombobox
                   id="edit-cat"

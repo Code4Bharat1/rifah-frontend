@@ -192,7 +192,7 @@ function NewEnquiry() {
                       placeholder="e.g. Machined brackets for assembly line"
                     />
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 min-w-0">
                     <Label htmlFor="category">Category</Label>
                     <CreatableCombobox
                       id="category"
