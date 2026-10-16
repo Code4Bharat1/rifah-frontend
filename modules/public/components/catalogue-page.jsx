@@ -165,7 +165,7 @@ function CataloguePage() {
                   className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-4 transition-all hover:border-primary/40 hover:shadow-card overflow-hidden"
                 >
                   <div>
-                    {hasImage && (
+                    {hasImage ? (
                       <div className="relative mb-3 h-36 w-full overflow-hidden rounded-xl bg-muted border border-border">
                         <img
                           src={resolveMediaUrl(item.images[0])}
@@ -177,6 +177,10 @@ function CataloguePage() {
                           className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
                         />
                       </div>
+                    ) : (
+                      <div className="relative mb-3 h-36 w-full overflow-hidden rounded-xl bg-muted/40 border border-border flex items-center justify-center text-muted-foreground">
+                        {item.type === "Product" ? <Package className="h-7 w-7 text-muted-foreground/40" /> : <Wrench className="h-7 w-7 text-muted-foreground/40" />}
+                      </div>
                     )}
                     <div className="flex items-start justify-between gap-2">
                       <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-primary">
@@ -184,9 +188,9 @@ function CataloguePage() {
                       </span>
                       <Pill tone={item.type === "Product" ? "primary" : "neutral"}>{item.type}</Pill>
                     </div>
-                    <h2 className="mt-3 text-base font-semibold leading-snug">{item.name}</h2>
-                    <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
-                      {item.description}
+                    <h2 className="mt-3 text-base font-semibold leading-snug line-clamp-2 min-h-[2.5rem]">{item.name}</h2>
+                    <p className="mt-1 line-clamp-2 min-h-[2rem] text-xs leading-relaxed text-muted-foreground">
+                      {item.description || <span className="opacity-60 italic">No description provided</span>}
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                       <span className="font-semibold text-foreground">{item.price || "On Request"}</span>
