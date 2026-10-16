@@ -148,7 +148,7 @@ function BizNotifications({ role = "business" } = {}) {
                       </div>
                     </div>
                     {Boolean(bodyText) && (
-                      <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-2">{bodyText}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed break-words">{bodyText}</p>
                     )}
 
                     {/* Event Date and City badges */}
@@ -225,52 +225,54 @@ function BizNotifications({ role = "business" } = {}) {
       
       {/* View Details Modal */}
       <Dialog open={!!viewNotif} onOpenChange={(o) => !o && setViewNotif(null)}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
-            <DialogTitle>{viewNotif?.title}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg font-bold text-foreground break-words">{viewNotif?.title}</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
               {viewNotif ? formatRelativeTime(viewNotif.createdAt) : ""} · {viewNotif?.type || "Broadcast"}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-4">
+          <div className="py-3 space-y-3.5">
              {/* Event Information Block */}
              {(viewNotif?.eventDate || viewNotif?.eventCity || viewNotif?.metadata?.eventDate || viewNotif?.metadata?.eventCity || viewNotif?.type?.toLowerCase() === "event") && (
-               <div className="rounded-lg border bg-blue-50/40 dark:bg-blue-950/20 p-3.5 space-y-2.5 border-blue-200/60 dark:border-blue-900/40">
-                 <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 uppercase tracking-wider">Event Details</p>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+               <div className="rounded-xl border bg-blue-50/50 dark:bg-blue-950/20 p-3.5 space-y-2.5 border-blue-200/60 dark:border-blue-900/40 max-h-56 overflow-y-auto">
+                 <p className="text-xs font-bold text-blue-900 dark:text-blue-200 uppercase tracking-wider">Event Details</p>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                    {(viewNotif?.eventDate || viewNotif?.metadata?.eventDate) && (
-                     <div className="flex items-center gap-2 text-foreground">
-                       <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                       <span className="font-medium text-muted-foreground">Date:</span>
-                       <span className="font-semibold">{formatEventDate(viewNotif.eventDate || viewNotif.metadata?.eventDate)}</span>
+                     <div className="flex items-start gap-2 text-foreground min-w-0">
+                       <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                       <span className="font-medium text-muted-foreground shrink-0">Date:</span>
+                       <span className="font-semibold break-words whitespace-normal">{formatEventDate(viewNotif.eventDate || viewNotif.metadata?.eventDate)}</span>
                      </div>
                    )}
                    {(viewNotif?.eventCity || viewNotif?.metadata?.eventCity) && (
-                     <div className="flex items-center gap-2 text-foreground">
-                       <MapPin className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                       <span className="font-medium text-muted-foreground">City:</span>
-                       <span className="font-semibold">{viewNotif.eventCity || viewNotif.metadata?.eventCity}</span>
+                     <div className="flex items-start gap-2 text-foreground min-w-0">
+                       <MapPin className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                       <span className="font-medium text-muted-foreground shrink-0">City:</span>
+                       <span className="font-semibold break-words whitespace-normal">{viewNotif.eventCity || viewNotif.metadata?.eventCity}</span>
                      </div>
                    )}
                    {(viewNotif?.eventTime || viewNotif?.metadata?.eventTime) && (
-                     <div className="flex items-center gap-2 text-foreground">
-                       <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                       <span className="font-medium text-muted-foreground">Time:</span>
-                       <span className="font-semibold">{viewNotif.eventTime || viewNotif.metadata?.eventTime}</span>
+                     <div className="flex items-start gap-2 text-foreground min-w-0">
+                       <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                       <span className="font-medium text-muted-foreground shrink-0">Time:</span>
+                       <span className="font-semibold break-words whitespace-normal">{viewNotif.eventTime || viewNotif.metadata?.eventTime}</span>
                      </div>
                    )}
                    {(viewNotif?.eventVenue || viewNotif?.metadata?.eventVenue) && (
-                     <div className="flex items-center gap-2 text-foreground sm:col-span-2">
-                       <Building2 className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
-                       <span className="font-medium text-muted-foreground">Venue:</span>
-                       <span className="font-semibold truncate">{viewNotif.eventVenue || viewNotif.metadata?.eventVenue}</span>
+                     <div className="flex items-start gap-2 text-foreground sm:col-span-2 min-w-0">
+                       <Building2 className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                       <span className="font-medium text-muted-foreground shrink-0">Venue:</span>
+                       <span className="font-semibold break-words whitespace-normal leading-relaxed flex-1 min-w-0">
+                         {viewNotif.eventVenue || viewNotif.metadata?.eventVenue}
+                       </span>
                      </div>
                    )}
                  </div>
                </div>
              )}
 
-             <div className="bg-muted/50 p-4 rounded-lg text-sm text-foreground whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
+             <div className="bg-muted/50 p-4 rounded-xl text-sm text-foreground whitespace-pre-wrap break-words max-h-[50vh] overflow-y-auto border border-border/50 leading-relaxed">
                {viewNotif?.body || viewNotif?.message}
              </div>
              {viewNotif?.broadcastId && (
