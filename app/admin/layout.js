@@ -35,6 +35,10 @@ export default function AdminLayout({ children }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!loading && !user) {
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
     if (loading || !user) return;
 
     if (user.activeWorkspace?.type === "org_role") {
@@ -66,8 +70,12 @@ export default function AdminLayout({ children }) {
       router.replace("/state-admin");
     } else if (user.role === "chapter_admin") {
       router.replace("/chapter-admin");
+    } else if (user.role === "business_owner" || user.role === "business") {
+      router.replace("/biz");
+    } else if (user.role === "customer" || user.role === "buyer" || user.role === "user") {
+      router.replace("/user");
     } else if (!ALLOWED_ROLES.includes(user.role)) {
-      router.replace("/");
+      router.replace("/login");
     }
   }, [user, loading, router, pathname]);
 

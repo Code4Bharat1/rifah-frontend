@@ -29,6 +29,10 @@ export default function ChapterAdminLayout({ children }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!loading && !user) {
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
     if (loading || !user) return;
 
     if (user.activeWorkspace?.type === "org_role") {
@@ -60,9 +64,16 @@ export default function ChapterAdminLayout({ children }) {
       user.activeWorkspace?.panelType !== "chapter-admin" &&
       user.role !== "chapter_admin" &&
       user.role !== "central_admin" &&
-      user.role !== "secretariat"
+      user.role !== "secretariat" &&
+      user.role !== "super_admin"
     ) {
-      router.replace("/");
+      if (user.role === "business_owner" || user.role === "business") {
+        router.replace("/biz");
+      } else if (user.role === "customer" || user.role === "buyer" || user.role === "user") {
+        router.replace("/user");
+      } else {
+        router.replace("/login");
+      }
     }
   }, [user, loading, router, pathname]);
 
@@ -73,7 +84,7 @@ export default function ChapterAdminLayout({ children }) {
       if (!isRoutePermitted(pathname, allowed)) return null;
     } else if (
       user.activeWorkspace?.panelType !== "chapter-admin" &&
-      !["chapter_admin", "central_admin", "secretariat", "state_admin"].includes(user.role)
+      !["chapter_admin", "central_admin", "secretariat", "super_admin", "state_admin"].includes(user.role)
     ) {
       return null;
     }

@@ -9,6 +9,22 @@ import React, {
 import { useQueryClient } from "@tanstack/react-query";
 import { authApi, userApi } from "../lib/api-services";
 
+export function syncAuthCookies(token, user) {
+  if (typeof document === "undefined") return;
+  if (token) {
+    document.cookie = `rifah_access_token=${token}; path=/; max-age=604800; SameSite=Lax`;
+  }
+  if (user?.role) {
+    document.cookie = `rifah_user_role=${user.role}; path=/; max-age=604800; SameSite=Lax`;
+  }
+}
+
+export function clearAuthCookies() {
+  if (typeof document === "undefined") return;
+  document.cookie = "rifah_access_token=; path=/; max-age=0; SameSite=Lax";
+  document.cookie = "rifah_user_role=; path=/; max-age=0; SameSite=Lax";
+}
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -18,16 +34,22 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      let cachedUser = null;
       try {
         const cached = localStorage.getItem("rifah_user");
         if (cached) {
-          setUser(JSON.parse(cached));
+          cachedUser = JSON.parse(cached);
+          setUser(cachedUser);
         }
       } catch (_) {}
 
-      const hasToken = Boolean(localStorage.getItem("rifah_access_token"));
-      const hasCachedUser = Boolean(localStorage.getItem("rifah_user"));
+      const token = localStorage.getItem("rifah_access_token");
+      const hasToken = Boolean(token);
+      const hasCachedUser = Boolean(cachedUser);
       setLoading(!(hasToken && hasCachedUser));
+      if (hasToken) {
+        syncAuthCookies(token, cachedUser);
+      }
     }
   }, []);
 
@@ -62,6 +84,7 @@ export function AuthProvider({ children }) {
       if (requestId !== requestIdRef.current) return;
       setUser(userData);
       localStorage.setItem("rifah_user", JSON.stringify(userData));
+      syncAuthCookies(token, userData);
     } catch (err) {
       console.warn("User session check:", err.message);
       if (requestId === requestIdRef.current) {
@@ -81,6 +104,7 @@ export function AuthProvider({ children }) {
 
         if (isAuthError) {
           setUser(null);
+          clearAuthCookies();
           localStorage.removeItem("rifah_access_token");
           localStorage.removeItem("rifah_refresh_token");
           localStorage.removeItem("rifah_user");
@@ -158,6 +182,7 @@ export function AuthProvider({ children }) {
       requestIdRef.current++; // Invalidate any concurrent requests
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
+      syncAuthCookies(accessToken, loggedInUser);
     }
     try {
       queryClient.clear();
@@ -185,6 +210,7 @@ export function AuthProvider({ children }) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(registeredUser));
       setUser(registeredUser);
+      syncAuthCookies(accessToken, registeredUser);
     }
     return registeredUser;
   };
@@ -201,6 +227,7 @@ export function AuthProvider({ children }) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(registeredUser));
       setUser(registeredUser);
+      syncAuthCookies(accessToken, registeredUser);
     }
     return registeredUser;
   };
@@ -217,6 +244,7 @@ export function AuthProvider({ children }) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
+      syncAuthCookies(accessToken, loggedInUser);
     }
     return loggedInUser;
   };
@@ -233,6 +261,7 @@ export function AuthProvider({ children }) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
+      syncAuthCookies(accessToken, loggedInUser);
     }
     try {
       queryClient.clear();
@@ -257,6 +286,7 @@ export function AuthProvider({ children }) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
       setUser(loggedInUser);
+      syncAuthCookies(accessToken, loggedInUser);
     }
     return loggedInUser;
   };
@@ -273,6 +303,7 @@ export function AuthProvider({ children }) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(updatedUser));
       setUser(updatedUser);
+      syncAuthCookies(accessToken, updatedUser);
     }
     return updatedUser;
   };
@@ -284,6 +315,7 @@ export function AuthProvider({ children }) {
     if (localStorage.getItem("rifah_access_token")) {
       authApi.logout().catch(() => {});
     }
+    clearAuthCookies();
     localStorage.removeItem("rifah_access_token");
     localStorage.removeItem("rifah_refresh_token");
     localStorage.removeItem("rifah_user");
@@ -343,6 +375,7 @@ export function AuthProvider({ children }) {
             requestIdRef.current++;
             localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
             setUser(loggedInUser);
+            syncAuthCookies(accessToken, loggedInUser);
           }
           try {
             queryClient.clear();

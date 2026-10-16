@@ -29,6 +29,10 @@ export default function StateAdminLayout({ children }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!loading && !user) {
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
     if (loading || !user) return;
 
     if (user.activeWorkspace?.type === "org_role") {
@@ -46,7 +50,7 @@ export default function StateAdminLayout({ children }) {
       return;
     }
 
-    if (user.role === "central_admin" || user.role === "secretariat") {
+    if (user.role === "central_admin" || user.role === "secretariat" || user.role === "super_admin") {
       return;
     }
     if (user.activeWorkspace?.panelType === "state-admin") {
@@ -54,10 +58,12 @@ export default function StateAdminLayout({ children }) {
     }
     if (user.role === "chapter_admin") {
       router.replace("/chapter-admin");
-    } else if (user.role === "business_owner") {
+    } else if (user.role === "business_owner" || user.role === "business") {
       router.replace("/biz");
+    } else if (user.role === "customer" || user.role === "buyer" || user.role === "user") {
+      router.replace("/user");
     } else if (user.role !== "state_admin") {
-      router.replace("/biz");
+      router.replace("/login");
     }
   }, [user, loading, router, pathname]);
 
@@ -68,7 +74,7 @@ export default function StateAdminLayout({ children }) {
       if (!isRoutePermitted(pathname, allowed)) return null;
     } else if (
       user.activeWorkspace?.panelType !== "state-admin" &&
-      !(["central_admin", "secretariat", "state_admin"]).includes(user.role)
+      !(["central_admin", "secretariat", "super_admin", "state_admin"]).includes(user.role)
     ) {
       return null;
     }

@@ -791,13 +791,10 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push(`/login?redirect=${encodeURIComponent(path)}`);
+      router.replace(`/login?redirect=${encodeURIComponent(path)}`);
       return;
     }
     if (!loading && user) {
-      // Members (customers / subscriber "user" accounts) never belong in the business panel: any
-      // /biz/* link rendered by a shared component is bounced to its /user/* twin, query intact.
-      // Admin accounts must never be treated as member users.
       const isAdminRole = [
         "central_admin",
         "super_admin",
@@ -811,11 +808,49 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
         (user.role === "customer" ||
           user.role === "buyer" ||
           (user.accountType === "user" && !isBusinessAccount(user)));
+
+      // If a member tries to access /biz, redirect to /user
       if (isMemberUser && (path === "/biz" || path?.startsWith("/biz/"))) {
         const target =
           path.replace(/^\/biz/, "/user") +
           (typeof window !== "undefined" ? window.location.search : "");
         router.replace(target || "/user");
+        return;
+      }
+
+      // If a member tries to access admin panels, redirect to /user
+      if (
+        isMemberUser &&
+        (path === "/admin" ||
+          path?.startsWith("/admin/") ||
+          path === "/state-admin" ||
+          path?.startsWith("/state-admin/") ||
+          path === "/chapter-admin" ||
+          path?.startsWith("/chapter-admin/"))
+      ) {
+        router.replace("/user");
+        return;
+      }
+
+      // If an admin navigates to /user, redirect them back to their appropriate dashboard
+      if (isAdminRole && (path === "/user" || path?.startsWith("/user/"))) {
+        if (user.role === "state_admin") {
+          router.replace("/state-admin");
+        } else if (user.role === "chapter_admin") {
+          router.replace("/chapter-admin");
+        } else {
+          router.replace("/admin");
+        }
+        return;
+      }
+
+      // If a business owner navigates to /user, redirect them to /biz
+      if (
+        (user.role === "business_owner" || user.role === "business") &&
+        (path === "/user" || path?.startsWith("/user/"))
+      ) {
+        router.replace("/biz");
+        return;
       }
     }
   }, [user, loading, path, router]);
