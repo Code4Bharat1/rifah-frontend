@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { getSocket } from "@shared/lib/socket";
 import { Radio, Users, Sparkles, Award, Clock } from "lucide-react";
 
-export default function PresentationPage() {
+function PresentationContent() {
   const searchParams = useSearchParams();
   const rawChapter = searchParams.get("c") || "central-mumbai";
   const chapterSlug = rawChapter.toLowerCase().replace(/[^a-z0-9_-]/g, "_");
@@ -156,5 +156,13 @@ export default function PresentationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PresentationPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-mono text-sm">Loading Projector...</div>}>
+      <PresentationContent />
+    </React.Suspense>
   );
 }

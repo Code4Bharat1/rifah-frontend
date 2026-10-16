@@ -22,7 +22,7 @@ import {
   Quote,
   Pencil,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@shared/components/rifah/app-shell";
@@ -87,7 +87,7 @@ const B2B_INDUSTRIES = [
   "Import & Export Services",
 ];
 
-function BizProfile() {
+function BizProfileInner() {
   const queryClient = useQueryClient();
   const { data: business, refetch, isLoading: loadingBiz } = useMyBusiness();
   const { user, logout } = useAuth();
@@ -1784,5 +1784,19 @@ function BizProfile() {
   );
 }
 
-export { BizProfile };
+export function BizProfile(props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 flex flex-col items-center justify-center min-h-[400px] gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground font-medium">Loading profile...</p>
+        </div>
+      }
+    >
+      <BizProfileInner {...props} />
+    </Suspense>
+  );
+}
+
 export default BizProfile;

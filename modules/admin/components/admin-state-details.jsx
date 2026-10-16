@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -45,7 +45,7 @@ import { resolveMediaUrl } from "@shared/lib/api-client";
 import { isValidName, isValidEmail, isValidPhone, isBusinessPendingVerification, isBusinessVerified } from "@shared/lib/validators";
 import { VerificationGuardAlert } from "@shared/components/rifah/verification-guard-alert";
 
-export default function AdminStateDetails({ stateName }) {
+function AdminStateDetailsInner({ stateName }) {
   const router = useRouter();
   const { user } = useAuth();
   const isCentralAdmin = user?.role === "central_admin";
@@ -726,3 +726,20 @@ export default function AdminStateDetails({ stateName }) {
     </AppShell>
   );
 }
+
+export function AdminStateDetails(props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 flex flex-col items-center justify-center min-h-[400px] gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground font-medium">Loading State details...</p>
+        </div>
+      }
+    >
+      <AdminStateDetailsInner {...props} />
+    </Suspense>
+  );
+}
+
+export default AdminStateDetails;

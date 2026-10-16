@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -49,7 +49,7 @@ import {
 import { VerificationGuardAlert } from "@shared/components/rifah/verification-guard-alert";
 import { useAuth } from "@shared/providers/auth-provider";
 
-export default function AdminChapterDetails({ chapterId }) {
+function AdminChapterDetailsInner({ chapterId }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -641,3 +641,20 @@ export default function AdminChapterDetails({ chapterId }) {
     </AppShell>
   );
 }
+
+export function AdminChapterDetails(props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 flex flex-col items-center justify-center min-h-[400px] gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground font-medium">Loading Chapter details...</p>
+        </div>
+      }
+    >
+      <AdminChapterDetailsInner {...props} />
+    </Suspense>
+  );
+}
+
+export default AdminChapterDetails;

@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import { BizProfile } from "@modules/workspace";
 
 export default function Page(props) {
-  return <BizProfile {...props} />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading profile...</div>}>
+      <BizProfile {...props} />
+    </Suspense>
+  );
 }

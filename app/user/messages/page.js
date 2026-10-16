@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { BizMessages } from "@modules/workspace";
 
 export const metadata = {
@@ -6,5 +7,9 @@ export const metadata = {
 };
 
 export default function Page(props) {
-  return <BizMessages role="user" {...props} />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading messages...</div>}>
+      <BizMessages role="user" {...props} />
+    </Suspense>
+  );
 }
