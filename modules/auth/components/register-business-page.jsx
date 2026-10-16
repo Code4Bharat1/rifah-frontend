@@ -40,6 +40,7 @@ const Linkedin = ({ className = "h-4 w-4", ...props }) => (
   </svg>
 );
 import { useRouter, useSearchParams } from "next/navigation";
+import { validateLegitimateEmail } from "@shared/lib/validators";
 
 import { PublicLayout } from "@shared/components/rifah/public-layout";
 import { Panel, SectionHeader, Steps } from "@shared/components/rifah/ui-bits";
@@ -118,6 +119,7 @@ const FastInput = ({ value, onValueChange, onChange, onBlur, ...props }) => {
       onChange={(e) => {
         setLocalValue(e.target.value);
         onChange?.(e);
+        onValueChange?.(e.target.value);
       }}
       onBlur={(e) => {
         if (localValue !== value) {
@@ -216,7 +218,13 @@ function RegisterBusiness({ isAdmin = false }) {
   const [tier, setTier] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [businessNameError, setBusinessNameError] = useState("");
+  const [businessTypeError, setBusinessTypeError] = useState("");
   const [categoryError, setCategoryError] = useState(false);
+  const [subCategoryError, setSubCategoryError] = useState("");
+  const [foundedError, setFoundedError] = useState("");
+  const [employeesError, setEmployeesError] = useState("");
+  const [contactPersonError, setContactPersonError] = useState("");
   const [pincodeError, setPincodeError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [paidSuccess, setPaidSuccess] = useState(false);
@@ -225,7 +233,7 @@ function RegisterBusiness({ isAdmin = false }) {
 
   const [formData, setFormData] = useState({
     businessName: "",
-    businessType: "Proprietorship",
+    businessType: "",
     industry: "",
     subCategory: "",
     founded: "",
@@ -719,19 +727,41 @@ function RegisterBusiness({ isAdmin = false }) {
     if (!msg) return false;
     const lower = String(msg).toLowerCase();
     return (
+      lower.includes("business name") ||
+      lower.includes("business type") ||
+      lower.includes("sub category") ||
+      lower.includes("sub-category") ||
+      lower.includes("category") ||
+      lower.includes("owner photo") ||
+      lower.includes("photo is mandatory") ||
+      lower.includes("year established") ||
+      lower.includes("team size") ||
+      lower.includes("contact person") ||
       lower.includes("email") ||
       lower.includes("duplicity") ||
       lower.includes("already registered") ||
-      lower.includes("account with this email")
+      lower.includes("account with this email") ||
+      lower.includes("pincode") ||
+      lower.includes("postal")
     );
   };
 
   const verifyEmailAvailability = async (emailToTest) => {
     const clean = (emailToTest || formData.email || "").trim().toLowerCase();
-    if (!clean || !clean.includes("@") || !clean.includes(".")) {
+    if (!clean) {
       setEmailChecking(false);
+      setEmailCheckResult(null);
       return { available: true };
     }
+
+    // Check legitimate non-dummy format
+    const legCheck = validateLegitimateEmail(clean);
+    if (!legCheck.valid) {
+      setEmailChecking(false);
+      setEmailCheckResult({ available: false, message: legCheck.message, email: clean });
+      return { available: false, message: legCheck.message };
+    }
+
     // If admin converting an existing user
     if (isAdmin && convertEmail && clean === convertEmail.toLowerCase().trim()) {
       setEmailChecking(false);
@@ -808,9 +838,18 @@ function RegisterBusiness({ isAdmin = false }) {
 
   const verifyBusinessEmailAvailability = async (emailToTest) => {
     const clean = (emailToTest || formData.businessEmail || "").trim().toLowerCase();
-    if (!clean || !clean.includes("@") || !clean.includes(".")) {
+    if (!clean) {
       setBusinessEmailChecking(false);
+      setBusinessEmailCheckResult(null);
       return { available: true };
+    }
+
+    // Check legitimate non-dummy format
+    const legCheck = validateLegitimateEmail(clean);
+    if (!legCheck.valid) {
+      setBusinessEmailChecking(false);
+      setBusinessEmailCheckResult({ available: false, message: legCheck.message, email: clean });
+      return { available: false, message: legCheck.message };
     }
 
     setBusinessEmailChecking(true);
@@ -880,11 +919,18 @@ function RegisterBusiness({ isAdmin = false }) {
   };
 
   const handleSendOtp = async () => {
-    if (!formData.email || !formData.email.includes("@")) {
+    const cleanEmail = (formData.email || "").trim().toLowerCase();
+    if (!cleanEmail) {
       setError("Please enter a valid email address first.");
       return;
     }
-    const check = await verifyEmailAvailability(formData.email);
+    const legCheck = validateLegitimateEmail(cleanEmail);
+    if (!legCheck.valid) {
+      setError(legCheck.message);
+      setEmailCheckResult({ available: false, message: legCheck.message, email: cleanEmail });
+      return;
+    }
+    const check = await verifyEmailAvailability(cleanEmail);
     if (check && check.available === false) {
       return;
     }
@@ -893,7 +939,7 @@ function RegisterBusiness({ isAdmin = false }) {
     setOtpSuccess("");
     setOtpSending(true);
     try {
-      const res = await authApi.sendRegisterOtp(formData.email.trim());
+      const res = await authApi.sendRegisterOtp(cleanEmail);
       setOtpSent(true);
       setOtpTimer(150);
       setOtpDigits(["", "", "", "", "", ""]);
@@ -918,7 +964,7 @@ function RegisterBusiness({ isAdmin = false }) {
     setOtpSending(true);
     try {
       setOtpDigits(["", "", "", "", "", ""]);
-      setOtpSuccess(res?.message || "A fresh verification code has been sent.");
+      setOtpSuccess("A fresh verification code has been sent.");
       setOtpTimer(150);
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
@@ -1561,9 +1607,31 @@ function RegisterBusiness({ isAdmin = false }) {
                 setOwnerPhotoRequired(false);
 
                 if (!formData.businessName || formData.businessName.trim().length < 2) {
-                  setError("Business name is required (at least 2 characters).");
+                  const errMsg = "Business name is required (at least 2 characters).";
+                  setBusinessNameError(errMsg);
+                  setError(errMsg);
+                  const el = document.getElementById("bname");
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
                   return;
                 }
+                setBusinessNameError("");
+
+                if (!formData.businessType || !formData.businessType.trim()) {
+                  const errMsg = "Please select a business type.";
+                  setBusinessTypeError(errMsg);
+                  setError(errMsg);
+                  const el = document.getElementById("btype");
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
+                  return;
+                }
+                setBusinessTypeError("");
+
                 if (!formData.industry || !formData.industry.trim()) {
                   setCategoryError(true);
                   setError("Please select or enter a business category.");
@@ -1572,34 +1640,71 @@ function RegisterBusiness({ isAdmin = false }) {
                 }
                 setCategoryError(false);
 
+                if (!formData.subCategory || !formData.subCategory.trim()) {
+                  const errMsg = "Please select or type a sub category.";
+                  setSubCategoryError(errMsg);
+                  setError(errMsg);
+                  document.getElementById("sub-category-field-wrapper")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  return;
+                }
+                setSubCategoryError("");
+
                 // Year established is mandatory
                 const foundedYear = String(formData.founded || "").trim();
                 const currentYear = new Date().getFullYear();
                 if (!foundedYear) {
-                  setError("Year established is mandatory. Please enter the year your business was established.");
-                  document.getElementById("byear")?.focus();
+                  const errMsg = "Year established is mandatory. Please enter the year your business was established.";
+                  setFoundedError(errMsg);
+                  setError(errMsg);
+                  const el = document.getElementById("byear");
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
                   return;
                 }
                 if (!/^\d{4}$/.test(foundedYear) || Number(foundedYear) < 1800 || Number(foundedYear) > currentYear) {
-                  setError(`Please enter a valid 4-digit Year established (between 1800 and ${currentYear}).`);
-                  document.getElementById("byear")?.focus();
+                  const errMsg = `Please enter a valid 4-digit Year established (between 1800 and ${currentYear}).`;
+                  setFoundedError(errMsg);
+                  setError(errMsg);
+                  const el = document.getElementById("byear");
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
                   return;
                 }
+                setFoundedError("");
 
                 // Team size is mandatory
                 if (!formData.employees || !String(formData.employees).trim()) {
-                  setError("Team size is mandatory. Please select your business team size.");
-                  document.getElementById("bemp")?.focus();
+                  const errMsg = "Team size is mandatory. Please select your business team size.";
+                  setEmployeesError(errMsg);
+                  setError(errMsg);
+                  const el = document.getElementById("bemp");
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
                   return;
                 }
+                setEmployeesError("");
               }
 
               // Strict Validation for Step 1 (Contact & Location)
               if (step === 1) {
                 if (!formData.contactPerson || formData.contactPerson.trim().length < 2) {
-                  setError("Authorised contact person name is mandatory. Please enter the contact person's name.");
+                  const errMsg = "Authorised contact person name is mandatory. Please enter the contact person's name.";
+                  setContactPersonError(errMsg);
+                  setError(errMsg);
+                  const el = document.getElementById("cperson");
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
                   return;
                 }
+                setContactPersonError("");
                 if (formData.roleInBusiness === "Other" && (!formData.customRoleInBusiness || formData.customRoleInBusiness.trim().length < 2)) {
                   setError("Please specify your role / designation in the business.");
                   return;
@@ -1623,20 +1728,21 @@ function RegisterBusiness({ isAdmin = false }) {
                   setError("Verification failed - Please enter a valid mobile number");
                   return;
                 }
-                if (formData.businessEmail && (!formData.businessEmail.includes("@") || !formData.businessEmail.includes("."))) {
-                  setBusinessEmailCheckResult({
-                    available: false,
-                    message: "Please provide a valid official business email or leave it empty.",
-                    email: formData.businessEmail,
-                  });
-                  const el = document.getElementById("bemail");
-                  if (el) {
-                    el.focus();
-                    el.scrollIntoView({ behavior: "smooth", block: "center" });
-                  }
-                  return;
-                }
                 if (formData.businessEmail && formData.businessEmail.trim()) {
+                  const legCheck = validateLegitimateEmail(formData.businessEmail.trim());
+                  if (!legCheck.valid) {
+                    setBusinessEmailCheckResult({
+                      available: false,
+                      message: legCheck.message,
+                      email: formData.businessEmail.trim(),
+                    });
+                    const el = document.getElementById("bemail");
+                    if (el) {
+                      el.focus();
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                    return;
+                  }
                   const beCheck = await verifyBusinessEmailAvailability(formData.businessEmail.trim());
                   if (beCheck && beCheck.available === false) {
                     setBusinessEmailCheckResult({
@@ -1697,10 +1803,24 @@ function RegisterBusiness({ isAdmin = false }) {
               // Validation for Step 2 (Account)
               if (step === 2) {
                 const targetEmail = (formData.email || "").trim().toLowerCase();
-                if (!targetEmail || !targetEmail.includes("@") || !targetEmail.includes(".")) {
+                if (!targetEmail) {
                   setEmailCheckResult({
                     available: false,
-                    message: "Please provide a valid account email address.",
+                    message: "Owner personal email is required for account creation.",
+                    email: "",
+                  });
+                  const el = document.getElementById("reg-email");
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
+                  return;
+                }
+                const legCheck = validateLegitimateEmail(targetEmail);
+                if (!legCheck.valid) {
+                  setEmailCheckResult({
+                    available: false,
+                    message: legCheck.message,
                     email: targetEmail,
                   });
                   const el = document.getElementById("reg-email");
@@ -2180,27 +2300,83 @@ function RegisterBusiness({ isAdmin = false }) {
                   </div>
 
 
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="bname">Business name *</Label>
+                  <div id="business-name-field-wrapper" className="space-y-1.5 sm:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="bname"
+                        className={cn(
+                          "text-xs font-semibold",
+                          businessNameError && "text-red-600 dark:text-red-400 font-bold"
+                        )}
+                      >
+                        Business name <span className="text-red-500 font-bold">*</span>
+                      </Label>
+                      {businessNameError && (
+                        <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> Min 2 characters
+                        </span>
+                      )}
+                    </div>
                     <FastInput
                       id="bname"
                       required
                       value={formData.businessName}
                       onValueChange={(val) => {
-                        setFormData({ ...formData, businessName: val });
-                        setError("");
+                        setFormData((prev) => ({ ...prev, businessName: val }));
+                        if (val && val.trim().length >= 2) {
+                          setBusinessNameError("");
+                          setError("");
+                        }
                       }}
                       placeholder="Registered enterprise name"
+                      className={cn(
+                        "transition-all",
+                        businessNameError &&
+                          "border-red-500 ring-2 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20 focus-visible:ring-red-500"
+                      )}
                     />
+                    {businessNameError && (
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1.5 mt-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {businessNameError}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="btype">Business type</Label>
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="btype"
+                        className={cn(
+                          "text-xs font-semibold",
+                          businessTypeError && "text-red-600 dark:text-red-400 font-bold"
+                        )}
+                      >
+                        Business type <span className="text-red-500 font-bold">*</span>
+                      </Label>
+                      {businessTypeError && (
+                        <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> Required
+                        </span>
+                      )}
+                    </div>
                     <Select
                       value={formData.businessType}
-                      onValueChange={(v) => setFormData({ ...formData, businessType: v })}
+                      onValueChange={(v) => {
+                        setFormData({ ...formData, businessType: v });
+                        setBusinessTypeError("");
+                        setError("");
+                      }}
+                      required
                     >
-                      <SelectTrigger id="btype">
-                        <SelectValue placeholder="Select" />
+                      <SelectTrigger
+                        id="btype"
+                        className={cn(
+                          "transition-all",
+                          businessTypeError &&
+                            "border-red-500 ring-2 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20"
+                        )}
+                      >
+                        <SelectValue placeholder="Select business type" />
                       </SelectTrigger>
                       <SelectContent>
                         {["Proprietorship", "Partnership", "LLP", "Private Limited", "Public Limited"].map((t) => (
@@ -2210,6 +2386,12 @@ function RegisterBusiness({ isAdmin = false }) {
                         ))}
                       </SelectContent>
                     </Select>
+                    {businessTypeError && (
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1.5 mt-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {businessTypeError}
+                      </p>
+                    )}
                   </div>
                   <div id="category-field-wrapper" className="space-y-1.5">
                     <div className="flex items-center justify-between">
@@ -2228,6 +2410,7 @@ function RegisterBusiness({ isAdmin = false }) {
                       onValueChange={(v) => {
                         setFormData(prev => ({ ...prev, industry: v, subCategory: "" }));
                         setCategoryError(false);
+                        setSubCategoryError("");
                         setError("");
                       }}
                       options={availableMainCategories}
@@ -2249,49 +2432,134 @@ function RegisterBusiness({ isAdmin = false }) {
                       </p>
                     )}
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bsubcat">Sub category</Label>
+                  <div id="sub-category-field-wrapper" className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="bsubcat"
+                        className={cn(
+                          "text-xs font-semibold",
+                          subCategoryError && "text-red-600 dark:text-red-400 font-bold"
+                        )}
+                      >
+                        Sub category <span className="text-red-500 font-bold">*</span>
+                      </Label>
+                      {subCategoryError && (
+                        <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> Required
+                        </span>
+                      )}
+                    </div>
                     <CreatableCombobox
                       id="bsubcat"
                       value={formData.subCategory}
-                      onValueChange={(v) => setFormData(prev => ({ ...prev, subCategory: v }))}
+                      onValueChange={(v) => {
+                        setFormData(prev => ({ ...prev, subCategory: v }));
+                        setSubCategoryError("");
+                        setError("");
+                      }}
                       options={availableSubCategories}
                       placeholder={formData.industry ? "Select or type a sub category" : "First select a Category above"}
                       emptyText={formData.industry ? "No sub category found. Type to add a custom one." : "Please select a Category first."}
                       disabled={!formData.industry}
+                      className={cn(
+                        "bg-white dark:bg-slate-900 transition-colors",
+                        subCategoryError && "border-red-500 ring-2 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20"
+                      )}
                     />
-                    <p className="text-[10px] text-muted-foreground">
-                      {formData.industry
-                        ? `Showing ${availableSubCategories.length} sub-categories for ${formData.industry}`
-                        : "Select a category above to view its related sub-categories."}
-                    </p>
+                    {subCategoryError ? (
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1 mt-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {subCategoryError}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">
+                        {formData.industry
+                          ? `Showing ${availableSubCategories.length} sub-categories for ${formData.industry}`
+                          : "Select a category above to view its related sub-categories."}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="byear" className="flex items-center gap-1 font-medium">
-                      <span>Year established</span>
-                      <span className="text-red-500 font-bold">*</span>
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="byear"
+                        className={cn(
+                          "flex items-center gap-1 text-xs font-semibold",
+                          foundedError && "text-red-600 dark:text-red-400 font-bold"
+                        )}
+                      >
+                        <span>Year established</span>
+                        <span className="text-red-500 font-bold">*</span>
+                      </Label>
+                      {foundedError && (
+                        <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> Required
+                        </span>
+                      )}
+                    </div>
                     <FastInput
                       id="byear"
                       inputMode="numeric"
                       maxLength={4}
                       value={formData.founded}
-                      onValueChange={(val) => setFormData({ ...formData, founded: val.replace(/\D/g, "").slice(0, 4) })}
+                      onValueChange={(val) => {
+                        const cleaned = val.replace(/\D/g, "").slice(0, 4);
+                        setFormData((prev) => ({ ...prev, founded: cleaned }));
+                        if (cleaned.length === 4) {
+                          setFoundedError("");
+                          setError("");
+                        }
+                      }}
                       placeholder="e.g. 2014"
                       required
+                      className={cn(
+                        "transition-all",
+                        foundedError &&
+                          "border-red-500 ring-2 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20 focus-visible:ring-red-500"
+                      )}
                     />
+                    {foundedError && (
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1.5 mt-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {foundedError}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="bemp" className="flex items-center gap-1 font-medium">
-                      <span>Team size</span>
-                      <span className="text-red-500 font-bold">*</span>
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="bemp"
+                        className={cn(
+                          "flex items-center gap-1 text-xs font-semibold",
+                          employeesError && "text-red-600 dark:text-red-400 font-bold"
+                        )}
+                      >
+                        <span>Team size</span>
+                        <span className="text-red-500 font-bold">*</span>
+                      </Label>
+                      {employeesError && (
+                        <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> Required
+                        </span>
+                      )}
+                    </div>
                     <Select
                       value={formData.employees}
-                      onValueChange={(v) => setFormData({ ...formData, employees: v })}
+                      onValueChange={(v) => {
+                        setFormData((prev) => ({ ...prev, employees: v }));
+                        setEmployeesError("");
+                        setError("");
+                      }}
                       required
                     >
-                      <SelectTrigger id="bemp">
+                      <SelectTrigger
+                        id="bemp"
+                        className={cn(
+                          "transition-all",
+                          employeesError &&
+                            "border-red-500 ring-2 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20"
+                        )}
+                      >
                         <SelectValue placeholder="Select team size" />
                       </SelectTrigger>
                       <SelectContent>
@@ -2302,6 +2570,12 @@ function RegisterBusiness({ isAdmin = false }) {
                         ))}
                       </SelectContent>
                     </Select>
+                    {employeesError && (
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1.5 mt-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {employeesError}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="babout">About the business</Label>
@@ -2322,14 +2596,46 @@ function RegisterBusiness({ isAdmin = false }) {
                 <div className="grid gap-4 sm:grid-cols-2">
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="cperson">Contact person *</Label>
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="cperson"
+                        className={cn(
+                          "text-xs font-semibold",
+                          contactPersonError && "text-red-600 dark:text-red-400 font-bold"
+                        )}
+                      >
+                        Contact person <span className="text-red-500 font-bold">*</span>
+                      </Label>
+                      {contactPersonError && (
+                        <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> Min 2 characters
+                        </span>
+                      )}
+                    </div>
                     <FastInput
                       id="cperson"
                       required
                       value={formData.contactPerson}
-                      onValueChange={(val) => setFormData({ ...formData, contactPerson: val })}
+                      onValueChange={(val) => {
+                        setFormData((prev) => ({ ...prev, contactPerson: val }));
+                        if (val && val.trim().length >= 2) {
+                          setContactPersonError("");
+                          setError("");
+                        }
+                      }}
                       placeholder="Authorised representative"
+                      className={cn(
+                        "transition-all",
+                        contactPersonError &&
+                          "border-red-500 ring-2 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20 focus-visible:ring-red-500"
+                      )}
                     />
+                    {contactPersonError && (
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1.5 mt-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {contactPersonError}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -2888,7 +3194,7 @@ function RegisterBusiness({ isAdmin = false }) {
                           </button>
                         </div>
                         <p className="text-xs text-slate-500 mb-3">
-                          Enter the code sent to <strong className="text-slate-800">{formData.email}</strong>
+                          Enter the code sent to <strong className="text-slate-800 dark:text-slate-200">{formData.email}</strong>
                         </p>
 
                         {/* 6 Individual Digit Input Boxes */}

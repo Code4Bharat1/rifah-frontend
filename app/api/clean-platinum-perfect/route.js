@@ -205,6 +205,48 @@ export async function GET() {
         }
       }
 
+      // Inpaint Validity Text on Gold (x: 35..255, y: 560..655) to prevent double/overlapping text
+      const gvalInk = new Uint8Array(gw * gh);
+      for (let y = 560; y <= 655; y++) {
+        for (let x = 35; x <= 255; x++) {
+          const idx = (y * gw + x) * gch;
+          const r = goldData[idx], g = goldData[idx + 1], b = goldData[idx + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          if (lum < 225) {
+            gvalInk[y * gw + x] = 1;
+          }
+        }
+      }
+      // Dilate by 2px
+      const gvalDilated = new Uint8Array(gw * gh);
+      for (let y = 558; y <= 657; y++) {
+        if (y < 0 || y >= gh) continue;
+        for (let x = 33; x <= 257; x++) {
+          if (x < 0 || x >= gw) continue;
+          if (gvalInk[y * gw + x]) {
+            for (let dy = -2; dy <= 2; dy++) {
+              for (let dx = -2; dx <= 2; dx++) {
+                gvalDilated[(y + dy) * gw + (x + dx)] = 1;
+              }
+            }
+          }
+        }
+      }
+      // Interpolate dilated ink smoothly from clean background row 555 and row 660
+      for (let y = 558; y <= 657; y++) {
+        const t = (y - 555) / (660 - 555);
+        for (let x = 33; x <= 257; x++) {
+          if (gvalDilated[y * gw + x]) {
+            const topIdx = (555 * gw + x) * gch;
+            const botIdx = (660 * gw + x) * gch;
+            const idx = (y * gw + x) * gch;
+            goldData[idx] = Math.round(goldData[topIdx] * (1 - t) + goldData[botIdx] * t);
+            goldData[idx + 1] = Math.round(goldData[topIdx + 1] * (1 - t) + goldData[botIdx + 1] * t);
+            goldData[idx + 2] = Math.round(goldData[topIdx + 2] * (1 - t) + goldData[botIdx + 2] * t);
+          }
+        }
+      }
+
       // Clean inside meta box (y: 228..256, x: 456..986) with warm gold/cream gradient
       for (let y = 228; y <= 256; y++) {
         const t = (y - 228) / (256 - 228);

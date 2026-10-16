@@ -36,6 +36,7 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { cn } from "@shared/lib/utils";
+import { validateLegitimateEmail } from "@shared/lib/validators";
 import { useAuth } from "@shared/providers/auth-provider";
 import { authApi, businessApi } from "@shared/lib/api-services";
 import { COUNTRIES } from "@shared/lib/countries";
@@ -76,7 +77,7 @@ export function RegisterUserPage() {
     membershipId: "",
     // Step 3: Tier selection
     selectedTier: "tier_1", // Default to Tier I (Free)
-    agreeTerms: true,
+    agreeTerms: false,
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -310,10 +311,16 @@ export function RegisterUserPage() {
 
   const handleSendOtp = async () => {
     const cleanEmail = form.email.toLowerCase().trim();
-    if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
-      const msg = "Please enter a valid email address first.";
+    if (!cleanEmail) {
+      const msg = "Please enter an email address first.";
       setError(msg);
       toast.error(msg);
+      return;
+    }
+    const legCheck = validateLegitimateEmail(cleanEmail);
+    if (!legCheck.valid) {
+      setError(legCheck.message);
+      toast.error(legCheck.message);
       return;
     }
 
