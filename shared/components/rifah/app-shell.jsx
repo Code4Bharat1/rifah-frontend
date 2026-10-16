@@ -819,26 +819,6 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
         return;
       }
 
-      // If an admin navigates to /user, redirect them back to their appropriate dashboard
-      if (isAdminRole && (path === "/user" || path?.startsWith("/user/"))) {
-        if (user.role === "state_admin") {
-          router.replace("/state-admin");
-        } else if (user.role === "chapter_admin") {
-          router.replace("/chapter-admin");
-        } else {
-          router.replace("/admin");
-        }
-        return;
-      }
-
-      // If a business owner navigates to /user, redirect them to /biz
-      if (
-        (user.role === "business_owner" || user.role === "business") &&
-        (path === "/user" || path?.startsWith("/user/"))
-      ) {
-        router.replace("/biz");
-        return;
-      }
     }
   }, [user, loading, path, router]);
 

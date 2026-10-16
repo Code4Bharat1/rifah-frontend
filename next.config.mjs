@@ -79,6 +79,21 @@ const nextConfig = {
         destination: '/about',
         permanent: false,
       },
+      {
+        source: '/admin/user',
+        destination: '/admin/users',
+        permanent: true,
+      },
+      {
+        source: '/chapter-admin/user',
+        destination: '/chapter-admin/users',
+        permanent: true,
+      },
+      {
+        source: '/state-admin/user',
+        destination: '/state-admin/users',
+        permanent: true,
+      },
     ];
   },
   async rewrites() {

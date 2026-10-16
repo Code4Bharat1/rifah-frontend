@@ -41,41 +41,62 @@ export function middleware(request) {
     const isChapterAdmin = role === "chapter_admin";
     const isBusinessOwner = role === "business_owner" || role === "business";
 
+    const matchesPanel = (panel) =>
+      pathname === panel || pathname.startsWith(`${panel}/`);
+
     // Members should never access admin, state-admin, chapter-admin, or biz panels
     if (
       isMember &&
-      (pathname.startsWith("/admin") ||
-        pathname.startsWith("/state-admin") ||
-        pathname.startsWith("/chapter-admin") ||
-        pathname.startsWith("/biz"))
+      (matchesPanel("/admin") ||
+        matchesPanel("/state-admin") ||
+        matchesPanel("/chapter-admin") ||
+        matchesPanel("/biz"))
     ) {
       return NextResponse.redirect(new URL("/user", request.url));
     }
 
-    // Admins should not wander into member /user workspace unless via explicit switch
-    if (pathname === "/user" || pathname.startsWith("/user/")) {
-      if (isCentralAdmin) {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      }
-      if (isStateAdmin) {
-        return NextResponse.redirect(new URL("/state-admin", request.url));
-      }
-      if (isChapterAdmin) {
-        return NextResponse.redirect(new URL("/chapter-admin", request.url));
-      }
-      if (isBusinessOwner) {
-        return NextResponse.redirect(new URL("/biz", request.url));
-      }
-    }
-
-    // Business owners should not access admin panels
+    // Business owners should not access admin panels or member user panel
     if (
       isBusinessOwner &&
-      (pathname.startsWith("/admin") ||
-        pathname.startsWith("/state-admin") ||
-        pathname.startsWith("/chapter-admin"))
+      (matchesPanel("/admin") ||
+        matchesPanel("/state-admin") ||
+        matchesPanel("/chapter-admin") ||
+        matchesPanel("/user"))
     ) {
       return NextResponse.redirect(new URL("/biz", request.url));
+    }
+
+    // Chapter Admins should not access other admin panels, biz, or member user panel
+    if (
+      isChapterAdmin &&
+      (matchesPanel("/admin") ||
+        matchesPanel("/state-admin") ||
+        matchesPanel("/biz") ||
+        matchesPanel("/user"))
+    ) {
+      return NextResponse.redirect(new URL("/chapter-admin", request.url));
+    }
+
+    // State Admins should not access central admin, chapter admin, biz, or member user panel
+    if (
+      isStateAdmin &&
+      (matchesPanel("/admin") ||
+        matchesPanel("/chapter-admin") ||
+        matchesPanel("/biz") ||
+        matchesPanel("/user"))
+    ) {
+      return NextResponse.redirect(new URL("/state-admin", request.url));
+    }
+
+    // Central Admins should not access state admin, chapter admin, biz, or member user panel
+    if (
+      isCentralAdmin &&
+      (matchesPanel("/state-admin") ||
+        matchesPanel("/chapter-admin") ||
+        matchesPanel("/biz") ||
+        matchesPanel("/user"))
+    ) {
+      return NextResponse.redirect(new URL("/admin", request.url));
     }
   }
 
