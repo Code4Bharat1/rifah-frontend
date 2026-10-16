@@ -1042,15 +1042,20 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
     }
     try {
       setSavingSpeaker(true);
+      // BUG: the Event.speakers sub-schema field is `organization`, not `org` (the form's
+      // own state key, matching the separate Dignitary model which genuinely does use
+      // `org`) — saving `newSpeaker` as-is let Mongoose's strict schema silently drop the
+      // organization on every event speaker ever added here.
+      const speakerForEvent = { ...newSpeaker, organization: newSpeaker.org };
       let updatedSpeakers;
       if (newSpeaker.id) {
-        updatedSpeakers = speakers.map(sp => sp.id === newSpeaker.id ? newSpeaker : sp);
+        updatedSpeakers = speakers.map(sp => sp.id === newSpeaker.id ? speakerForEvent : sp);
       } else {
         updatedSpeakers = [
           ...speakers,
           {
             id: `sp-${Date.now()}`,
-            ...newSpeaker,
+            ...speakerForEvent,
           },
         ];
       }
@@ -1130,7 +1135,7 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
           category: dignitary.category || "",
           mobile: dignitary.mobile || "",
           email: dignitary.email || "",
-          org: dignitary.org || "",
+          organization: dignitary.org || "",
           designation: dignitary.designation || "",
           type: dignitary.type || "Guest Speaker",
           topic: dignitary.topic || "",
@@ -1228,7 +1233,9 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
   };
 
   const handleEditSpeakerClick = (s) => {
-    setNewSpeaker(s);
+    // The form field is `org` (see speakerForEvent translation in handleAddSpeaker);
+    // the stored speaker has `organization` — map it back so the field isn't blank.
+    setNewSpeaker({ ...s, org: s.organization || "" });
     setSpeakerDialogOpen(true);
   };
 
@@ -4504,7 +4511,7 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                           </div>
                           <h4 className="font-bold text-sm text-foreground mt-1 truncate">{s.name}</h4>
                           <p className="text-xs text-muted-foreground">
-                            {s.designation || ""} {s.org ? `· ${s.org}` : ""}
+                            {s.designation || ""} {s.organization ? `· ${s.organization}` : ""}
                           </p>
                           {s.topic && (
                             <p className="text-xs text-primary font-medium mt-1.5 bg-muted/40 px-2 py-1 rounded">

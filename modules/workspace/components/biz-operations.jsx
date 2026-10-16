@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Edit,
   FileText,
   Images,
   Loader2,
@@ -22,10 +23,12 @@ import {
   Mic,
   Mic2,
   Monitor,
+  Plus,
   QrCode,
   Radio,
   ShieldCheck,
   Ticket,
+  Trash2,
   User,
   XCircle,
 } from "lucide-react";
@@ -36,10 +39,13 @@ import { Pill } from "@shared/components/rifah/badges";
 import { EventGallery } from "@shared/components/rifah/event-gallery";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
+import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@shared/components/ui/dialog";
 import { userApi, eventApi, followupApi } from "@shared/lib/api-services";
 import { getSocket } from "@shared/lib/socket";
+import { isValidName, isValidEmail } from "@shared/lib/validators";
 
 // Roles that unlock a working tool panel.
 const FUNCTIONAL_ROLE_META = {
@@ -103,6 +109,11 @@ function MyDutyPanel() {
   const [isScanning, setIsScanning] = useState(false);
   const lastScannedTicketRef = useRef({ code: "", timestamp: 0 });
   const isProcessingRef = useRef(false);
+  const [speakerDialogOpen, setSpeakerDialogOpen] = useState(false);
+  const [editingSpeakerId, setEditingSpeakerId] = useState(null);
+  const [speakerForm, setSpeakerForm] = useState({ name: "", mobile: "", email: "", organization: "", designation: "", type: "Guest Speaker", topic: "" });
+  const [savingSpeaker, setSavingSpeaker] = useState(false);
+  const [deletingSpeakerId, setDeletingSpeakerId] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -280,6 +291,70 @@ function MyDutyPanel() {
       toast.error("Failed to update the stage display: " + (err.message || "Unknown error"));
     } finally {
       setAdvancingSlide(false);
+    }
+  };
+
+  const openAddSpeaker = () => {
+    setEditingSpeakerId(null);
+    setSpeakerForm({ name: "", mobile: "", email: "", organization: "", designation: "", type: "Guest Speaker", topic: "" });
+    setSpeakerDialogOpen(true);
+  };
+
+  const openEditSpeaker = (s) => {
+    setEditingSpeakerId(s.id);
+    setSpeakerForm({
+      name: s.name || "",
+      mobile: s.mobile || "",
+      email: s.email || "",
+      organization: s.organization || "",
+      designation: s.designation || "",
+      type: s.type || "Guest Speaker",
+      topic: s.topic || "",
+    });
+    setSpeakerDialogOpen(true);
+  };
+
+  const handleSaveSpeaker = async () => {
+    if (!isValidName(speakerForm.name)) {
+      toast.error("Enter a valid speaker name (letters only).");
+      return;
+    }
+    if (!speakerForm.mobile.trim()) {
+      toast.error("Please enter the speaker's mobile number.");
+      return;
+    }
+    if (speakerForm.email && !isValidEmail(speakerForm.email)) {
+      toast.error("Enter a valid speaker email address.");
+      return;
+    }
+    try {
+      setSavingSpeaker(true);
+      if (editingSpeakerId) {
+        await eventApi.updateSpeaker(selectedEventId, editingSpeakerId, speakerForm);
+        toast.success("Speaker updated");
+      } else {
+        await eventApi.addSpeaker(selectedEventId, speakerForm);
+        toast.success("Speaker added");
+      }
+      setSpeakerDialogOpen(false);
+      await refetchDuty();
+    } catch (err) {
+      toast.error(err?.message || "Failed to save speaker");
+    } finally {
+      setSavingSpeaker(false);
+    }
+  };
+
+  const handleDeleteSpeaker = async (speakerId) => {
+    try {
+      setDeletingSpeakerId(speakerId);
+      await eventApi.removeSpeaker(selectedEventId, speakerId);
+      toast.success("Speaker removed");
+      await refetchDuty();
+    } catch (err) {
+      toast.error(err?.message || "Failed to remove speaker");
+    } finally {
+      setDeletingSpeakerId(null);
     }
   };
 
@@ -619,14 +694,35 @@ function MyDutyPanel() {
 
           {duty.myRoles.includes("guestManager") && (
             <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                <Mic className="h-4 w-4 text-primary" /> Speakers & Guests
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Mic className="h-4 w-4 text-primary" /> Speakers & Guests
+                </h3>
+                <Button size="sm" className="gap-1.5" disabled={!canAct} onClick={openAddSpeaker}>
+                  <Plus className="h-3.5 w-3.5" /> Add
+                </Button>
+              </div>
               <div className="space-y-2">
                 {(duty.data.speakers || []).map((s) => (
-                  <div key={s.id || s.name} className="px-3 py-2 rounded-lg border border-border bg-muted/20">
-                    <p className="text-sm font-medium">{s.name} <span className="text-xs text-muted-foreground">({s.type})</span></p>
-                    <p className="text-xs text-muted-foreground">{s.organization} {s.mobile ? `· ${s.mobile}` : ""}</p>
+                  <div key={s.id || s.name} className="px-3 py-2 rounded-lg border border-border bg-muted/20 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{s.name} <span className="text-xs text-muted-foreground">({s.type})</span></p>
+                      <p className="text-xs text-muted-foreground truncate">{s.organization} {s.mobile ? `· ${s.mobile}` : ""}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={!canAct} onClick={() => openEditSpeaker(s)}>
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 text-red-500 hover:text-red-600"
+                        disabled={!canAct || deletingSpeakerId === s.id}
+                        onClick={() => handleDeleteSpeaker(s.id)}
+                      >
+                        {deletingSpeakerId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      </Button>
+                    </div>
                   </div>
                 ))}
                 {(duty.data.speakers || []).length === 0 && (
@@ -669,6 +765,11 @@ function MyDutyPanel() {
                     <p className="text-xs text-muted-foreground">
                       Unlocks once the admin takes this event live.
                     </p>
+                  ) : (duty.data.agenda || []).length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      No agenda has been set up for this event yet — nothing to advance
+                      through until the admin adds agenda items in Event Setup.
+                    </p>
                   ) : (
                     <div className="flex items-center gap-2">
                       <Button
@@ -699,6 +800,65 @@ function MyDutyPanel() {
           )}
         </div>
       )}
+
+      {/* Add / Edit speaker dialog — Guest & Speaker Manager */}
+      <Dialog open={speakerDialogOpen} onOpenChange={setSpeakerDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingSpeakerId ? "Edit Speaker" : "Add Speaker"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Name</Label>
+              <Input value={speakerForm.name} onChange={(e) => setSpeakerForm((p) => ({ ...p, name: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Mobile</Label>
+                <Input value={speakerForm.mobile} onChange={(e) => setSpeakerForm((p) => ({ ...p, mobile: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Email</Label>
+                <Input value={speakerForm.email} onChange={(e) => setSpeakerForm((p) => ({ ...p, email: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Organization</Label>
+                <Input value={speakerForm.organization} onChange={(e) => setSpeakerForm((p) => ({ ...p, organization: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Designation</Label>
+                <Input value={speakerForm.designation} onChange={(e) => setSpeakerForm((p) => ({ ...p, designation: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Type</Label>
+              <Select value={speakerForm.type} onValueChange={(val) => setSpeakerForm((p) => ({ ...p, type: val }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Guest Speaker">Guest Speaker</SelectItem>
+                  <SelectItem value="Keynote Speaker">Keynote Speaker</SelectItem>
+                  <SelectItem value="Chief Guest">Chief Guest</SelectItem>
+                  <SelectItem value="Dignitary">Dignitary</SelectItem>
+                  <SelectItem value="Sponsor">Sponsor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Topic (optional)</Label>
+              <Input value={speakerForm.topic} onChange={(e) => setSpeakerForm((p) => ({ ...p, topic: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSpeakerDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveSpeaker} disabled={savingSpeaker} className="gap-1.5">
+              {savingSpeaker ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {editingSpeakerId ? "Save Changes" : "Add Speaker"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
