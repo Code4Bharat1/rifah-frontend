@@ -23,7 +23,7 @@ import { invoiceApi } from "@shared/lib/api-services";
 import { Button } from "@shared/components/ui/button";
 import { generateInvoiceHtml, downloadInvoicePdf } from "@shared/lib/invoice-generator";
 
-export default function InvoiceVerificationPage({ params }) {
+function InvoiceVerificationContent({ params }) {
   const resolvedParams = use(params);
   const rawInvoice = resolvedParams?.invoiceNumber;
   const invoiceNumber = Array.isArray(rawInvoice)
@@ -453,5 +453,13 @@ export default function InvoiceVerificationPage({ params }) {
         <p className="mt-1">Together for Sustainable Future · info@rifah.org</p>
       </footer>
     </div>
+  );
+}
+
+export default function InvoiceVerificationPage(props) {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white text-slate-700 font-mono text-sm">Verifying invoice...</div>}>
+      <InvoiceVerificationContent {...props} />
+    </React.Suspense>
   );
 }

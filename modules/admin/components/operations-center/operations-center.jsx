@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
@@ -136,7 +136,7 @@ const HORIZONTAL_MODULE_TABS = [
   { key: "my-links", label: "My Links", icon: Link2 },
 ];
 
-export function OperationsCenter({ initialTab = "event-setup" }) {
+function OperationsCenterInner({ initialTab = "event-setup" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -5767,6 +5767,21 @@ export function OperationsCenter({ initialTab = "event-setup" }) {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export function OperationsCenter(props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 flex flex-col items-center justify-center min-h-[400px] gap-3">
+          <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground font-medium">Loading Operations Center...</p>
+        </div>
+      }
+    >
+      <OperationsCenterInner {...props} />
+    </Suspense>
   );
 }
 

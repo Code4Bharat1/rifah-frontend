@@ -1,12 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { RegisterBusinessPage } from "@modules/auth/components/register-business-page";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@shared/components/ui/button";
 
-export default function ChapterAdminAddBusinessPage() {
+function Content() {
   return (
     <AppShell
       role="admin"
@@ -24,5 +25,13 @@ export default function ChapterAdminAddBusinessPage() {
         <RegisterBusinessPage isAdmin={true} />
       </div>
     </AppShell>
+  );
+}
+
+export default function ChapterAdminAddBusinessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center" />}>
+      <Content />
+    </Suspense>
   );
 }

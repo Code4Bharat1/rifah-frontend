@@ -3743,5 +3743,19 @@ function RegisterBusiness({ isAdmin = false }) {
   );
 }
 
-export { RegisterBusiness as RegisterBusinessPage };
-export default RegisterBusiness;
+export function RegisterBusinessPage(props) {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="p-12 flex flex-col items-center justify-center min-h-[400px] gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground font-medium">Loading registration form...</p>
+        </div>
+      }
+    >
+      <RegisterBusiness {...props} />
+    </React.Suspense>
+  );
+}
+
+export default RegisterBusinessPage;

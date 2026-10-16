@@ -27,7 +27,7 @@ import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { toast } from "sonner";
 
-export default function TicketVerificationPage({ params }) {
+function TicketVerificationContent({ params }) {
   // Unwrap Next.js dynamic route params
   const resolvedParams = use(params);
   const ticketId = resolvedParams?.ticketId || "";
@@ -478,5 +478,13 @@ export default function TicketVerificationPage({ params }) {
         </p>
       </footer>
     </div>
+  );
+}
+
+export default function TicketVerificationPage(props) {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-950 text-white font-mono text-sm">Verifying ticket...</div>}>
+      <TicketVerificationContent {...props} />
+    </React.Suspense>
   );
 }

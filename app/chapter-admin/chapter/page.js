@@ -1,11 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import AdminChapterDetails from "@modules/admin/components/admin-chapter-details";
 import { AppShell } from "@shared/components/rifah/app-shell";
 import { useAuth } from "@shared/providers/auth-provider";
 
-export default function ChapterAdminMyChapterPage() {
+function Content() {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -29,4 +30,12 @@ export default function ChapterAdminMyChapterPage() {
   }
 
   return <AdminChapterDetails chapterId={user.chapterId} />;
+}
+
+export default function ChapterAdminMyChapterPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <Content />
+    </Suspense>
+  );
 }
