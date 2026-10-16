@@ -40,10 +40,10 @@ export function generateTicketHtml(ticketData) {
           body {
             background-color: #070e17;
             color: #ffffff;
-            padding: 30px 15px;
+            padding: 20px 15px 30px 15px;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
           }
           .ticket-card {
@@ -55,6 +55,7 @@ export function generateTicketHtml(ticketData) {
             overflow: hidden;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             position: relative;
+            padding-bottom: 16px;
           }
           .brand-top {
             background: linear-gradient(135deg, #0b1f33 0%, #0369a1 100%);
@@ -159,8 +160,10 @@ export function generateTicketHtml(ticketData) {
             text-align: center;
             margin-top: 18px;
             padding-top: 14px;
+            padding-bottom: 8px;
             border-top: 1px solid #1e293b;
             font-size: 10.5px;
+            line-height: 1.5;
             color: #64748b;
           }
           @media print {
@@ -265,8 +268,8 @@ export async function downloadTicketPdf(ticketData) {
   iframe.style.position = "fixed";
   iframe.style.left = "0";
   iframe.style.top = "0";
-  iframe.style.width = "500px";
-  iframe.style.height = "850px";
+  iframe.style.width = "520px";
+  iframe.style.height = "1600px";
   iframe.style.border = "none";
   iframe.style.zIndex = "-9999";
   iframe.style.opacity = "0.01";
@@ -308,19 +311,23 @@ export async function downloadTicketPdf(ticketData) {
       scrollY: 0,
       x: 0,
       y: 0,
+      height: card.scrollHeight || card.offsetHeight,
+      windowHeight: 1600,
       logging: false,
     });
 
     const imgData = canvas.toDataURL("image/png");
+    const pdfWidth = 120;
+    const calculatedHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pdfHeight = Math.ceil(calculatedHeight);
+
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
-      format: [120, 190],
+      format: [pdfWidth, pdfHeight],
     });
 
-    const pdfWidth = 120;
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, calculatedHeight, undefined, "FAST");
     pdf.save(fileName);
   } catch (err) {
     console.error("Direct ticket PDF download failed:", err);
