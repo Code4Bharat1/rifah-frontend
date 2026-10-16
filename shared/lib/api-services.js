@@ -705,6 +705,18 @@ export const eventApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  addSpeaker: (id, data) =>
+    apiClient(`/events/${id}/speakers`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateSpeaker: (id, speakerId, data) =>
+    apiClient(`/events/${id}/speakers/${speakerId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  removeSpeaker: (id, speakerId) =>
+    apiClient(`/events/${id}/speakers/${speakerId}`, { method: "DELETE" }),
 
   // ─── Ask & Give Board ──────────────────────────────────────────────────────
   getAskGiveBoard: (id) => apiClient(`/events/${id}/ask-give-board`),

@@ -9,7 +9,7 @@ import { Textarea } from "@shared/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@shared/components/ui/dialog";
 import { Label } from "@shared/components/ui/label";
 import { toast } from "sonner";
-import { eventApi, followupApi } from "@shared/lib/api-services";
+import { followupApi } from "@shared/lib/api-services";
 import { cn } from "@shared/lib/utils";
 
 // Helper to interpolate message
@@ -30,7 +30,6 @@ function interpolateMessage(template, userObj) {
 export function FollowupTab({ eventId }) {
   const [followups, setFollowups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [events, setEvents] = useState([]);
   const [followupStats, setFollowupStats] = useState({
     total: 0, members: 0, visitors: 0, repeat: 0, contacted: 0, messaged: 0, pending: 0
   });
@@ -65,31 +64,33 @@ export function FollowupTab({ eventId }) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Fetch followups
-      const res = await followupApi.getEventFollowups(eventId);
-      if (res.success) {
-        setFollowups(res.data || []);
-      }
-      
-      // Calculate Stats (Mock calculation, normally from backend)
-      const list = res.data || [];
-      const stats = {
-        total: list.length,
-        members: list.filter(l => (l.category || "").toLowerCase().includes("member")).length,
-        visitors: list.filter(l => !(l.category || "").toLowerCase().includes("member")).length,
-        repeat: Math.floor(list.length * 0.3), // Mock
-        contacted: list.filter(l => l.status === "contacted").length,
-        messaged: list.filter(l => l.status === "contacted").length,
-        pending: list.filter(l => l.status === "pending" || !l.status).length,
-      };
-      setFollowupStats(stats);
-
-      // Fetch Events for the table
-      const evRes = await eventApi.getAllEvents();
-      if (evRes.success) {
-        setEvents(evRes.data || []);
+      // BUG: this previously called `followupApi.getEventFollowups(eventId)`, a method
+      // that does not exist anywhere in api-services.js — every call threw, was caught
+      // below, and silently left the list empty regardless of actual data. `list()` is
+      // the real endpoint (GET /followups?eventId=&type=event).
+      const res = await followupApi.list({ eventId, type: "event" });
+      const list = res?.data || [];
+      if (res?.success) {
+        setFollowups(list);
       }
 
+      // Counters come from the backend's own aggregation (unbounded `countDocuments`),
+      // not recomputed client-side from this capped list — the list is capped at 200
+      // records, so client-side counting would undercount for any busier event. "repeat"
+      // and "messaged" are real queries now too, not a hardcoded guess.
+      const statsRes = await followupApi.getStats({ eventId });
+      const eventStats = statsRes?.data?.event;
+      if (eventStats) {
+        setFollowupStats({
+          total: eventStats.total || 0,
+          members: list.filter((l) => (l.category || "").toLowerCase().includes("member")).length,
+          visitors: list.filter((l) => !(l.category || "").toLowerCase().includes("member")).length,
+          repeat: eventStats.repeat || 0,
+          contacted: eventStats.contacted || 0,
+          messaged: eventStats.messaged || 0,
+          pending: eventStats.pending || 0,
+        });
+      }
     } catch (err) {
       toast.error("Failed to load follow-ups");
     } finally {
