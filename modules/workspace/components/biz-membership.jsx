@@ -1188,7 +1188,11 @@ function BizMembership() {
 
   if (isInitialLoading) {
     return (
-      <AppShell role="business" title="" subtitle="">
+      <AppShell
+        role="business"
+        title="Membership"
+        subtitle="Plan, benefits and invoices"
+      >
         <div id="overview" className="space-y-6 max-w-[1380px] mx-auto pb-12">
           {/* Header Skeleton */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1220,8 +1224,22 @@ function BizMembership() {
   return (
     <AppShell
       role="business"
-      title=""
-      subtitle=""
+      title="Membership"
+      subtitle={business?.name ? `${business.name} · Plan, benefits & invoices` : "Plan, benefits and invoices"}
+      actions={
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setUpgradeDialogOpen(true)}
+            className="gap-1.5 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-600 text-white shadow-sm cursor-pointer"
+          >
+            <Crown className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Compare All Plans</span>
+            <span className="sm:hidden">Plans</span>
+          </Button>
+        </div>
+      }
     >
       <div id="overview" className="space-y-6 max-w-[1380px] mx-auto pb-12">
         {/* ========================================================================= */}
