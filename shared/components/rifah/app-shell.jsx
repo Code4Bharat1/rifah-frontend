@@ -549,39 +549,18 @@ function isAccessibleUnverifiedPath(pathname) {
   if (!pathname) return true;
   const clean = pathname.split("?")[0].replace(/\/$/, "");
   return (
-    clean === "/biz/feeds" ||
-    clean.startsWith("/biz/feeds/") ||
-    clean === "/feeds" ||
-    clean.startsWith("/feeds/") ||
-    clean === "/biz/verification" ||
-    clean.startsWith("/biz/verification/") ||
     clean === "/biz/membership" ||
     clean.startsWith("/biz/membership/") ||
+    clean === "/biz/verification" ||
+    clean.startsWith("/biz/verification/") ||
+    clean === "/biz/profile" ||
+    clean.startsWith("/biz/profile/") ||
     clean === "/biz/payments" ||
     clean.startsWith("/biz/payments/") ||
     clean === "/biz/notifications" ||
     clean.startsWith("/biz/notifications/") ||
-    clean === "/biz/profile" ||
-    clean.startsWith("/biz/profile/") ||
-    clean === "/biz/business" ||
-    clean.startsWith("/biz/business/") ||
-    clean === "/biz/lms" ||
-    clean.startsWith("/biz/lms/") ||
-    clean === "/biz/events" ||
-    clean.startsWith("/biz/events/") ||
-    clean === "/biz/operations" ||
-    clean.startsWith("/biz/operations/") ||
-    clean === "/biz/messages" ||
-    clean.startsWith("/biz/messages/") ||
-    clean === "/biz/my-duty" ||
-    clean.startsWith("/biz/my-duty/") ||
-    clean === "/biz/visa-referrals" ||
-    clean.startsWith("/biz/visa-referrals/") ||
-    clean === "/biz/networking" ||
-    clean.startsWith("/biz/networking/") ||
-    clean === "/user/networking" ||
-    clean.startsWith("/user/networking/") ||
-    clean === "/visa-referral"
+    clean === "/biz/tickets" ||
+    clean.startsWith("/biz/tickets/")
   );
 }
 
@@ -598,7 +577,7 @@ function useCurrentPath() {
 // e.g. landing on Verification already scrolled past its own heading after a
 // redirect from a page the user had scrolled down on. Links below rely on
 // the default scroll-to-top behavior now.
-function SidebarLink({ item, active, badge, isLocked, onSelect }) {
+function SidebarLink({ item, active, badge, isLocked, lockReason, onSelect }) {
   const linkRef = useRef(null);
 
   useEffect(() => {
@@ -615,9 +594,15 @@ function SidebarLink({ item, active, badge, isLocked, onSelect }) {
       onClick={(e) => {
         if (isLocked) {
           e.preventDefault();
-          toast.error(
-            `${item.label} is locked. Upgrade your plan to unlock this module.`,
-          );
+          if (lockReason === "verification") {
+            toast.error(
+              `${item.label} is locked pending business verification. Submit documents under Membership to activate.`,
+            );
+          } else {
+            toast.error(
+              `${item.label} is locked on your current plan. Upgrade your plan to unlock this module.`,
+            );
+          }
           return;
         }
         onSelect?.(e);
@@ -708,6 +693,7 @@ function SidebarCategoryGroup({
           active={isActive(item.to)}
           badge={badge}
           isLocked={isItemLocked}
+          lockReason={isItemLocked ? "verification" : "plan"}
           onSelect={onSelect}
         />
       </div>
@@ -751,6 +737,7 @@ function SidebarCategoryGroup({
                 active={isActive(item.to)}
                 badge={badge}
                 isLocked={isItemLocked}
+                lockReason={isItemLocked ? "verification" : "plan"}
                 onSelect={onSelect}
               />
             );
@@ -926,9 +913,7 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
     !isBusinessRole || // Admins are always "verified" — never lock their sidebar
     (rawVerification || "").toLowerCase() === "verified" ||
     (rawVerification || "").toLowerCase() === "approved" ||
-    businessData?.isVerified === true ||
-    (businessData?.status || "").toLowerCase() === "active" ||
-    (businessData?.status || "").toLowerCase() === "live";
+    businessData?.isVerified === true;
   const hasEverBeenVerified = isBizVerified;
 
   // If the user is an admin who switched to business_owner, bypass the verification gate
@@ -1140,6 +1125,7 @@ export function AppShell({ role, title, subtitle, actions, children, backTo }) {
                 active={isActive(item.to)}
                 badge={badge}
                 isLocked={isItemLocked}
+                lockReason={isItemUnverifiedLocked ? "verification" : "plan"}
                 onSelect={recordScroll}
               />
             );
@@ -2077,9 +2063,15 @@ function MobileCategoryGroup({
                 onClick={(e) => {
                   if (isLocked) {
                     e.preventDefault();
-                    toast.error(
-                      `${i.label} is locked on your current plan. Upgrade your plan to unlock.`,
-                    );
+                    if (!isBizVerified && !isAccessibleUnverifiedPath(i.to)) {
+                      toast.error(
+                        `${i.label} is locked pending business verification. Submit documents in Membership to activate.`,
+                      );
+                    } else {
+                      toast.error(
+                        `${i.label} is locked on your current plan. Upgrade your plan to unlock.`,
+                      );
+                    }
                     return;
                   }
                   onSelect?.(e);
@@ -2210,9 +2202,15 @@ export function MoreSheet({ role, isBizVerified = true }) {
                   onClick={(e) => {
                     if (isLocked) {
                       e.preventDefault();
-                      toast.error(
-                        `${i.label} is locked on your current plan. Upgrade your plan to unlock.`,
-                      );
+                      if (!isBizVerified && !isAccessibleUnverifiedPath(i.to)) {
+                        toast.error(
+                          `${i.label} is locked pending business verification. Submit documents in Membership to activate.`,
+                        );
+                      } else {
+                        toast.error(
+                          `${i.label} is locked on your current plan. Upgrade your plan to unlock.`,
+                        );
+                      }
                       return;
                     }
                     setOpen(false);
@@ -2409,9 +2407,15 @@ export function BottomNav({ role, isBizVerified = true }) {
                 onClick={(e) => {
                   if (isLocked) {
                     e.preventDefault();
-                    toast.error(
-                      `${item.label} is locked on your current plan. Upgrade your plan to unlock.`,
-                    );
+                    if (!isBizVerified && !isAccessibleUnverifiedPath(item.to)) {
+                      toast.error(
+                        `${item.label} is locked pending business verification. Submit documents in Membership to activate.`,
+                      );
+                    } else {
+                      toast.error(
+                        `${item.label} is locked on your current plan. Upgrade your plan to unlock.`,
+                      );
+                    }
                   }
                 }}
                 className={cn(

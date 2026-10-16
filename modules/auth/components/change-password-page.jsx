@@ -50,6 +50,20 @@ export default function ChangePasswordPage() {
         router.push("/state-admin");
       } else if (updatedUser?.role === "central_admin") {
         router.push("/admin");
+      } else if (
+        updatedUser?.role === "business_owner" ||
+        updatedUser?.role === "business" ||
+        updatedUser?.accountType === "business"
+      ) {
+        const isVerified =
+          updatedUser?.isVerified === true ||
+          (updatedUser?.verification || "").toLowerCase() === "verified" ||
+          (updatedUser?.verification || "").toLowerCase() === "approved";
+        if (!isVerified) {
+          router.push("/biz/membership#verification");
+        } else {
+          router.push("/biz");
+        }
       } else {
         router.push(homePath(updatedUser));
       }

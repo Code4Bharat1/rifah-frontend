@@ -309,7 +309,15 @@ export default function LoginPage() {
     } else if (isChapterAdmin) {
       router.push("/chapter-admin");
     } else if (isBiz) {
-      router.push("/biz");
+      const isVerified =
+        user?.isVerified === true ||
+        (user?.verification || "").toLowerCase() === "verified" ||
+        (user?.verification || "").toLowerCase() === "approved";
+      if (!isVerified) {
+        router.push("/biz/membership#verification");
+      } else {
+        router.push("/biz");
+      }
     } else if (isMemberUser) {
       router.push("/user");
     } else if (isPureCustomer) {
