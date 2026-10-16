@@ -16,7 +16,7 @@ const ADMIN_ROLES = [
   "super_admin",
 ];
 
-export function middleware(request) {
+export function proxy(request) {
   const { pathname, search } = request.nextUrl;
   const token = request.cookies.get("rifah_access_token")?.value;
   const role = request.cookies.get("rifah_user_role")?.value;
