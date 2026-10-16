@@ -30,9 +30,26 @@ import { toast } from "sonner";
 function TicketVerificationContent({ params }) {
   // Unwrap Next.js dynamic route params
   const resolvedParams = use(params);
-  const ticketId = resolvedParams?.ticketId || "";
+  const rawTicketId = resolvedParams?.ticketId || "";
+  let cleanTicketId = rawTicketId;
+  try {
+    cleanTicketId = decodeURIComponent(rawTicketId).trim();
+  } catch (_) {}
+
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") || "";
+  let token = searchParams.get("token") || "";
+
+  if (cleanTicketId.includes("?")) {
+    const parts = cleanTicketId.split("?");
+    cleanTicketId = parts[0].trim();
+    if (!token && parts[1]?.includes("token=")) {
+      token = new URLSearchParams(parts[1]).get("token") || "";
+    }
+  }
+
+  // Remove trailing or leading slashes
+  cleanTicketId = cleanTicketId.replace(/^\/+|\/+$/g, "").trim();
+  const ticketId = cleanTicketId;
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -63,13 +80,16 @@ function TicketVerificationContent({ params }) {
 
         if (!isMounted) return;
 
-        if (res && res.verified) {
-          setData(res);
+        // Unpack API response wrapper (res.data or res)
+        const ticketData = res?.data || res;
+
+        if (ticketData && ticketData.verified) {
+          setData(ticketData);
           setErrorState(null);
-          if (res.checkedIn) {
+          if (ticketData.checkedIn) {
             setAlreadyCheckedInBanner({
-              checkedInAt: res.checkedInAt
-                ? new Date(res.checkedInAt).toLocaleString("en-GB", {
+              checkedInAt: ticketData.checkedInAt
+                ? new Date(ticketData.checkedInAt).toLocaleString("en-GB", {
                     day: "2-digit",
                     month: "short",
                     year: "numeric",
@@ -77,33 +97,34 @@ function TicketVerificationContent({ params }) {
                     minute: "2-digit",
                   })
                 : "Earlier today",
-              checkedInBy: res.checkedInBy || "Event Staff",
+              checkedInBy: ticketData.checkedInBy || "Event Staff",
             });
           }
-        } else if (res && res.status === "CANCELLED") {
+        } else if (ticketData && ticketData.status === "CANCELLED") {
           setErrorState({
             type: "CANCELLED",
             title: "TICKET CANCELLED",
-            message: res.message || "This event ticket has been cancelled.",
+            message: ticketData.message || "This event ticket has been cancelled.",
           });
-        } else if (res && res.status === "REFUNDED") {
+        } else if (ticketData && ticketData.status === "REFUNDED") {
           setErrorState({
             type: "REFUNDED",
             title: "TICKET REFUNDED",
-            message: res.message || "This registration has been refunded.",
+            message: ticketData.message || "This registration has been refunded.",
           });
-        } else if (res && res.status === "UNPAID") {
+        } else if (ticketData && ticketData.status === "UNPAID") {
           setErrorState({
             type: "UNPAID",
             title: "PAYMENT NOT COMPLETED",
             message:
-              res.message || "Payment has not been completed for this event pass.",
+              ticketData.message || "Payment has not been completed for this event pass.",
           });
         } else {
           setErrorState({
             type: "INVALID",
             title: "INVALID TICKET",
             message:
+              ticketData?.message ||
               res?.message ||
               "This QR code does not correspond to a valid RIFAH event ticket.",
           });
@@ -114,6 +135,7 @@ function TicketVerificationContent({ params }) {
           type: "INVALID",
           title: "INVALID TICKET",
           message:
+            err?.data?.message ||
             err?.message ||
             "This QR code does not correspond to a valid RIFAH event ticket.",
         });
@@ -141,31 +163,33 @@ function TicketVerificationContent({ params }) {
         staffName.trim() || "Event Desk Staff"
       );
 
-      if (res && res.alreadyCheckedIn) {
+      const checkInData = res?.data || res;
+
+      if (checkInData && checkInData.alreadyCheckedIn) {
         toast.warning("Attendee was already checked in!");
         setAlreadyCheckedInBanner({
-          checkedInAt: res.checkedInAt || "Earlier",
-          checkedInBy: res.checkedInBy || "Event Staff",
+          checkedInAt: checkInData.checkedInAt || "Earlier",
+          checkedInBy: checkInData.checkedInBy || "Event Staff",
         });
         setData((prev) => ({
           ...prev,
           checkedIn: true,
-          checkedInAt: res.checkedInAt,
-          checkedInBy: res.checkedInBy,
+          checkedInAt: checkInData.checkedInAt,
+          checkedInBy: checkInData.checkedInBy,
         }));
-      } else if (res && res.success) {
+      } else if (res && (res.success || checkInData?.success || checkInData?.checkedIn)) {
         toast.success("Attendee successfully checked in!");
         setData((prev) => ({
           ...prev,
           checkedIn: true,
-          checkedInAt: res.checkedInAt,
-          checkedInBy: res.checkedInBy,
+          checkedInAt: checkInData?.checkedInAt || new Date().toISOString(),
+          checkedInBy: checkInData?.checkedInBy || staffName.trim() || "Event Desk Staff",
         }));
       } else {
-        toast.error(res?.message || "Check-in failed. Please retry.");
+        toast.error(checkInData?.message || res?.message || "Check-in failed. Please retry.");
       }
     } catch (err) {
-      toast.error(err?.message || "Failed to process check-in.");
+      toast.error(err?.data?.message || err?.message || "Failed to process check-in.");
     } finally {
       setCheckingIn(false);
     }
