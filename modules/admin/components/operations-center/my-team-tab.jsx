@@ -14,9 +14,11 @@ export function MyTeamTab({
   handleSaveTeamRoles,
   onUploadKeynotePoster,
   keynotePosterUploading = { 1: false, 2: false },
+  isReadOnly = false,
 }) {
   
   const handleRoleChange = (roleKey, value) => {
+    if (isReadOnly) return;
     setTeamRoles((prev) => ({ ...prev, [roleKey]: value }));
   };
 
@@ -49,6 +51,7 @@ export function MyTeamTab({
     <Select
       value={teamRoles[roleKey] || ""}
       onValueChange={(val) => handleRoleChange(roleKey, val)}
+      disabled={isReadOnly}
     >
       <SelectTrigger className="text-xs h-9 bg-background border-border text-foreground w-full mt-1">
         <SelectValue placeholder="-- Select participant --" />
@@ -189,6 +192,7 @@ export function MyTeamTab({
               className="h-9 text-xs" 
               value={teamRoles.keynote1Topic || ""}
               onChange={(e) => handleRoleChange("keynote1Topic", e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div className="space-y-1.5">
@@ -197,6 +201,7 @@ export function MyTeamTab({
               className="h-9 text-xs" 
               value={teamRoles.keynote2Topic || ""}
               onChange={(e) => handleRoleChange("keynote2Topic", e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div className="space-y-1.5">
@@ -215,7 +220,7 @@ export function MyTeamTab({
               id="cb-remote"
               checked={Boolean(teamRoles.allowCoordinatorRemote)}
               onCheckedChange={(checked) => handleRoleChange("allowCoordinatorRemote", Boolean(checked))}
-              disabled={!teamRoles.eventCoordinator}
+              disabled={isReadOnly || !teamRoles.eventCoordinator}
             />
             <label htmlFor="cb-remote" className="text-xs text-muted-foreground">
               Let the Event Coordinator run the programme from his own phone (Next / Hold / Start)
@@ -229,13 +234,19 @@ export function MyTeamTab({
         </div>
 
         <div className="mt-8 flex justify-end">
-          <Button
-            onClick={handleSaveTeamRoles}
-            className="gap-2 font-semibold shadow-xs"
-          >
-            <Save className="h-4 w-4" />
-            <span>Save Assignments</span>
-          </Button>
+          {isReadOnly ? (
+            <div className="text-xs font-medium text-muted-foreground bg-muted/60 px-4 py-2 rounded-xl border border-border">
+              Role Assignments View · Managed by Chapter Admin
+            </div>
+          ) : (
+            <Button
+              onClick={handleSaveTeamRoles}
+              className="gap-2 font-semibold shadow-xs"
+            >
+              <Save className="h-4 w-4" />
+              <span>Save Assignments</span>
+            </Button>
+          )}
         </div>
       </div>
     </div>

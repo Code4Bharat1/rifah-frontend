@@ -249,10 +249,14 @@ export default function LoginPage() {
     ].includes(role);
     const isStateAdmin = role === "state_admin";
     const isChapterAdmin = role === "chapter_admin";
+    const isGuestSpeakerManager = role === "guest_speaker_manager" || role === "guestManager";
+    const isEventCoordinator = role === "event_coordinator" || role === "eventCoordinator";
     const isBiz =
       !isCentralAdmin &&
       !isStateAdmin &&
       !isChapterAdmin &&
+      !isGuestSpeakerManager &&
+      !isEventCoordinator &&
       (role === "business_owner" ||
         role === "business" ||
         accountType === "business" ||
@@ -263,12 +267,16 @@ export default function LoginPage() {
       !isCentralAdmin &&
       !isStateAdmin &&
       !isChapterAdmin &&
+      !isGuestSpeakerManager &&
+      !isEventCoordinator &&
       (accountType === "user" || Boolean(user.subscriberTier));
     const isPureCustomer =
       !isBiz &&
       !isCentralAdmin &&
       !isStateAdmin &&
       !isChapterAdmin &&
+      !isGuestSpeakerManager &&
+      !isEventCoordinator &&
       !isMemberUser;
 
     // Strict validation of redirect query param:
@@ -284,6 +292,14 @@ export default function LoginPage() {
         return;
       }
       if (isChapterAdmin && redirect.startsWith("/chapter-admin")) {
+        router.push(redirect);
+        return;
+      }
+      if (isGuestSpeakerManager && (redirect.startsWith("/chapter-admin") || redirect.startsWith("/biz/operations"))) {
+        router.push(redirect);
+        return;
+      }
+      if (isEventCoordinator && (redirect.startsWith("/chapter-admin") || redirect.startsWith("/biz/operations"))) {
         router.push(redirect);
         return;
       }
@@ -308,6 +324,10 @@ export default function LoginPage() {
       router.push("/state-admin");
     } else if (isChapterAdmin) {
       router.push("/chapter-admin");
+    } else if (isGuestSpeakerManager) {
+      router.push("/chapter-admin/speakers-guests");
+    } else if (isEventCoordinator) {
+      router.push("/chapter-admin/live-control");
     } else if (isBiz) {
       const isVerified =
         user?.isVerified === true ||
