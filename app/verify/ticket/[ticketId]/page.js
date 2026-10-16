@@ -15,16 +15,13 @@ import {
   Clock,
   MapPin,
   ShieldCheck,
-  ShieldAlert,
   ArrowLeft,
   Check,
-  Sparkles,
-  QrCode,
-  UserCheck,
+  Download,
 } from "lucide-react";
 import { eventApi } from "@shared/lib/api-services";
+import { downloadTicketPdf } from "@shared/lib/ticket-pdf-generator";
 import { Button } from "@shared/components/ui/button";
-import { Input } from "@shared/components/ui/input";
 import { toast } from "sonner";
 
 function TicketVerificationContent({ params }) {
@@ -54,8 +51,7 @@ function TicketVerificationContent({ params }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [errorState, setErrorState] = useState(null);
-  const [checkingIn, setCheckingIn] = useState(false);
-  const [staffName, setStaffName] = useState("");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [alreadyCheckedInBanner, setAlreadyCheckedInBanner] = useState(null);
 
   useEffect(() => {
@@ -153,51 +149,36 @@ function TicketVerificationContent({ params }) {
     };
   }, [ticketId, token]);
 
-  const handleCheckIn = async () => {
-    if (!ticketId || checkingIn) return;
-
+  const handleDownloadPass = async () => {
+    if (!data) return;
     try {
-      setCheckingIn(true);
-      const res = await eventApi.checkInTicket(
-        ticketId,
-        staffName.trim() || "Event Desk Staff"
-      );
-
-      const checkInData = res?.data || res;
-
-      if (checkInData && checkInData.alreadyCheckedIn) {
-        toast.warning("Attendee was already checked in!");
-        setAlreadyCheckedInBanner({
-          checkedInAt: checkInData.checkedInAt || "Earlier",
-          checkedInBy: checkInData.checkedInBy || "Event Staff",
-        });
-        setData((prev) => ({
-          ...prev,
-          checkedIn: true,
-          checkedInAt: checkInData.checkedInAt,
-          checkedInBy: checkInData.checkedInBy,
-        }));
-      } else if (res && (res.success || checkInData?.success || checkInData?.checkedIn)) {
-        toast.success("Attendee successfully checked in!");
-        setData((prev) => ({
-          ...prev,
-          checkedIn: true,
-          checkedInAt: checkInData?.checkedInAt || new Date().toISOString(),
-          checkedInBy: checkInData?.checkedInBy || staffName.trim() || "Event Desk Staff",
-        }));
-      } else {
-        toast.error(checkInData?.message || res?.message || "Check-in failed. Please retry.");
-      }
-    } catch (err) {
-      toast.error(err?.data?.message || err?.message || "Failed to process check-in.");
+      setDownloadingPdf(true);
+      await downloadTicketPdf({
+        ticketId: data.ticketId,
+        attendeeName: data.attendeeName,
+        attendeeEmail: data.attendeeEmail,
+        attendeeCompany: data.attendeeCompany,
+        eventTitle: data.eventTitle,
+        eventDate: data.eventDate,
+        eventTime: data.eventTime,
+        eventVenue: data.eventVenue || data.eventCity || "Chamber Main Hall",
+        eventCity: data.eventCity || "",
+        ticketType: data.ticketType,
+        paymentStatus: data.paymentStatus,
+        amountPaid: data.amountPaid || 0,
+        verificationUrl: typeof window !== "undefined" ? window.location.href : "",
+      });
+      toast.success("Ticket PDF downloaded successfully!");
+    } catch (e) {
+      toast.error("Could not download ticket PDF.");
     } finally {
-      setCheckingIn(false);
+      setDownloadingPdf(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#070E17] text-slate-100 flex flex-col justify-between selection:bg-[#0088D1]/30">
-      {/* Staff Check-in Header */}
+      {/* Official Header */}
       <header className="border-b border-slate-800 bg-[#0B1522]/90 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
@@ -211,17 +192,17 @@ function TicketVerificationContent({ params }) {
             />
             <div className="border-l border-slate-700 pl-2.5">
               <span className="block text-[10px] uppercase font-bold tracking-wider text-sky-400">
-                Staff Verification Desk
+                Official Entry Pass
               </span>
               <span className="text-xs font-bold text-white">
-                RIFAH Event Entry Portal
+                RIFAH Chamber of Commerce
               </span>
             </div>
           </Link>
 
           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-2.5 py-1 rounded-full">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Secure Ticket</span>
+            <span>Verified Pass</span>
           </div>
         </div>
       </header>
@@ -263,7 +244,7 @@ function TicketVerificationContent({ params }) {
                   Validation Notice:
                 </p>
                 <p>
-                  This QR scan did not match an active entry pass. Staff should advise the guest to verify their ticket email or visit the help desk.
+                  This QR scan did not match an active entry pass. Please check your registered email or visit the help desk at the event venue.
                 </p>
               </div>
 
@@ -303,11 +284,11 @@ function TicketVerificationContent({ params }) {
                     <strong>
                       {alreadyCheckedInBanner?.checkedInBy ||
                         data.checkedInBy ||
-                        "Event Staff"}
+                        "Event Desk Staff"}
                     </strong>
                   </p>
                   <p className="text-[11px] text-amber-400 font-semibold mt-1">
-                    ✓ Duplicate entry is strictly blocked for security.
+                    ✓ Entry record confirmed in chamber registry.
                   </p>
                 </div>
               </div>
@@ -322,12 +303,12 @@ function TicketVerificationContent({ params }) {
                       TICKET VERIFIED ✓
                     </h3>
                     <p className="text-xs text-emerald-300/80">
-                      Ready for physical check-in
+                      Official pass is valid for event entry
                     </p>
                   </div>
                 </div>
                 <span className="text-[11px] font-bold bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full border border-emerald-500/40 uppercase tracking-wider">
-                  VALID ENTRY
+                  VALID PASS
                 </span>
               </div>
             )}
@@ -433,50 +414,29 @@ function TicketVerificationContent({ params }) {
                   </div>
                 </div>
 
-                {/* Check-in Action Section */}
+                {/* Entry Notice & Download Ticket Action */}
                 <div className="pt-3 border-t border-slate-800 space-y-3">
-                  {!data.checkedIn && !alreadyCheckedInBanner ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                          Checking Staff Identifier (Optional)
-                        </label>
-                        <Input
-                          placeholder="e.g. Gate 1 Desk / Reception"
-                          value={staffName}
-                          onChange={(e) => setStaffName(e.target.value)}
-                          className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 h-11 rounded-xl"
-                        />
-                      </div>
-
-                      <Button
-                        onClick={handleCheckIn}
-                        disabled={checkingIn}
-                        className="w-full h-13 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-base font-black tracking-wide shadow-lg shadow-emerald-950 transition-all flex items-center justify-center gap-2"
-                      >
-                        {checkingIn ? (
-                          <>
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            <span>Recording Check-in...</span>
-                          </>
-                        ) : (
-                          <>
-                            <UserCheck className="w-5 h-5" />
-                            <span>MARK AS CHECKED IN</span>
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-emerald-800/60 text-center space-y-1">
-                      <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-950 px-3 py-1 rounded-full border border-emerald-800">
-                        <Check className="w-3.5 h-3.5" /> Checked In
-                      </div>
-                      <p className="text-xs text-slate-300 font-medium pt-1">
-                        Recorded for entry at {data.eventTitle}
+                  <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-800/50 flex items-start gap-3 text-xs text-slate-300">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="font-bold text-white text-xs">
+                        Official Chamber Entry Pass
+                      </p>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        Please present this digital pass or your downloaded ticket at the event reception / entrance desk. The desk officer will scan this ticket to issue your badge and allow entry.
                       </p>
                     </div>
-                  )}
+                  </div>
+
+                  <Button
+                    onClick={handleDownloadPass}
+                    disabled={downloadingPdf}
+                    variant="outline"
+                    className="w-full h-11 rounded-xl border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white font-semibold text-xs gap-2"
+                  >
+                    <Download className="w-4 h-4 text-emerald-400" />
+                    <span>{downloadingPdf ? "Generating PDF..." : "Download Official Ticket PDF"}</span>
+                  </Button>
                 </div>
               </div>
 
@@ -498,7 +458,7 @@ function TicketVerificationContent({ params }) {
           RIFAH Chamber of Commerce & Industry
         </p>
         <p className="mt-0.5 text-[11px]">
-          Together for Sustainable Future · Event Operations Desk
+          Together for Sustainable Future · Event Pass Portal
         </p>
       </footer>
     </div>
