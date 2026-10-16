@@ -39,7 +39,7 @@ export default async function RootLayout({ children }) {
   const messages = await getMessages();
 
   return (
-    <html lang={locale} data-scroll-behavior="smooth">
+    <html lang={locale} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <link rel="icon" href={withAssetPrefix("/favicon.png?v=4")} type="image/png" />
