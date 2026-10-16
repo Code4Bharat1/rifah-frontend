@@ -1219,7 +1219,7 @@ function DiscoverPage() {
                           />
                         </div>
                       ) : (
-                        <div className="relative mb-3.5 h-24 w-full rounded-xl bg-gradient-to-tr from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-border flex items-center justify-center text-muted-foreground">
+                        <div className="relative mb-3 h-40 w-full rounded-xl bg-gradient-to-tr from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-border flex items-center justify-center text-muted-foreground">
                           {item.type === "Product" ? (
                             <Package className="h-8 w-8 text-primary/70" />
                           ) : (
@@ -1235,15 +1235,13 @@ function DiscoverPage() {
                         <Pill tone={item.type === "Product" ? "primary" : "neutral"}>{item.type}</Pill>
                       </div>
 
-                      <h3 className="mt-2.5 text-base font-bold text-foreground leading-snug group-hover:text-primary transition-colors">
+                      <h3 className="mt-2.5 text-base font-bold text-foreground leading-snug line-clamp-2 min-h-[2.75rem] group-hover:text-primary transition-colors">
                         {item.name}
                       </h3>
 
-                      {item.description && (
-                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                          {item.description}
-                        </p>
-                      )}
+                      <p className="mt-1 line-clamp-2 min-h-[2.25rem] text-xs leading-relaxed text-muted-foreground">
+                        {item.description || <span className="opacity-60 italic">No description provided</span>}
+                      </p>
 
                       <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
                         <span className="font-extrabold text-foreground">{item.price || "Price on request"}</span>

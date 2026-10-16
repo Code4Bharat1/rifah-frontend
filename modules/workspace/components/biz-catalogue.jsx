@@ -112,6 +112,8 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
   const [openAdd, setOpenAdd] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [openEditForm, setOpenEditForm] = useState(false);
+  const [viewingItem, setViewingItem] = useState(null);
+  const [viewingImageIndex, setViewingImageIndex] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -624,112 +626,164 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
             }
           />
         ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl items-start">
-          {items.map((item) => (
-            <div
-              key={item._id || item.slug}
-              className="flex flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all hover:border-slate-300 hover:shadow-md max-w-[360px] w-full overflow-hidden"
-            >
-              <div>
-                {/* Item Image Display */}
-                {item.images && item.images.length > 0 ? (
-                  <div className="relative mb-3 h-40 w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-100">
-                    <img
-                      src={resolveMediaUrl(item.images[0])}
-                      alt={item.name}
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.style.display = "none";
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl">
+          {items.map((item) => {
+            const hasLongDesc = item.description && (item.description.length > 70 || item.description.includes("\n"));
+            return (
+              <div
+                key={item._id || item.slug}
+                className="flex flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all hover:border-slate-300 hover:shadow-md w-full h-full min-h-[460px] overflow-hidden"
+              >
+                <div className="flex-1 flex flex-col">
+                  {/* Item Image Display - Uniform h-40 height across all cards */}
+                  {item.images && item.images.length > 0 ? (
+                    <div
+                      onClick={() => {
+                        setViewingItem(item);
+                        setViewingImageIndex(0);
                       }}
-                      className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                    {item.images.length > 1 && (
-                      <span className="absolute bottom-2 right-2 rounded-full bg-slate-900/70 backdrop-blur-xs px-2 py-0.5 text-[10px] font-medium text-white">
-                        +{item.images.length - 1} photos
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="relative mb-3 h-24 w-full overflow-hidden rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
-                    <ImageIcon className="h-7 w-7 text-slate-300" />
-                  </div>
-                )}
+                      className="relative mb-3.5 h-40 w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-100 cursor-pointer group/img"
+                    >
+                      <img
+                        src={resolveMediaUrl(item.images[0])}
+                        alt={item.name}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.style.display = "none";
+                        }}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover/img:scale-105"
+                      />
+                      {item.images.length > 1 && (
+                        <span className="absolute bottom-2 right-2 rounded-full bg-slate-900/70 backdrop-blur-xs px-2 py-0.5 text-[10px] font-medium text-white">
+                          +{item.images.length - 1} photos
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => {
+                        setViewingItem(item);
+                        setViewingImageIndex(0);
+                      }}
+                      className="relative mb-3.5 h-40 w-full overflow-hidden rounded-2xl bg-slate-50 border border-slate-100/90 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-100/70 transition-colors"
+                    >
+                      <div className="p-2.5 rounded-xl bg-slate-100 text-slate-300">
+                        <ImageIcon className="h-6 w-6 text-slate-400" />
+                      </div>
+                      <span className="text-[11px] font-medium text-slate-400">No image uploaded</span>
+                    </div>
+                  )}
 
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="text-base font-bold text-slate-900 leading-snug">{item.name}</h3>
-                    {(item.status === 'Draft' || item.status === 'Archived') && (
-                      <span className="inline-flex w-fit items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                        <EyeOff className="h-3 w-3" /> Hidden from public
-                      </span>
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <h3
+                        onClick={() => {
+                          setViewingItem(item);
+                          setViewingImageIndex(0);
+                        }}
+                        className="text-base font-bold text-slate-900 leading-snug line-clamp-2 min-h-[2.75rem] cursor-pointer hover:text-[#0088d1] transition-colors"
+                        title={item.name}
+                      >
+                        {item.name}
+                      </h3>
+                      {(item.status === 'Draft' || item.status === 'Archived') && (
+                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                          <EyeOff className="h-3 w-3" /> Hidden from public
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-3 py-0.5 text-xs font-semibold ${
+                        item.type === "Product"
+                          ? "bg-sky-100 text-sky-700 border border-sky-200/60"
+                          : "bg-slate-100 text-slate-700 border border-slate-200/60"
+                      }`}
+                    >
+                      {item.type || "Product"}
+                    </span>
+                  </div>
+
+                  <p className="mt-1 text-xs text-slate-400 font-normal truncate h-4">
+                    {item.category || "\u00A0"}
+                  </p>
+
+                  {/* Description with 2-line clamp & Read more option */}
+                  <div className="mt-2.5 flex flex-col">
+                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 break-words min-h-[2.25rem]">
+                      {item.description || (
+                        <span className="text-slate-400 italic">No description provided</span>
+                      )}
+                    </p>
+                    <div className="h-5 mt-1 flex items-center">
+                      {hasLongDesc ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setViewingItem(item);
+                            setViewingImageIndex(0);
+                          }}
+                          className="text-[11px] font-bold text-[#0088d1] hover:text-[#0077b6] hover:underline cursor-pointer inline-flex items-center gap-0.5"
+                        >
+                          <span>Read more</span>
+                          <span aria-hidden="true">&rarr;</span>
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* MOQ & Price - Aligned vertically across cards */}
+                  <div className="mt-auto pt-3 min-h-[1.5rem] flex items-center">
+                    {(item.moq || item.price) ? (
+                      <p className="text-xs font-bold text-slate-900 truncate">
+                        {item.moq ? `MOQ · ${item.moq}` : ""}
+                        {item.moq && item.price ? ` · ` : ""}
+                        {item.price ? item.price : ""}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-400 font-medium">Price on request</p>
                     )}
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-medium ${
-                      item.type === "Product"
-                        ? "bg-sky-100 text-sky-600"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {item.type || "Product"}
-                  </span>
                 </div>
 
-                {item.category && (
-                  <p className="mt-1 text-xs text-slate-400 font-normal">{item.category}</p>
-                )}
-
-                {item.description && (
-                  <p className="mt-2.5 text-xs text-slate-500 leading-relaxed line-clamp-3">
-                    {item.description}
-                  </p>
-                )}
-
-                {(item.moq || item.price) && (
-                  <p className="mt-3 text-xs font-bold text-slate-900">
-                    {item.moq ? `MOQ · ${item.moq}` : item.price}
-                  </p>
-                )}
+                <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenShareItem(item)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 text-xs font-medium text-emerald-700 border border-emerald-200/80 transition-colors cursor-pointer"
+                    title="Share this item"
+                  >
+                    <Share2 className="h-3.5 w-3.5 text-emerald-600" /> Share
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleEditClick(item)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 hover:bg-sky-100 px-3.5 py-1.5 text-xs font-medium text-sky-600 border border-sky-100/80 transition-colors cursor-pointer"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleVisibility(item)}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium border transition-colors cursor-pointer ${
+                      item.status === 'Draft' || item.status === 'Archived'
+                        ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border-emerald-100/80'
+                        : 'bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-100/80'
+                    }`}
+                  >
+                    {item.status === 'Draft' || item.status === 'Archived' ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                    {item.status === 'Draft' || item.status === 'Archived' ? 'Show' : 'Hide'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteItem(item._id)}
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Remove
+                  </button>
+                </div>
               </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOpenShareItem(item)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 text-xs font-medium text-emerald-700 border border-emerald-200/80 transition-colors cursor-pointer"
-                  title="Share this item"
-                >
-                  <Share2 className="h-3.5 w-3.5 text-emerald-600" /> Share
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleEditClick(item)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 hover:bg-sky-100 px-3.5 py-1.5 text-xs font-medium text-sky-600 border border-sky-100/80 transition-colors cursor-pointer"
-                >
-                  <Pencil className="h-3.5 w-3.5" /> Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleToggleVisibility(item)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium border transition-colors cursor-pointer ${
-                    item.status === 'Draft' || item.status === 'Archived'
-                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border-emerald-100/80'
-                      : 'bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-100/80'
-                  }`}
-                >
-                  {item.status === 'Draft' || item.status === 'Archived' ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                  {item.status === 'Draft' || item.status === 'Archived' ? 'Show' : 'Hide'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteItem(item._id)}
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                >
-                  <Trash2 className="h-3.5 w-3.5" /> Remove
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1031,6 +1085,164 @@ export function BizCatalogueManager({ embedded = false, role = undefined }) {
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Item Details Dialog for Read More */}
+      <Dialog open={!!viewingItem} onOpenChange={(open) => { if (!open) setViewingItem(null); }}>
+        <DialogContent className="w-[94vw] max-w-xl max-h-[90vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden rounded-3xl p-6 sm:p-7 bg-white border border-slate-200/80 shadow-2xl font-sans">
+          {viewingItem && (
+            <div>
+              <DialogHeader className="space-y-1.5 text-left pr-6">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span
+                    className={`rounded-full px-3 py-0.5 text-xs font-semibold ${
+                      viewingItem.type === "Product"
+                        ? "bg-sky-100 text-sky-700 border border-sky-200/60"
+                        : "bg-slate-100 text-slate-700 border border-slate-200/60"
+                    }`}
+                  >
+                    {viewingItem.type || "Product"}
+                  </span>
+                  {viewingItem.category && (
+                    <span className="rounded-full bg-slate-100 px-3 py-0.5 text-xs font-medium text-slate-600">
+                      {viewingItem.category}
+                    </span>
+                  )}
+                  {(viewingItem.status === "Draft" || viewingItem.status === "Archived") && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 border border-amber-200">
+                      <EyeOff className="h-3 w-3" /> Hidden from public
+                    </span>
+                  )}
+                </div>
+                <DialogTitle className="text-xl sm:text-2xl font-bold text-[#0f172a] leading-tight font-sans">
+                  {viewingItem.name}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-500 font-sans">
+                  Full catalogue specifications & details
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Image Gallery */}
+              {viewingItem.images && viewingItem.images.length > 0 ? (
+                <div className="mt-4 space-y-2">
+                  <div className="relative h-56 sm:h-64 w-full rounded-2xl overflow-hidden bg-slate-50 border border-slate-200/80 flex items-center justify-center">
+                    <img
+                      src={resolveMediaUrl(viewingItem.images[viewingImageIndex] || viewingItem.images[0])}
+                      alt={viewingItem.name}
+                      className="h-full w-full object-contain p-2"
+                    />
+                  </div>
+                  {viewingItem.images.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {viewingItem.images.map((img, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setViewingImageIndex(idx)}
+                          className={`relative h-14 w-14 rounded-xl overflow-hidden border-2 shrink-0 cursor-pointer transition-all ${
+                            viewingImageIndex === idx ? "border-[#0088d1] ring-2 ring-[#0088d1]/20" : "border-slate-200 opacity-70 hover:opacity-100"
+                          }`}
+                        >
+                          <img src={resolveMediaUrl(img)} alt={`Thumbnail ${idx}`} className="h-full w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {/* Specifications Grid */}
+              <div className="mt-4 grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50/80 border border-slate-100">
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    Minimum Order (MOQ)
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 block">
+                    {viewingItem.moq || "Not specified"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    Indicative Price
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 block">
+                    {viewingItem.price || "On request"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Full Description & Specifications */}
+              <div className="mt-4 space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Description & Technical Details</label>
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 max-h-64 overflow-y-auto">
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
+                    {viewingItem.description || "No description provided."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const itemToShare = viewingItem;
+                      setViewingItem(null);
+                      handleOpenShareItem(itemToShare);
+                    }}
+                    className="rounded-xl px-3 h-9 text-xs font-semibold gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50 cursor-pointer"
+                  >
+                    <Share2 className="h-3.5 w-3.5 text-emerald-600" /> Share
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const itemToEdit = viewingItem;
+                      setViewingItem(null);
+                      handleEditClick(itemToEdit);
+                    }}
+                    className="rounded-xl px-3 h-9 text-xs font-semibold gap-1.5 text-sky-600 border-sky-200 hover:bg-sky-50 cursor-pointer"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const itemToToggle = viewingItem;
+                      await handleToggleVisibility(itemToToggle);
+                      setViewingItem((prev) => prev ? { ...prev, status: prev.status === "Active" ? "Draft" : "Active" } : null);
+                    }}
+                    className="rounded-xl px-3 h-9 text-xs font-semibold gap-1.5 text-amber-700 border-amber-200 hover:bg-amber-50 cursor-pointer"
+                  >
+                    {viewingItem.status === "Draft" || viewingItem.status === "Archived" ? (
+                      <>
+                        <Eye className="h-3.5 w-3.5" /> Show
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff className="h-3.5 w-3.5" /> Hide
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => setViewingItem(null)}
+                  className="rounded-xl px-4 h-9 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white cursor-pointer"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
