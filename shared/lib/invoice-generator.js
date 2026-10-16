@@ -198,7 +198,8 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
 
   const verificationToken = payment.verificationToken || "";
   const tokenQuery = verificationToken ? `?token=${encodeURIComponent(verificationToken)}` : "";
-  const verificationUrl = `${origin}/verify/invoice/${encodeURIComponent(invoiceNum)}${tokenQuery}`;
+  const cleanInvoiceNum = (invoiceNum || "").replace(/^#+/, "").trim();
+  const verificationUrl = `${origin}/verify/invoice/${cleanInvoiceNum}${tokenQuery}`;
 
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(
     verificationUrl

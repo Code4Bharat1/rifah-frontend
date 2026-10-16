@@ -26,11 +26,41 @@ import { generateInvoiceHtml, downloadInvoicePdf } from "@shared/lib/invoice-gen
 function InvoiceVerificationContent({ params }) {
   const resolvedParams = use(params);
   const rawInvoice = resolvedParams?.invoiceNumber;
-  const invoiceNumber = Array.isArray(rawInvoice)
-    ? rawInvoice.map(decodeURIComponent).join("/")
-    : decodeURIComponent(rawInvoice || "");
+  let parsedInvoice = "";
+  if (Array.isArray(rawInvoice)) {
+    parsedInvoice = rawInvoice
+      .map((seg) => {
+        try {
+          return decodeURIComponent(seg);
+        } catch (_) {
+          return seg;
+        }
+      })
+      .join("/");
+  } else if (rawInvoice) {
+    try {
+      parsedInvoice = decodeURIComponent(rawInvoice);
+    } catch (_) {
+      parsedInvoice = rawInvoice;
+    }
+  }
+
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") || "";
+  let token = searchParams.get("token") || "";
+
+  if (parsedInvoice.includes("?")) {
+    const parts = parsedInvoice.split("?");
+    parsedInvoice = parts[0];
+    if (!token && parts[1]?.includes("token=")) {
+      token = new URLSearchParams(parts[1]).get("token") || "";
+    }
+  }
+
+  // Strip leading hash if present e.g. #RCCI/26-27/0031 -> RCCI/26-27/0031
+  parsedInvoice = parsedInvoice.replace(/^#+/, "").trim();
+  // Strip leading and trailing slashes
+  parsedInvoice = parsedInvoice.replace(/^\/+|\/+$/g, "").trim();
+  const invoiceNumber = parsedInvoice;
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -58,37 +88,51 @@ function InvoiceVerificationContent({ params }) {
 
         if (!isMounted) return;
 
-        if (res && res.verified) {
-          setData(res);
+        // Unpack API response wrapper (res.data or res)
+        const invoiceData = res?.data || res;
+
+        if (invoiceData && invoiceData.verified) {
+          setData(invoiceData);
           setErrorState(null);
-        } else if (res && (res.isRevoked || res.status === "REVOKED")) {
+        } else if (invoiceData && (invoiceData.isRevoked || invoiceData.status === "REVOKED")) {
           setErrorState({
             type: "REVOKED",
             title: "INVOICE REVOKED",
             message:
-              res.message ||
+              invoiceData.message ||
               "This invoice is no longer considered a valid RIFAH payment document.",
-            reason: res.revokedReason,
-            revokedAt: res.revokedAt,
+            reason: invoiceData.revokedReason,
+            revokedAt: invoiceData.revokedAt,
           });
         } else {
           setErrorState({
             type: "INVALID",
             title: "INVOICE COULD NOT BE VERIFIED",
             message:
-              res?.message ||
+              invoiceData?.message ||
               "We could not find a valid RIFAH invoice matching this verification request.",
           });
         }
       } catch (err) {
         if (!isMounted) return;
-        setErrorState({
-          type: "INVALID",
-          title: "INVOICE COULD NOT BE VERIFIED",
-          message:
-            err?.message ||
-            "We could not find a valid RIFAH invoice matching this verification request.",
-        });
+        const errData = err?.data?.data || err?.data || err;
+        if (errData && (errData.isRevoked || errData.status === "REVOKED")) {
+          setErrorState({
+            type: "REVOKED",
+            title: "INVOICE REVOKED",
+            message: errData.message || "This invoice has been revoked.",
+            reason: errData.revokedReason,
+            revokedAt: errData.revokedAt,
+          });
+        } else {
+          setErrorState({
+            type: "INVALID",
+            title: "INVOICE COULD NOT BE VERIFIED",
+            message:
+              err?.message ||
+              "We could not find a valid RIFAH invoice matching this verification request.",
+          });
+        }
       } finally {
         if (isMounted) {
           setLoading(false);
