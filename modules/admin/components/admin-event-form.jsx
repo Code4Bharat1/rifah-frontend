@@ -185,7 +185,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
   const { data: chaptersData } = useChapters();
 
   const stateOptions = Array.from(new Set(["All", ...(statesData || []).map(s => s.state || s.name || s)]));
-  
+
   let chapterOptions = ["All"];
   if (user?.role === "state_admin" && user?.state) {
     const userState = user.state.toLowerCase();
@@ -248,7 +248,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
     try {
       const parts = timeStr.split("-").map(s => s.trim());
       if (parts.length !== 2) return { startTime: "10:00", endTime: "13:00" };
-      
+
       const to24Hour = (timeStr12h) => {
         const [time, modifier] = timeStr12h.split(" ");
         if (!time || !modifier) return "10:00";
@@ -327,7 +327,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
   useEffect(() => {
     if (initialData) {
       const parsedTime = parseTimeString(initialData.time);
-      
+
       let initialSchDate = "";
       let initialSchTime = "08:00";
       if (initialData.scheduledAt) {
@@ -361,7 +361,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
         totalSeats: initialData.totalSeats || "",
         scheduledDate: initialSchDate,
         scheduledTime: initialSchTime,
-      eventCategory: initialData.eventCategory || (initialData.isDelegation ? "Delegation" : "Meet"),
+        eventCategory: initialData.eventCategory || (initialData.isDelegation ? "Delegation" : "Meet"),
         industrySector: initialData.industrySector || "Networking",
         isRegistrationClosed: Boolean(initialData.isRegistrationClosed || initialData.seatsFull),
         seatsFull: Boolean(initialData.isRegistrationClosed || initialData.seatsFull),
@@ -391,23 +391,23 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
         delegationVisaGuidelines: initialData.delegationDetails?.visaGuidelines || "",
         delegationInstallments: Array.isArray(initialData.delegationInstallments) && initialData.delegationInstallments.length > 0
           ? initialData.delegationInstallments.map((i, idx) => ({
-              installmentNumber: i.installmentNumber || idx + 1,
-              title: i.title || `Installment #${idx + 1}`,
-              dueDate: i.dueDate ? new Date(i.dueDate).toISOString().split("T")[0] : "",
-              memberAmount: i.memberAmount ?? "",
-              nonMemberAmount: i.nonMemberAmount ?? "",
-              notes: i.notes || "",
-            }))
+            installmentNumber: i.installmentNumber || idx + 1,
+            title: i.title || `Installment #${idx + 1}`,
+            dueDate: i.dueDate ? new Date(i.dueDate).toISOString().split("T")[0] : "",
+            memberAmount: i.memberAmount ?? "",
+            nonMemberAmount: i.nonMemberAmount ?? "",
+            notes: i.notes || "",
+          }))
           : [
-              {
-                installmentNumber: 1,
-                title: "Registration & Advance Booking",
-                dueDate: "",
-                memberAmount: "",
-                nonMemberAmount: "",
-                notes: "Seat reservation token for delegation",
-              },
-            ],
+            {
+              installmentNumber: 1,
+              title: "Registration & Advance Booking",
+              dueDate: "",
+              memberAmount: "",
+              nonMemberAmount: "",
+              notes: "Seat reservation token for delegation",
+            },
+          ],
         cover: null, // Keep cover null to allow new upload
         poster: null,
       });
@@ -735,7 +735,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    
+
     setErrors({});
 
     if (targetStatus === "Upcoming") setLoading(true);
@@ -844,7 +844,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
         await eventApi.uploadCover(eventId, formData.cover);
         toast.success("Banner image uploaded");
       }
-      
+
       if (formData.poster && eventId) {
         toast.info("Uploading poster image...");
         await eventApi.uploadPoster(eventId, formData.poster);
@@ -1524,19 +1524,19 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {!isDelegation && (
-              <div className="space-y-2">
-                <Label htmlFor="isPaid">Event Fee <span className="text-destructive">*</span></Label>
-                <Select value={formData.isPaid ? "Paid" : "Free"} onValueChange={(val) => setFormData({ ...formData, isPaid: val === "Paid", ticketPrice: val === "Free" ? "" : formData.ticketPrice })}>
-                  <SelectTrigger id="isPaid" className={errors.isPaid ? "border-destructive" : ""}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Free">Free / Complimentary</SelectItem>
-                    <SelectItem value="Paid">Paid Event</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.isPaid && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.isPaid}</p>}
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="isPaid">Event Fee <span className="text-destructive">*</span></Label>
+                  <Select value={formData.isPaid ? "Paid" : "Free"} onValueChange={(val) => setFormData({ ...formData, isPaid: val === "Paid", ticketPrice: val === "Free" ? "" : formData.ticketPrice })}>
+                    <SelectTrigger id="isPaid" className={errors.isPaid ? "border-destructive" : ""}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Free">Free / Complimentary</SelectItem>
+                      <SelectItem value="Paid">Paid Event</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.isPaid && <p className="text-[13px] text-destructive mt-1 font-medium">{errors.isPaid}</p>}
+                </div>
               )}
               <div className="space-y-2">
                 <Label htmlFor="totalSeats">Capacity / Max Registration Allowed</Label>
@@ -1562,7 +1562,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
                 return (
                   <div className="col-span-full border border-border rounded-xl p-5 bg-muted/10 shadow-sm relative overflow-hidden space-y-4">
                     <div className="absolute top-0 left-0 w-1 h-full bg-primary/50" />
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="ticketPrice">Non-Member Price (₹) <span className="text-destructive">*</span></Label>
@@ -1672,7 +1672,7 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
                   Manage seat availability and schedule automated cutoff for event registration.
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
                 <div className="flex items-start justify-between p-4 rounded-xl border border-border bg-card shadow-2xs">
                   <div className="space-y-0.5 pr-4">
@@ -1745,10 +1745,10 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="venue">Venue / Address</Label>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       const el = document.getElementById("location-picker-container");
                       if (el) el.classList.toggle("hidden");
@@ -1765,17 +1765,17 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 />
               </div>
-              
+
               {/* Interactive Location Picker */}
               <div id="location-picker-container" className={formData.location ? "hidden" : "block"}>
                 <div className="p-3 bg-card border border-border rounded-xl shadow-sm">
                   <p className="text-xs font-semibold text-muted-foreground mb-2">Pinpoint Location on Map</p>
-                  <MapComponent 
+                  <MapComponent
                     onLocationSelect={(addr) => {
                       setFormData({ ...formData, location: addr });
                       toast.success("Location set from map!");
                       document.getElementById("location-picker-container").classList.add("hidden");
-                    }} 
+                    }}
                   />
                 </div>
               </div>
@@ -1908,22 +1908,22 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
               <div>
                 <Label className="text-base">Target Audience</Label>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Select which user segments should receive email invitations and in-app alerts when you publish this event. 
+                  Select which user segments should receive email invitations and in-app alerts when you publish this event.
                   (No notifications are sent if you save as a draft).
                 </p>
               </div>
               <div className="flex flex-wrap gap-6 mt-4">
-                <MultiSelectDropdown 
+                <MultiSelectDropdown
                   options={
-                    isCentralAdmin 
-                      ? ["All", "Registered Businesses Only", "Paid Members Only", "Chapter Admins Only", "State Secretaries Only"] 
-                      : (isStateAdmin 
-                          ? ["All", "Registered Businesses Only", "Paid Members Only", "Chapter Admins Only"] 
-                          : ["All", "Registered Businesses Only", "Paid Members Only"])
-                  } 
-                  selected={formData.targetAudience || []} 
-                  toggleOption={toggleAudience} 
-                  placeholder="Select Target Audience..." 
+                    isCentralAdmin
+                      ? ["All", "Registered Businesses Only", "Paid Members Only", "Chapter Admins Only", "State Secretaries Only"]
+                      : (isStateAdmin
+                        ? ["All", "Registered Businesses Only", "Paid Members Only", "Chapter Admins Only"]
+                        : ["All", "Registered Businesses Only", "Paid Members Only"])
+                  }
+                  selected={formData.targetAudience || []}
+                  toggleOption={toggleAudience}
+                  placeholder="Select Target Audience..."
                 />
               </div>
             </div>
@@ -1939,11 +1939,11 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-6 mt-4">
-                  <MultiSelectDropdown 
-                    options={stateOptions} 
-                    selected={formData.targetStates || []} 
-                    toggleOption={toggleState} 
-                    placeholder="Select Target States..." 
+                  <MultiSelectDropdown
+                    options={stateOptions}
+                    selected={formData.targetStates || []}
+                    toggleOption={toggleState}
+                    placeholder="Select Target States..."
                   />
                 </div>
               </div>
@@ -1958,11 +1958,11 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-6 mt-4">
-                  <MultiSelectDropdown 
-                    options={chapterOptions} 
-                    selected={formData.targetChapters || []} 
-                    toggleOption={toggleChapter} 
-                    placeholder="Select Target Chapters..." 
+                  <MultiSelectDropdown
+                    options={chapterOptions}
+                    selected={formData.targetChapters || []}
+                    toggleOption={toggleChapter}
+                    placeholder="Select Target Chapters..."
                   />
                 </div>
               </div>
@@ -2003,16 +2003,16 @@ export function AdminEventForm({ initialData = null, isEditMode = false, role: p
               </div>
 
               <div className="pt-6 mt-2 border-t flex justify-end gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleSave("Scheduled")} 
+                <Button
+                  variant="outline"
+                  onClick={() => handleSave("Scheduled")}
                   disabled={loading || savingDraft}
                   className="w-40 border-primary text-primary hover:bg-primary/5"
                 >
                   {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : "Schedule Event"}
                 </Button>
-                <Button 
-                  onClick={() => handleSave("Upcoming")} 
+                <Button
+                  onClick={() => handleSave("Upcoming")}
                   disabled={loading || savingDraft}
                   className="w-48 bg-primary"
                 >

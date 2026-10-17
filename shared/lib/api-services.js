@@ -1384,7 +1384,7 @@ export const branchApi = {
 
 export const googleDriveApi = {
   getStatus: () => apiClient("/google-drive/status"),
-  getAuthUrl: () => apiClient("/google-drive/auth-url"),
+  getAuthUrl: () => apiClient(`/google-drive/auth-url?_t=${Date.now()}`),
   disconnect: () => apiClient("/google-drive/disconnect", { method: "POST" }),
   triggerSync: (target = "all") =>
     apiClient("/google-drive/sync", {
