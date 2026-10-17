@@ -417,19 +417,19 @@ export function PublicFooter() {
   return (
     <footer
       id="site-footer"
-      className="mt-6 sm:mt-8 border-t border-navy-foreground/10 bg-navy text-navy-foreground will-change-transform will-change-opacity"
+      className="mt-6 sm:mt-8 border-t border-navy-foreground/10 bg-navy text-navy-foreground will-change-transform will-change-opacity pb-16 md:pb-0"
     >
-      {/* Tier 1: Action CTAs, Social Media Links & Connect App Download Badges (In-Between Horizontal Row Layout) */}
-      <div className="border-b border-navy-foreground/10 bg-navy/95 backdrop-blur py-2 sm:py-2.5">
-        <div className="rifah-container flex flex-wrap xl:flex-nowrap items-center justify-between gap-2.5 sm:gap-3 lg:gap-4">
-          {/* 1. Quick Actions (Left) */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-navy-foreground/90 shrink-0">
+      {/* Tier 1: Action CTAs, Social Media Links & Connect App Download Badges */}
+      <div className="border-b border-navy-foreground/10 bg-navy/95 backdrop-blur py-3 sm:py-2.5">
+        <div className="rifah-container flex flex-col lg:flex-row items-center justify-between gap-3 lg:gap-4">
+          {/* 1. Quick Actions */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5 sm:gap-2 w-full lg:w-auto">
+            <span className="text-[10.5px] sm:text-[11px] font-bold uppercase tracking-wider text-navy-foreground/90 shrink-0">
               QUICK ACTIONS:
             </span>
             <Link
               href="/register-business"
-              className="inline-flex items-center gap-1.5 rounded-full border border-primary/50 bg-primary/15 px-2.5 sm:px-3 py-0.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition shadow-sm whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/50 bg-primary/15 px-2.5 sm:px-3 py-1 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition shadow-sm whitespace-nowrap"
             >
               Connect With Us
             </Link>
@@ -437,22 +437,22 @@ export function PublicFooter() {
               href="https://wa.me/918097781851?text=Hello%0AI%20would%20like%20to%20know%20more%20about%20your%20services.%20Please%20share%20the%20details."
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/50 bg-emerald-500/15 px-2.5 sm:px-3 py-0.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-600 hover:text-white transition shadow-sm whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/50 bg-emerald-500/15 px-2.5 sm:px-3 py-1 text-xs font-semibold text-emerald-400 hover:bg-emerald-600 hover:text-white transition shadow-sm whitespace-nowrap"
             >
               <MessageCircle className="h-3.5 w-3.5" />
               Chat With Us
             </a>
             <Link
               href="/contact"
-              className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/50 bg-sky-400/15 px-2.5 sm:px-3 py-0.5 text-xs font-semibold text-sky-300 hover:bg-sky-500 hover:text-white transition shadow-sm whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/50 bg-sky-400/15 px-2.5 sm:px-3 py-1 text-xs font-semibold text-sky-300 hover:bg-sky-500 hover:text-white transition shadow-sm whitespace-nowrap"
             >
               <Mail className="h-3.5 w-3.5" />
               Contact Us
             </Link>
           </div>
 
-          {/* 2. Social Media Links (In Between) */}
-          <div className="flex items-center justify-center gap-1.5 sm:gap-2 shrink-0">
+          {/* 2. Social Media Links */}
+          <div className="flex items-center justify-center gap-2 sm:gap-2.5 shrink-0 py-0.5 lg:py-0">
             {socialLinks.map((s) => (
               <a
                 key={s.name}
@@ -460,7 +460,7 @@ export function PublicFooter() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={s.name}
-                className="grid h-6.5 w-6.5 place-items-center rounded-full border border-navy-foreground/15 bg-black/25 text-navy-foreground transition-all duration-200 hover:border-primary/50 hover:bg-black/50 hover:scale-110"
+                className="grid h-7 w-7 place-items-center rounded-full border border-navy-foreground/15 bg-black/25 text-navy-foreground transition-all duration-200 hover:border-primary/50 hover:bg-black/50 hover:scale-110"
                 title={s.name}
               >
                 {s.icon}
@@ -468,85 +468,83 @@ export function PublicFooter() {
             ))}
           </div>
 
-          {/* 3. Download App (Right) */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-navy-foreground/80 shrink-0">
+          {/* 3. Download App */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2 w-full lg:w-auto">
+            <span className="text-[10.5px] sm:text-[11px] font-bold uppercase tracking-wider text-navy-foreground/80 shrink-0 text-center lg:text-left">
               DOWNLOAD THE RIFAH CONNECT APP
             </span>
-            {/* Real Google Play Store Badge */}
-            <a
-              href="https://play.google.com/store"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-black px-2 sm:px-2.5 py-1 transition-all hover:border-white/40 hover:bg-neutral-900 shadow-sm shrink-0"
-              title="Download RIFAH Connect on Google Play"
-            >
-              <svg className="h-4 w-4 shrink-0" viewBox="0 0 512 512">
-                {/* Cyan/Blue – left body (painted first, base layer) */}
-                <path
-                  fill="#32BBFF"
-                  d="M47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l249.1-255.9L47 0z"
-                />
-                {/* Green – upper-right triangle */}
-                <path
-                  fill="#29CC5E"
-                  d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1z"
-                />
-                {/* Red – lower-right triangle */}
-                <path
-                  fill="#FF3D00"
-                  d="M104.6 499l280.8-161.2-60.1-60.1L104.6 499z"
-                />
-                {/* Yellow – rightmost tip */}
-                <path
-                  fill="#FFD740"
-                  d="M425.2 225.6l-58.9-34.1-65.7 67.5 65.7 67.5 60.1-34.1c17.2-10.3 17.2-36.8-.2-46.8z"
-                />
-              </svg>
-              <div className="text-left leading-none">
-                <div className="text-[7px] font-semibold uppercase tracking-wider text-white/70">
-                  GET IT ON
-                </div>
-                <div className="mt-0.5 text-[10.5px] font-semibold text-white tracking-tight">
-                  Google Play
-                </div>
-              </div>
-            </a>
-            {/* Real Apple App Store Badge */}
-            <a
-              href="https://www.apple.com/app-store/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-black px-2 sm:px-2.5 py-1 transition-all hover:border-white/40 hover:bg-neutral-900 shadow-sm shrink-0"
-              title="Download RIFAH Connect on Apple App Store"
-            >
-              <svg
-                className="h-4 w-4 fill-current text-white shrink-0"
-                viewBox="0 0 24 24"
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Real Google Play Store Badge */}
+              <a
+                href="https://play.google.com/store"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-black px-2 sm:px-2.5 py-1 transition-all hover:border-white/40 hover:bg-neutral-900 shadow-sm shrink-0"
+                title="Download RIFAH Connect on Google Play"
               >
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.14c.66-.8 1.11-1.92.99-3.04-1 .04-2.15.65-2.83 1.44-.6.69-1.12 1.8-1 2.89 1.12.09 2.22-.53 2.84-1.29z" />
-              </svg>
-              <div className="text-left leading-none">
-                <div className="text-[7px] font-semibold uppercase tracking-wider text-white/70">
-                  Download on the
+                <svg className="h-4 w-4 shrink-0" viewBox="0 0 512 512">
+                  <path
+                    fill="#32BBFF"
+                    d="M47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l249.1-255.9L47 0z"
+                  />
+                  <path
+                    fill="#29CC5E"
+                    d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1z"
+                  />
+                  <path
+                    fill="#FF3D00"
+                    d="M104.6 499l280.8-161.2-60.1-60.1L104.6 499z"
+                  />
+                  <path
+                    fill="#FFD740"
+                    d="M425.2 225.6l-58.9-34.1-65.7 67.5 65.7 67.5 60.1-34.1c17.2-10.3 17.2-36.8-.2-46.8z"
+                  />
+                </svg>
+                <div className="text-left leading-none">
+                  <div className="text-[7px] font-semibold uppercase tracking-wider text-white/70">
+                    GET IT ON
+                  </div>
+                  <div className="mt-0.5 text-[10.5px] font-semibold text-white tracking-tight">
+                    Google Play
+                  </div>
                 </div>
-                <div className="mt-0.5 text-[10.5px] font-semibold text-white tracking-tight">
-                  App Store
+              </a>
+              {/* Real Apple App Store Badge */}
+              <a
+                href="https://www.apple.com/app-store/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-black px-2 sm:px-2.5 py-1 transition-all hover:border-white/40 hover:bg-neutral-900 shadow-sm shrink-0"
+                title="Download RIFAH Connect on Apple App Store"
+              >
+                <svg
+                  className="h-4 w-4 fill-current text-white shrink-0"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.14c.66-.8 1.11-1.92.99-3.04-1 .04-2.15.65-2.83 1.44-.6.69-1.12 1.8-1 2.89 1.12.09 2.22-.53 2.84-1.29z" />
+                </svg>
+                <div className="text-left leading-none">
+                  <div className="text-[7px] font-semibold uppercase tracking-wider text-white/70">
+                    Download on the
+                  </div>
+                  <div className="mt-0.5 text-[10.5px] font-semibold text-white tracking-tight">
+                    App Store
+                  </div>
                 </div>
-              </div>
-            </a>
+              </a>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Tier 2: 3-Column Core Content Grid with Tightened Rhythm & Horizontal Header Alignment */}
-      <div className="rifah-container grid gap-x-6 gap-y-3.5 pt-3.5 pb-3.5 sm:pt-4 sm:pb-4 md:grid-cols-2 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-3.5">
+      {/* Tier 2: 3-Column Core Content Grid */}
+      <div className="rifah-container grid gap-y-6 md:grid-cols-2 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 py-5 sm:py-6">
         {/* Column 1: Brand Logo & Mission */}
-        <div className="space-y-2 md:col-span-2 lg:col-span-5 lg:pr-6">
-          <div className="flex h-9 items-center">
+        <div className="space-y-2.5 md:col-span-2 lg:col-span-5 lg:pr-6 text-left">
+          <div className="flex h-9 items-center justify-start">
             <RifahLogo showLabel={true} onDark={true} className="inline-flex" />
           </div>
-          <p className="text-xs leading-relaxed text-navy-foreground/75 sm:text-[12.5px]">
+          <p className="text-xs leading-relaxed text-navy-foreground/75 sm:text-[12.5px] max-w-md">
             Rifah’s mission is to create a platform where business is generated
             through effective networking, and to scale up existing businesses by
             implementing proper systems using the latest management techniques.
@@ -554,25 +552,25 @@ export function PublicFooter() {
         </div>
 
         {/* Column 2: GET IN TOUCH */}
-        <div className="space-y-2 md:col-span-1 lg:col-span-4 lg:px-2 flex flex-col items-center">
-          <div className="flex h-9 items-center justify-center w-full">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-navy-foreground text-center">
+        <div className="space-y-2.5 md:col-span-1 lg:col-span-4 lg:px-2 text-left">
+          <div className="flex h-9 items-center justify-start">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-navy-foreground">
               GET IN TOUCH
             </h3>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-5 sm:gap-7 text-xs">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 text-xs w-full">
             {/* Sub-col 1: Contact Details */}
-            <div className="space-y-1 text-left">
+            <div className="space-y-1.5 text-left">
               <div className="flex items-center gap-1.5 font-semibold text-navy-foreground">
                 <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>Contact Details</span>
+                <span className="text-[11px] sm:text-xs">Contact Details</span>
               </div>
-              <div className="space-y-0.5 pl-5 text-navy-foreground/75">
+              <div className="space-y-1 pl-4 sm:pl-5 text-navy-foreground/75">
                 <div>
                   <a
                     href="tel:+918097781851"
-                    className="hover:text-primary transition-colors block font-mono text-[11px]"
+                    className="hover:text-primary transition-colors block font-mono text-[10.5px] sm:text-xs whitespace-nowrap"
                   >
                     +91-8097781851
                   </a>
@@ -580,7 +578,7 @@ export function PublicFooter() {
                 <div>
                   <a
                     href="tel:+917304078398"
-                    className="hover:text-primary transition-colors block font-mono text-[11px]"
+                    className="hover:text-primary transition-colors block font-mono text-[10.5px] sm:text-xs whitespace-nowrap"
                   >
                     +91-730-407-8398
                   </a>
@@ -588,7 +586,7 @@ export function PublicFooter() {
                 <div>
                   <a
                     href="tel:+919136130398"
-                    className="hover:text-primary transition-colors block font-mono text-[11px]"
+                    className="hover:text-primary transition-colors block font-mono text-[10.5px] sm:text-xs whitespace-nowrap"
                   >
                     +91-913-613-0398
                   </a>
@@ -597,16 +595,16 @@ export function PublicFooter() {
             </div>
 
             {/* Sub-col 2: Email Queries & Website */}
-            <div className="space-y-1 text-left">
+            <div className="space-y-1.5 text-left">
               <div className="flex items-center gap-1.5 font-semibold text-navy-foreground">
                 <Mail className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>Email &amp; Web</span>
+                <span className="text-[11px] sm:text-xs">Email &amp; Web</span>
               </div>
-              <div className="space-y-1 pl-5 text-navy-foreground/75">
+              <div className="space-y-1 pl-4 sm:pl-5 text-navy-foreground/75">
                 <div>
                   <a
                     href="mailto:office@rifah.org"
-                    className="hover:text-primary transition-colors block"
+                    className="hover:text-primary transition-colors block text-[10.5px] sm:text-xs break-all"
                   >
                     office@rifah.org
                   </a>
@@ -614,7 +612,7 @@ export function PublicFooter() {
                 <div>
                   <a
                     href="mailto:info@rifah.org"
-                    className="hover:text-primary transition-colors block"
+                    className="hover:text-primary transition-colors block text-[10.5px] sm:text-xs break-all"
                   >
                     info@rifah.org
                   </a>
@@ -625,13 +623,13 @@ export function PublicFooter() {
         </div>
 
         {/* Column 3: Quick Links */}
-        <div className="space-y-2 md:col-span-1 lg:col-span-3 lg:pl-6">
-          <div className="flex h-9 items-center">
+        <div className="space-y-2.5 md:col-span-1 lg:col-span-3 lg:pl-6 text-left">
+          <div className="flex h-9 items-center justify-start">
             <h3 className="text-sm font-bold uppercase tracking-wider text-navy-foreground">
               QUICK LINKS
             </h3>
           </div>
-          <ul className="space-y-1 text-xs text-navy-foreground/75">
+          <ul className="grid grid-cols-2 sm:grid-cols-1 gap-1.5 text-xs text-navy-foreground/75">
             {quickLinks.map((l) => (
               <li key={l.key}>
                 <button
@@ -651,16 +649,16 @@ export function PublicFooter() {
         </div>
 
         {/* Horizontal Registered Office & Corporate Office Banner across full width */}
-        <div className="rounded-xl border border-navy-foreground/15 bg-black/25 p-2 sm:p-2.5 text-xs text-navy-foreground/80 shadow-inner md:col-span-2 lg:col-span-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 divide-y md:divide-y-0 md:divide-x divide-navy-foreground/15">
+        <div className="rounded-xl border border-navy-foreground/15 bg-black/25 p-3 sm:p-4 text-xs text-navy-foreground/80 shadow-inner md:col-span-2 lg:col-span-12 mt-1 sm:mt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 divide-y md:divide-y-0 md:divide-x divide-navy-foreground/15">
             {/* Registered Office */}
-            <div className="flex items-start gap-2">
-              <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 pb-3 md:pb-0 md:pr-4">
+              <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-primary block">
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-primary block mb-0.5">
                   REGISTERED OFFICE:
                 </span>
-                <p className="text-[11px] leading-relaxed text-navy-foreground/75">
+                <p className="text-[11px] sm:text-xs leading-relaxed text-navy-foreground/75">
                   Flat No. 4 C &amp; D, 1st Floor, Plot No. 96, 77C, Hamid
                   Building, Hafiz Ali Bahadur Khan Marg, Mominpura, Jacob
                   Circle, Byculla West, Mumbai - 400011, Maharashtra
@@ -669,13 +667,13 @@ export function PublicFooter() {
             </div>
 
             {/* Corporate Office */}
-            <div className="flex items-start gap-2 pt-1.5 md:pt-0 md:pl-3">
-              <Building2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 pt-3 md:pt-0 md:pl-4">
+              <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-primary block">
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-primary block mb-0.5">
                   CORPORATE OFFICE:
                 </span>
-                <p className="text-[11px] leading-relaxed text-navy-foreground/75">
+                <p className="text-[11px] sm:text-xs leading-relaxed text-navy-foreground/75">
                   D-321, Dawat Nagar, Abul Fazal Enclave, Jamia Nagar, New
                   Delhi, Delhi 110025
                 </p>
@@ -687,14 +685,14 @@ export function PublicFooter() {
 
       {/* Tier 3: Legal Copyright & Back-to-Top Bar */}
       <div className="border-t border-navy-foreground/10 bg-navy/95">
-        <div className="rifah-container flex flex-wrap items-center justify-between gap-3 py-2.5 text-xs text-navy-foreground/70">
-          <p>
+        <div className="rifah-container flex flex-col sm:flex-row items-center justify-between gap-2.5 py-3 text-xs text-navy-foreground/70 text-center sm:text-left">
+          <p className="text-[11px] sm:text-xs leading-normal">
             © 2026 RIFAH Chamber of Commerce and Industry | All rights reserved
           </p>
 
           <button
             onClick={handleScrollTop}
-            className="inline-flex items-center gap-1.5 text-xs text-navy-foreground/75 hover:text-primary transition"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-navy-foreground/80 hover:text-primary transition-colors py-1 px-2 rounded-md hover:bg-white/5 cursor-pointer"
             type="button"
           >
             <span>Back to Top</span>
