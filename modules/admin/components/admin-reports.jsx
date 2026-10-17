@@ -8,7 +8,7 @@ import { Input } from "@shared/components/ui/input";
 import { Label } from "@shared/components/ui/label";
 import { reportApi, eventApi } from "@shared/lib/api-services";
 import { toast } from "sonner";
-import { FileDown, Receipt, Users, Megaphone, Eye, Loader2, UserCircle, MapPin, Calendar, Clock, Building2, RotateCcw, Globe } from "lucide-react";
+import { FileDown, Receipt, Users, Megaphone, Eye, Loader2, UserCircle, MapPin, Calendar, Clock, Building2, RotateCcw, Globe, TrendingUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@shared/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
@@ -394,9 +394,30 @@ function EventAnalyticsTab() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <StatCard title="Total Events" value={kpis.totalEvents} />
-        <StatCard title="Total Registrations" value={kpis.totalRegisteredOverall} />
-        <StatCard title="Avg Attendance Rate" value={`${kpis.overallAttendanceRate}%`} trend={kpis.overallAttendanceRate > 75 ? "up" : kpis.overallAttendanceRate < 50 ? "down" : "neutral"} trendLabel="Overall" />
+        <StatCard
+          label="Total Events"
+          title="Total Events"
+          value={String(kpis.totalEvents ?? 0)}
+          icon={Calendar}
+          tone="primary"
+          hint="Total organized chapter events"
+        />
+        <StatCard
+          label="Total Registrations"
+          title="Total Registrations"
+          value={String(kpis.totalRegisteredOverall ?? 0)}
+          icon={Users}
+          tone="brand"
+          hint="Total attendee RSVPs across events"
+        />
+        <StatCard
+          label="Avg Attendance Rate"
+          title="Avg Attendance Rate"
+          value={`${kpis.overallAttendanceRate ?? 0}%`}
+          icon={TrendingUp}
+          tone={kpis.overallAttendanceRate >= 75 ? "success" : kpis.overallAttendanceRate < 50 ? "warning" : "info"}
+          hint="Overall checked-in turnout rate"
+        />
       </div>
 
       {leaderboard.length > 0 && (

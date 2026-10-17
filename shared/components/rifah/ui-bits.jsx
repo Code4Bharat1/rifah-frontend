@@ -31,10 +31,11 @@ export function StatCard({
   };
   const destination = href ?? to;
   const isClickable = Boolean(destination || onClick);
+  const displayLabel = label || title;
 
   const cardContent = (
     <div
-      title={title}
+      title={title || label}
       className={cn(
         "group relative flex h-full flex-col rounded-xl sm:rounded-2xl border transition-all duration-200 p-3 sm:p-4 select-none cursor-pointer hover:shadow-md hover:-translate-y-0.5 min-w-0 w-full",
         active
@@ -50,7 +51,7 @@ export function StatCard({
             active ? "font-semibold text-primary" : "text-muted-foreground"
           )}
         >
-          {label}
+          {displayLabel}
         </p>
         {Icon && (
           <span
