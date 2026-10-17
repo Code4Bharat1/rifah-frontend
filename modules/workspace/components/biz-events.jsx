@@ -379,7 +379,7 @@ export function BizEvents() {
                       eventCity: ev.city || "",
                       ticketType,
                       paymentStatus: userReg?.paymentStatus || (ev.isPaid ? "PAID" : "COMPLIMENTARY"),
-                      amountPaid: userReg?.amountPaid || (ev.isPaid ? ev.ticketPrice : 0),
+                      amountPaid: userReg?.amountPaid || (ev.isPaid ? (ev.ticketPrice ? Math.round(ev.ticketPrice * 1.18) : 0) : 0),
                       verificationUrl: secureVerifyUrl,
                     });
                     toast.success("Ticket PDF downloaded!");

@@ -962,7 +962,7 @@ const loadRazorpayScript = () => {
                               eventCity: event.city || "",
                               ticketType,
                               paymentStatus: userReg?.paymentStatus || (isEventPaid ? "PAID" : "COMPLIMENTARY"),
-                              amountPaid: userReg?.amountPaid || (isEventPaid ? event.ticketPrice : 0),
+                              amountPaid: userReg?.amountPaid || (isEventPaid ? (event.ticketPrice ? Math.round(event.ticketPrice * 1.18) : 0) : 0),
                               verificationUrl: secureVerifyUrl,
                             });
                             toast.success("Ticket PDF downloaded!");
