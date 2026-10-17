@@ -50,6 +50,45 @@ export default function ChapterAdminLayout({ children }) {
       return;
     }
 
+    if (user.role === "guest_speaker_manager" || user.role === "guestManager") {
+      const allowedGuestRoutes = [
+        "/chapter-admin/speakers-guests",
+        "/chapter-admin/operations",
+        "/chapter-admin/live-control",
+        "/chapter-admin/scripts",
+        "/chapter-admin/ask-give",
+        "/chapter-admin/event-setup",
+        "/chapter-admin/gallery",
+      ];
+      const isAllowed = allowedGuestRoutes.some(
+        (r) => pathname === r || pathname.startsWith(r + "/")
+      );
+      if (!isAllowed) {
+        router.replace("/chapter-admin/speakers-guests");
+      }
+      return;
+    }
+
+    if (user.role === "event_coordinator" || user.role === "eventCoordinator") {
+      const allowedCoordinatorRoutes = [
+        "/chapter-admin/live-control",
+        "/chapter-admin/operations",
+        "/chapter-admin/event-setup",
+        "/chapter-admin/speakers-guests",
+        "/chapter-admin/scripts",
+        "/chapter-admin/ask-give",
+        "/chapter-admin/gallery",
+        "/chapter-admin/my-team",
+      ];
+      const isAllowed = allowedCoordinatorRoutes.some(
+        (r) => pathname === r || pathname.startsWith(r + "/")
+      );
+      if (!isAllowed) {
+        router.replace("/chapter-admin/live-control");
+      }
+      return;
+    }
+
     if (user.role === "state_admin") {
       // If state_admin navigates to the chapter-admin root overview or verification, redirect to state-admin executive desk
       if (pathname === "/chapter-admin" || pathname.startsWith("/chapter-admin/verification")) {
@@ -84,7 +123,7 @@ export default function ChapterAdminLayout({ children }) {
       if (!isRoutePermitted(pathname, allowed)) return null;
     } else if (
       user.activeWorkspace?.panelType !== "chapter-admin" &&
-      !["chapter_admin", "central_admin", "secretariat", "super_admin", "state_admin"].includes(user.role)
+      !["chapter_admin", "central_admin", "secretariat", "super_admin", "state_admin", "guest_speaker_manager", "guestManager", "event_coordinator", "eventCoordinator"].includes(user.role)
     ) {
       return null;
     }

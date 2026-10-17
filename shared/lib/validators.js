@@ -22,12 +22,8 @@ export const DISPOSABLE_OR_DUMMY_DOMAINS = new Set([
 ]);
 
 export const DUMMY_USERNAMES = new Set([
-  "test",
-  "tester",
-  "testing",
   "dummy",
   "fake",
-  "sample",
   "asdf",
   "asdfgh",
   "qwerty",
@@ -93,7 +89,11 @@ export const validateLegitimateEmail = (email) => {
 };
 
 export const isValidName = (name) => Boolean(name && NAME_PATTERN.test(String(name).trim()));
-export const isValidEmail = (email) => Boolean(email && validateLegitimateEmail(email).valid);
+export const isValidEmail = (email) => {
+  if (!email) return false;
+  const clean = typeof email === "string" ? email.trim() : String(email).trim();
+  return Boolean(clean && validateLegitimateEmail(clean).valid);
+};
 export const isValidPincode = (pincode) => Boolean(pincode && PINCODE_PATTERN.test(String(pincode).trim()));
 export const isValidPhone = (phone) => {
   if (!phone) return false;

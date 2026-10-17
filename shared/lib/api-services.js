@@ -705,6 +705,7 @@ export const eventApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  getSpeakers: (id) => apiClient(`/events/${id}/speakers`),
   addSpeaker: (id, data) =>
     apiClient(`/events/${id}/speakers`, {
       method: "POST",
@@ -717,6 +718,19 @@ export const eventApi = {
     }),
   removeSpeaker: (id, speakerId) =>
     apiClient(`/events/${id}/speakers/${speakerId}`, { method: "DELETE" }),
+  uploadSpeakerPhoto: (id, speakerId, file) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    return apiClient(`/events/${id}/speakers/${speakerId}/photo`, {
+      method: "POST",
+      body: formData,
+    });
+  },
+  assignSpeakerProgrammeRole: (id, speakerId, data) =>
+    apiClient(`/events/${id}/speakers/${speakerId}/assign-role`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 
   // ─── Ask & Give Board ──────────────────────────────────────────────────────
   getAskGiveBoard: (id) => apiClient(`/events/${id}/ask-give-board`),

@@ -63,6 +63,7 @@ import {
   Timer,
   Coffee,
   Zap,
+  Camera,
   GraduationCap,
   Trophy,
   Star,
@@ -182,6 +183,17 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
   // Context-Aware UI Strings
   const isCentralAdmin = basePath === "/admin" || user?.role === "central_admin";
   const isStateAdmin = basePath === "/state-admin" || user?.role === "state_admin";
+  const isGuestManager =
+    user?.role === "guest_speaker_manager" ||
+    user?.role === "guestManager" ||
+    user?.responsibilityRole === "guest_speaker_manager" ||
+    user?.responsibilityRole === "guestManager";
+
+  const isEventCoordinator =
+    user?.role === "event_coordinator" ||
+    user?.role === "eventCoordinator" ||
+    user?.responsibilityRole === "event_coordinator" ||
+    user?.responsibilityRole === "eventCoordinator";
 
   const defaultChapterScope = isCentralAdmin
     ? "Global Operations"
@@ -197,7 +209,15 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
 
   const displayChapterName = mounted ? chapterName : defaultChapterScope;
 
-  const roleLabel = isCentralAdmin ? "CENTRAL ADMIN" : isStateAdmin ? "STATE ADMIN" : "CHAPTER ADMIN";
+  const roleLabel = isCentralAdmin
+    ? "CENTRAL ADMIN"
+    : isStateAdmin
+      ? "STATE ADMIN"
+      : isGuestManager
+        ? "GUEST & SPEAKER MANAGER"
+        : isEventCoordinator
+          ? "EVENTS COORDINATOR"
+          : "CHAPTER ADMIN";
   const chapterSlug = ((user?.chapter || (isCentralAdmin ? "global" : "chapter")))
     .toLowerCase()
     .replace(/\s*[Cc]hapter\s*/g, "")
@@ -321,6 +341,8 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
 
   // Speakers & Guests
   const [speakers, setSpeakers] = useState([]);
+  const [loadingOperations, setLoadingOperations] = useState(false);
+  const [operationsError, setOperationsError] = useState(null);
   const [speakerDialogOpen, setSpeakerDialogOpen] = useState(false);
   const [newSpeaker, setNewSpeaker] = useState({
     name: "",
@@ -331,12 +353,26 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
     designation: "",
     type: "Guest Speaker",
     topic: "",
+    photo: "",
+    status: "Confirmed",
+    assignedRole: "",
   });
   const [savingSpeaker, setSavingSpeaker] = useState(false);
+  const [speakerFormErrors, setSpeakerFormErrors] = useState({});
   const [speakerSubTab, setSpeakerSubTab] = useState("event"); // "event" | "master"
   const [masterDignitaries, setMasterDignitaries] = useState([]);
   const [loadingMaster, setLoadingMaster] = useState(false);
+  const [masterError, setMasterError] = useState(null);
   const [masterSearchQuery, setMasterSearchQuery] = useState("");
+  const [eventSpeakerSearchQuery, setEventSpeakerSearchQuery] = useState("");
+  const [eventSpeakerCategoryFilter, setEventSpeakerCategoryFilter] = useState("all");
+  const [eventSpeakerStatusFilter, setEventSpeakerStatusFilter] = useState("all");
+  const [assignRoleDialogOpen, setAssignRoleDialogOpen] = useState(false);
+  const [speakerToAssignRole, setSpeakerToAssignRole] = useState(null);
+  const [selectedProgrammeRole, setSelectedProgrammeRole] = useState("");
+  const [selectedRoleTopic, setSelectedRoleTopic] = useState("");
+  const [assigningRole, setAssigningRole] = useState(false);
+  const [uploadingSpeakerPhoto, setUploadingSpeakerPhoto] = useState(false);
   const [masterDialogOpen, setMasterDialogOpen] = useState(false);
   const [masterPickerOpen, setMasterPickerOpen] = useState(false);
   const [assigningId, setAssigningId] = useState(null);
@@ -350,6 +386,8 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
     type: "Guest Speaker",
     topic: "",
     city: "",
+    photo: "",
+    status: "Confirmed",
   });
   const [savingMaster, setSavingMaster] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null); // { type: "event_speaker" | "master_dignitary", id: string, name: string }
@@ -531,18 +569,41 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
     fetchFollowups();
   }, [followupMode, followupFilter, followupSearch, selectedEventId]);
 
-  // Initialize Socket.IO connection
+  // Initialize Socket.IO connection & listen for real-time updates
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
 
+    const targetRoom = activeEvent?._id || chapterSlug;
+
     function onConnect() {
       setSocketConnected(true);
-      socket.emit("projector:join", activeEvent?._id || chapterSlug);
+      if (targetRoom) {
+        socket.emit("projector:join", targetRoom);
+      }
     }
 
     function onDisconnect() {
       setSocketConnected(false);
+    }
+
+    function onProjectorUpdate(payload) {
+      if (!payload) return;
+      if (payload.slideIndex !== undefined) {
+        setCurrentSlideIndex(Number(payload.slideIndex));
+      }
+      if (payload.mode) {
+        setProjectorMode(payload.mode);
+      }
+      if (payload.stageStatus || payload.status) {
+        setLiveEventStatus(payload.stageStatus || payload.status);
+      }
+      if (payload.announcement !== undefined) {
+        setActiveTicker(payload.announcement);
+      }
+      if (payload.moderatorNotes !== undefined) {
+        setModeratorNotes(payload.moderatorNotes);
+      }
     }
 
     if (socket.connected) {
@@ -551,12 +612,14 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
+    socket.on("projector:update", onProjectorUpdate);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
+      socket.off("projector:update", onProjectorUpdate);
     };
-  }, [chapterSlug]);
+  }, [activeEvent?._id, chapterSlug]);
 
   // Fetch full operations data from backend
   // syncSlide: only apply the backend's currentSlideIndex on initial load / explicit event switch —
@@ -564,6 +627,8 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
   const fetchOperationsData = async (eventId, { syncSlide = false } = {}) => {
     if (!eventId) return;
     try {
+      setLoadingOperations(true);
+      setOperationsError(null);
       const res = await eventApi.getOperations(eventId);
       if (res?.data) {
         if (res.data.kpis) {
@@ -577,7 +642,7 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
           setActiveEvent(ev);
           if (ev.stageStatus) setLiveEventStatus(ev.stageStatus);
           if (syncSlide && ev.currentSlideIndex !== undefined) setCurrentSlideIndex(ev.currentSlideIndex);
-          if (ev.speakers?.length) setSpeakers(ev.speakers);
+          if (Array.isArray(ev.speakers)) setSpeakers(ev.speakers);
           if (ev.projectorMode) setProjectorMode(ev.projectorMode);
           if (ev.activeAnnouncement) {
             setActiveTicker(ev.activeAnnouncement);
@@ -639,6 +704,9 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
       }
     } catch (err) {
       console.warn("Operations data fallback:", err.message);
+      setOperationsError(err?.message || "Failed to load event operations data.");
+    } finally {
+      setLoadingOperations(false);
     }
   };
 
@@ -660,12 +728,14 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
         title: eventSetupForm.title,
         date: eventSetupForm.date,
         eventPoster: eventSetupForm.posterUrl,
-        signatory1Role: eventSetupForm.signatory1Role,
-        signatory1Name: eventSetupForm.signatory1Name,
-        signatory1Image: eventSetupForm.signatory1Image,
         membershipJoiningLink: eventSetupForm.membershipJoiningLink,
         membershipQrImage: eventSetupForm.membershipQrImage,
       };
+      if (!isGuestManager && !isEventCoordinator) {
+        payload.signatory1Role = eventSetupForm.signatory1Role;
+        payload.signatory1Name = eventSetupForm.signatory1Name;
+        payload.signatory1Image = eventSetupForm.signatory1Image;
+      }
       await eventApi.updateOperations(selectedEventId, payload);
       toast.success("✅ Event setup saved to MongoDB!");
       fetchOperationsData(selectedEventId);
@@ -1028,25 +1098,48 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
 
   const handleAddSpeaker = async (e) => {
     e?.preventDefault();
-    if (!isValidName(newSpeaker.name)) {
-      toast.error("Enter a valid speaker name (letters only).");
+    setSpeakerFormErrors({});
+
+    const trimmedName = (newSpeaker.name || "").trim();
+    const trimmedMobile = (newSpeaker.mobile || "").trim();
+    const trimmedEmail = (newSpeaker.email || "").trim();
+    const lowerEmail = trimmedEmail.toLowerCase();
+
+    const errs = {};
+    if (!trimmedName || !isValidName(trimmedName)) {
+      errs.name = "Enter a valid speaker name (letters only).";
+    }
+    if (!trimmedMobile) {
+      errs.mobile = "Please enter the speaker's mobile number.";
+    }
+    if (trimmedEmail && !isValidEmail(trimmedEmail)) {
+      errs.email = "Enter a valid speaker email address.";
+    }
+
+    if (Object.keys(errs).length > 0) {
+      setSpeakerFormErrors(errs);
+      if (errs.email) {
+        toast.error(errs.email);
+      } else if (errs.name) {
+        toast.error(errs.name);
+      } else if (errs.mobile) {
+        toast.error(errs.mobile);
+      }
       return;
     }
-    if (!newSpeaker.mobile || !newSpeaker.mobile.trim()) {
-      toast.error("Please enter the speaker's mobile number.");
-      return;
-    }
-    if (newSpeaker.email && !isValidEmail(newSpeaker.email)) {
-      toast.error("Enter a valid speaker email address.");
-      return;
-    }
+
     try {
       setSavingSpeaker(true);
-      // BUG: the Event.speakers sub-schema field is `organization`, not `org` (the form's
-      // own state key, matching the separate Dignitary model which genuinely does use
-      // `org`) — saving `newSpeaker` as-is let Mongoose's strict schema silently drop the
-      // organization on every event speaker ever added here.
-      const speakerForEvent = { ...newSpeaker, organization: newSpeaker.org };
+      const speakerForEvent = {
+        ...newSpeaker,
+        name: trimmedName,
+        mobile: trimmedMobile,
+        email: lowerEmail,
+        organization: newSpeaker.org || newSpeaker.organization || "",
+        photo: newSpeaker.photo || "",
+        status: newSpeaker.status || "Confirmed",
+        assignedRole: newSpeaker.assignedRole || "",
+      };
       let updatedSpeakers;
       if (newSpeaker.id) {
         updatedSpeakers = speakers.map(sp => sp.id === newSpeaker.id ? speakerForEvent : sp);
@@ -1067,27 +1160,100 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
       // Automatically sync speaker to Master List (global directory across all events & admins)
       try {
         await dignitaryApi.create({
-          name: newSpeaker.name,
+          name: trimmedName,
           category: newSpeaker.category,
-          mobile: newSpeaker.mobile,
-          email: newSpeaker.email,
-          org: newSpeaker.org,
+          mobile: trimmedMobile,
+          email: lowerEmail,
+          org: newSpeaker.org || newSpeaker.organization,
           designation: newSpeaker.designation,
           type: newSpeaker.type || "Guest Speaker",
           topic: newSpeaker.topic,
+          photo: newSpeaker.photo || "",
+          status: newSpeaker.status || "Confirmed",
         });
         fetchMasterDignitaries();
       } catch (e) {
         console.error("Auto-sync to master list error:", e);
       }
 
-      toast.success(`Speaker ${newSpeaker.name} saved!`);
+      toast.success(`Speaker ${trimmedName} saved!`);
       setSpeakerDialogOpen(false);
-      setNewSpeaker({ name: "", category: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
+      setSpeakerFormErrors({});
+      setNewSpeaker({
+        name: "",
+        category: "",
+        mobile: "",
+        email: "",
+        org: "",
+        designation: "",
+        type: "Guest Speaker",
+        topic: "",
+        photo: "",
+        status: "Confirmed",
+        assignedRole: "",
+      });
     } catch (err) {
-      toast.error("Failed to save speaker.");
+      const errMsg = err?.response?.data?.message || err?.data?.error?.message || err?.message || "Failed to save speaker";
+      toast.error("Failed to save speaker: " + errMsg);
+      if (errMsg.toLowerCase().includes("email")) {
+        setSpeakerFormErrors((prev) => ({ ...prev, email: errMsg }));
+      }
     } finally {
       setSavingSpeaker(false);
+    }
+  };
+
+  const handleSpeakerPhotoUpload = async (e, speakerId) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedEventId) return;
+    try {
+      setUploadingSpeakerPhoto(true);
+      const res = await eventApi.uploadSpeakerPhoto(selectedEventId, speakerId, file);
+      const newPhoto = res.data?.photo || res.photo;
+      if (newPhoto) {
+        setSpeakers((prev) =>
+          prev.map((s) => (s.id === speakerId ? { ...s, photo: newPhoto } : s))
+        );
+        if (newSpeaker.id === speakerId) {
+          setNewSpeaker((prev) => ({ ...prev, photo: newPhoto }));
+        }
+        toast.success("Speaker photograph uploaded successfully!");
+      }
+    } catch (err) {
+      toast.error(err?.message || "Failed to upload photograph");
+    } finally {
+      setUploadingSpeakerPhoto(false);
+    }
+  };
+
+  const openAssignRoleModal = (speaker) => {
+    setSpeakerToAssignRole(speaker);
+    setSelectedProgrammeRole(speaker.assignedRole || "keynote1");
+    setSelectedRoleTopic(speaker.topic || "");
+    setAssignRoleDialogOpen(true);
+  };
+
+  const handleAssignProgrammeRole = async () => {
+    if (!speakerToAssignRole || !selectedEventId) return;
+    try {
+      setAssigningRole(true);
+      await eventApi.assignSpeakerProgrammeRole(selectedEventId, speakerToAssignRole.id, {
+        roleKey: selectedProgrammeRole,
+        topic: selectedRoleTopic || speakerToAssignRole.topic,
+      });
+      setSpeakers((prev) =>
+        prev.map((s) =>
+          s.id === speakerToAssignRole.id
+            ? { ...s, assignedRole: selectedProgrammeRole, topic: selectedRoleTopic || s.topic }
+            : s
+        )
+      );
+      toast.success(`Assigned ${speakerToAssignRole.name} to programme role "${selectedProgrammeRole}"!`);
+      setAssignRoleDialogOpen(false);
+    } catch (err) {
+      toast.error(err?.message || "Failed to assign programme role");
+    } finally {
+      setAssigningRole(false);
     }
   };
 
@@ -1139,6 +1305,9 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
           designation: dignitary.designation || "",
           type: dignitary.type || "Guest Speaker",
           topic: dignitary.topic || "",
+          photo: dignitary.photo || "",
+          status: dignitary.status || "Confirmed",
+          assignedRole: dignitary.assignedRole || "",
         },
       ];
       setSpeakers(updatedSpeakers);
@@ -1153,21 +1322,29 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
 
   const handleSaveMasterDignitary = async (e) => {
     e.preventDefault();
-    if (!newMasterDignitary.name || !newMasterDignitary.name.trim()) {
+    const masterName = (newMasterDignitary.name || "").trim();
+    const masterEmail = (newMasterDignitary.email || "").trim();
+
+    if (!masterName) {
       toast.error("Please enter the dignitary name.");
       return;
     }
-    if (newMasterDignitary.email && !isValidEmail(newMasterDignitary.email)) {
+    if (masterEmail && !isValidEmail(masterEmail)) {
       toast.error("Enter a valid email address.");
       return;
     }
     try {
       setSavingMaster(true);
+      const masterPayload = {
+        ...newMasterDignitary,
+        name: masterName,
+        email: masterEmail ? masterEmail.toLowerCase() : "",
+      };
       if (newMasterDignitary._id) {
-        await dignitaryApi.update(newMasterDignitary._id, newMasterDignitary);
+        await dignitaryApi.update(newMasterDignitary._id, masterPayload);
         toast.success("Dignitary updated in Master List!");
       } else {
-        await dignitaryApi.create(newMasterDignitary);
+        await dignitaryApi.create(masterPayload);
         toast.success("Dignitary added to Master List!");
       }
       setMasterDialogOpen(false);
@@ -1235,9 +1412,61 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
   const handleEditSpeakerClick = (s) => {
     // The form field is `org` (see speakerForEvent translation in handleAddSpeaker);
     // the stored speaker has `organization` — map it back so the field isn't blank.
-    setNewSpeaker({ ...s, org: s.organization || "" });
+    setSpeakerFormErrors({});
+    setNewSpeaker({
+      id: s.id,
+      name: s.name || "",
+      category: s.category || "",
+      mobile: s.mobile || "",
+      email: s.email || "",
+      org: s.organization || s.org || "",
+      designation: s.designation || "",
+      type: s.type || "Guest Speaker",
+      topic: s.topic || "",
+      photo: s.photo || "",
+      status: s.status || "Confirmed",
+      assignedRole: s.assignedRole || "",
+      dignitaryId: s.dignitaryId || null,
+    });
     setSpeakerDialogOpen(true);
   };
+
+  const PROGRAMME_ROLES = [
+    { key: "keynote1", label: "Keynote Speaker 1", description: "Primary keynote address" },
+    { key: "keynote2", label: "Keynote Speaker 2", description: "Secondary keynote address" },
+    { key: "heroOfEvent", label: "Chief Guest Address", description: "VIP / Hero of the event" },
+    { key: "presidentWelcome", label: "Presidential Welcome", description: "President welcome address" },
+    { key: "tilawatEquran", label: "Tilawat-e-Quran", description: "Opening recitation" },
+    { key: "secretaryIntro", label: "Secretary Introduction", description: "Chapter & agenda introduction" },
+    { key: "closingRemarks", label: "Closing Remarks", description: "Summary and takeaways" },
+    { key: "voteOfThanks", label: "Vote of Thanks", description: "Official appreciation" },
+  ];
+
+  const getRoleBadge = (roleKey) => {
+    const found = PROGRAMME_ROLES.find((r) => r.key === roleKey);
+    return found ? found.label : roleKey;
+  };
+
+  const filteredSpeakers = useMemo(() => {
+    return (speakers || []).filter((s) => {
+      const q = (eventSpeakerSearchQuery || "").toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        s.name?.toLowerCase().includes(q) ||
+        (s.organization || s.org)?.toLowerCase().includes(q) ||
+        s.designation?.toLowerCase().includes(q) ||
+        s.topic?.toLowerCase().includes(q) ||
+        s.mobile?.includes(q);
+
+      const matchesCategory =
+        eventSpeakerCategoryFilter === "all" || s.category === eventSpeakerCategoryFilter;
+
+      const matchesStatus =
+        eventSpeakerStatusFilter === "all" || (s.status || "Confirmed") === eventSpeakerStatusFilter;
+
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [speakers, eventSpeakerSearchQuery, eventSpeakerCategoryFilter, eventSpeakerStatusFilter]);
 
   const handleSaveFollowupHistory = async (e) => {
     e?.preventDefault();
@@ -2594,21 +2823,52 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
             onClick={() => setTab("my-team")}
           />
 
-          <StatCard
-            label="Fees ₹"
-            value={`₹${kpiStats.fees.toLocaleString("en-IN")}`}
-            hint="Total revenue collected"
-            icon={CreditCard}
-            tone="warning"
-            active={currentTab === "finance"}
-            onClick={() => setTab("finance")}
-          />
+          {isGuestManager ? (
+            <StatCard
+              label="Dignitaries"
+              value={String(speakers.length)}
+              hint="Event speakers & guests"
+              icon={Mic}
+              tone="warning"
+              active={currentTab === "speakers-guests"}
+              onClick={() => setTab("speakers-guests")}
+            />
+          ) : isEventCoordinator ? (
+            <StatCard
+              label="Agenda Items"
+              value={String(agenda.length)}
+              hint="Programme schedule steps"
+              icon={Radio}
+              tone="warning"
+              active={currentTab === "live-control"}
+              onClick={() => setTab("live-control")}
+            />
+          ) : (
+            <StatCard
+              label="Fees ₹"
+              value={`₹${kpiStats.fees.toLocaleString("en-IN")}`}
+              hint="Total revenue collected"
+              icon={CreditCard}
+              tone="warning"
+              active={currentTab === "finance"}
+              onClick={() => setTab("finance")}
+            />
+          )}
         </div>
 
         {/* Horizontal Module Navigation Buttons Directly Below Header & KPIs */}
         <div className="border-t border-border/60 pt-4">
           <div className="flex flex-wrap items-center gap-2 pb-1">
-            {HORIZONTAL_MODULE_TABS.map((tab) => {
+            {(isGuestManager
+              ? HORIZONTAL_MODULE_TABS.filter((tab) =>
+                  ["speakers-guests", "live-control", "event-setup", "ask-give", "gallery", "my-links"].includes(tab.key)
+                )
+              : isEventCoordinator
+                ? HORIZONTAL_MODULE_TABS.filter((tab) =>
+                    ["live-control", "event-setup", "my-team", "speakers-guests", "ask-give", "gallery", "documents", "my-links"].includes(tab.key)
+                  )
+              : HORIZONTAL_MODULE_TABS
+            ).map((tab) => {
               const isActive = currentTab === tab.key;
               const TabIcon = tab.icon;
               return (
@@ -3678,6 +3938,7 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
           handleSaveTeamRoles={handleSaveTeamRoles}
           onUploadKeynotePoster={handleKeynotePosterChange}
           keynotePosterUploading={keynotePosterUploading}
+          isReadOnly={isEventCoordinator || isGuestManager}
         />
       )}
 
@@ -4396,6 +4657,7 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                 <div className="flex items-center gap-2 flex-wrap">
                   <Button
                     onClick={() => {
+                      setSpeakerFormErrors({});
                       setNewSpeaker({ name: "", category: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
                       setSpeakerDialogOpen(true);
                     }}
@@ -4443,13 +4705,102 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
             {/* SUBTAB 1: EVENT GUESTS */}
             {speakerSubTab === "event" && (
               <div>
-                <div className="mb-4 flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    Speakers and dignitaries confirmed for the stage schedule of <strong className="text-foreground">{activeEvent?.title || "this event"}</strong>.
-                  </p>
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Speakers and dignitaries confirmed for the stage schedule of <strong className="text-foreground">{activeEvent?.title || "this event"}</strong>.
+                    </p>
+                    <p className="text-[11px] text-muted-foreground/80 mt-0.5">
+                      📅 Date: <strong className="text-foreground">{activeEvent?.date ? new Date(activeEvent.date).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "Upcoming"}</strong> · 📍 Venue: <strong className="text-foreground">{activeEvent?.venue || activeEvent?.chapter || "Main Hall"}</strong>
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground font-medium shrink-0">
+                    Showing {filteredSpeakers.length} of {speakers.length} Speakers
+                  </span>
                 </div>
 
-                {speakers.length === 0 ? (
+                {/* Search & Category / Status Filters */}
+                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-5 p-3 rounded-xl bg-muted/40 border border-border/60">
+                  <div className="relative flex-1">
+                    <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search speakers by name, topic, company, phone..."
+                      value={eventSpeakerSearchQuery}
+                      onChange={(e) => setEventSpeakerSearchQuery(e.target.value)}
+                      className="h-8 pl-8 text-xs bg-background"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Select
+                      value={eventSpeakerCategoryFilter}
+                      onValueChange={setEventSpeakerCategoryFilter}
+                    >
+                      <SelectTrigger className="h-8 text-xs w-[140px] bg-background">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="Government Official">Govt Official</SelectItem>
+                        <SelectItem value="Foreign Delegation">Foreign Delegation</SelectItem>
+                        <SelectItem value="Industry Council">Industry Council</SelectItem>
+                        <SelectItem value="Diplomatic Delegation">Diplomatic Delegation</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={eventSpeakerStatusFilter}
+                      onValueChange={setEventSpeakerStatusFilter}
+                    >
+                      <SelectTrigger className="h-8 text-xs w-[120px] bg-background">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="Confirmed">Confirmed</SelectItem>
+                        <SelectItem value="Invited">Invited</SelectItem>
+                        <SelectItem value="Tentative">Tentative</SelectItem>
+                        <SelectItem value="Declined">Declined</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {(eventSpeakerSearchQuery || eventSpeakerCategoryFilter !== "all" || eventSpeakerStatusFilter !== "all") && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEventSpeakerSearchQuery("");
+                          setEventSpeakerCategoryFilter("all");
+                          setEventSpeakerStatusFilter("all");
+                        }}
+                        className="h-8 text-xs px-2 text-muted-foreground hover:text-foreground"
+                      >
+                        Reset
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {loadingOperations ? (
+                  <div className="p-12 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
+                    <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                    <span>Loading speakers and guests from database...</span>
+                  </div>
+                ) : operationsError ? (
+                  <div className="p-8 rounded-xl border border-destructive/20 bg-destructive/5 text-center text-xs text-destructive space-y-2">
+                    <AlertCircle className="h-6 w-6 mx-auto text-destructive" />
+                    <p className="font-semibold text-sm">Failed to load speakers</p>
+                    <p className="text-muted-foreground">{operationsError}</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => fetchOperationsData(selectedEventId)}
+                      className="mt-2 text-xs h-8 gap-1.5"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> Try Again
+                    </Button>
+                  </div>
+                ) : speakers.length === 0 ? (
                   <div className="p-10 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground space-y-3">
                     <Mic className="h-8 w-8 mx-auto text-muted-foreground/40" />
                     <p className="font-medium text-foreground">No speakers configured for this event yet.</p>
@@ -4471,7 +4822,20 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                       <Button
                         size="sm"
                         onClick={() => {
-                          setNewSpeaker({ name: "", category: "", mobile: "", email: "", org: "", designation: "", type: "Guest Speaker", topic: "" });
+                          setNewSpeaker({
+                            name: "",
+                            category: "",
+                            mobile: "",
+                            email: "",
+                            org: "",
+                            designation: "",
+                            type: "Guest Speaker",
+                            topic: "",
+                            photo: "",
+                            status: "Confirmed",
+                            assignedRole: "",
+                          });
+                          setSpeakerFormErrors({});
                           setSpeakerDialogOpen(true);
                         }}
                         className="text-xs h-8 gap-1.5"
@@ -4480,16 +4844,57 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                       </Button>
                     </div>
                   </div>
+                ) : filteredSpeakers.length === 0 ? (
+                  <div className="p-10 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground space-y-2">
+                    <Search className="h-6 w-6 mx-auto text-muted-foreground/40" />
+                    <p className="font-medium text-foreground">No speakers match your current search filters.</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEventSpeakerSearchQuery("");
+                        setEventSpeakerCategoryFilter("all");
+                        setEventSpeakerStatusFilter("all");
+                      }}
+                      className="text-xs h-7 mt-2"
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {speakers.map((s) => (
+                    {filteredSpeakers.map((s) => (
                       <div
                         key={s.id}
                         className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all flex items-start gap-3.5 shadow-xs"
                       >
-                        <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-lg shrink-0">
-                          {(s.name || "S").slice(0, 1)}
+                        {/* Photo Thumbnail with instant photo upload */}
+                        <div className="relative group shrink-0">
+                          {s.photo ? (
+                            <img
+                              src={s.photo}
+                              alt={s.name}
+                              className="h-14 w-14 rounded-xl object-cover border border-border/80 shadow-xs"
+                            />
+                          ) : (
+                            <div className="h-14 w-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-lg border border-primary/20">
+                              {(s.name || "S").slice(0, 1)}
+                            </div>
+                          )}
+                          <label
+                            title="Upload / Change Photo"
+                            className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-background border border-border shadow-xs flex items-center justify-center cursor-pointer hover:bg-primary hover:text-primary-foreground text-muted-foreground transition-colors"
+                          >
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleSpeakerPhotoUpload(e, s.id)}
+                            />
+                            <Camera className="h-3 w-3" />
+                          </label>
                         </div>
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between flex-wrap gap-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
@@ -4506,20 +4911,58 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                                   🌐 Foreign Delegation
                                 </span>
                               )}
+                              {s.category === "Industry Council" && (
+                                <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
+                                  🏢 Industry Council
+                                </span>
+                              )}
+                              {/* Status Badge */}
+                              <span
+                                className={cn(
+                                  "px-2 py-0.5 rounded text-[10px] font-bold border",
+                                  (s.status || "Confirmed") === "Confirmed"
+                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                                    : s.status === "Invited"
+                                    ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
+                                    : s.status === "Declined"
+                                    ? "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20"
+                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+                                )}
+                              >
+                                {(s.status || "Confirmed") === "Confirmed" ? "✓ Confirmed" : s.status}
+                              </span>
                             </div>
                             <span className="text-[10px] text-muted-foreground font-mono">{s.mobile}</span>
                           </div>
+
                           <h4 className="font-bold text-sm text-foreground mt-1 truncate">{s.name}</h4>
                           <p className="text-xs text-muted-foreground">
                             {s.designation || ""} {s.organization ? `· ${s.organization}` : ""}
                           </p>
+
+                          {/* Programme Role Assignment Display */}
+                          {s.assignedRole ? (
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                                <Award className="h-3 w-3" />
+                                {getRoleBadge(s.assignedRole)}
+                              </span>
+                            </div>
+                          ) : null}
+
                           {s.topic && (
                             <p className="text-xs text-primary font-medium mt-1.5 bg-muted/40 px-2 py-1 rounded">
                               Topic: &ldquo;{s.topic}&rdquo;
                             </p>
                           )}
 
-                          <div className="flex items-center gap-2 mt-3">
+                          {/* Event info */}
+                          <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>Event: {activeEvent?.date ? new Date(activeEvent.date).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "Upcoming"} · {activeEvent?.venue || activeEvent?.chapter || "Hall"}</span>
+                          </p>
+
+                          <div className="flex items-center gap-2 mt-3 pt-2 border-t border-border/50 flex-wrap">
                             {s.mobile && (
                               <>
                                 <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1">
@@ -4528,12 +4971,30 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                                   </a>
                                 </Button>
                                 <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1 text-emerald-600">
-                                  <a href={`https://api.whatsapp.com/send?phone=91${s.mobile}`} target="_blank">
+                                  <a href={`https://api.whatsapp.com/send?phone=91${s.mobile.replace(/\D/g, '')}`} target="_blank">
                                     WhatsApp
                                   </a>
                                 </Button>
                               </>
                             )}
+                            {s.email && (
+                              <Button size="sm" variant="outline" asChild className="h-7 text-xs px-2 gap-1 text-sky-600">
+                                <a href={`mailto:${s.email}`}>
+                                  <Mail className="h-3 w-3" /> Email
+                                </a>
+                              </Button>
+                            )}
+
+                            {/* Assign Programme Role Action */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openAssignRoleModal(s)}
+                              className="h-7 text-xs px-2 gap-1 text-purple-600 border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-950"
+                            >
+                              <Award className="h-3 w-3" /> Stage Role
+                            </Button>
+
                             <div className="flex-1"></div>
                             <Button size="sm" variant="ghost" onClick={() => handleEditSpeakerClick(s)} className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
                               <Edit className="h-3.5 w-3.5" />
@@ -4710,7 +5171,13 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
           </div>
 
           {/* Dialog 1: Add/Edit Event Speaker Dialog */}
-          <Dialog open={speakerDialogOpen} onOpenChange={setSpeakerDialogOpen}>
+          <Dialog
+            open={speakerDialogOpen}
+            onOpenChange={(open) => {
+              setSpeakerDialogOpen(open);
+              if (!open) setSpeakerFormErrors({});
+            }}
+          >
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>{newSpeaker.id ? "Edit Event Speaker" : "Add Dignitary / Speaker"}</DialogTitle>
@@ -4719,16 +5186,26 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                 </DialogDescription>
               </DialogHeader>
 
-              <form onSubmit={handleAddSpeaker} className="space-y-3.5 py-1">
+              <form onSubmit={handleAddSpeaker} noValidate className="space-y-3.5 py-1">
                 <div>
                   <Label className="text-xs font-semibold">Full Name *</Label>
                   <Input
                     placeholder="e.g. Dr. Farhan Qureshi"
                     value={newSpeaker.name}
-                    onChange={(e) => setNewSpeaker((prev) => ({ ...prev, name: e.target.value }))}
-                    className="mt-1 h-9 text-xs"
+                    onChange={(e) => {
+                      setNewSpeaker((prev) => ({ ...prev, name: e.target.value }));
+                      if (speakerFormErrors.name) {
+                        setSpeakerFormErrors((prev) => ({ ...prev, name: null }));
+                      }
+                    }}
+                    className={cn("mt-1 h-9 text-xs", speakerFormErrors.name && "border-destructive focus-visible:ring-destructive")}
                     required
                   />
+                  {speakerFormErrors.name && (
+                    <p className="text-[11px] text-destructive mt-1 font-medium">
+                      {speakerFormErrors.name}
+                    </p>
+                  )}
                 </div>
 
                 {/* Optional Category */}
@@ -4781,9 +5258,19 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                       required
                       placeholder="98200 00000"
                       value={newSpeaker.mobile}
-                      onChange={(e) => setNewSpeaker((prev) => ({ ...prev, mobile: e.target.value }))}
-                      className="mt-1"
+                      onChange={(e) => {
+                        setNewSpeaker((prev) => ({ ...prev, mobile: e.target.value }));
+                        if (speakerFormErrors.mobile) {
+                          setSpeakerFormErrors((prev) => ({ ...prev, mobile: null }));
+                        }
+                      }}
+                      className={cn("mt-1", speakerFormErrors.mobile && "border-destructive focus-visible:ring-destructive")}
                     />
+                    {speakerFormErrors.mobile && (
+                      <p className="text-[11px] text-destructive mt-1 font-medium">
+                        {speakerFormErrors.mobile}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label className="text-xs font-semibold">Email</Label>
@@ -4791,9 +5278,19 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                       type="email"
                       placeholder="speaker@example.com"
                       value={newSpeaker.email}
-                      onChange={(e) => setNewSpeaker((prev) => ({ ...prev, email: e.target.value }))}
-                      className="mt-1"
+                      onChange={(e) => {
+                        setNewSpeaker((prev) => ({ ...prev, email: e.target.value }));
+                        if (speakerFormErrors.email) {
+                          setSpeakerFormErrors((prev) => ({ ...prev, email: null }));
+                        }
+                      }}
+                      className={cn("mt-1", speakerFormErrors.email && "border-destructive focus-visible:ring-destructive")}
                     />
+                    {speakerFormErrors.email && (
+                      <p className="text-[11px] text-destructive mt-1 font-medium">
+                        {speakerFormErrors.email}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -4838,6 +5335,47 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                     </Select>
                   </div>
                   <div>
+                    <Label className="text-xs font-semibold">Status</Label>
+                    <Select
+                      value={newSpeaker.status || "Confirmed"}
+                      onValueChange={(val) => setNewSpeaker((prev) => ({ ...prev, status: val }))}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Confirmed">Confirmed</SelectItem>
+                        <SelectItem value="Invited">Invited</SelectItem>
+                        <SelectItem value="Tentative">Tentative</SelectItem>
+                        <SelectItem value="Declined">Declined</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Programme Stage Role</Label>
+                    <Select
+                      value={newSpeaker.assignedRole || "none"}
+                      onValueChange={(val) =>
+                        setNewSpeaker((prev) => ({ ...prev, assignedRole: val === "none" ? "" : val }))
+                      }
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Optional Stage Role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Specific Role</SelectItem>
+                        {PROGRAMME_ROLES.map((r) => (
+                          <SelectItem key={r.key} value={r.key}>
+                            {r.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <Label className="text-xs font-semibold">Speech / Keynote Topic</Label>
                     <Input
                       placeholder="e.g. Ethical Scaling"
@@ -4845,6 +5383,62 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
                       onChange={(e) => setNewSpeaker((prev) => ({ ...prev, topic: e.target.value }))}
                       className="mt-1"
                     />
+                  </div>
+                </div>
+
+                {/* Photograph URL and Instant Preview */}
+                <div>
+                  <Label className="text-xs font-semibold">Photograph URL / Image</Label>
+                  <div className="flex items-center gap-3 mt-1">
+                    {newSpeaker.photo ? (
+                      <img
+                        src={newSpeaker.photo}
+                        alt="Preview"
+                        className="h-10 w-10 rounded-lg object-cover border border-border shrink-0"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground text-xs shrink-0 border border-border">
+                        <Camera className="h-4 w-4" />
+                      </div>
+                    )}
+                    <Input
+                      placeholder="https://... or upload image"
+                      value={newSpeaker.photo || ""}
+                      onChange={(e) => setNewSpeaker((prev) => ({ ...prev, photo: e.target.value }))}
+                      className="h-9 text-xs flex-1"
+                    />
+                    <label className="cursor-pointer shrink-0">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        asChild
+                        className="h-9 text-xs gap-1.5"
+                      >
+                        <span>
+                          <Camera className="h-3.5 w-3.5" />
+                          Upload
+                        </span>
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (newSpeaker.id && selectedEventId) {
+                            handleSpeakerPhotoUpload(e, newSpeaker.id);
+                          } else {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              setNewSpeaker((prev) => ({ ...prev, photo: reader.result }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
                   </div>
                 </div>
 
@@ -5142,6 +5736,84 @@ function OperationsCenterInner({ initialTab = "event-setup" }) {
               <DialogFooter>
                 <Button variant="outline" size="sm" onClick={() => setMasterPickerOpen(false)} className="text-xs">
                   Done
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog 4: Assign Event Stage Role Dialog */}
+          <Dialog open={assignRoleDialogOpen} onOpenChange={setAssignRoleDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base font-bold">
+                  <Award className="h-5 w-5 text-purple-600" />
+                  Assign Event Stage Role
+                </DialogTitle>
+                <DialogDescription>
+                  Assign <strong className="text-foreground">{speakerToAssignRole?.name}</strong> to a specific programme role on the active stage schedule.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2">
+                <div>
+                  <Label className="text-xs font-semibold">Programme Role *</Label>
+                  <Select
+                    value={selectedProgrammeRole}
+                    onValueChange={setSelectedProgrammeRole}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select programme role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROGRAMME_ROLES.map((r) => (
+                        <SelectItem key={r.key} value={r.key}>
+                          <div className="flex flex-col text-left">
+                            <span className="font-medium">{r.label}</span>
+                            <span className="text-[10px] text-muted-foreground">{r.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold">Keynote Topic / Session Title</Label>
+                  <Input
+                    placeholder="e.g. Scaling Cross-Border Trade & MSME Growth"
+                    value={selectedRoleTopic}
+                    onChange={(e) => setSelectedRoleTopic(e.target.value)}
+                    className="mt-1 h-9 text-xs"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    This will appear on the live stage slide projector and attendee agenda.
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setAssignRoleDialogOpen(false)}
+                  className="text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleAssignProgrammeRole}
+                  disabled={assigningRole}
+                  className="font-semibold text-xs bg-purple-600 hover:bg-purple-700 text-white shadow-xs"
+                >
+                  {assigningRole ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      Assigning...
+                    </>
+                  ) : (
+                    "Save Stage Assignment"
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>

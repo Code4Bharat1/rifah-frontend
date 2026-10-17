@@ -278,6 +278,41 @@ const roleNavs = {
       },
     ],
   },
+  guest_speaker_manager: {
+    title: "Guest & Speaker Manager",
+    primary: [
+      { label: "Speakers & Guests", to: "/chapter-admin/speakers-guests", icon: Mic },
+      { label: "Event Operations", to: "/chapter-admin/operations", icon: Radio },
+      { label: "Live Control", to: "/chapter-admin/live-control", icon: Radio },
+      { label: "Scripts", to: "/chapter-admin/scripts", icon: FileStack },
+      { label: "Ask & Give", to: "/chapter-admin/ask-give", icon: Handshake },
+      { label: "More", to: "/chapter-admin/gallery", icon: LayoutGrid },
+    ],
+    more: [
+      { label: "Event Setup", to: "/chapter-admin/event-setup", icon: CalendarDays },
+      { label: "Photo & Video Gallery", to: "/chapter-admin/gallery", icon: Compass },
+      { label: "My Duty (Biz)", to: "/biz/operations", icon: Radio },
+      { label: "Notifications", to: "/user/notifications", icon: Bell },
+    ],
+  },
+  event_coordinator: {
+    title: "Events Coordinator",
+    primary: [
+      { label: "Live Control", to: "/chapter-admin/live-control", icon: Radio },
+      { label: "Event Operations", to: "/chapter-admin/operations", icon: Radio },
+      { label: "Event Setup", to: "/chapter-admin/event-setup", icon: CalendarDays },
+      { label: "Speakers & Guests", to: "/chapter-admin/speakers-guests", icon: Mic },
+      { label: "Scripts & Agenda", to: "/chapter-admin/scripts", icon: FileStack },
+      { label: "More", to: "/chapter-admin/gallery", icon: LayoutGrid },
+    ],
+    more: [
+      { label: "Role Assignments", to: "/chapter-admin/my-team", icon: ShieldCheck },
+      { label: "Ask & Give", to: "/chapter-admin/ask-give", icon: Handshake },
+      { label: "Photo & Video Gallery", to: "/chapter-admin/gallery", icon: Compass },
+      { label: "My Duty (Biz)", to: "/biz/operations", icon: Radio },
+      { label: "Notifications", to: "/user/notifications", icon: Bell },
+    ],
+  },
   central_admin: null,
   business: null,
   business_owner: null,
@@ -289,12 +324,18 @@ roleNavs.business_owner = navs.business;
 roleNavs.customer = navs.user;
 roleNavs.buyer = navs.user;
 roleNavs.user = navs.user;
+roleNavs.guest_speaker_manager = navs.guest_speaker_manager;
+roleNavs.guestManager = navs.guest_speaker_manager;
+roleNavs.event_coordinator = navs.event_coordinator;
+roleNavs.eventCoordinator = navs.event_coordinator;
 
 navs.business_owner = navs.business;
 navs.customer = navs.user;
 navs.buyer = navs.user;
 navs.user = navs.user;
 navs.central_admin = navs.admin;
+navs.guestManager = navs.guest_speaker_manager;
+navs.eventCoordinator = navs.event_coordinator;
 
 const navRoles = [
   { role: "user", label: "Member Portal", to: "/user" },
@@ -307,6 +348,15 @@ function useResolvedNav(role) {
   const pathname = usePathname();
 
   const getBaseNav = () => {
+    // If user is a Guest & Speaker Manager, provide focused operational nav
+    if (user?.role === "guest_speaker_manager" || user?.role === "guestManager") {
+      return roleNavs.guest_speaker_manager;
+    }
+    // If user is an Events Coordinator, provide focused operational nav
+    if (user?.role === "event_coordinator" || user?.role === "eventCoordinator") {
+      return roleNavs.event_coordinator;
+    }
+
     // If active in org_role workspace, route to corresponding panel nav
     if (user?.activeWorkspace?.type === "org_role") {
       const panel = user.activeWorkspace.panelType;

@@ -20,6 +20,8 @@ import {
   ArrowUpRight,
   Loader2,
   Percent,
+  X,
+  Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -55,7 +57,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@shared/components/ui/select";
-import { useAllPayments, useBusinesses } from "@shared/hooks/use-rifah-api";
+import { useAllPayments, useBusinesses, useChapters } from "@shared/hooks/use-rifah-api";
 import { useAuth } from "@shared/providers/auth-provider";
 import { paymentApi } from "@shared/lib/api-services";
 import {
@@ -108,9 +110,30 @@ const INVOICE_PRESETS = [
     notes: "Featured enterprise showcase in monthly newsletter, portal banner, and social media blast.",
   },
   {
-    name: "Custom Deliverable",
-    purpose: "",
+    name: "Delegation & Trade Mission",
+    purpose: "International Business Delegation & B2B Mission Fee",
+    sacCode: "9985",
+    subtotal: 35000,
+    notes: "Official chamber trade delegation access, bilateral B2B meetings, summit passes & protocol support.",
+  },
+  {
+    name: "Training & Workshop",
+    purpose: "Executive Business Masterclass & Workshop Participation",
+    sacCode: "9992",
+    subtotal: 4500,
+    notes: "Executive workshop registration, courseware materials, certificate of completion & networking lunch.",
+  },
+  {
+    name: "Certification & Attestation",
+    purpose: "Certificate of Origin & Document Legal Attestation",
     sacCode: "9983",
+    subtotal: 2000,
+    notes: "Chamber verification stamp, official attestation seal and verification archival.",
+  },
+  {
+    name: "Other",
+    purpose: "",
+    sacCode: "",
     subtotal: "",
     notes: "",
   },
@@ -124,17 +147,17 @@ const INITIAL_INVOICE_FORM = {
   payerPhone: "",
   businessName: "",
   gstin: "",
-  chapter: "Central",
-  state: "Maharashtra",
-  categoryPreset: "Membership Accreditation",
-  purpose: "Annual Chamber Membership Accreditation",
-  sacCode: "9983",
-  notes: "Full chamber access, official directory listing, networking desk & credentials.",
+  chapter: "",
+  state: "",
+  categoryPreset: "",
+  purpose: "",
+  sacCode: "",
+  notes: "",
   quantity: 1,
   currency: "INR",
-  subtotal: 5000,
-  gstRate: 18,
-  amount: 5900,
+  subtotal: "",
+  gstRate: "",
+  amount: "",
   status: "Paid",
   method: "Bank Transfer",
   transactionId: "",
@@ -172,11 +195,13 @@ export function AdminPayments({ expectedRole = "admin" }) {
         : [];
   }
 
-  // Fetch businesses for Central Admin member selector
+  // Fetch businesses for Central Admin member selector (increased limit to ensure full directory)
   const { data: businessesData } = useBusinesses(
-    { limit: 200, status: "Active" },
+    { limit: 1000, status: "Active" },
     { enabled: Boolean(isCentralAdmin) }
   );
+
+  const { data: chaptersData } = useChapters({}, { enabled: Boolean(isCentralAdmin) });
 
   const businesses = useMemo(() => {
     if (Array.isArray(businessesData)) return businessesData;
@@ -187,6 +212,13 @@ export function AdminPayments({ expectedRole = "admin" }) {
     return [];
   }, [businessesData]);
 
+  const allChaptersList = useMemo(() => {
+    if (Array.isArray(chaptersData)) return chaptersData;
+    if (chaptersData?.chapters && Array.isArray(chaptersData.chapters))
+      return chaptersData.chapters;
+    return [];
+  }, [chaptersData]);
+
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [filter, setFilter] = useState("all");
@@ -195,7 +227,159 @@ export function AdminPayments({ expectedRole = "admin" }) {
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bizSearchTerm, setBizSearchTerm] = useState("");
+  const [bizCountryFilter, setBizCountryFilter] = useState("all");
+  const [bizStateFilter, setBizStateFilter] = useState("all");
+  const [bizCityFilter, setBizCityFilter] = useState("all");
+  const [bizChapterFilter, setBizChapterFilter] = useState("all");
   const [invoiceForm, setInvoiceForm] = useState(INITIAL_INVOICE_FORM);
+
+  const handleOpenCreateInvoice = () => {
+    setInvoiceForm(INITIAL_INVOICE_FORM);
+    setBizCountryFilter("all");
+    setBizStateFilter("all");
+    setBizCityFilter("all");
+    setBizChapterFilter("all");
+    setBizSearchTerm("");
+    setIsCreateInvoiceOpen(true);
+  };
+
+  // Dynamic filter lists derived from loaded businesses and chapter directory
+  const availableCountries = useMemo(() => {
+    const set = new Set();
+    businesses.forEach((b) => {
+      const c = (b.country || "").trim();
+      if (c) set.add(c);
+      else if (b.state) set.add("India");
+    });
+    set.add("India");
+    return Array.from(set).sort();
+  }, [businesses]);
+
+  const availableStates = useMemo(() => {
+    const set = new Set();
+    businesses.forEach((b) => {
+      if (bizCountryFilter !== "all") {
+        const c = (b.country || (b.state ? "India" : "")).trim();
+        if (c.toLowerCase() !== bizCountryFilter.toLowerCase()) return;
+      }
+      const s = (b.state || "").trim();
+      if (s) set.add(s);
+    });
+    return Array.from(set).sort();
+  }, [businesses, bizCountryFilter]);
+
+  const availableCities = useMemo(() => {
+    const set = new Set();
+    businesses.forEach((b) => {
+      if (bizCountryFilter !== "all") {
+        const c = (b.country || (b.state ? "India" : "")).trim();
+        if (c.toLowerCase() !== bizCountryFilter.toLowerCase()) return;
+      }
+      if (bizStateFilter !== "all") {
+        const s = (b.state || "").trim();
+        if (s.toLowerCase() !== bizStateFilter.toLowerCase()) return;
+      }
+      const city = (b.city || "").trim();
+      if (city) set.add(city);
+    });
+    return Array.from(set).sort();
+  }, [businesses, bizCountryFilter, bizStateFilter]);
+
+  const availableChapters = useMemo(() => {
+    const set = new Set();
+    businesses.forEach((b) => {
+      if (bizCountryFilter !== "all") {
+        const c = (b.country || (b.state ? "India" : "")).trim();
+        if (c.toLowerCase() !== bizCountryFilter.toLowerCase()) return;
+      }
+      if (bizStateFilter !== "all") {
+        const s = (b.state || "").trim();
+        if (s.toLowerCase() !== bizStateFilter.toLowerCase()) return;
+      }
+      const ch = (b.chapter || "").trim();
+      if (ch) set.add(ch);
+    });
+    allChaptersList.forEach((c) => {
+      if (bizStateFilter !== "all" && c.state) {
+        if (c.state.toLowerCase() !== bizStateFilter.toLowerCase()) return;
+      }
+      const name = (c.name || "").trim();
+      if (name) set.add(name);
+    });
+    return Array.from(set).sort();
+  }, [businesses, allChaptersList, bizCountryFilter, bizStateFilter]);
+
+  const filteredBusinesses = useMemo(() => {
+    return businesses.filter((b) => {
+      // 1. Country Filter
+      if (bizCountryFilter !== "all") {
+        const bCountry = (b.country || (b.state ? "India" : "")).trim().toLowerCase();
+        if (bCountry !== bizCountryFilter.toLowerCase()) return false;
+      }
+
+      // 2. State Filter
+      if (bizStateFilter !== "all") {
+        const bState = (b.state || "").trim().toLowerCase();
+        if (bState !== bizStateFilter.toLowerCase()) return false;
+      }
+
+      // 3. City Filter
+      if (bizCityFilter !== "all") {
+        const bCity = (b.city || "").trim().toLowerCase();
+        if (bCity !== bizCityFilter.toLowerCase()) return false;
+      }
+
+      // 4. Chapter Filter
+      if (bizChapterFilter !== "all") {
+        const bChapter = (b.chapter || "").trim().toLowerCase();
+        const targetChapter = bizChapterFilter.trim().toLowerCase();
+        if (!bChapter.includes(targetChapter) && !targetChapter.includes(bChapter)) {
+          return false;
+        }
+      }
+
+      // 5. Keyword Search
+      if (bizSearchTerm.trim()) {
+        const term = bizSearchTerm.toLowerCase().trim();
+        const matchName = b.name && b.name.toLowerCase().includes(term);
+        const matchOwner =
+          (b.contactPerson && b.contactPerson.toLowerCase().includes(term)) ||
+          (b.owner?.name && b.owner.name.toLowerCase().includes(term));
+        const matchEmail =
+          (b.email && b.email.toLowerCase().includes(term)) ||
+          (b.owner?.email && b.owner.email.toLowerCase().includes(term));
+        const matchPhone =
+          (b.phone && b.phone.includes(term)) ||
+          (b.owner?.phone && b.owner.phone.includes(term));
+        const matchGstin = b.gstin && b.gstin.toLowerCase().includes(term);
+        const matchCity = b.city && b.city.toLowerCase().includes(term);
+        const matchState = b.state && b.state.toLowerCase().includes(term);
+        const matchChapter = b.chapter && b.chapter.toLowerCase().includes(term);
+
+        if (
+          !matchName &&
+          !matchOwner &&
+          !matchEmail &&
+          !matchPhone &&
+          !matchGstin &&
+          !matchCity &&
+          !matchState &&
+          !matchChapter
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [
+    businesses,
+    bizCountryFilter,
+    bizStateFilter,
+    bizCityFilter,
+    bizChapterFilter,
+    bizSearchTerm,
+  ]);
 
   // Invoice Preview Modal State
   const [previewInvoice, setPreviewInvoice] = useState(null);
@@ -216,8 +400,16 @@ export function AdminPayments({ expectedRole = "admin" }) {
 
   // Calculate live taxes for Create Invoice form
   const handleSubtotalChange = (val) => {
+    if (val === "" || val === null || val === undefined) {
+      setInvoiceForm((prev) => ({
+        ...prev,
+        subtotal: "",
+        amount: "",
+      }));
+      return;
+    }
     const num = Number(val) || 0;
-    const rate = Number(invoiceForm.gstRate) || 0;
+    const rate = invoiceForm.gstRate !== "" ? Number(invoiceForm.gstRate) : 0;
     const gstAmt = Math.round(num * (rate / 100) * 100) / 100;
     const total = Math.round((num + gstAmt) * 100) / 100;
     setInvoiceForm((prev) => ({
@@ -228,10 +420,10 @@ export function AdminPayments({ expectedRole = "admin" }) {
   };
 
   const handleGstRateChange = (rateVal) => {
-    const rate = Number(rateVal) || 0;
-    const num = Number(invoiceForm.subtotal) || 0;
+    const rate = rateVal === "" ? 0 : Number(rateVal) || 0;
+    const num = invoiceForm.subtotal === "" ? 0 : Number(invoiceForm.subtotal) || 0;
     const gstAmt = Math.round(num * (rate / 100) * 100) / 100;
-    const total = Math.round((num + gstAmt) * 100) / 100;
+    const total = invoiceForm.subtotal === "" ? "" : Math.round((num + gstAmt) * 100) / 100;
     setInvoiceForm((prev) => ({
       ...prev,
       gstRate: rateVal,
@@ -240,8 +432,16 @@ export function AdminPayments({ expectedRole = "admin" }) {
   };
 
   const handleTotalAmountChange = (totalVal) => {
+    if (totalVal === "" || totalVal === null || totalVal === undefined) {
+      setInvoiceForm((prev) => ({
+        ...prev,
+        amount: "",
+        subtotal: "",
+      }));
+      return;
+    }
     const total = Number(totalVal) || 0;
-    const rate = Number(invoiceForm.gstRate) || 0;
+    const rate = invoiceForm.gstRate !== "" ? Number(invoiceForm.gstRate) : 0;
     let sub = total;
     if (rate > 0) {
       sub = Math.round((total / (1 + rate / 100)) * 100) / 100;
@@ -254,8 +454,20 @@ export function AdminPayments({ expectedRole = "admin" }) {
   };
 
   const applyPreset = (preset) => {
-    const rate = Number(invoiceForm.gstRate) || 18;
-    const sub = preset.subtotal !== "" ? Number(preset.subtotal) : Number(invoiceForm.subtotal) || 0;
+    if (preset.name === "Other") {
+      setInvoiceForm((prev) => ({
+        ...prev,
+        categoryPreset: "Other",
+        purpose: INVOICE_PRESETS.some((p) => p.name !== "Other" && p.purpose === prev.purpose)
+          ? ""
+          : prev.purpose,
+        sacCode: prev.sacCode || "9983",
+      }));
+      return;
+    }
+
+    const rate = invoiceForm.gstRate !== "" ? Number(invoiceForm.gstRate) : 18;
+    const sub = preset.subtotal !== "" ? Number(preset.subtotal) : (invoiceForm.subtotal !== "" ? Number(invoiceForm.subtotal) : 0);
     const gstAmt = Math.round(sub * (rate / 100) * 100) / 100;
     setInvoiceForm((prev) => ({
       ...prev,
@@ -264,6 +476,7 @@ export function AdminPayments({ expectedRole = "admin" }) {
       sacCode: preset.sacCode || prev.sacCode,
       notes: preset.notes || prev.notes,
       subtotal: preset.subtotal !== "" ? preset.subtotal : prev.subtotal,
+      gstRate: prev.gstRate !== "" ? prev.gstRate : 18,
       amount: preset.subtotal !== "" ? Math.round((sub + gstAmt) * 100) / 100 : prev.amount,
     }));
   };
@@ -279,7 +492,7 @@ export function AdminPayments({ expectedRole = "admin" }) {
       payerEmail: biz.email || biz.owner?.email || "",
       payerPhone: biz.phone || biz.owner?.phone || "",
       gstin: biz.gstin || "",
-      chapter: biz.chapter || "Central",
+      chapter: biz.chapter || biz.city || "Central",
       state: biz.state || "Maharashtra",
     }));
   };
@@ -325,6 +538,11 @@ export function AdminPayments({ expectedRole = "admin" }) {
       );
       setIsCreateInvoiceOpen(false);
       setInvoiceForm(INITIAL_INVOICE_FORM);
+      setBizCountryFilter("all");
+      setBizStateFilter("all");
+      setBizCityFilter("all");
+      setBizChapterFilter("all");
+      setBizSearchTerm("");
       refetch();
 
       // Automatically open the themed invoice preview so Central Admin can view or print immediately
@@ -538,17 +756,6 @@ export function AdminPayments({ expectedRole = "admin" }) {
 
   const customInvoicesCount = payments.filter((p) => p.isCustomInvoice).length;
 
-  const filteredBusinesses = businesses.filter((b) => {
-    if (!bizSearchTerm.trim()) return true;
-    const term = bizSearchTerm.toLowerCase();
-    return (
-      (b.name && b.name.toLowerCase().includes(term)) ||
-      (b.contactPerson && b.contactPerson.toLowerCase().includes(term)) ||
-      (b.city && b.city.toLowerCase().includes(term)) ||
-      (b.chapter && b.chapter.toLowerCase().includes(term))
-    );
-  });
-
   return (
     <AppShell
       role={user?.role === "chapter_admin" ? "chapter_admin" : "admin"}
@@ -557,10 +764,7 @@ export function AdminPayments({ expectedRole = "admin" }) {
       actions={
         isCentralAdmin && (
           <Button
-            onClick={() => {
-              setInvoiceForm(INITIAL_INVOICE_FORM);
-              setIsCreateInvoiceOpen(true);
-            }}
+            onClick={handleOpenCreateInvoice}
             className="bg-sky-600 hover:bg-sky-700 text-white font-semibold gap-2 shadow-sm text-xs sm:text-sm h-9"
           >
             <Plus className="h-4 w-4" />
@@ -658,10 +862,7 @@ export function AdminPayments({ expectedRole = "admin" }) {
           action={
             isCentralAdmin && (
               <Button
-                onClick={() => {
-                  setInvoiceForm(INITIAL_INVOICE_FORM);
-                  setIsCreateInvoiceOpen(true);
-                }}
+                onClick={handleOpenCreateInvoice}
                 className="bg-sky-600 hover:bg-sky-700 text-white font-semibold gap-1.5 shadow-sm text-xs sm:text-sm h-8 sm:h-9"
               >
                 <Plus className="h-4 w-4" />
@@ -1028,27 +1229,153 @@ export function AdminPayments({ expectedRole = "admin" }) {
 
               {invoiceForm.recipientType === "existing" ? (
                 <div className="space-y-3 pt-1">
-                  <div>
-                    <Label className="text-xs">Search & Select Registered Member Business</Label>
-                    <div className="relative mt-1">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search by company name, owner, city or chapter..."
-                        value={bizSearchTerm}
-                        onChange={(e) => setBizSearchTerm(e.target.value)}
-                        className="pl-9 text-xs sm:text-sm"
-                      />
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      Search & Filter Member Business
+                    </Label>
+                    {(bizCountryFilter !== "all" ||
+                      bizStateFilter !== "all" ||
+                      bizCityFilter !== "all" ||
+                      bizChapterFilter !== "all" ||
+                      bizSearchTerm) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBizCountryFilter("all");
+                          setBizStateFilter("all");
+                          setBizCityFilter("all");
+                          setBizChapterFilter("all");
+                          setBizSearchTerm("");
+                        }}
+                        className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1 font-medium"
+                      >
+                        <X className="h-3 w-3" /> Clear filters
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 4 Cascading Dropdown Filters: Country, State, City, Chapter */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-0.5">
+                        Country
+                      </label>
+                      <Select
+                        value={bizCountryFilter}
+                        onValueChange={(val) => {
+                          setBizCountryFilter(val);
+                          setBizStateFilter("all");
+                          setBizCityFilter("all");
+                          setBizChapterFilter("all");
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="All Countries" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Countries</SelectItem>
+                          {availableCountries.map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-0.5">
+                        State
+                      </label>
+                      <Select
+                        value={bizStateFilter}
+                        onValueChange={(val) => {
+                          setBizStateFilter(val);
+                          setBizCityFilter("all");
+                          setBizChapterFilter("all");
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="All States" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All States</SelectItem>
+                          {availableStates.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-0.5">
+                        City
+                      </label>
+                      <Select
+                        value={bizCityFilter}
+                        onValueChange={setBizCityFilter}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="All Cities" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Cities</SelectItem>
+                          {availableCities.map((city) => (
+                            <SelectItem key={city} value={city}>
+                              {city}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-0.5">
+                        Chapter
+                      </label>
+                      <Select
+                        value={bizChapterFilter}
+                        onValueChange={setBizChapterFilter}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="All Chapters" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Chapters</SelectItem>
+                          {availableChapters.map((ch) => (
+                            <SelectItem key={ch} value={ch}>
+                              {ch}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
-                  <div className="max-h-36 overflow-y-auto rounded-lg border border-border p-1 space-y-1 bg-slate-50/50 dark:bg-slate-900/50">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by company name, owner, email, phone or GSTIN..."
+                      value={bizSearchTerm}
+                      onChange={(e) => setBizSearchTerm(e.target.value)}
+                      className="pl-9 h-9 text-xs sm:text-sm"
+                    />
+                  </div>
+
+                  {/* Filtered Business Results */}
+                  <div className="max-h-40 overflow-y-auto rounded-lg border border-border p-1 space-y-1 bg-slate-50/50 dark:bg-slate-900/50">
                     {filteredBusinesses.length === 0 ? (
                       <p className="p-3 text-center text-xs text-muted-foreground">
-                        No registered businesses found matching filter
+                        No registered businesses found matching filters
                       </p>
                     ) : (
-                      filteredBusinesses.slice(0, 15).map((b) => {
+                      filteredBusinesses.slice(0, 20).map((b) => {
                         const isSelected = invoiceForm.businessId === b._id;
+                        const locationParts = [b.city, b.state, b.chapter].filter(Boolean);
+                        const locationText = locationParts.length > 0 ? locationParts.join(" · ") : "Chamber Member";
                         return (
                           <div
                             key={b._id}
@@ -1064,8 +1391,8 @@ export function AdminPayments({ expectedRole = "admin" }) {
                                 {b.name}
                               </p>
                               <p className="text-[11px] text-muted-foreground truncate">
-                                {b.contactPerson || b.owner?.name || "Member"} ·{" "}
-                                {b.city || b.chapter || "Chamber"}
+                                {b.contactPerson || b.owner?.name || "Member"} · {locationText}
+                                {b.country && b.country !== "India" ? ` (${b.country})` : ""}
                               </p>
                             </div>
                             {isSelected && (
@@ -1076,6 +1403,11 @@ export function AdminPayments({ expectedRole = "admin" }) {
                       })
                     )}
                   </div>
+                  {filteredBusinesses.length > 20 && (
+                    <p className="text-[10px] text-muted-foreground text-right">
+                      Showing top 20 of {filteredBusinesses.length} matching businesses.
+                    </p>
+                  )}
                 </div>
               ) : null}
 
@@ -1155,26 +1487,69 @@ export function AdminPayments({ expectedRole = "admin" }) {
             </div>
 
             {/* Presets & Purpose */}
-            <div className="space-y-2 pt-2 border-t border-border">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                2. Invoice Deliverable & Purpose
-              </Label>
-              <div className="flex flex-wrap gap-1.5">
-                {INVOICE_PRESETS.map((preset) => (
-                  <button
-                    key={preset.name}
-                    type="button"
-                    onClick={() => applyPreset(preset)}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                      invoiceForm.categoryPreset === preset.name
-                        ? "bg-sky-600 border-sky-600 text-white font-semibold"
-                        : "border-border hover:bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {preset.name}
-                  </button>
-                ))}
+            <div className="space-y-3 pt-2 border-t border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  2. Invoice Deliverable & Purpose
+                </Label>
+                {invoiceForm.categoryPreset && (
+                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-950/80 px-2.5 py-0.5 rounded-full border border-sky-200 dark:border-sky-800">
+                    Preset: {invoiceForm.categoryPreset}
+                  </span>
+                )}
               </div>
+
+              {/* Preset Reason Pills */}
+              <div className="flex flex-wrap gap-1.5">
+                {INVOICE_PRESETS.map((preset) => {
+                  const isActive = invoiceForm.categoryPreset === preset.name;
+                  const isOther = preset.name === "Other";
+                  return (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => applyPreset(preset)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                        isActive
+                          ? "bg-sky-600 border-sky-600 text-white font-semibold shadow-xs"
+                          : isOther
+                            ? "border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950 font-medium"
+                            : "border-border hover:bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {preset.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Dedicated Typing Text Box for "Other" or custom purpose */}
+              {invoiceForm.categoryPreset === "Other" && (
+                <div className="p-3 rounded-lg border border-sky-300 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-950/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-sky-600" />
+                      Type Custom Invoice Reason / Service Scope <span className="text-destructive">*</span>
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
+                      Custom Reason
+                    </span>
+                  </div>
+                  <Input
+                    placeholder="Type custom invoice reason (e.g. Annual Gala Dinner Pass, Legal Documentation, Export Advisory)..."
+                    value={invoiceForm.purpose}
+                    onChange={(e) =>
+                      setInvoiceForm((prev) => ({ ...prev, purpose: e.target.value }))
+                    }
+                    className="text-xs sm:text-sm bg-white dark:bg-slate-900 font-medium"
+                    autoFocus
+                    required
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Enter the exact deliverable title that will appear on the official GST invoice receipt.
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <div className="sm:col-span-2">
@@ -1182,10 +1557,14 @@ export function AdminPayments({ expectedRole = "admin" }) {
                     Item Description / Title <span className="text-destructive">*</span>
                   </Label>
                   <Input
-                    placeholder="e.g. Annual Chamber Membership Accreditation"
+                    placeholder="e.g. Annual Chamber Membership Accreditation, Event Booth Booking, etc."
                     value={invoiceForm.purpose}
                     onChange={(e) =>
-                      setInvoiceForm((prev) => ({ ...prev, purpose: e.target.value }))
+                      setInvoiceForm((prev) => ({
+                        ...prev,
+                        purpose: e.target.value,
+                        categoryPreset: prev.categoryPreset || "Other",
+                      }))
                     }
                     className="text-xs sm:text-sm mt-1 font-medium"
                     required
@@ -1194,7 +1573,7 @@ export function AdminPayments({ expectedRole = "admin" }) {
                 <div>
                   <Label className="text-xs">SAC / HSN Code</Label>
                   <Input
-                    placeholder="9983"
+                    placeholder="e.g. 9983, 9985"
                     value={invoiceForm.sacCode}
                     onChange={(e) =>
                       setInvoiceForm((prev) => ({ ...prev, sacCode: e.target.value }))
@@ -1205,7 +1584,7 @@ export function AdminPayments({ expectedRole = "admin" }) {
               </div>
 
               <div>
-                <Label className="text-xs">Deliverable Notes / Detailed Scope</Label>
+                <Label className="text-xs">Deliverable Notes / Detailed Scope (Optional)</Label>
                 <Textarea
                   placeholder="Describe included services, booth dimensions, entitlements or event dates..."
                   value={invoiceForm.notes}
@@ -1249,6 +1628,7 @@ export function AdminPayments({ expectedRole = "admin" }) {
                     type="number"
                     min="0"
                     step="any"
+                    placeholder="0.00"
                     value={invoiceForm.subtotal}
                     onChange={(e) => handleSubtotalChange(e.target.value)}
                     className="mt-1 text-xs sm:text-sm font-semibold tabular-nums"
@@ -1258,11 +1638,11 @@ export function AdminPayments({ expectedRole = "admin" }) {
                 <div>
                   <Label className="text-xs">GST Rate (%)</Label>
                   <Select
-                    value={String(invoiceForm.gstRate)}
-                    onValueChange={(val) => handleGstRateChange(Number(val))}
+                    value={invoiceForm.gstRate !== "" && invoiceForm.gstRate !== undefined ? String(invoiceForm.gstRate) : ""}
+                    onValueChange={(val) => handleGstRateChange(val === "" ? "" : Number(val))}
                   >
                     <SelectTrigger className="mt-1 text-xs sm:text-sm">
-                      <SelectValue />
+                      <SelectValue placeholder="Select GST Rate" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="18">18% (Standard GST)</SelectItem>
@@ -1297,14 +1677,16 @@ export function AdminPayments({ expectedRole = "admin" }) {
                       Base Subtotal:{" "}
                       <strong>
                         {invoiceForm.currency === "USD" ? "$" : "₹"}{" "}
-                        {Number(invoiceForm.subtotal || 0).toLocaleString()}
+                        {invoiceForm.subtotal !== "" ? Number(invoiceForm.subtotal || 0).toLocaleString() : "0"}
                       </strong>{" "}
-                      + GST ({invoiceForm.gstRate}%):{" "}
+                      + GST ({invoiceForm.gstRate !== "" ? `${invoiceForm.gstRate}%` : "0%"}):{" "}
                       <strong>
                         {invoiceForm.currency === "USD" ? "$" : "₹"}{" "}
-                        {(
-                          Number(invoiceForm.amount || 0) - Number(invoiceForm.subtotal || 0)
-                        ).toLocaleString()}
+                        {invoiceForm.amount !== "" && invoiceForm.subtotal !== ""
+                          ? (
+                              Number(invoiceForm.amount || 0) - Number(invoiceForm.subtotal || 0)
+                            ).toLocaleString()
+                          : "0"}
                       </strong>
                     </p>
                   </div>
@@ -1314,7 +1696,7 @@ export function AdminPayments({ expectedRole = "admin" }) {
                     </span>
                     <p className="text-xl sm:text-2xl font-black text-sky-700 dark:text-sky-400 tabular-nums">
                       {invoiceForm.currency === "USD" ? "$" : "₹"}{" "}
-                      {Number(invoiceForm.amount || 0).toLocaleString()}
+                      {invoiceForm.amount !== "" ? Number(invoiceForm.amount || 0).toLocaleString() : "0"}
                     </p>
                   </div>
                 </div>

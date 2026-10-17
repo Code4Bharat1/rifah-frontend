@@ -84,6 +84,18 @@ export function RegisterUserPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const focusAndScrollTo = (elementId) => {
+    if (typeof document === "undefined") return;
+    setTimeout(() => {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus({ preventScroll: true });
+      }
+    }, 60);
+  };
 
   // Email verification state
   const [emailVerified, setEmailVerified] = useState(false);
@@ -285,6 +297,13 @@ export function RegisterUserPage() {
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (error) setError("");
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
   };
 
   const handleEmailChange = (value) => {
@@ -292,6 +311,13 @@ export function RegisterUserPage() {
     if (emailConflictError) setEmailConflictError("");
     if (otpError) setOtpError("");
     if (error) setError("");
+    if (fieldErrors.email) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.email;
+        return next;
+      });
+    }
     if (emailVerified) {
       setEmailVerified(false);
       setVerifiedToken(null);
@@ -392,6 +418,11 @@ export function RegisterUserPage() {
       if (!token) throw new Error("Verification token missing from response.");
       setVerifiedToken(token);
       setEmailVerified(true);
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.email;
+        return next;
+      });
       setOtpSuccess("Email verified successfully.");
       toast.success("Email verified successfully.");
     } catch (err) {
@@ -445,56 +476,92 @@ export function RegisterUserPage() {
 
   // Validation before going to Step 2
   const validateStep1 = () => {
-    setError("");
+    const newErrors = {};
+    let firstErrorId = null;
+
     if (!form.name.trim() || form.name.trim().length < 2) {
-      setError("Please enter your full name (at least 2 characters).");
-      return false;
+      newErrors.name = "Please enter your full name (at least 2 characters).";
+      if (!firstErrorId) firstErrorId = registrationPath === "business" ? "biz-user-name" : "user-name";
     }
+
     if (!form.email.trim()) {
-      setError("Please enter your email address.");
-      return false;
+      newErrors.email = "Please enter your email address.";
+      if (!firstErrorId) firstErrorId = registrationPath === "business" ? "biz-user-email" : "user-email";
+    } else if (!emailVerified) {
+      newErrors.email = "Please verify your email with the 6-digit OTP code before proceeding.";
+      if (!firstErrorId) firstErrorId = registrationPath === "business" ? "biz-user-email" : "user-email";
     }
-    if (!emailVerified) {
-      setError("Please verify your email with the 6-digit OTP code before proceeding.");
-      return false;
-    }
+
     if (!form.phoneNumber.trim()) {
-      setError("Please enter your mobile phone number.");
-      return false;
+      newErrors.phoneNumber = "Please enter your mobile phone number.";
+      if (!firstErrorId) firstErrorId = registrationPath === "business" ? "biz-user-phone" : "user-phone";
+    } else if (form.phoneNumber.replace(/\D/g, "").length < 7) {
+      newErrors.phoneNumber = "Please enter a valid mobile phone number (at least 7 digits).";
+      if (!firstErrorId) firstErrorId = registrationPath === "business" ? "biz-user-phone" : "user-phone";
     }
+
     if (!form.password || form.password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      newErrors.password = "Password must be at least 6 characters.";
+      if (!firstErrorId) firstErrorId = registrationPath === "business" ? "biz-pwd" : "user-pass";
+    }
+
+    if (!form.confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password.";
+      if (!firstErrorId) firstErrorId = registrationPath === "business" ? "biz-pwd-confirm" : "user-confirm-pass";
+    } else if (form.password !== form.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match.";
+      if (!firstErrorId) firstErrorId = registrationPath === "business" ? "biz-pwd-confirm" : "user-confirm-pass";
+    }
+
+    setFieldErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      if (firstErrorId) focusAndScrollTo(firstErrorId);
       return false;
     }
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match.");
-      return false;
-    }
+
+    setError("");
     return true;
   };
 
   // Validation before going to Step 3
   const validateStep2 = () => {
-    setError("");
+    const newErrors = {};
+    let firstErrorId = null;
+
+    if (!form.businessName.trim() || form.businessName.trim().length < 2) {
+      newErrors.businessName = "Business / Organization name is required (at least 2 characters).";
+      if (!firstErrorId) firstErrorId = "business-name";
+    }
+
     if (form.regionType === "national") {
       if (!form.state) {
-        setError("Please select your State.");
-        return false;
+        newErrors.state = "Please select your State.";
+        if (!firstErrorId) firstErrorId = "user-state";
       }
       if (!form.city) {
-        setError("Please select your City.");
-        return false;
+        newErrors.city = "Please select your City.";
+        if (!firstErrorId) firstErrorId = "user-city";
       }
     } else {
       if (!form.country) {
-        setError("Please select your Country.");
-        return false;
+        newErrors.country = "Please select your Country.";
+        if (!firstErrorId) firstErrorId = "user-country";
       }
       if (!form.city) {
-        setError("Please select your City.");
-        return false;
+        newErrors.city = "Please select your City.";
+        if (!firstErrorId) firstErrorId = "user-intl-city";
       }
     }
+
+    setFieldErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      if (firstErrorId) focusAndScrollTo(firstErrorId);
+      return false;
+    }
+
+    setError("");
     return true;
   };
 
@@ -516,7 +583,9 @@ export function RegisterUserPage() {
 
     if (registrationPath === "business") {
       if (!selectedBusiness) {
+        setFieldErrors((prev) => ({ ...prev, businessSelection: "Please select a registered business first." }));
         setError("Please select a registered business first.");
+        focusAndScrollTo("business-search-input");
         return;
       }
       if (!selectedBusiness.isEligibleForMemberLink) {
@@ -527,12 +596,16 @@ export function RegisterUserPage() {
         return;
       }
       if (!bizVerified || !businessLinkToken) {
+        setFieldErrors((prev) => ({ ...prev, businessOtp: "Please verify authorization with the 6-digit code sent to the business email." }));
         setError("Please verify authorization with the 6-digit code sent to the business email.");
+        focusAndScrollTo("biz-otp-box");
         return;
       }
       if (!validateStep1()) return;
       if (!form.agreeTerms) {
+        setFieldErrors((prev) => ({ ...prev, agreeTerms: "Please accept the terms & conditions to create your account." }));
         setError("Please accept the terms & conditions to create your account.");
+        focusAndScrollTo("biz-terms");
         return;
       }
 
@@ -580,7 +653,24 @@ export function RegisterUserPage() {
           router.push("/user");
         }
       } catch (err) {
-        setError(err?.message || "Failed to create account under business.");
+        const errorList = err?.data?.errors || err?.errors || [];
+        if (Array.isArray(errorList) && errorList.length > 0) {
+          const mappedErrors = {};
+          errorList.forEach((e) => {
+            if (e.field) mappedErrors[e.field] = e.message;
+          });
+          setFieldErrors((prev) => ({ ...prev, ...mappedErrors }));
+          const firstField = errorList[0].field;
+          const fieldToId = {
+            name: "biz-user-name",
+            email: "biz-user-email",
+            phone: "biz-user-phone",
+            password: "biz-pwd",
+          };
+          if (fieldToId[firstField]) focusAndScrollTo(fieldToId[firstField]);
+        } else {
+          setError(err?.message || "Failed to create account under business.");
+        }
       } finally {
         setSubmitting(false);
       }
@@ -588,9 +678,17 @@ export function RegisterUserPage() {
     }
 
     // Individual Path
-    if (!validateStep1() || !validateStep2()) return;
+    if (!validateStep1()) {
+      setStep(1);
+      return;
+    }
+    if (!validateStep2()) {
+      setStep(2);
+      return;
+    }
     if (!form.agreeTerms) {
-      setError("Please accept the terms & conditions to create your account.");
+      setFieldErrors((prev) => ({ ...prev, agreeTerms: "Please accept the terms & conditions to create your account." }));
+      focusAndScrollTo("user-terms");
       return;
     }
 
@@ -637,7 +735,27 @@ export function RegisterUserPage() {
         router.push("/user");
       }
     } catch (err) {
-      setError(err?.message || "Failed to create account. Please check your details.");
+      const errorList = err?.data?.errors || err?.errors || [];
+      if (Array.isArray(errorList) && errorList.length > 0) {
+        const mappedErrors = {};
+        errorList.forEach((e) => {
+          if (e.field) mappedErrors[e.field] = e.message;
+        });
+        setFieldErrors((prev) => ({ ...prev, ...mappedErrors }));
+        const firstField = errorList[0].field;
+        const fieldToId = {
+          name: "user-name",
+          email: "user-email",
+          phone: "user-phone",
+          password: "user-pass",
+          businessName: "business-name",
+          state: "user-state",
+          city: "user-city",
+        };
+        if (fieldToId[firstField]) focusAndScrollTo(fieldToId[firstField]);
+      } else {
+        setError(err?.message || "Failed to create account. Please check your details.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -764,8 +882,8 @@ export function RegisterUserPage() {
                 )}
               </div>
 
-              {/* Error banner */}
-              {error && (
+              {/* General error banner (only if not a field-specific error) */}
+              {error && Object.keys(fieldErrors).length === 0 && (
                 <div className="mb-5 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 animate-in fade-in-50">
                   <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
                   <span>{error}</span>
@@ -793,10 +911,19 @@ export function RegisterUserPage() {
                         placeholder="e.g. Mohd Tariq"
                         value={form.name}
                         onChange={(e) => handleChange("name", e.target.value)}
-                        className="pl-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20"
+                        className={cn(
+                          "pl-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20",
+                          fieldErrors.name && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                        )}
                         required
                       />
                     </div>
+                    {fieldErrors.name && (
+                      <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                        <span>{fieldErrors.name}</span>
+                      </p>
+                    )}
                   </div>
 
                   {/* Email with Inline OTP Verification */}
@@ -817,7 +944,8 @@ export function RegisterUserPage() {
                         disabled={emailVerified}
                         className={cn(
                           "pl-10 pr-28 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20",
-                          emailVerified && "bg-emerald-50/50 border-emerald-300 text-emerald-900"
+                          emailVerified && "bg-emerald-50/50 border-emerald-300 text-emerald-900",
+                          fieldErrors.email && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
                         )}
                         required
                       />
@@ -841,6 +969,13 @@ export function RegisterUserPage() {
                         )}
                       </div>
                     </div>
+
+                    {fieldErrors.email && (
+                      <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                        <span>{fieldErrors.email}</span>
+                      </p>
+                    )}
 
                     {emailConflictError && (
                       <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between mt-2">
@@ -952,11 +1087,20 @@ export function RegisterUserPage() {
                             const digits = e.target.value.replace(/\D/g, "").slice(0, 15);
                             handleChange("phoneNumber", digits);
                           }}
-                          className="pl-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20"
+                          className={cn(
+                            "pl-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20",
+                            fieldErrors.phoneNumber && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                          )}
                           required
                         />
                       </div>
                     </div>
+                    {fieldErrors.phoneNumber && (
+                      <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                        <span>{fieldErrors.phoneNumber}</span>
+                      </p>
+                    )}
                   </div>
 
                   {/* Passwords */}
@@ -975,7 +1119,10 @@ export function RegisterUserPage() {
                           placeholder="Min. 6 chars"
                           value={form.password}
                           onChange={(e) => handleChange("password", e.target.value)}
-                          className="pl-10 pr-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20"
+                          className={cn(
+                            "pl-10 pr-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20",
+                            fieldErrors.password && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                          )}
                           required
                         />
                         <button
@@ -986,6 +1133,12 @@ export function RegisterUserPage() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+                      {fieldErrors.password && (
+                        <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                          <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                          <span>{fieldErrors.password}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="user-confirm-pass" className="text-xs font-semibold text-slate-700 mb-1.5 block">
@@ -1001,7 +1154,10 @@ export function RegisterUserPage() {
                           placeholder="Repeat password"
                           value={form.confirmPassword}
                           onChange={(e) => handleChange("confirmPassword", e.target.value)}
-                          className="pl-10 pr-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20"
+                          className={cn(
+                            "pl-10 pr-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20",
+                            fieldErrors.confirmPassword && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                          )}
                           required
                         />
                         <button
@@ -1012,6 +1168,12 @@ export function RegisterUserPage() {
                           {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+                      {fieldErrors.confirmPassword && (
+                        <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                          <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                          <span>{fieldErrors.confirmPassword}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -1035,7 +1197,7 @@ export function RegisterUserPage() {
                   {/* Business Name */}
                   <div>
                     <Label htmlFor="business-name" className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                      Business / Organization Name
+                      Business / Organization Name *
                     </Label>
                     <div className="relative">
                       <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -1045,9 +1207,19 @@ export function RegisterUserPage() {
                         placeholder="e.g. Apex Engineering Solutions"
                         value={form.businessName}
                         onChange={(e) => handleChange("businessName", e.target.value)}
-                        className="pl-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20"
+                        className={cn(
+                          "pl-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20",
+                          fieldErrors.businessName && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                        )}
+                        required
                       />
                     </div>
+                    {fieldErrors.businessName && (
+                      <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                        <span>{fieldErrors.businessName}</span>
+                      </p>
+                    )}
                   </div>
 
                   {/* Chamber Membership ID (If joining under existing Tier 4 Enterprise Membership) */}
@@ -1135,17 +1307,22 @@ export function RegisterUserPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Indian State */}
                       <div>
-                        <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        <Label htmlFor="user-state" className="text-xs font-semibold text-slate-700 mb-1.5 block">
                           State *
                         </Label>
                         <div className="relative">
                           <select
+                            id="user-state"
                             value={form.state}
                             onChange={(e) => {
                               const st = e.target.value;
+                              handleChange("state", st);
                               setForm((prev) => ({ ...prev, state: st, city: "" }));
                             }}
-                            className="w-full h-11 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer"
+                            className={cn(
+                              "w-full h-11 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer",
+                              fieldErrors.state && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                            )}
                           >
                             <option value="">Select State</option>
                             {indianStates.map((st) => (
@@ -1156,19 +1333,29 @@ export function RegisterUserPage() {
                           </select>
                           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                         </div>
+                        {fieldErrors.state && (
+                          <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                            <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                            <span>{fieldErrors.state}</span>
+                          </p>
+                        )}
                       </div>
 
                       {/* Indian City */}
                       <div>
-                        <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        <Label htmlFor="user-city" className="text-xs font-semibold text-slate-700 mb-1.5 block">
                           City *
                         </Label>
                         <div className="relative">
                           <select
+                            id="user-city"
                             value={form.city}
                             onChange={(e) => handleChange("city", e.target.value)}
                             disabled={!form.state}
-                            className="w-full h-11 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer disabled:bg-slate-50 disabled:text-slate-400"
+                            className={cn(
+                              "w-full h-11 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer disabled:bg-slate-50 disabled:text-slate-400",
+                              fieldErrors.city && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                            )}
                           >
                             <option value="">{form.state ? "Select City" : "Choose state first"}</option>
                             {indianCities.map((ct) => (
@@ -1179,23 +1366,34 @@ export function RegisterUserPage() {
                           </select>
                           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                         </div>
+                        {fieldErrors.city && (
+                          <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                            <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                            <span>{fieldErrors.city}</span>
+                          </p>
+                        )}
                       </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* International Country */}
                       <div>
-                        <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        <Label htmlFor="user-country" className="text-xs font-semibold text-slate-700 mb-1.5 block">
                           Country *
                         </Label>
                         <div className="relative">
                           <select
+                            id="user-country"
                             value={form.country}
                             onChange={(e) => {
                               const cty = e.target.value;
+                              handleChange("country", cty);
                               setForm((prev) => ({ ...prev, country: cty, city: "" }));
                             }}
-                            className="w-full h-11 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer"
+                            className={cn(
+                              "w-full h-11 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer",
+                              fieldErrors.country && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                            )}
                           >
                             <option value="">Select Country</option>
                             {internationalCountries.map((c) => (
@@ -1206,20 +1404,30 @@ export function RegisterUserPage() {
                           </select>
                           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                         </div>
+                        {fieldErrors.country && (
+                          <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                            <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                            <span>{fieldErrors.country}</span>
+                          </p>
+                        )}
                       </div>
 
                       {/* International State / City */}
                       <div>
-                        <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                        <Label htmlFor="user-intl-city" className="text-xs font-semibold text-slate-700 mb-1.5 block">
                           State / City *
                         </Label>
                         {internationalCities.length > 0 ? (
                           <div className="relative">
                             <select
+                              id="user-intl-city"
                               value={form.city}
                               onChange={(e) => handleChange("city", e.target.value)}
                               disabled={!form.country}
-                              className="w-full h-11 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer disabled:bg-slate-50 disabled:text-slate-400"
+                              className={cn(
+                                "w-full h-11 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer disabled:bg-slate-50 disabled:text-slate-400",
+                                fieldErrors.city && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                              )}
                             >
                               <option value="">{form.country ? "Select State / City" : "Choose country first"}</option>
                               {internationalCities.map((ct) => (
@@ -1232,12 +1440,22 @@ export function RegisterUserPage() {
                           </div>
                         ) : (
                           <Input
+                            id="user-intl-city"
                             value={form.city}
                             onChange={(e) => handleChange("city", e.target.value)}
                             disabled={!form.country}
                             placeholder={form.country ? `Enter State / City in ${form.country}` : "Choose country first"}
-                            className="h-11 rounded-xl border-slate-200 text-xs sm:text-sm"
+                            className={cn(
+                              "h-11 rounded-xl border-slate-200 text-xs sm:text-sm",
+                              fieldErrors.city && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                            )}
                           />
+                        )}
+                        {fieldErrors.city && (
+                          <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                            <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                            <span>{fieldErrors.city}</span>
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1418,12 +1636,15 @@ export function RegisterUserPage() {
 
                   {/* Terms checkbox */}
                   <div className="pt-2">
-                    <label className="flex items-start gap-2.5 cursor-pointer">
+                    <label id="user-terms" className="flex items-start gap-2.5 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={form.agreeTerms}
                         onChange={(e) => handleChange("agreeTerms", e.target.checked)}
-                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        className={cn(
+                          "mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500",
+                          fieldErrors.agreeTerms && "border-rose-400 ring-2 ring-rose-400"
+                        )}
                       />
                       <span className="text-xs text-slate-600">
                         I agree to RIFAH Chamber's{" "}
@@ -1437,6 +1658,12 @@ export function RegisterUserPage() {
                         .
                       </span>
                     </label>
+                    {fieldErrors.agreeTerms && (
+                      <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                        <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                        <span>{fieldErrors.agreeTerms}</span>
+                      </p>
+                    )}
                   </div>
 
                   {/* Final Buttons */}
@@ -1560,12 +1787,13 @@ export function RegisterUserPage() {
 
                     {/* Business Search Box */}
                     <div>
-                      <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                      <Label htmlFor="business-search-input" className="text-xs font-semibold text-slate-700 mb-1.5 block">
                         Search Business by Name
                       </Label>
                       <div className="relative">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
+                          id="business-search-input"
                           type="text"
                           placeholder="Search registered business name..."
                           value={businessSearchQuery}
@@ -1573,10 +1801,26 @@ export function RegisterUserPage() {
                             setBusinessSearchQuery(e.target.value);
                             setSelectedBusiness(null);
                             setBizOtpSent(false);
+                            if (fieldErrors.businessSelection) {
+                              setFieldErrors((prev) => {
+                                const next = { ...prev };
+                                delete next.businessSelection;
+                                return next;
+                              });
+                            }
                           }}
-                          className="pl-10 h-11 rounded-xl border-slate-200 text-sm"
+                          className={cn(
+                            "pl-10 h-11 rounded-xl border-slate-200 text-sm",
+                            fieldErrors.businessSelection && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                          )}
                         />
                       </div>
+                      {fieldErrors.businessSelection && (
+                        <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1 animate-in fade-in-50">
+                          <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                          <span>{fieldErrors.businessSelection}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -1723,7 +1967,7 @@ export function RegisterUserPage() {
                           )}
                         </Button>
                       ) : (
-                        <div className="space-y-3 pt-1">
+                        <div id="biz-otp-box" className="space-y-3 pt-1">
                           <div>
                             <div className="flex items-center justify-between mb-1.5">
                               <Label className="text-xs font-semibold text-slate-700">
@@ -1750,6 +1994,13 @@ export function RegisterUserPage() {
                               ))}
                             </div>
                           </div>
+
+                          {fieldErrors.businessOtp && (
+                            <p className="text-xs text-rose-600 font-medium flex items-center gap-1 mt-1">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              {fieldErrors.businessOtp}
+                            </p>
+                          )}
 
                           <div className="flex items-center gap-2 pt-1">
                             <Button
@@ -1828,10 +2079,19 @@ export function RegisterUserPage() {
                         placeholder="e.g. Mohd Tariq"
                         value={form.name}
                         onChange={(e) => handleChange("name", e.target.value)}
-                        className="pl-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20"
+                        className={cn(
+                          "pl-10 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20",
+                          fieldErrors.name && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                        )}
                         required
                       />
                     </div>
+                    {fieldErrors.name && (
+                      <p className="text-xs text-rose-600 font-medium flex items-center gap-1 mt-1.5">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {fieldErrors.name}
+                      </p>
+                    )}
                   </div>
 
                   {/* Member Email Address with Inline OTP */}
@@ -1851,6 +2111,7 @@ export function RegisterUserPage() {
                         disabled={emailVerified}
                         className={cn(
                           "pl-10 pr-28 h-11 rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500/20",
+                          fieldErrors.email && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20",
                           emailVerified && "bg-emerald-50/50 border-emerald-300 text-emerald-900"
                         )}
                         required
@@ -1875,6 +2136,13 @@ export function RegisterUserPage() {
                         )}
                       </div>
                     </div>
+
+                    {fieldErrors.email && (
+                      <p className="text-xs text-rose-600 font-medium flex items-center gap-1 mt-1.5">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {fieldErrors.email}
+                      </p>
+                    )}
 
                     {emailConflictError && (
                       <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between mt-2 animate-in fade-in-50">
@@ -1969,11 +2237,20 @@ export function RegisterUserPage() {
                           placeholder="Mobile number"
                           value={form.phoneNumber}
                           onChange={(e) => handleChange("phoneNumber", e.target.value)}
-                          className="pl-10 h-11 rounded-xl border-slate-200 text-sm"
+                          className={cn(
+                            "pl-10 h-11 rounded-xl border-slate-200 text-sm",
+                            fieldErrors.phoneNumber && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                          )}
                           required
                         />
                       </div>
                     </div>
+                    {fieldErrors.phoneNumber && (
+                      <p className="text-xs text-rose-600 font-medium flex items-center gap-1 mt-1.5">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {fieldErrors.phoneNumber}
+                      </p>
+                    )}
                   </div>
 
                   {/* Password & Confirm */}
@@ -1990,7 +2267,10 @@ export function RegisterUserPage() {
                           placeholder="Min. 6 characters"
                           value={form.password}
                           onChange={(e) => handleChange("password", e.target.value)}
-                          className="pl-10 pr-10 h-11 rounded-xl border-slate-200 text-sm"
+                          className={cn(
+                            "pl-10 pr-10 h-11 rounded-xl border-slate-200 text-sm",
+                            fieldErrors.password && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                          )}
                           required
                         />
                         <button
@@ -2001,6 +2281,12 @@ export function RegisterUserPage() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+                      {fieldErrors.password && (
+                        <p className="text-xs text-rose-600 font-medium flex items-center gap-1 mt-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                          {fieldErrors.password}
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -2015,7 +2301,10 @@ export function RegisterUserPage() {
                           placeholder="Repeat password"
                           value={form.confirmPassword}
                           onChange={(e) => handleChange("confirmPassword", e.target.value)}
-                          className="pl-10 pr-10 h-11 rounded-xl border-slate-200 text-sm"
+                          className={cn(
+                            "pl-10 pr-10 h-11 rounded-xl border-slate-200 text-sm",
+                            fieldErrors.confirmPassword && "border-rose-400 bg-rose-50/10 focus:border-rose-500 focus:ring-rose-500/20"
+                          )}
                           required
                         />
                         <button
@@ -2026,6 +2315,12 @@ export function RegisterUserPage() {
                           {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+                      {fieldErrors.confirmPassword && (
+                        <p className="text-xs text-rose-600 font-medium flex items-center gap-1 mt-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                          {fieldErrors.confirmPassword}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -2091,7 +2386,13 @@ export function RegisterUserPage() {
 
                   {/* Terms checkbox */}
                   <div className="pt-2">
-                    <label className="flex items-start gap-2.5 cursor-pointer">
+                    <label
+                      id="biz-terms"
+                      className={cn(
+                        "flex items-start gap-2.5 cursor-pointer p-2 rounded-xl transition-colors",
+                        fieldErrors.agreeTerms && "bg-rose-50/50 border border-rose-300"
+                      )}
+                    >
                       <input
                         type="checkbox"
                         checked={form.agreeTerms}
@@ -2110,6 +2411,12 @@ export function RegisterUserPage() {
                         .
                       </span>
                     </label>
+                    {fieldErrors.agreeTerms && (
+                      <p className="text-xs text-rose-600 font-medium flex items-center gap-1 mt-1.5">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {fieldErrors.agreeTerms}
+                      </p>
+                    )}
                   </div>
 
                   {/* Submit Button */}
