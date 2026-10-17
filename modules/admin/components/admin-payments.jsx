@@ -1089,28 +1089,6 @@ export function AdminPayments({ expectedRole = "admin" }) {
                           <Download className="h-4 w-4 mr-2" />
                           Download Receipt (Voucher)
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                          disabled={r.status === "refunded" || r.status === "Refunded"}
-                          onClick={async () => {
-                            if (
-                              confirm(
-                                `Are you sure you want to mark invoice ${r.invoiceNumber} as refunded?`
-                              )
-                            ) {
-                              try {
-                                await paymentApi.refund(r._id);
-                                toast.success("Payment marked as refunded");
-                                refetch();
-                              } catch (e) {
-                                toast.error(e.message || "Failed to process refund");
-                              }
-                            }
-                          }}
-                        >
-                          Process Refund
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ),

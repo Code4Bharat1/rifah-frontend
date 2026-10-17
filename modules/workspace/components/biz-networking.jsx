@@ -52,6 +52,7 @@ import {
   useMyReferrals,
 } from "@shared/hooks/use-rifah-api";
 import { oneToOneApi, thankYouNoteApi, referralApi } from "@shared/lib/api-services";
+import { formatIndianCurrency, formatCurrencyFull } from "@shared/lib/utils";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -445,7 +446,8 @@ function BizNetworking({ role = "business" }) {
           />
           <StatCard
             label="Business given"
-            value={currencyFormatter.format(totalGiven)}
+            value={formatIndianCurrency(totalGiven)}
+            title={formatCurrencyFull(totalGiven)}
             icon={ArrowUpRight}
             tone="success"
             hint="Business you generated for others"
@@ -453,7 +455,8 @@ function BizNetworking({ role = "business" }) {
           />
           <StatCard
             label="Business received"
-            value={currencyFormatter.format(totalReceived)}
+            value={formatIndianCurrency(totalReceived)}
+            title={formatCurrencyFull(totalReceived)}
             icon={ArrowDownLeft}
             tone="brand"
             hint="Business others generated for you"

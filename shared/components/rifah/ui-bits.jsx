@@ -17,6 +17,7 @@ export function StatCard({
   onClick,
   active = false,
   className,
+  title,
 }) {
   const tones = {
     default: "bg-muted text-muted-foreground",
@@ -33,6 +34,7 @@ export function StatCard({
 
   const cardContent = (
     <div
+      title={title}
       className={cn(
         "group relative flex h-full flex-col rounded-xl sm:rounded-2xl border transition-all duration-200 p-3 sm:p-4 select-none cursor-pointer hover:shadow-md hover:-translate-y-0.5 min-w-0 w-full",
         active

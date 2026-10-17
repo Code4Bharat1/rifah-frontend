@@ -208,8 +208,6 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
   const bannerSubtext = isEventPass
     ? "Your event registration payment has been received successfully."
     : "Your membership payment has been received successfully.";
-  const badgeSubtitle = isEventPass ? "Tax Invoice (Event)" : "Invoice for Membership";
-  const badgePillWidth = isEventPass ? 200 : 224;
 
   return `
     <!DOCTYPE html>
@@ -354,19 +352,7 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
           .delegation-tag { display: inline-block; background: rgba(0, 136, 209, 0.12); color: #0088d1; border: 1px solid rgba(0, 136, 209, 0.3); font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
           .footer-section { text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 18px; line-height: 1.6; }
           
-          /* Pill Badge with rock-solid canvas compatibility */
-          .pill-badge {
-            display: inline-block;
-            border: 1px solid #94a3b8;
-            border-radius: 50px;
-            padding: 3px 14px;
-            font-size: 10.5px;
-            font-weight: 600;
-            color: #334155;
-            background: #ffffff;
-            margin-top: 8px;
-            line-height: 18px;
-          }
+
           .red-accent-line {
             width: 42px;
             height: 3px;
@@ -744,14 +730,6 @@ export function generateInvoiceHtml(payment, business = null, options = {}) {
                 ${isDelegation ? '<div class="delegation-tag">Overseas Delegation</div>' : ""}
                 <div class="invoice-big-title">${isDelegation ? "DELEGATION TAX INVOICE" : "INVOICE"}</div>
                 <div class="invoice-sub-title">Payment Confirmation</div>
-                <div style="margin-top: 8px;">
-                  <svg width="${badgePillWidth}" height="24" viewBox="0 0 ${badgePillWidth} 24" style="display: inline-block;">
-                    <rect x="0.5" y="0.5" width="${badgePillWidth - 1}" height="23" rx="11.5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
-                    <text x="50" y="16" text-anchor="middle" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="10" font-weight="600" fill="#334155">Original Copy</text>
-                    <line x1="100" y1="5" x2="100" y2="19" stroke="#cbd5e1" stroke-width="1" />
-                    <text x="${100 + (badgePillWidth - 100) / 2}" y="16" text-anchor="middle" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="10" font-weight="600" fill="#334155">${badgeSubtitle}</text>
-                  </svg>
-                </div>
                 <div class="red-accent-line"></div>
               </div>
             </div>

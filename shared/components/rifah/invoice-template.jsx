@@ -190,27 +190,6 @@ export function Header({ logoUrl = "/rifah-logo.png" }) {
           Payment Confirmation
         </p>
 
-        {/* Two Outlined Rounded Pills with Divider */}
-        <div style={{ marginTop: "8px" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              border: `1px solid #94A3B8`,
-              borderRadius: "9999px",
-              padding: "3px 14px",
-              fontSize: "10.5px",
-              fontWeight: 600,
-              color: "#334155",
-              backgroundColor: INVOICE_COLORS.white,
-            }}
-          >
-            <span>Original Copy</span>
-            <span style={{ color: "#CBD5E1" }}>|</span>
-            <span>Invoice for Membership</span>
-          </div>
-        </div>
 
         {/* Red Accent Line */}
         <div

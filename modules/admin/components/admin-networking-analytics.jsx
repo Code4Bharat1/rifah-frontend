@@ -8,12 +8,7 @@ import { EmptyState } from "@shared/components/rifah/empty-state";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@shared/components/ui/tabs";
 import { useAuth } from "@shared/providers/auth-provider";
 import { useNetworkingOverview, useNetworkingLeaderboard, useNetworkingBreakdown } from "@shared/hooks/use-rifah-api";
-
-const currencyFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
+import { formatIndianCurrency, formatCurrencyFull } from "@shared/lib/utils";
 
 function AdminNetworkingAnalytics() {
   const { user } = useAuth();
@@ -54,28 +49,32 @@ function AdminNetworkingAnalytics() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
             label="Business given"
-            value={overviewLoading ? "…" : currencyFormatter.format(overview?.totalGiven || 0)}
+            value={overviewLoading ? "…" : formatIndianCurrency(overview?.totalGiven || 0)}
+            title={overviewLoading ? undefined : formatCurrencyFull(overview?.totalGiven || 0)}
             icon={ArrowUpRight}
             tone="success"
             hint={`${overview?.givenCount || 0} transactions`}
           />
           <StatCard
             label="Business received"
-            value={overviewLoading ? "…" : currencyFormatter.format(overview?.totalReceived || 0)}
+            value={overviewLoading ? "…" : formatIndianCurrency(overview?.totalReceived || 0)}
+            title={overviewLoading ? undefined : formatCurrencyFull(overview?.totalReceived || 0)}
             icon={ArrowDownLeft}
             tone="brand"
             hint={`${overview?.receivedCount || 0} transactions`}
           />
           <StatCard
             label="Total volume"
-            value={overviewLoading ? "…" : currencyFormatter.format(overview?.totalVolume || 0)}
+            value={overviewLoading ? "…" : formatIndianCurrency(overview?.totalVolume || 0)}
+            title={overviewLoading ? undefined : formatCurrencyFull(overview?.totalVolume || 0)}
             icon={Building2}
             tone="primary"
             hint={`${overview?.transactionCount || 0} thank you notes`}
           />
           <StatCard
             label="Via referrals"
-            value={overviewLoading ? "…" : currencyFormatter.format(overview?.bySource?.referral?.total || 0)}
+            value={overviewLoading ? "…" : formatIndianCurrency(overview?.bySource?.referral?.total || 0)}
+            title={overviewLoading ? undefined : formatCurrencyFull(overview?.bySource?.referral?.total || 0)}
             icon={MapPin}
             tone="warning"
             hint={`${overview?.bySource?.referral?.count || 0} referrals closed`}
@@ -126,7 +125,9 @@ function AdminNetworkingAnalytics() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-sm font-bold">{currencyFormatter.format(row.total)}</p>
+                        <p className="text-sm font-bold" title={formatCurrencyFull(row.total)}>
+                          {formatIndianCurrency(row.total)}
+                        </p>
                         <p className="text-[11px] text-muted-foreground">{row.count} transactions</p>
                       </div>
                     </div>
@@ -164,9 +165,15 @@ function AdminNetworkingAnalytics() {
                     {breakdownRows.map((row, index) => (
                       <tr key={`breakdown-${row.chapterId || row.label || index}-${index}`} className="hover:bg-muted/30">
                         <td className="px-4 py-3 font-medium">{row.label}</td>
-                        <td className="px-4 py-3 text-success font-semibold">{currencyFormatter.format(row.given)}</td>
-                        <td className="px-4 py-3 text-primary font-semibold">{currencyFormatter.format(row.received)}</td>
-                        <td className="px-4 py-3 font-bold">{currencyFormatter.format(row.given + row.received)}</td>
+                        <td className="px-4 py-3 text-success font-semibold" title={formatCurrencyFull(row.given)}>
+                          {formatIndianCurrency(row.given)}
+                        </td>
+                        <td className="px-4 py-3 text-primary font-semibold" title={formatCurrencyFull(row.received)}>
+                          {formatIndianCurrency(row.received)}
+                        </td>
+                        <td className="px-4 py-3 font-bold" title={formatCurrencyFull(row.given + row.received)}>
+                          {formatIndianCurrency(row.given + row.received)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
