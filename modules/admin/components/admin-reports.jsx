@@ -338,7 +338,8 @@ function EventAnalyticsTab() {
 
   return (
     <div className="space-y-8">
-      {/* Global Filters at the top */}
+      {/* Global Filters at the top — only show for roles that have filters */}
+      {["central_admin", "country_admin", "state_admin"].includes(user?.role) && (
       <div className="flex flex-col sm:flex-row gap-4 p-5 bg-surface/50 backdrop-blur-xl border border-border rounded-2xl shadow-sm">
         <div className="flex items-center gap-2 mb-2 sm:mb-0 sm:mr-4">
           <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
@@ -392,6 +393,7 @@ function EventAnalyticsTab() {
           </div>
         )}
       </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
