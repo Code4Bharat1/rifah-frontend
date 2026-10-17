@@ -19,6 +19,7 @@ const ADMIN_ROLES = [
 export function proxy(request) {
   const { pathname, search } = request.nextUrl;
   const token = request.cookies.get("rifah_access_token")?.value;
+  const refreshToken = request.cookies.get("rifah_refresh_token")?.value;
   const role = request.cookies.get("rifah_user_role")?.value;
 
   const isProtected = PROTECTED_PANELS.some(
@@ -26,7 +27,7 @@ export function proxy(request) {
   );
 
   // 1. Unauthenticated users trying to access any protected panel -> Immediate redirect to /login
-  if (isProtected && !token) {
+  if (isProtected && !token && !refreshToken) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);

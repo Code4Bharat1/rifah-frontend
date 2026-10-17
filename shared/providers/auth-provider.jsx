@@ -8,12 +8,12 @@ import React, {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authApi, userApi } from "../lib/api-services";
+import { setAccessToken, getAccessToken } from "../lib/api-client";
 
 export function syncAuthCookies(token, user) {
   if (typeof document === "undefined") return;
-  if (token) {
-    document.cookie = `rifah_access_token=${token}; path=/; max-age=604800; SameSite=Lax`;
-  }
+  // Ensure access token is NEVER stored in cookies; immediately purge any legacy cookie
+  document.cookie = "rifah_access_token=; path=/; max-age=0; SameSite=Lax";
   if (user?.role) {
     document.cookie = `rifah_user_role=${user.role}; path=/; max-age=604800; SameSite=Lax`;
   }
@@ -43,7 +43,18 @@ export function AuthProvider({ children }) {
         }
       } catch (_) {}
 
-      const token = localStorage.getItem("rifah_access_token");
+      // Clean up legacy refresh token from localStorage
+      localStorage.removeItem("rifah_refresh_token");
+
+      // Check in-memory access token or migrate legacy access token
+      let token = getAccessToken();
+      const legacyToken = localStorage.getItem("rifah_access_token");
+      if (!token && legacyToken) {
+        token = legacyToken;
+        setAccessToken(legacyToken);
+        localStorage.removeItem("rifah_access_token");
+      }
+
       const hasToken = Boolean(token);
       const hasCachedUser = Boolean(cachedUser);
       setLoading(!(hasToken && hasCachedUser));
@@ -67,17 +78,30 @@ export function AuthProvider({ children }) {
 
   const fetchCurrentUser = async () => {
     const requestId = ++requestIdRef.current;
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("rifah_access_token")
-        : null;
+    let token = getAccessToken();
+    // If no access token in memory (e.g. initial load / page refresh), attempt silent refresh via HttpOnly cookie
+    if (!token) {
+      try {
+        const refreshRes = await authApi.refreshToken();
+        const refreshData = refreshRes?.data || refreshRes;
+        token = refreshData?.accessToken;
+        if (token) {
+          setAccessToken(token);
+        }
+      } catch (_) {
+        // No valid session cookie
+      }
+    }
+
     if (!token) {
       if (requestId === requestIdRef.current) {
         setUser(null);
+        clearAuthCookies();
         setLoading(false);
       }
       return;
     }
+
     try {
       const res = await authApi.getMe();
       const userData = res?.data || res;
@@ -103,6 +127,7 @@ export function AuthProvider({ children }) {
               err.message.toLowerCase().includes("please log in to continue")));
 
         if (isAuthError) {
+          setAccessToken(null);
           setUser(null);
           clearAuthCookies();
           localStorage.removeItem("rifah_access_token");
@@ -135,21 +160,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(async () => {
-      const refreshToken =
-        typeof window !== "undefined"
-          ? localStorage.getItem("rifah_refresh_token")
-          : null;
-      if (!refreshToken) return;
       try {
-        const res = await authApi.refreshToken(refreshToken);
+        const res = await authApi.refreshToken();
         const data = res?.data || res;
         const newAccessToken = data?.accessToken;
-        const newRefreshToken = data?.refreshToken;
-        if (newAccessToken && typeof window !== "undefined") {
-          localStorage.setItem("rifah_access_token", newAccessToken);
-          if (newRefreshToken) {
-            localStorage.setItem("rifah_refresh_token", newRefreshToken);
-          }
+        if (newAccessToken) {
+          setAccessToken(newAccessToken);
+          syncAuthCookies(newAccessToken, user);
         }
       } catch (_) {
         // Silent catch: api-client will handle refresh whenever an actual request is made
@@ -175,9 +192,7 @@ export function AuthProvider({ children }) {
     const payload = res.data || res;
     const loggedInUser = payload.user;
     const accessToken = payload.accessToken || payload.tokens?.accessToken;
-    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
-    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
-    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (accessToken) setAccessToken(accessToken);
     if (loggedInUser) {
       requestIdRef.current++; // Invalidate any concurrent requests
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
@@ -203,9 +218,7 @@ export function AuthProvider({ children }) {
     const payload = res.data || res;
     const registeredUser = payload.user;
     const accessToken = payload.accessToken || payload.tokens?.accessToken;
-    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
-    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
-    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (accessToken) setAccessToken(accessToken);
     if (registeredUser) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(registeredUser));
@@ -220,9 +233,7 @@ export function AuthProvider({ children }) {
     const payload = res.data || res;
     const registeredUser = payload.user;
     const accessToken = payload.accessToken || payload.tokens?.accessToken;
-    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
-    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
-    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (accessToken) setAccessToken(accessToken);
     if (registeredUser) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(registeredUser));
@@ -237,9 +248,7 @@ export function AuthProvider({ children }) {
     const payload = res.data || res;
     const loggedInUser = payload.user;
     const accessToken = payload.accessToken || payload.tokens?.accessToken;
-    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
-    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
-    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (accessToken) setAccessToken(accessToken);
     if (loggedInUser) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
@@ -254,9 +263,7 @@ export function AuthProvider({ children }) {
     const payload = res.data || res;
     const loggedInUser = payload.user;
     const accessToken = payload.accessToken || payload.tokens?.accessToken;
-    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
-    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
-    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (accessToken) setAccessToken(accessToken);
     if (loggedInUser) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
@@ -279,9 +286,7 @@ export function AuthProvider({ children }) {
     const payload = res.data || res;
     const loggedInUser = payload.user;
     const accessToken = payload.accessToken || payload.tokens?.accessToken;
-    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
-    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
-    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (accessToken) setAccessToken(accessToken);
     if (loggedInUser) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));
@@ -296,9 +301,7 @@ export function AuthProvider({ children }) {
     const payload = res.data || res;
     const updatedUser = payload.user;
     const accessToken = payload.accessToken || payload.tokens?.accessToken;
-    const refreshToken = payload.refreshToken || payload.tokens?.refreshToken;
-    if (accessToken) localStorage.setItem("rifah_access_token", accessToken);
-    if (refreshToken) localStorage.setItem("rifah_refresh_token", refreshToken);
+    if (accessToken) setAccessToken(accessToken);
     if (updatedUser) {
       requestIdRef.current++;
       localStorage.setItem("rifah_user", JSON.stringify(updatedUser));
@@ -310,11 +313,8 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     requestIdRef.current++;
-    // Revoke the session server-side. Must start before the token is cleared below (apiClient
-    // reads it synchronously); failure is harmless because local credentials are dropped anyway.
-    if (localStorage.getItem("rifah_access_token")) {
-      authApi.logout().catch(() => {});
-    }
+    authApi.logout().catch(() => {});
+    setAccessToken(null);
     clearAuthCookies();
     localStorage.removeItem("rifah_access_token");
     localStorage.removeItem("rifah_refresh_token");
@@ -340,7 +340,7 @@ export function AuthProvider({ children }) {
         loading,
         token:
           typeof window !== "undefined"
-            ? localStorage.getItem("rifah_access_token")
+            ? getAccessToken()
             : null,
         login,
         loginWithOtp,
@@ -365,12 +365,7 @@ export function AuthProvider({ children }) {
           const loggedInUser = payload.user;
           const accessToken =
             payload.accessToken || payload.tokens?.accessToken;
-          const refreshToken =
-            payload.refreshToken || payload.tokens?.refreshToken;
-          if (accessToken)
-            localStorage.setItem("rifah_access_token", accessToken);
-          if (refreshToken)
-            localStorage.setItem("rifah_refresh_token", refreshToken);
+          if (accessToken) setAccessToken(accessToken);
           if (loggedInUser) {
             requestIdRef.current++;
             localStorage.setItem("rifah_user", JSON.stringify(loggedInUser));

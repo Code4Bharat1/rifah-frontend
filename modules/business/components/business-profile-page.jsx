@@ -480,14 +480,8 @@ function BusinessProfile() {
   }, [searchParams, catalogueItems, isLoading]);
 
   const getBaseAppUrl = () => {
-    const liveDomain = process.env.NEXT_PUBLIC_APP_URL || "https://rifah.nexcorealliance.com";
-    if (typeof window !== "undefined") {
-      const origin = window.location.origin;
-      if (origin && !origin.includes("localhost") && !origin.includes("127.0.0.1")) {
-        return origin;
-      }
-    }
-    return liveDomain;
+    const base = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
+    return base.replace(/\/$/, "");
   };
 
   const getShareUrl = () => {

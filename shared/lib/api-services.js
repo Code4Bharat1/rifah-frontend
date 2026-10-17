@@ -1,4 +1,4 @@
-import { apiClient } from "./api-client";
+import { apiClient, getApiBaseUrl, getBackendServerBase, getAccessToken } from "./api-client";
 
 function toQueryString(params = {}) {
   const clean = Object.fromEntries(
@@ -39,7 +39,7 @@ export const authApi = {
   refreshToken: (refreshToken) =>
     apiClient("/auth/refresh-token", {
       method: "POST",
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify(refreshToken ? { refreshToken } : {}),
     }),
   changePassword: (data) =>
     apiClient("/auth/change-password", {
@@ -554,8 +554,7 @@ export const invoiceApi = {
       `/invoices/verify/${encodeURIComponent(invoiceNumber)}${token ? `?token=${encodeURIComponent(token)}` : ""}`,
     ),
   downloadPdfUrl: (invoiceNumber, token = "") => {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    const baseUrl = getApiBaseUrl();
     return `${baseUrl}/invoices/download/${encodeURIComponent(invoiceNumber)}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
   },
   revoke: (invoiceNumber, reason) =>
@@ -771,13 +770,8 @@ export const eventApi = {
   // param specifically for this kind of direct-link use — without it, every
   // certificate view/download 401'd and nothing rendered for the viewer.
   getCertificateUrl: (id, attendeeId, style, accentColor) => {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ||
-      "http://localhost:5000";
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("rifah_access_token")
-        : null;
+    const baseUrl = getBackendServerBase();
+    const token = getAccessToken();
     const params = new URLSearchParams({
       style: style || "",
       accentColor: accentColor || "",
@@ -951,12 +945,8 @@ export const reportApi = {
 
 // Helper for authenticated file downloads
 async function downloadFile(endpoint, defaultFilename = "download.csv") {
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("rifah_access_token")
-      : null;
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+  const token = getAccessToken();
+  const API_BASE_URL = getApiBaseUrl();
   const url = endpoint.startsWith("http")
     ? endpoint
     : `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
@@ -1400,6 +1390,6 @@ export const googleDriveApi = {
     apiClient("/google-drive/retry-failed", {
       method: "POST",
     }),
-  getDownloadUrl: (type) => `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"}/google-drive/download/${type}`,
+  getDownloadUrl: (type) => `${getApiBaseUrl()}/google-drive/download/${type}`,
 };
 

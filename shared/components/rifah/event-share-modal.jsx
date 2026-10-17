@@ -20,14 +20,8 @@ export function EventShareModal({ event, open, onOpenChange }) {
   if (!event) return null;
 
   const getEventShareUrl = () => {
-    const liveDomain = process.env.NEXT_PUBLIC_APP_URL || "http://rifah.nexcorealliance.com";
-    if (typeof window !== "undefined") {
-      const origin = window.location.origin;
-      if (origin && !origin.includes("localhost") && !origin.includes("127.0.0.1")) {
-        return `${origin}/events/${event.slug || event._id}`;
-      }
-    }
-    return `${liveDomain}/events/${event.slug || event._id}`;
+    const base = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
+    return `${base.replace(/\/$/, "")}/events/${event.slug || event._id}`;
   };
 
   const shareUrl = getEventShareUrl();

@@ -22,6 +22,7 @@ import {
 import { parsePhoneNumber } from "@shared/lib/countries";
 import { useMembershipPlans, useMyBusiness } from "@shared/hooks/use-rifah-api";
 import { membershipApi, paymentApi, businessApi } from "@shared/lib/api-services";
+import { getAccessToken, setAccessToken } from "@shared/lib/api-client";
 import { useAuth } from "@shared/providers/auth-provider";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChamberMembershipTiers, DEFAULT_BUSINESS_PLANS, DEFAULT_USER_PLANS } from "@shared/components/rifah/chamber-membership-tiers";
@@ -372,7 +373,7 @@ function Checkout() {
 
   const handleConfirmAndPay = async () => {
     // Check if user is logged in
-    const token = typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null;
+    const token = getAccessToken() || (typeof window !== "undefined" ? localStorage.getItem("rifah_access_token") : null) || currentUser;
     if (!token) {
       alert("Please log in to upgrade your membership.");
       window.location.href = `/login?redirect=/membership/checkout?plan=${selected}`;
@@ -389,13 +390,13 @@ function Checkout() {
         });
         const resultData = upgradeRes?.data || upgradeRes;
         if (resultData?.accessToken) {
-          localStorage.setItem("rifah_access_token", resultData.accessToken);
-        }
-        if (resultData?.refreshToken) {
-          localStorage.setItem("rifah_refresh_token", resultData.refreshToken);
+          setAccessToken(resultData.accessToken);
         }
         if (resultData?.user) {
           localStorage.setItem("rifah_user", JSON.stringify(resultData.user));
+          if (typeof document !== "undefined" && resultData.user.role) {
+            document.cookie = `rifah_user_role=${resultData.user.role}; path=/; max-age=604800; SameSite=Lax`;
+          }
         }
         if (refreshProfile) {
           try { await refreshProfile(); } catch (e) {}
@@ -474,13 +475,13 @@ function Checkout() {
 
             // Immediately update local session with upgraded business owner credentials
             if (resultData?.accessToken) {
-              localStorage.setItem("rifah_access_token", resultData.accessToken);
-            }
-            if (resultData?.refreshToken) {
-              localStorage.setItem("rifah_refresh_token", resultData.refreshToken);
+              setAccessToken(resultData.accessToken);
             }
             if (resultData?.user) {
               localStorage.setItem("rifah_user", JSON.stringify(resultData.user));
+              if (typeof document !== "undefined" && resultData.user.role) {
+                document.cookie = `rifah_user_role=${resultData.user.role}; path=/; max-age=604800; SameSite=Lax`;
+              }
             }
             if (refreshProfile) {
               try {
